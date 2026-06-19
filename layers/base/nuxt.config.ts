@@ -117,6 +117,17 @@ export default defineNuxtConfig({
         actAsRegistry: false,
         announceToRegistry: true,
         publicApiMetricsFederation: false,
+        // Nested identity sub-flags must be declared here too, or
+        // NUXT_PUBLIC_FEATURES_IDENTITY_* env overrides silently drop (same
+        // rule as the booleans above). Mirrors @commonpub/config's
+        // IdentityFeatures; all default false.
+        identity: {
+          linkRemoteAccounts: false,
+          signInWithRemote: false,
+          actingAs: false,
+          remoteInteract: false,
+          remotePublish: false,
+        },
       },
       contentTypes: 'project,blog,explainer',
       contestCreation: 'admin',

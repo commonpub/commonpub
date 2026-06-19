@@ -42,7 +42,9 @@ function makeMirror(overrides: Record<string, unknown> = {}) {
 }
 
 function mount(mirror = makeMirror()) {
-  return render(MirrorDetailModal, { props: { mirror } });
+  // The modal renders inside <Teleport to="body"> in production; stub it so the content
+  // mounts in place and the container-scoped queries below resolve it (session 204 fix).
+  return render(MirrorDetailModal, { props: { mirror }, global: { stubs: { teleport: true } } });
 }
 
 beforeEach(() => {

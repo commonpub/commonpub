@@ -4,6 +4,7 @@
  * body size limits, and Date header freshness checks.
  */
 import { verifyHttpSignature, resolveActor } from '@commonpub/protocol';
+import { createSafeActorFetchFn } from '@commonpub/server';
 import type { H3Event } from 'h3';
 
 /** Maximum allowed body size for inbox POSTs (1 MB) */
@@ -97,8 +98,12 @@ export async function verifyInboxRequest(event: H3Event, label: string): Promise
 
   const actorUri = keyId.replace(/#.*$/, '');
 
-  // 4. Resolve actor and public key
-  const actor = await resolveActor(actorUri, fetch);
+  // 4. Resolve actor and public key.
+  // Use the SSRF-pinned fetch (DNS-rebind safe), NOT raw global fetch: actorUri here is
+  // the attacker-controlled keyId resolved BEFORE signature verification, so an
+  // unauthenticated POST /inbox could otherwise drive a server-side GET to internal
+  // addresses (cloud metadata, RFC1918). Audit session 204 — P0.
+  const actor = await resolveActor(actorUri, createSafeActorFetchFn());
   if (!actor?.publicKey?.publicKeyPem) {
     throw createError({ statusCode: 401, statusMessage: 'Could not resolve actor public key' });
   }

@@ -40,7 +40,7 @@ export async function listDocsSites(
       .from(docsSites)
       .innerJoin(users, eq(docsSites.ownerId, users.id))
       .where(where)
-      .orderBy(desc(docsSites.createdAt))
+      .orderBy(desc(docsSites.createdAt), desc(docsSites.id))
       .limit(limit)
       .offset(offset),
     countRows(db, docsSites, where),
@@ -284,11 +284,18 @@ export async function deleteDocsVersion(
 export async function listDocsPages(
   db: DB,
   versionId: string,
+  opts: { publishedOnly?: boolean } = {},
 ): Promise<Array<typeof docsPages.$inferSelect>> {
+  const conditions = [eq(docsPages.versionId, versionId)];
+  // Public callers pass publishedOnly to hide draft/archived pages. Admin/editor
+  // callers omit it (default false) so the docs editor still sees all statuses.
+  if (opts.publishedOnly) {
+    conditions.push(eq(docsPages.status, 'published'));
+  }
   return db
     .select()
     .from(docsPages)
-    .where(eq(docsPages.versionId, versionId))
+    .where(and(...conditions))
     .orderBy(asc(docsPages.sortOrder));
 }
 
@@ -296,8 +303,9 @@ export async function getDocsPage(
   db: DB,
   versionId: string,
   pagePath: string,
+  opts: { publishedOnly?: boolean } = {},
 ): Promise<typeof docsPages.$inferSelect | null> {
-  const allPages = await listDocsPages(db, versionId);
+  const allPages = await listDocsPages(db, versionId, opts);
 
   const pagesAsDocsPage: DocsPage[] = allPages.map((p) => ({
     id: p.id,
@@ -542,6 +550,7 @@ export async function searchDocsPages(
   versionId: string,
   query: string,
   language: string = 'english',
+  opts: { publishedOnly?: boolean } = {},
 ): Promise<Array<{ id: string; title: string; slug: string; snippet: string }>> {
   if (!query.trim()) return [];
 
@@ -559,6 +568,10 @@ export async function searchDocsPages(
   if (!tsQuery) return [];
 
   const langLiteral = sql.raw(`'${ftsLang}'`);
+
+  // Public callers pass publishedOnly to keep draft/archived pages out of search
+  // results. Admin/editor callers omit it so the editor's search sees all pages.
+  const statusFilter = opts.publishedOnly ? sql`AND dp.status = 'published'` : sql``;
 
   // docsPages.content is jsonb. `content::text` produces the literal JSON
   // representation, which pollutes search with keys like "paragraph",
@@ -615,6 +628,7 @@ export async function searchDocsPages(
     ) extracted ON true
     WHERE dp.version_id = ${versionId}
       AND dv.site_id = ${siteId}
+      ${statusFilter}
       AND to_tsvector(${langLiteral}, dp.title || ' ' || extracted.text_content) @@ to_tsquery(${langLiteral}, ${tsQuery})
     LIMIT 20
   `);

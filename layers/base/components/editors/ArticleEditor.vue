@@ -14,6 +14,8 @@ function updateMeta(key: string, value: unknown): void {
   emit('update:metadata', { ...props.metadata, [key]: value });
 }
 
+const { uploadFile } = useFileUpload();
+
 const blockTypes: BlockTypeGroup[] = [
   {
     name: 'Text',
@@ -130,10 +132,7 @@ function onAssetUpload(event: Event): void {
   }
 
   uploading.value = true;
-  const formData = new FormData();
-  formData.append('file', file);
-  formData.append('purpose', 'content');
-  $fetch<{ url: string; originalName: string; sizeBytes: number; mimeType: string }>('/api/files/upload', { method: 'POST', body: formData })
+  uploadFile<{ url: string; originalName: string; sizeBytes: number; mimeType: string }>(file, 'content')
     .then((res) => {
       uploadedFiles.value.unshift({
         name: res.originalName || file.name,
@@ -181,12 +180,9 @@ function onCoverUpload(event: Event): void {
   if (!input.files?.length) return;
   const file = input.files[0];
   if (!file) return;
-  const formData = new FormData();
-  formData.append('file', file);
-  formData.append('purpose', 'cover');
-  $fetch<{ url: string }>('/api/files/upload', { method: 'POST', body: formData })
-    .then((res) => { updateMeta('coverImageUrl', res.url); })
-    .catch(() => { /* silent fallback */ });
+  uploadFile(file, 'cover')
+    .then((res) => { updateMeta('coverImageUrl', res.url); uploadError.value = ''; })
+    .catch((err) => { uploadError.value = err?.data?.statusMessage || 'Cover image upload failed'; });
 }
 
 function onCoverUrl(): void {
@@ -206,12 +202,9 @@ function onBannerUpload(event: Event): void {
   if (!input.files?.length) return;
   const file = input.files[0];
   if (!file) return;
-  const formData = new FormData();
-  formData.append('file', file);
-  formData.append('purpose', 'cover');
-  $fetch<{ url: string }>('/api/files/upload', { method: 'POST', body: formData })
-    .then((res) => { updateMeta('bannerUrl', res.url); })
-    .catch(() => {});
+  uploadFile(file, 'cover')
+    .then((res) => { updateMeta('bannerUrl', res.url); uploadError.value = ''; })
+    .catch((err) => { uploadError.value = err?.data?.statusMessage || 'Banner image upload failed'; });
 }
 
 function removeBanner(): void {

@@ -118,7 +118,25 @@ export class RedisRateLimitStore implements RateLimitStore {
   ): RateLimitResult {
     this.failOpen.total += 1;
     this.failOpen.lastAt = Date.now();
-    this.onError?.(error, { operation, key });
+    if (this.onError) {
+      // A hook is wired (e.g. createRedisFailOpenLogger) — it owns
+      // logging/metrics, possibly rate-limited. Don't double-log.
+      this.onError(error, { operation, key });
+    } else {
+      // No hook wired: the fail-open would otherwise be SILENT, which means
+      // a Redis outage silently disables rate limiting (incl. the auth tier).
+      // Emit a structured line so the outage is at least observable in logs.
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(
+        JSON.stringify({
+          level: 'error',
+          component: 'ratelimit-redis',
+          message: `Redis fail-open: ${operation} failed (${message}). Rate limiting is now per-process until Redis recovers.`,
+          operation,
+          key,
+        }),
+      );
+    }
     return { allowed: true, remaining: tier.limit - 1, resetAt: windowEnd };
   }
 }

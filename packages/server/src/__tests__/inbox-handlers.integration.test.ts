@@ -310,6 +310,69 @@ describe('inbox handler edge cases', () => {
       // Like count should only be 1 (second Like is idempotent)
       expect(row!.localLikeCount).toBe(1);
     });
+
+    // Audit session 203: federated likes on LOCAL content have no `likes` row, so they
+    // are tracked in content_items.remote_like_count for reconcile-counters to preserve.
+    it('tracks remoteLikeCount on local content (and Undo decrements both counters)', async () => {
+      const [content] = await db
+        .insert(contentItems)
+        .values({ authorId: localUserId, type: 'blog', title: 'Local post', slug: 'local-remote-like', status: 'published' })
+        .returning();
+      // Canonical federation URI form (matched by both onLike and onUndo via parseLocalContentUri).
+      const objectUri = `https://${LOCAL_DOMAIN}/u/localuser/blog/local-remote-like`;
+
+      await handlers.onLike(REMOTE_ALICE, objectUri);
+      let [row] = await db.select().from(contentItems).where(eq(contentItems.id, content!.id));
+      expect(row!.likeCount).toBe(1);
+      expect(row!.remoteLikeCount).toBe(1);
+
+      // Same actor again → idempotent (no double-count on either counter).
+      await handlers.onLike(REMOTE_ALICE, objectUri);
+      [row] = await db.select().from(contentItems).where(eq(contentItems.id, content!.id));
+      expect(row!.likeCount).toBe(1);
+      expect(row!.remoteLikeCount).toBe(1);
+
+      // Different actor → both counters advance.
+      await handlers.onLike(REMOTE_BOB, objectUri);
+      [row] = await db.select().from(contentItems).where(eq(contentItems.id, content!.id));
+      expect(row!.likeCount).toBe(2);
+      expect(row!.remoteLikeCount).toBe(2);
+
+      // Undo(Like) decrements both, so like_count = local(0) + remote(1) stays correct.
+      await handlers.onUndo(REMOTE_BOB, 'Like', objectUri);
+      [row] = await db.select().from(contentItems).where(eq(contentItems.id, content!.id));
+      expect(row!.likeCount).toBe(1);
+      expect(row!.remoteLikeCount).toBe(1);
+    });
+
+    // Audit session 204: a remote peer that Likes the UUID-form object URI must be able to
+    // Undo it (was a no-op — onUndo only matched the slug form, permanently inflating the
+    // counters), and a re-Like after Undo must be processed (the stale Like activity must
+    // be deleted, else onLike's idempotency guard silently drops it).
+    it('UUID-form Undo decrements, and re-Like after Undo is processed (Leads 1 + 2)', async () => {
+      const [content] = await db
+        .insert(contentItems)
+        .values({ authorId: localUserId, type: 'blog', title: 'UUID like', slug: 'uuid-like', status: 'published' })
+        .returning();
+      const uri = `https://${LOCAL_DOMAIN}/content/${content!.id}`; // UUID-form (last segment is the id)
+
+      await handlers.onLike(REMOTE_ALICE, uri);
+      let [row] = await db.select().from(contentItems).where(eq(contentItems.id, content!.id));
+      expect(row!.likeCount).toBe(1);
+      expect(row!.remoteLikeCount).toBe(1);
+
+      // Lead 1: Undo via the same UUID-form URI must actually decrement (was a no-op).
+      await handlers.onUndo(REMOTE_ALICE, 'Like', uri);
+      [row] = await db.select().from(contentItems).where(eq(contentItems.id, content!.id));
+      expect(row!.likeCount).toBe(0);
+      expect(row!.remoteLikeCount).toBe(0);
+
+      // Lead 2: re-Like must increment again (stale inbound Like activity was deleted on Undo).
+      await handlers.onLike(REMOTE_ALICE, uri);
+      [row] = await db.select().from(contentItems).where(eq(contentItems.id, content!.id));
+      expect(row!.likeCount).toBe(1);
+      expect(row!.remoteLikeCount).toBe(1);
+    });
   });
 
   // --- onFollow with auto-accept ---

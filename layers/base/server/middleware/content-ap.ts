@@ -53,6 +53,10 @@ export default defineEventHandler(async (event) => {
       typeFilter,
       eq(contentItems.slug, slug),
       eq(contentItems.status, 'published'),
+      // Only PUBLIC content is dereferenceable over ActivityPub. Without this,
+      // an unauthenticated Accept: application/activity+json request would return
+      // the full body of a members-only/private item (audit session 204 — P0).
+      eq(contentItems.visibility, 'public'),
       isNull(contentItems.deletedAt),
     ))
     .limit(1);
@@ -68,9 +72,10 @@ export default defineEventHandler(async (event) => {
       title: row.content.title,
       slug: row.content.slug,
       description: row.content.description,
-      content: typeof row.content.content === 'string'
-        ? row.content.content
-        : JSON.stringify(row.content.content),
+      // Pass blocks through as-is: contentToArticle renders BlockTuple[] to HTML.
+      // Pre-stringifying forced the string branch, shipping raw JSON as the AP
+      // `content` (remote instances showed JSON instead of rendered HTML). (session 204)
+      content: row.content.content,
       coverImageUrl: row.content.coverImageUrl,
       publishedAt: row.content.publishedAt,
       updatedAt: row.content.updatedAt,

@@ -53,6 +53,10 @@ const size = computed<ImageSize>(() => {
   height: auto;
   display: block;
   border: var(--border-width-default) solid var(--border);
+  /* Defend against the global `.cpub-prose img` rule (prose.css) leaking its
+     box-shadow + margin into this scoped block when rendered inside prose. */
+  box-shadow: none;
+  margin: 0;
 }
 
 .cpub-image-caption {

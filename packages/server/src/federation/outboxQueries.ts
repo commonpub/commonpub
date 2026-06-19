@@ -193,7 +193,7 @@ export async function getHubOutboxPage(
         eq(activities.type, 'Announce'),
       ),
     )
-    .orderBy(desc(activities.createdAt))
+    .orderBy(desc(activities.createdAt), desc(activities.id))
     .limit(pageSize)
     .offset(offset);
 

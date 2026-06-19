@@ -1,6 +1,7 @@
 import { deleteComment } from '@commonpub/server';
 
 export default defineEventHandler(async (event): Promise<{ success: boolean }> => {
+  requireFeature('social');
   const user = requireAuth(event);
   const db = useDB();
   const { id } = parseParams(event, { id: 'uuid' });

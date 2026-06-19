@@ -149,7 +149,7 @@ export async function listAuditLogs(
       .from(auditLogs)
       .innerJoin(users, eq(auditLogs.userId, users.id))
       .where(where)
-      .orderBy(desc(auditLogs.createdAt))
+      .orderBy(desc(auditLogs.createdAt), desc(auditLogs.id))
       .limit(limit)
       .offset(offset),
     countRows(db, auditLogs, where),
@@ -282,7 +282,7 @@ export async function listUsers(
       })
       .from(users)
       .where(where)
-      .orderBy(desc(users.createdAt))
+      .orderBy(desc(users.createdAt), desc(users.id))
       .limit(limit)
       .offset(offset),
     countRows(db, users, where),
@@ -430,7 +430,7 @@ export async function listReports(
       .innerJoin(users, eq(reports.reporterId, users.id))
       .leftJoin(reviewerAlias, eq(reports.reviewedById, reviewerAlias.id))
       .where(where)
-      .orderBy(desc(reports.createdAt))
+      .orderBy(desc(reports.createdAt), desc(reports.id))
       .limit(limit)
       .offset(offset),
     countRows(db, reports, where),

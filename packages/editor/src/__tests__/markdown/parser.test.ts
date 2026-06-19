@@ -216,6 +216,6 @@ npm install
       const blocks = markdownToBlockTuples(md);
       expect(blocks.length).toBe(2000);
       expect(blocks[0]![0]).toBe('text');
-    });
+    }, 30_000); // 2k-node parse is heavy; generous timeout so it can't flake under parallel load
   });
 });

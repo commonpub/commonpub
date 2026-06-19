@@ -23,17 +23,17 @@ codebase-analysis/       raw inventory (generated — trust over older docs)
 12 packages on npm as `@commonpub/*`:
 schema, server, config, protocol, auth, ui, editor, explainer, learning, docs, infra, test-utils.
 
-## Latest published versions (session 196, 2026-06-10)
+## Latest published versions (refreshed session 203, 2026-06-18 — defer to `docs/STATUS.md` for LIVE)
 
-- schema 0.40.1, server 2.84.1, config 0.22.1, layer 0.73.0
-- ui 0.13.1, theme-studio 0.6.1, protocol 0.13.0, editor 0.7.11, explainer 0.7.15
+- schema 0.45.0, server 2.89.0, config 0.22.1, layer 0.82.0
+- ui 0.13.1, theme-studio 0.6.1, protocol 0.13.0, editor 0.7.12, explainer 0.7.15
 - learning 0.5.2, docs 0.6.3, auth 0.8.0, infra 0.8.0, test-utils 0.5.6
-- create-commonpub 0.5.15 (crates.io — `cargo install create-commonpub`)
+- create-commonpub 0.5.16 (crates.io — `cargo install create-commonpub`)
 - (Always `npm view @commonpub/<pkg> version` / `cargo search` before trusting this — it drifts.)
 
 All three instances (commonpub.io / deveco.io / heatsynclabs.io) are LIVE + healthy.
 commonpub.io builds from the workspace `main`; deveco.io + heatsynclabs.io pin the npm layer
-at `^0.73.0` (rolled in lockstep since session 194). deveco registers its brand theme pair
+at `^0.82.0` (rolled in lockstep; verify with `npm view`). deveco registers its brand theme pair
 (`deveco`/`deveco-dark`) + `config.defaultTheme: 'deveco'` — no longer riding the stoa
 fallback (session 196).
 deveco keeps a CUSTOM `layouts/default.vue` + `pages/index.vue` (its nav is now
@@ -47,7 +47,7 @@ of past flag state drifts (see session 149's "live-active state correction").
 ## Database
 
 - PostgreSQL 16 + Drizzle.
-- **90 tables, 45 enums. 21 migrations (0000–0020).** Full list: `codebase-analysis/02-schema-inventory.md`. 0014 = `mirror_requests` (consent-based push, session 185), 0015 = `registry_instances` + `registry_instance_status` enum (instance directory, session 186), 0016 = `contests.cover_image_url` (session 188), 0017 = `contest_status` +draft/+paused & `contests.show_prizes` (session 189), 0018 = `contests.stages`/`current_stage_id` (session 189), 0019 = `contest_entries.stage_state` (session 189), 0020 = `metrics_daily` (public-API time-series rollups, session 190). Layout-engine tables (`layouts`, `layout_rows`, `layout_sections`, `layout_versions`) added in migration 0005 — instance-local, never federate. Migration 0012 (session 179) adds two PARTIAL composite indexes `idx_content_items_feed_recency` `(published_at DESC NULLS LAST, id DESC)` + `idx_content_items_feed_popular` `(view_count DESC, id DESC)` over `WHERE status='published' AND deleted_at IS NULL` — they back the keyset feed. NULLS placement is matched syntactically by the planner, so the index spells `id DESC NULLS FIRST`; `pushSchema` (PGlite test harness) SKIPS partial indexes (test creates DDL itself).
+- **90 tables, 46 enums. 26 migrations (0000–0025).** Full list: `codebase-analysis/02-schema-inventory.md`. 0014 = `mirror_requests` (consent-based push, session 185), 0015 = `registry_instances` + `registry_instance_status` enum (instance directory, session 186), 0016 = `contests.cover_image_url` (session 188), 0017 = `contest_status` +draft/+paused & `contests.show_prizes` (session 189), 0018 = `contests.stages`/`current_stage_id` (session 189), 0019 = `contest_entries.stage_state` (session 189), 0020 = `metrics_daily` (public-API time-series rollups, session 190), 0021 = `contest_entries.stage_submissions` (session 194), 0022 = `contests.content_format` + `contest_content_format` enum (session 197, now DEPRECATED/inert), 0023 = per-field `description_format`/`rules_format`/`prizes_description_format` (session 197), 0024 = `content_status` +`scheduled` & `content_items.scheduled_at` (scheduled publishing, session 199), 0025 = `contest_stakeholders.role` (`reviewer`|`editor`) + RBAC system-role/permission/user_role seed (session 201). Layout-engine tables (`layouts`, `layout_rows`, `layout_sections`, `layout_versions`) added in migration 0005 — instance-local, never federate. Migration 0012 (session 179) adds two PARTIAL composite indexes `idx_content_items_feed_recency` `(published_at DESC NULLS LAST, id DESC)` + `idx_content_items_feed_popular` `(view_count DESC, id DESC)` over `WHERE status='published' AND deleted_at IS NULL` — they back the keyset feed. NULLS placement is matched syntactically by the planner, so the index spells `id DESC NULLS FIRST`; `pushSchema` (PGlite test harness) SKIPS partial indexes (test creates DDL itself).
 - Domains: auth, content, social, messaging, hubs, products, learning, docs, videos, contests, events, voting, federation, admin, files.
 - Soft delete on: users, contentItems, hubs, federatedContent, federatedHubPosts.
 - Denormalized counters pervasive (voteScore, entryCount, attendeeCount, memberCount, likeCount, etc.).
@@ -90,17 +90,17 @@ of past flag state drifts (see session 149's "live-active state correction").
 - **183–188** **Federation discovery + hardening** LIVE on all 3: actor/outbox projection, consent-based mirror requests (`mirror_requests`, 0014), instance registry (`registry_instances`, 0015) with commonpub.io as the default registry, self-ref FKs (0013), CLI published to crates.io. **Federation ON in prod.**
 - **189** **Contest phase A** — stage lifecycle (`contest_status` +draft/+paused, 0017), dynamic stages (`stages`/`current_stage_id`, 0018), cohorts/Top-N cull (`stage_state`, 0019), per-round judging (`JudgeScoreEntry.roundId`); voting stays advisory
 - **190** **Public-API expansion** — flexible per-key CORS (`originPatternSchema`/`matchOrigin`), privacy-respecting metrics (`read:analytics`, `/api/public/v1/metrics/*`), time-series rollups (`metrics_daily`, 0020 + `metrics-rollup` plugin + `publicApiMetricsFederation` flag). **Stoa** is the new default theme (light+dark) + theme-editor fork fix.
-- **201** **RBAC activated + per-contest editors** (branch, flag default OFF, pending release). The 175–177 RBAC machinery shipped but Phase 2/3 were never built, so the `roles`/`role_permissions`/`user_roles` tables were empty and flipping `features.rbac` was a no-op (`staff` == `member`). Migration **0025** seeds the 5 system roles + permission sets (admin=`*`, staff=moderator set, no `admin.access`) + backfills `user_roles`; `seedRbac()` mirrors it for fresh installs. Added the admin **roles UI** (`/admin/roles` + per-user custom-role assignment in `/admin/users`, gated on `roles.manage`), `/api/me` permissions, and `useCan()`. `updateUserRole` now syncs `user_roles` + last-admin floor (INV-4). Per-contest **editor** role (`contest_stakeholders.role` `reviewer`|`editor`, 0025): full edit of ONE contest with no system access, via `canManage = owner || isContestEditor || contest.manage` threaded through `updateContest`/`transitionContestStatus`/`advanceContestStage`. **Security:** admin-bypass grants (`*`, `admin.access`, `admin.*` — the wildcard expands to `admin.access`) are stripped from every non-admin role, and promoting a user to the admin system role requires `admin.access` (not just `users.manage`).
+- **201** **RBAC activated + per-contest editors** (SHIPPED + ROLLED to all 3, PR #51; `features.rbac` LIVE ON on commonpub.io + deveco.io, OFF on heatsync — `curl /api/features | jq .rbac`). The 175–177 RBAC machinery shipped but Phase 2/3 were never built, so the `roles`/`role_permissions`/`user_roles` tables were empty and flipping `features.rbac` was a no-op (`staff` == `member`). Migration **0025** seeds the 5 system roles + permission sets (admin=`*`, staff=moderator set, no `admin.access`) + backfills `user_roles`; `seedRbac()` mirrors it for fresh installs. Added the admin **roles UI** (`/admin/roles` + per-user custom-role assignment in `/admin/users`, gated on `roles.manage`), `/api/me` permissions, and `useCan()`. `updateUserRole` now syncs `user_roles` + last-admin floor (INV-4). Per-contest **editor** role (`contest_stakeholders.role` `reviewer`|`editor`, 0025): full edit of ONE contest with no system access, via `canManage = owner || isContestEditor || contest.manage` threaded through `updateContest`/`transitionContestStatus`/`advanceContestStage`. **Security:** admin-bypass grants (`*`, `admin.access`, `admin.*` — the wildcard expands to `admin.access`) are stripped from every non-admin role, and promoting a user to the admin system role requires `admin.access` (not just `users.manage`).
 
 ## Layer structure
 
 `layers/base/` — the distribution unit.
-- 90 pages (Nuxt file-based)
-- 139 components
-- 34 composables
-- 327 API route files in `server/api/` (321 handlers + 6 colocated tests)
+- 92 pages (Nuxt file-based)
+- 144 components
+- 35 composables
+- 338 API route files in `server/api/` (332 handlers + 6 `__tests__` files)
 - 22 AP/site routes in `server/routes/` (inbox, outbox, .well-known)
-- 10 server plugins, 11 server (Nitro) middleware, 3 route middleware
+- 11 server plugins, 11 server (Nitro) middleware, 3 route middleware
 - 7 themes registered in `packages/ui/src/theme.ts` `BUILT_IN_THEMES` (base, dark, generics, agora, agora-dark, **stoa, stoa-dark**). Default resolution: DB `theme.default` → `config.defaultTheme` (thin-app brand pin, session 196) → stoa. Registered themes light/dark-flip within their own family (pairId → family+isDark → `<id>`/`<id>-dark` name convention).
 
 ## Server package structure

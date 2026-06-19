@@ -195,7 +195,7 @@ export async function listComments(
         isNull(comments.parentId),
       ),
     )
-    .orderBy(desc(comments.createdAt))
+    .orderBy(desc(comments.createdAt), desc(comments.id))
     .limit(safeLimit)
     .offset(safeOffset);
 
@@ -498,7 +498,7 @@ export async function listUserBookmarks(
       .leftJoin(federatedContent, eq(bookmarks.targetId, federatedContent.id))
       .leftJoin(remoteActors, eq(federatedContent.remoteActorId, remoteActors.id))
       .where(where)
-      .orderBy(desc(bookmarks.createdAt))
+      .orderBy(desc(bookmarks.createdAt), desc(bookmarks.id))
       .limit(limit)
       .offset(offset),
     countRows(db, bookmarks, where),
@@ -677,7 +677,7 @@ export async function listFollowers(
       .from(follows)
       .innerJoin(users, eq(follows.followerId, users.id))
       .where(where)
-      .orderBy(desc(follows.createdAt))
+      .orderBy(desc(follows.createdAt), desc(follows.id))
       .limit(limit)
       .offset(offset),
     countRows(db, follows, where),
@@ -711,7 +711,7 @@ export async function listFollowing(
       .from(follows)
       .innerJoin(users, eq(follows.followingId, users.id))
       .where(where)
-      .orderBy(desc(follows.createdAt))
+      .orderBy(desc(follows.createdAt), desc(follows.id))
       .limit(limit)
       .offset(offset),
     countRows(db, follows, where),

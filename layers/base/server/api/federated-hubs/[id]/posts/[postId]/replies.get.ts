@@ -2,7 +2,7 @@ import { listFederatedHubPostReplies } from '@commonpub/server';
 
 export default defineEventHandler(async (event) => {
   requireFeature('federation');
-  const postId = getRouterParam(event, 'postId')!;
+  const { postId } = parseParams(event, { id: 'uuid', postId: 'uuid' });
   const query = getQuery(event);
   const db = useDB();
 

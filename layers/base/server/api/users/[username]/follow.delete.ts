@@ -1,6 +1,7 @@
 import { getUserByUsername, unfollowUser } from '@commonpub/server';
 
 export default defineEventHandler(async (event): Promise<{ unfollowed: boolean }> => {
+  requireFeature('social');
   const db = useDB();
   const user = requireAuth(event);
   const { username } = parseParams(event, { username: 'string' });

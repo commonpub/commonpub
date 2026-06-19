@@ -1,6 +1,7 @@
 import { eq, and, sql, inArray } from 'drizzle-orm';
-import { hubPostVotes, hubPosts, pollOptions, pollVotes, contestEntryVotes, contestEntries, contests } from '@commonpub/schema';
+import { hubPostVotes, hubPosts, hubMembers, pollOptions, pollVotes, contestEntryVotes, contestEntries, contests } from '@commonpub/schema';
 import type { DB } from '../types.js';
+import { checkBan } from '../hub/moderation.js';
 
 export type VoteDirection = 'up' | 'down';
 
@@ -19,6 +20,25 @@ export async function voteOnPost(
   direction: VoteDirection,
 ): Promise<VoteResult> {
   return db.transaction(async (tx) => {
+    // Resolve the post's hub, then enforce membership + ban (a banned or non-member user
+    // must not be able to vote — mirrors the createPost/editPost guards in hub/posts.ts).
+    const [postRow] = await tx
+      .select({ hubId: hubPosts.hubId, voteScore: hubPosts.voteScore })
+      .from(hubPosts)
+      .where(eq(hubPosts.id, postId))
+      .limit(1);
+    if (!postRow) return { voted: false, direction: null, voteScore: 0 };
+
+    const [member] = await tx
+      .select({ role: hubMembers.role })
+      .from(hubMembers)
+      .where(and(eq(hubMembers.hubId, postRow.hubId), eq(hubMembers.userId, userId)))
+      .limit(1);
+    const ban = await checkBan(tx, postRow.hubId, userId);
+    if (!member || ban) {
+      return { voted: false, direction: null, voteScore: postRow.voteScore };
+    }
+
     const [existing] = await tx
       .select({ id: hubPostVotes.id, direction: hubPostVotes.direction })
       .from(hubPostVotes)
@@ -125,6 +145,24 @@ export async function voteOnPoll(
   userId: string,
 ): Promise<{ voted: boolean; error?: string }> {
   return db.transaction(async (tx) => {
+    // Resolve the post's hub, then enforce membership + ban (a banned or non-member user
+    // must not be able to vote — mirrors the createPost/editPost guards in hub/posts.ts).
+    const [post] = await tx
+      .select({ hubId: hubPosts.hubId })
+      .from(hubPosts)
+      .where(eq(hubPosts.id, postId))
+      .limit(1);
+    if (!post) return { voted: false, error: 'Post not found' };
+
+    const [member] = await tx
+      .select({ role: hubMembers.role })
+      .from(hubMembers)
+      .where(and(eq(hubMembers.hubId, post.hubId), eq(hubMembers.userId, userId)))
+      .limit(1);
+    const ban = await checkBan(tx, post.hubId, userId);
+    if (!member) return { voted: false, error: 'Must be a member to vote' };
+    if (ban) return { voted: false, error: 'You are banned from this hub' };
+
     // Check if already voted on this poll
     const [existing] = await tx
       .select({ id: pollVotes.id })

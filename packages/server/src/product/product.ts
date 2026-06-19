@@ -4,6 +4,7 @@ import {
   contentProducts,
   contentItems,
   hubs,
+  hubMembers,
   users,
 } from '@commonpub/schema';
 import type { DB, UserRef } from '../types.js';
@@ -75,6 +76,17 @@ export async function createProduct(
     status?: 'active' | 'discontinued' | 'preview';
   },
 ): Promise<ProductDetail> {
+  // Verify user is a hub member (any role) before allowing product creation.
+  const [member] = await db
+    .select({ role: hubMembers.role })
+    .from(hubMembers)
+    .where(and(eq(hubMembers.hubId, hubId), eq(hubMembers.userId, userId)))
+    .limit(1);
+
+  if (!member) {
+    throw new Error('Must be a hub member to add products');
+  }
+
   const slug = await ensureUniqueSlugFor(db, products, products.slug, products.id, generateSlug(input.name), 'product');
 
   const [product] = await db
@@ -236,10 +248,11 @@ export async function listHubProducts(
       .select()
       .from(products)
       .where(where)
-      .orderBy(desc(products.createdAt))
+      .orderBy(desc(products.createdAt), desc(products.id))
       .limit(limit)
       .offset(offset),
-    countRows(db, products, where),
+    // COUNT(*) only on the first page; deep load-more pages skip it (`-1` = "not computed").
+    offset === 0 ? countRows(db, products, where) : Promise.resolve(-1),
   ]);
 
   const items: ProductListItem[] = rows.map((p) => ({
@@ -285,10 +298,11 @@ export async function searchProducts(
       .select()
       .from(products)
       .where(where)
-      .orderBy(desc(products.createdAt))
+      .orderBy(desc(products.createdAt), desc(products.id))
       .limit(limit)
       .offset(offset),
-    countRows(db, products, where),
+    // COUNT(*) only on the first page; deep load-more pages skip it (`-1` = "not computed").
+    offset === 0 ? countRows(db, products, where) : Promise.resolve(-1),
   ]);
 
   const items: ProductListItem[] = rows.map((p) => ({
@@ -421,18 +435,32 @@ export async function syncContentProducts(
 
     if (items.length === 0) return [];
 
-    // Insert new links
-    await tx.insert(contentProducts).values(
-      items.map((item, index) => ({
-        contentId,
-        productId: item.productId,
-        quantity: item.quantity ?? 1,
-        role: item.role ?? null,
-        notes: item.notes ?? null,
-        required: item.required ?? true,
-        sortOrder: index,
-      })),
-    );
+    // Filter to productIds that actually exist; ignore unknown ids rather than
+    // blind-inserting and triggering an unhandled FK violation (mirrors
+    // addContentProduct returning null on a missing product).
+    const requestedIds = items.map((item) => item.productId);
+    const existing = await tx
+      .select({ id: products.id })
+      .from(products)
+      .where(inArray(products.id, requestedIds));
+    const validIds = new Set(existing.map((p) => p.id));
+
+    const validItems = items.filter((item) => validIds.has(item.productId));
+
+    if (validItems.length > 0) {
+      // Insert new links
+      await tx.insert(contentProducts).values(
+        validItems.map((item, index) => ({
+          contentId,
+          productId: item.productId,
+          quantity: item.quantity ?? 1,
+          role: item.role ?? null,
+          notes: item.notes ?? null,
+          required: item.required ?? true,
+          sortOrder: index,
+        })),
+      );
+    }
 
     // Return the new list
     const rows = await tx
@@ -496,14 +524,18 @@ export async function listProductContent(
       .innerJoin(contentItems, eq(contentProducts.contentId, contentItems.id))
       .innerJoin(users, eq(contentItems.authorId, users.id))
       .where(where)
-      .orderBy(desc(contentItems.publishedAt))
+      // desc(id) tiebreaker: publishedAt is non-unique, so without it offset pages overlap.
+      .orderBy(desc(contentItems.publishedAt), desc(contentItems.id))
       .limit(limit)
       .offset(offset),
-    db
-      .select({ count: sql<number>`count(*)::int` })
-      .from(contentProducts)
-      .innerJoin(contentItems, eq(contentProducts.contentId, contentItems.id))
-      .where(where),
+    // COUNT(*) only on the first page; deep load-more pages skip it (`-1` = "not computed").
+    offset === 0
+      ? db
+          .select({ count: sql<number>`count(*)::int` })
+          .from(contentProducts)
+          .innerJoin(contentItems, eq(contentProducts.contentId, contentItems.id))
+          .where(where)
+      : Promise.resolve([{ count: -1 }]),
   ]);
 
   return {
@@ -573,11 +605,14 @@ export async function listHubGallery(
         .orderBy(contentItems.id, desc(contentItems.publishedAt))
         .limit(limit)
         .offset(offset),
-      db
-        .select({ count: sql<number>`count(DISTINCT ${contentItems.id})::int` })
-        .from(contentProducts)
-        .innerJoin(contentItems, eq(contentProducts.contentId, contentItems.id))
-        .where(where),
+      // COUNT only on the first page; deep load-more pages skip it (`-1` = "not computed").
+      offset === 0
+        ? db
+            .select({ count: sql<number>`count(DISTINCT ${contentItems.id})::int` })
+            .from(contentProducts)
+            .innerJoin(contentItems, eq(contentProducts.contentId, contentItems.id))
+            .where(where)
+        : Promise.resolve([{ count: -1 }]),
     ]);
 
     return {
@@ -633,11 +668,14 @@ export async function listHubGallery(
         .orderBy(contentItems.id, desc(contentItems.publishedAt))
         .limit(limit)
         .offset(offset),
-      db
-        .select({ count: sql<number>`count(DISTINCT ${contentItems.id})::int` })
-        .from(contentProducts)
-        .innerJoin(contentItems, eq(contentProducts.contentId, contentItems.id))
-        .where(where),
+      // COUNT only on the first page; deep load-more pages skip it (`-1` = "not computed").
+      offset === 0
+        ? db
+            .select({ count: sql<number>`count(DISTINCT ${contentItems.id})::int` })
+            .from(contentProducts)
+            .innerJoin(contentItems, eq(contentProducts.contentId, contentItems.id))
+            .where(where)
+        : Promise.resolve([{ count: -1 }]),
     ]);
 
     return {
@@ -671,14 +709,18 @@ export async function listHubGallery(
       .innerJoin(contentItems, eq(hubShares.contentId, contentItems.id))
       .innerJoin(users, eq(contentItems.authorId, users.id))
       .where(where)
-      .orderBy(desc(hubShares.createdAt))
+      // desc(id) tiebreaker: createdAt is non-unique, so without it offset pages overlap.
+      .orderBy(desc(hubShares.createdAt), desc(hubShares.id))
       .limit(limit)
       .offset(offset),
-    db
-      .select({ count: sql<number>`count(*)::int` })
-      .from(hubShares)
-      .innerJoin(contentItems, eq(hubShares.contentId, contentItems.id))
-      .where(where),
+    // COUNT(*) only on the first page; deep load-more pages skip it (`-1` = "not computed").
+    offset === 0
+      ? db
+          .select({ count: sql<number>`count(*)::int` })
+          .from(hubShares)
+          .innerJoin(contentItems, eq(hubShares.contentId, contentItems.id))
+          .where(where)
+      : Promise.resolve([{ count: -1 }]),
   ]);
 
   return {

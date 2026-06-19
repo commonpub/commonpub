@@ -44,9 +44,9 @@ useFocusTrap(dialogRef, () => open.value, close);
 <template>
   <Teleport to="body">
     <div v-if="open" class="cpub-rfd-overlay" @click.self="close">
-      <div ref="dialogRef" class="cpub-rfd-dialog" role="dialog" aria-modal="true">
+      <div ref="dialogRef" class="cpub-rfd-dialog" role="dialog" aria-modal="true" aria-labelledby="cpub-rfd-title">
         <div class="cpub-rfd-header">
-          <h3>Follow from your instance</h3>
+          <h3 id="cpub-rfd-title">Follow from your instance</h3>
           <button class="cpub-rfd-close" aria-label="Close" @click="close">
             <i class="fa-solid fa-xmark"></i>
           </button>

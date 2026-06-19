@@ -670,6 +670,38 @@ export async function getContentBySlug(
   };
 }
 
+/**
+ * Content fields that map straight from input to the row, IDENTICALLY on create and update.
+ * Declaring them once is the fix for the "silent field-drop" class (audit 199/200): a field
+ * wired into create but forgotten on update — or vice versa — can no longer drift, because
+ * both paths iterate this single list. Fields with special handling (title/slug/content/type/
+ * category/visibility/sections/status) are deliberately NOT here. The `satisfies` clause
+ * compile-checks every name is a real input key, so a typo or renamed field fails the build.
+ */
+const CONTENT_PASSTHROUGH_FIELDS = [
+  'subtitle', 'description', 'coverImageUrl', 'bannerUrl', 'difficulty',
+  'buildTime', 'estimatedCost', 'estimatedMinutes', 'licenseType', 'series',
+  'seoDescription', 'categoryId', 'scheduledAt',
+] as const satisfies readonly (keyof CreateContentInput & keyof UpdateContentInput)[];
+
+/** Build the create-time `.values` slice for the passthrough fields (`input.X ?? null`). */
+function contentPassthroughCreateValues(input: CreateContentInput): Partial<typeof contentItems.$inferInsert> {
+  const out: Record<string, unknown> = {};
+  for (const f of CONTENT_PASSTHROUGH_FIELDS) {
+    out[f] = (input as Record<string, unknown>)[f] ?? null;
+  }
+  return out as Partial<typeof contentItems.$inferInsert>;
+}
+
+/** Apply the passthrough fields onto an update partial (only when present in input). */
+function applyContentPassthroughUpdates(input: UpdateContentInput, updates: Record<string, unknown>): void {
+  for (const f of CONTENT_PASSTHROUGH_FIELDS) {
+    if ((input as Record<string, unknown>)[f] !== undefined) {
+      updates[f] = (input as Record<string, unknown>)[f];
+    }
+  }
+}
+
 export async function createContent(
   db: DB,
   authorId: string,
@@ -695,25 +727,15 @@ export async function createContent(
       type: normalizedType,
       title: input.title,
       slug,
-      subtitle: input.subtitle ?? null,
-      description: input.description ?? null,
+      // Special-cased fields (transform/default/immutable) stay explicit:
       content: (await sanitizeBlockContent(input.content)) ?? null,
-      coverImageUrl: input.coverImageUrl ?? null,
-      bannerUrl: input.bannerUrl ?? null,
       category: normalizedCategory ?? null,
-      difficulty: input.difficulty ?? null,
-      buildTime: input.buildTime ?? null,
-      estimatedCost: input.estimatedCost ?? null,
-      estimatedMinutes: input.estimatedMinutes ?? null,
-      licenseType: input.licenseType ?? null,
-      series: input.series ?? null,
       visibility: input.visibility ?? 'public',
-      seoDescription: input.seoDescription ?? null,
       sections: input.sections as typeof contentItems.$inferInsert.sections ?? null,
-      categoryId: input.categoryId ?? null,
       status: 'draft',
-      scheduledAt: input.scheduledAt ?? null,
       previewToken,
+      // Plain passthrough fields (single source of truth — see CONTENT_PASSTHROUGH_FIELDS):
+      ...contentPassthroughCreateValues(input),
     })
     .returning();
 
@@ -758,23 +780,13 @@ export async function updateContent(
       [{ col: contentItems.authorId, value: authorId }, { col: contentItems.type, value: current.type }],
     );
   }
-  if (input.subtitle !== undefined) updates.subtitle = input.subtitle;
-  if (input.description !== undefined) updates.description = input.description;
+  // Special-cased fields (transform/immutable/default) stay explicit:
   if (input.content !== undefined) updates.content = await sanitizeBlockContent(input.content);
-  if (input.coverImageUrl !== undefined) updates.coverImageUrl = input.coverImageUrl;
-  if (input.bannerUrl !== undefined) updates.bannerUrl = input.bannerUrl;
   if (input.category !== undefined) updates.category = input.category;
-  if (input.difficulty !== undefined) updates.difficulty = input.difficulty;
-  if (input.seoDescription !== undefined) updates.seoDescription = input.seoDescription;
   if (input.sections !== undefined) updates.sections = input.sections;
-  if (input.buildTime !== undefined) updates.buildTime = input.buildTime;
-  if (input.estimatedCost !== undefined) updates.estimatedCost = input.estimatedCost;
-  if (input.estimatedMinutes !== undefined) updates.estimatedMinutes = input.estimatedMinutes;
-  if (input.licenseType !== undefined) updates.licenseType = input.licenseType;
-  if (input.series !== undefined) updates.series = input.series;
   if (input.visibility !== undefined) updates.visibility = input.visibility;
-  if (input.categoryId !== undefined) updates.categoryId = input.categoryId;
-  if (input.scheduledAt !== undefined) updates.scheduledAt = input.scheduledAt;
+  // Plain passthrough fields (single source of truth — see CONTENT_PASSTHROUGH_FIELDS):
+  applyContentPassthroughUpdates(input, updates);
 
   if (input.status !== undefined) {
     if (input.status === 'scheduled') {
@@ -906,49 +918,54 @@ export async function createContentVersion(
   contentId: string,
   userId: string,
 ): Promise<{ id: string; version: number }> {
-  const content = await db
-    .select()
-    .from(contentItems)
-    .where(eq(contentItems.id, contentId))
-    .limit(1);
+  return db.transaction(async (tx) => {
+    // Lock the parent row so concurrent version creates serialize per content,
+    // preventing duplicate version numbers (no unique constraint by design).
+    const content = await tx
+      .select()
+      .from(contentItems)
+      .where(eq(contentItems.id, contentId))
+      .for('update')
+      .limit(1);
 
-  if (content.length === 0) throw new Error('Content not found');
+    if (content.length === 0) throw new Error('Content not found');
 
-  const item = content[0]!;
+    const item = content[0]!;
 
-  // Get next version number
-  const [lastVersion] = await db
-    .select({ version: contentVersions.version })
-    .from(contentVersions)
-    .where(eq(contentVersions.contentId, contentId))
-    .orderBy(desc(contentVersions.version))
-    .limit(1);
+    // Get next version number
+    const [lastVersion] = await tx
+      .select({ version: contentVersions.version })
+      .from(contentVersions)
+      .where(eq(contentVersions.contentId, contentId))
+      .orderBy(desc(contentVersions.version))
+      .limit(1);
 
-  const nextVersion = (lastVersion?.version ?? 0) + 1;
+    const nextVersion = (lastVersion?.version ?? 0) + 1;
 
-  const [row] = await db
-    .insert(contentVersions)
-    .values({
-      contentId,
-      version: nextVersion,
-      title: item.title,
-      content: item.content,
-      metadata: {
-        subtitle: item.subtitle,
-        description: item.description,
-        category: item.category,
-        difficulty: item.difficulty,
-        buildTime: item.buildTime,
-        estimatedCost: item.estimatedCost,
-        coverImageUrl: item.coverImageUrl,
-        parts: item.parts,
-        sections: item.sections,
-      },
-      createdById: userId,
-    })
-    .returning({ id: contentVersions.id, version: contentVersions.version });
+    const [row] = await tx
+      .insert(contentVersions)
+      .values({
+        contentId,
+        version: nextVersion,
+        title: item.title,
+        content: item.content,
+        metadata: {
+          subtitle: item.subtitle,
+          description: item.description,
+          category: item.category,
+          difficulty: item.difficulty,
+          buildTime: item.buildTime,
+          estimatedCost: item.estimatedCost,
+          coverImageUrl: item.coverImageUrl,
+          parts: item.parts,
+          sections: item.sections,
+        },
+        createdById: userId,
+      })
+      .returning({ id: contentVersions.id, version: contentVersions.version });
 
-  return { id: row!.id, version: row!.version };
+    return { id: row!.id, version: row!.version };
+  });
 }
 
 export interface ContentVersionItem {
@@ -1131,47 +1148,54 @@ export async function forkContent(
   }
 
   const item = source[0]!;
-  const slug = await ensureUniqueSlugFor(
-    db, contentItems, contentItems.slug, contentItems.id,
-    `${item.slug}-fork-${Date.now()}`, 'fork', undefined,
-    [{ col: contentItems.authorId, value: userId }, { col: contentItems.type, value: item.type }],
-  );
   const previewToken = crypto.randomUUID().replace(/-/g, '');
 
-  const [forked] = await db
-    .insert(contentItems)
-    .values({
-      authorId: userId,
-      type: item.type,
-      title: `${item.title} (Fork)`,
-      slug,
-      subtitle: item.subtitle,
-      description: item.description,
-      content: item.content,
-      coverImageUrl: item.coverImageUrl,
-      category: item.category,
-      categoryId: item.categoryId,
-      difficulty: item.difficulty,
-      buildTime: item.buildTime,
-      estimatedCost: item.estimatedCost,
-      visibility: 'public',
-      seoDescription: item.seoDescription,
-      sections: item.sections,
-      parts: item.parts,
-      status: 'draft',
-      previewToken,
-    })
-    .returning();
+  // Wrap the three writes (insert fork item, link fork, bump source forkCount)
+  // in one transaction so a partial failure can't orphan a fork.
+  const forked = await db.transaction(async (tx) => {
+    const slug = await ensureUniqueSlugFor(
+      tx, contentItems, contentItems.slug, contentItems.id,
+      `${item.slug}-fork-${Date.now()}`, 'fork', undefined,
+      [{ col: contentItems.authorId, value: userId }, { col: contentItems.type, value: item.type }],
+    );
 
-  await db.insert(contentForks).values({
-    sourceId,
-    forkId: forked!.id,
+    const [inserted] = await tx
+      .insert(contentItems)
+      .values({
+        authorId: userId,
+        type: item.type,
+        title: `${item.title} (Fork)`,
+        slug,
+        subtitle: item.subtitle,
+        description: item.description,
+        content: item.content,
+        coverImageUrl: item.coverImageUrl,
+        category: item.category,
+        categoryId: item.categoryId,
+        difficulty: item.difficulty,
+        buildTime: item.buildTime,
+        estimatedCost: item.estimatedCost,
+        visibility: 'public',
+        seoDescription: item.seoDescription,
+        sections: item.sections,
+        parts: item.parts,
+        status: 'draft',
+        previewToken,
+      })
+      .returning();
+
+    await tx.insert(contentForks).values({
+      sourceId,
+      forkId: inserted!.id,
+    });
+
+    await tx
+      .update(contentItems)
+      .set({ forkCount: sql`${contentItems.forkCount} + 1` })
+      .where(eq(contentItems.id, sourceId));
+
+    return inserted!;
   });
-
-  await db
-    .update(contentItems)
-    .set({ forkCount: sql`${contentItems.forkCount} + 1` })
-    .where(eq(contentItems.id, sourceId));
 
   // Notify original author about fork (non-critical)
   try {
@@ -1190,7 +1214,7 @@ export async function forkContent(
     }
   } catch { /* non-critical */ }
 
-  return (await getContentBySlug(db, forked!.slug, userId, undefined, userId))!;
+  return (await getContentBySlug(db, forked.slug, userId, undefined, userId))!;
 }
 
 // --- Federated Content: Fork & Build ---
@@ -1362,27 +1386,6 @@ export async function onContentUpdated(
     const message = err instanceof Error ? err.message : String(err);
     console.error('[federation] update:', message);
     return { federated: false, error: message };
-  }
-}
-
-/**
- * Check if a content update represents an unpublish (published → draft/archived).
- * If so, call onContentDeleted to send a Delete activity.
- */
-export async function onContentStatusChange(
-  db: DB,
-  contentId: string,
-  previousStatus: string,
-  newStatus: string,
-  authorUsername: string,
-  config: CommonPubConfig,
-): Promise<void> {
-  if (!config.features.federation) return;
-  // Unpublish: was published, now isn't
-  if (previousStatus === 'published' && newStatus !== 'published') {
-    await federateDelete(db, contentId, config.instance.domain, authorUsername).catch(
-      (err: unknown) => { console.error('[federation] unpublish delete:', err); },
-    );
   }
 }
 

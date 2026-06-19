@@ -117,8 +117,7 @@ useJsonLd({
       <!-- AUTHOR ROW -->
       <div class="cpub-author-row">
         <NuxtLink v-if="content.author" :to="authorUrl" :external="isFederated" :target="isFederated ? '_blank' : undefined" style="text-decoration:none;">
-          <img v-if="content.author?.avatarUrl" :src="content.author.avatarUrl" :alt="content.author?.displayName ?? content.author?.username ?? ''" class="cpub-av cpub-av-lg" style="object-fit:cover;border:2px solid var(--border);" />
-          <div v-else class="cpub-av cpub-av-lg">{{ content.author?.displayName?.slice(0, 2).toUpperCase() || 'CP' }}</div>
+          <ContentAvatar :src="content.author?.avatarUrl" :name="content.author?.displayName ?? content.author?.username ?? ''" :size="44" :font-size="14" />
         </NuxtLink>
         <div class="cpub-author-info">
           <NuxtLink v-if="content.author" :to="authorUrl" :external="isFederated" :target="isFederated ? '_blank' : undefined" class="cpub-author-name">
@@ -239,8 +238,7 @@ useJsonLd({
 
       <!-- AUTHOR CARD -->
       <div v-if="content.author" class="cpub-author-card">
-        <img v-if="content.author.avatarUrl" :src="content.author.avatarUrl" :alt="content.author.displayName ?? content.author.username ?? ''" class="cpub-av cpub-av-xl" style="object-fit:cover;border:2px solid var(--border);" />
-        <div v-else class="cpub-av cpub-av-xl">{{ content.author.displayName?.slice(0, 2).toUpperCase() || 'CP' }}</div>
+        <ContentAvatar :src="content.author.avatarUrl" :name="content.author.displayName ?? content.author.username ?? ''" :size="64" :font-size="18" />
         <div class="cpub-author-card-info">
           <div class="cpub-author-card-label">Written by</div>
           <div class="cpub-author-card-name">
@@ -419,58 +417,7 @@ useJsonLd({
   font-weight: 400;
 }
 
-/* ── AVATARS ──
- * Two render modes share the .cpub-av class:
- *   <img class="cpub-av cpub-av-lg" ...>     ← avatar photo
- *   <div class="cpub-av cpub-av-lg">JD</div>  ← initials fallback when no avatar
- *
- * Sizing + border-radius is shared. But `display: flex` MUST NOT apply to
- * the <img> — when a replaced element gets `display: flex` set, browsers
- * (notably Chromium) treat the img content render-box inconsistently and
- * the inline `object-fit: cover` is silently dropped, producing a squished
- * (stretched-to-box) image instead of a center-cropped one. Visible on
- * deveco.io blog pages where author avatars are vertical photos (e.g.
- * 816×1456) rendered into a 44×44 square.
- *
- * Fix: scope display:flex centering to the div variant only.
- */
-.cpub-av {
-  --cpub-av-size: 28px;
-  width: var(--cpub-av-size);
-  height: var(--cpub-av-size);
-  /* Hard-lock to a square. Without min/max clamps, a global img reset or a
-     dropped dimension lets the <img> fall back to its intrinsic aspect ratio,
-     so a portrait photo renders as a tall oval (the deveco blog-avatar bug -
-     visible even on wide viewports, so it's not flex compression). min/max on
-     BOTH axes clamp the used size regardless of what sets width/height. */
-  min-width: var(--cpub-av-size);
-  max-width: var(--cpub-av-size);
-  min-height: var(--cpub-av-size);
-  max-height: var(--cpub-av-size);
-  border-radius: 50%;
-  background: var(--surface3);
-  border: var(--border-width-default) solid var(--border);
-  flex-shrink: 0;
-}
-
-div.cpub-av {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--text-dim);
-  font-family: var(--font-mono);
-}
-
-/* Defensive: even when consumers forget the inline `object-fit:cover`,
-   img.cpub-av crops instead of stretching. */
-img.cpub-av {
-  object-fit: cover;
-}
-
-.cpub-av-lg { --cpub-av-size: 44px; font-size: 14px; }
-.cpub-av-xl { --cpub-av-size: 64px; font-size: 18px; }
+/* Author avatar lives in <ContentAvatar> (its .cpub-av CSS travels with it). */
 
 /* ── AUTHOR ROW ── */
 .cpub-author-row {

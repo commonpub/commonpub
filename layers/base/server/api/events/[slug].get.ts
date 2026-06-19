@@ -13,5 +13,14 @@ export default defineEventHandler(async (event) => {
   const result = await getEventBySlug(db, slug);
   if (!result) throw createError({ statusCode: 404, statusMessage: 'Event not found' });
 
+  // Only published/active events are publicly viewable. Draft/cancelled/completed
+  // events are visible only to the creator or an admin (mirrors content/contest
+  // draft gating). 404 (not 403) so the slug's existence isn't leaked.
+  if (result.status !== 'published' && result.status !== 'active') {
+    const viewer = getOptionalUser(event);
+    const canView = !!viewer && (viewer.role === 'admin' || viewer.id === result.createdById);
+    if (!canView) throw createError({ statusCode: 404, statusMessage: 'Event not found' });
+  }
+
   return result;
 });

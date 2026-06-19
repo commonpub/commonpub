@@ -146,7 +146,7 @@ useSeoMeta({
   display: flex; align-items: center; gap: 4px; font-size: 11px;
 }
 .cpub-fed-banner-follow {
-  margin-left: auto; background: var(--accent); color: var(--accent-text, #fff); border: none;
+  margin-left: auto; background: var(--accent); color: var(--color-on-accent); border: none;
   font-size: 11px; font-weight: 600; padding: 3px 10px; cursor: pointer;
   display: flex; align-items: center; gap: 4px; white-space: nowrap;
 }

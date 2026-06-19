@@ -8,7 +8,7 @@ const model = defineModel<'markdown' | 'html'>({ default: 'markdown' });
 </script>
 
 <template>
-  <div class="cpub-fmt-toggle" role="radiogroup" aria-label="Field format">
+  <div class="cpub-fmt-toggle" role="group" aria-label="Field format">
     <button
       type="button"
       class="cpub-fmt-opt"
@@ -48,7 +48,7 @@ const model = defineModel<'markdown' | 'html'>({ default: 'markdown' });
 }
 .cpub-fmt-active {
   background: var(--accent);
-  color: var(--accent-contrast, #fff);
+  color: var(--color-on-accent);
 }
 .cpub-fmt-opt:focus-visible {
   outline: 2px solid var(--accent);

@@ -15,7 +15,7 @@ const analyticsCookies = computed(() => cookies.value.filter((c) => c.category =
   <div class="cpub-legal">
     <div class="cpub-legal-header">
       <h1 class="cpub-legal-title">Cookie Policy</h1>
-      <p class="cpub-legal-updated">Last updated: {{ new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) }}</p>
+      <p class="cpub-legal-updated">Last updated: June 2026</p>
     </div>
 
     <div class="cpub-legal-body">

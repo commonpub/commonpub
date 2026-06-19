@@ -1,9 +1,10 @@
 # 04 — API Route Inventory
 
 Nitro server routes in `layers/base/server/api/` and ActivityPub/site
-routes in `layers/base/server/routes/`. Re-verified session 191
-(2026-06-07): **327 `.ts` files under `server/api/` (321 route handlers +
-6 colocated test files) + 22 files under `server/routes/`.** These are
+routes in `layers/base/server/routes/`. Route inventory refreshed
+session 203 (2026-06-18): **338 `.ts` files under `server/api/` (332 route
+handlers + 6 `__tests__` files) + 22 files under `server/routes/`.** Test
+files live in `__tests__/` dirs, not colocated. These are
 *files*, not method/path pairs — some paths have multiple method files
 (`index.get.ts` + `index.post.ts`), and several `routes/` files dispatch
 multiple AP methods internally.
@@ -26,16 +27,20 @@ There is **no `/api/identity/*` route group** — identity runtime is a
 Nitro startup plugin (`plugins/identity-startup.ts`), not REST routes.
 RBAC (session 175) is enforced via middleware/role checks on existing
 routes (e.g. `admin/users/:id/role.put`) plus the `admin/api-keys/*`
-scoped-key surface — there is no `/api/rbac/*` group either.
+scoped-key surface — there is no `/api/rbac/*` group either. RBAC now also
+has a full self-admin surface under `admin/`: role CRUD
+(`admin/roles/{index.get,index.post,[id]/index.put,[id]/index.delete}.ts`),
+`admin/permissions.get.ts`, and per-user role assignment
+(`admin/users/[id]/roles.{get,put}.ts`).
 
 Route-group file counts (session 191 spot-count, `server/api/`, test files excluded):
 
 | Group | Files | Group | Files | Group | Files |
 |---|---|---|---|---|---|
-| admin | 71 | learn | 18 | videos | 7 |
-| hubs | 38 | content | 17 | messages | 6 |
+| admin | 79 | learn | 18 | videos | 7 |
+| hubs | 38 | content | 18 | messages | 6 |
 | federation | 23 | docs | 16 | federated-hubs | 6 |
-| contests | 21 | auth | 12 | products | 5 |
+| contests | 23 | auth | 12 | products | 5 |
 | public (v1) | 27 | users | 9 | notifications | 4 |
 | events | 8 | social | 8 | files | 4 |
 | search | 3 | profile | 1 | registry (2: public `ping`/`instances`) + single-file: features, health, me, stats, openapi, image-proxy, cert, categories, homepage, navigation, layouts, realtime, user |
@@ -68,7 +73,7 @@ Auth column:
 
 | Method | Path | Auth | Purpose |
 |---|---|---|---|
-| GET | /api/me | pub* | Current session — *reads `event.context.auth`, returns `{user:null,session:null}` (not 401) when anon; used by the client to detect session state |
+| GET | /api/me | pub* | Current session — *reads `event.context.auth`, returns `{user:null,session:null}` (not 401) when anon; used by the client to detect session state. Also returns `permissions` + `roleKeys` (RBAC, advisory/UX-only; me.get.ts:14-19) — empty arrays for anon and for admins (admin floor lives in `users.role`) |
 | GET | /api/profile | auth | Me, full profile |
 | PUT | /api/profile | auth | Update profile |
 | PUT | /api/profile/theme | auth | Save theme pref |
@@ -99,6 +104,7 @@ Auth column:
 | DELETE | /api/content/:id/products/:productId | owner | Unlink |
 | POST | /api/content/:id/products-sync | owner | Replace the content's product links — takes an explicit `items` array in the body (delete-all-then-insert via `syncContentProducts`); does NOT itself read partsList blocks (that derivation, if any, is client-side) |
 | POST | /api/content/:id/publish | owner | draft → published |
+| POST | /api/content/:id/schedule | owner | Scheduled publishing (sessions 199–200) |
 | POST | /api/content/:id/build | auth | Toggle "I built this" |
 | POST | /api/content/:id/fork | auth | Fork |
 | POST | /api/content/:id/report | auth | Report |
@@ -131,7 +137,9 @@ Auth column:
 | POST | /api/contests/:slug/advance | owner | Advance the current review stage's cohort (Top-N cull / manual pick; `contestAdvanceSchema`; session 189) |
 | GET | /api/contests/:slug/entries | pub | List entries |
 | POST | /api/contests/:slug/entries | auth | Submit entry |
+| GET | /api/contests/:slug/entries/:entryId | pub | Entry detail (session 194 per-stage submissions) |
 | DELETE | /api/contests/:slug/entries/:entryId | owner | Withdraw |
+| PUT | /api/contests/:slug/entries/:entryId/submission | owner | Per-stage submission artifacts (session 194) |
 | POST | /api/contests/:slug/entries/:entryId/vote | auth | Community vote |
 | DELETE | /api/contests/:slug/entries/:entryId/vote | auth | Retract |
 | GET | /api/contests/:slug/votes | pub | Batch vote leaderboard |
@@ -296,7 +304,7 @@ Federation followers (session 184): GET `/api/admin/federation/followers` → `l
 
 Mirror requests (session 185, Phase 3 — all `federation.manage`): GET `/api/admin/federation/mirror-requests` → `{incoming, outgoing}`; POST `mirror-requests/[id]/approve` (body `{sinceDays?, maxItems?, filterContentTypes?, filterTags?}` via `approveMirrorRequestSchema`) → `approveMirrorRequest`; POST `mirror-requests/[id]/reject` → `rejectMirrorRequest`. The mirror create route (`mirrors/index.post.ts`) branches `direction:'push'` → `requestMirror` (consent-based, no filters — the approver chooses theirs).
 
-Registry (session 186, Phase 4): PUBLIC + gated `requireFeature('actAsRegistry')` — POST `/api/registry/ping` (signed heartbeat: `verifyInboxRequest` + per-domain rate-limit → `recordRegistryPing`); GET `/api/registry/instances` (active-only, allow-list serializer drops id/status). ADMIN (`federation.manage` + `actAsRegistry`): GET `/api/admin/registry/instances` (all + status), POST `/api/admin/registry/instances/[id]/status` (`{status}` active\|hidden\|blocked). Client side: `registry-heartbeat.ts` Nitro plugin pings `federation.registryUrl` when `announceToRegistry`.
+Registry (session 186, Phase 4): PUBLIC + gated `requireFeature('actAsRegistry')` — POST `/api/registry/ping` (signed heartbeat: `verifyInboxRequest` + per-domain rate-limit → `recordRegistryPing`); GET `/api/registry/instances` (active-only, allow-list serializer drops id/status). ADMIN (`federation.manage` + `actAsRegistry`): GET `/api/admin/registry/instances` (all + status), POST `/api/admin/registry/instances/[id]/status` (`{status}` active\|hidden\|blocked); GET `/api/admin/registry/directory` (peer-discovery directory). Client side: `registry-heartbeat.ts` Nitro plugin pings `federation.registryUrl` when `announceToRegistry`.
 
 Public-API keys (RBAC-era): GET/POST `/api/admin/api-keys`, DELETE `/api/admin/api-keys/:id`, GET `/api/admin/api-keys/:id/usage` — issue/revoke scoped bearer tokens for the public read API (gated `publicApi`).
 

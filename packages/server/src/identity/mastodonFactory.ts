@@ -24,6 +24,7 @@ import generator from 'megalodon';
 import type { LinkedIdentity, SoftwareKind } from '@commonpub/auth';
 import type { DB } from '../types.js';
 import { LinkedIdentityRevoked } from './router.js';
+import { assertPublicHost } from '../federation/assertPublicHost.js';
 import {
   getDecryptedAccessToken,
   revokeFederatedAccountGrant,
@@ -78,6 +79,12 @@ async function buildFediClient(db: DB, identity: LinkedIdentity): Promise<FediCl
   }
 
   const sns = toMegalodonSns(identity.softwareKind);
+  // Defence-in-depth DNS-rebind SSRF guard. `identity.instance` is the
+  // user's own linked instance (lower risk than the login start-flow host),
+  // but megalodon's axios still bypasses the SSRF-pinned dispatcher, so a
+  // host that resolves to a private address must be rejected here too.
+  // (TOCTOU residual — see assertPublicHost.ts.)
+  await assertPublicHost(identity.instance);
   const baseUrl = `https://${identity.instance}`;
   const client = generator(sns, baseUrl, token, 'CommonPub/1.0 (+https://commonpub.io)');
 

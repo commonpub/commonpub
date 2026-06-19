@@ -1,4 +1,4 @@
-import { recordRegistryPing, createRateLimitStore, getClientIp } from '@commonpub/server';
+import { recordRegistryPing, createRateLimitStore, getClientIp, recordActivitySeen } from '@commonpub/server';
 import { verifyInboxRequest, extractDomain } from '../../utils/inbox';
 
 /**
@@ -32,13 +32,27 @@ export default defineEventHandler(async (event) => {
   const preRl = await store.check(`registry:ping:ip:${getClientIp(event)}`, PRE_TIER);
   if (!preRl.allowed) reject429(preRl.resetAt);
 
-  const { actorUri } = await verifyInboxRequest(event, 'registry-ping');
+  const { actorUri, body } = await verifyInboxRequest(event, 'registry-ping');
   const domain = extractDomain(actorUri);
 
   // Per-verified-domain cap (the signer is now cryptographically known).
   const rl = await store.check(`registry:ping:${domain}`, PING_TIER);
   if (!rl.allowed) reject429(rl.resetAt);
 
-  const result = await recordRegistryPing(useDB(), domain, actorUri);
+  const db = useDB();
+
+  // Replay dedup: claim the verified activity id BEFORE recording the ping so a
+  // replayed, validly-signed ping can't re-trigger the NodeInfo pull. No id =
+  // process normally. Placed after verification so attacker-chosen ids can't be
+  // seeded.
+  const activityId = body.id;
+  if (typeof activityId === 'string' && activityId.length > 0) {
+    const first = await recordActivitySeen(db, activityId);
+    if (!first) {
+      return { status: 'ok' };
+    }
+  }
+
+  const result = await recordRegistryPing(db, domain, actorUri);
   return { status: result };
 });

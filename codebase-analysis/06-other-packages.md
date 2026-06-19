@@ -2,17 +2,21 @@
 
 Packages other than `schema`, `server`, and the layer (covered elsewhere).
 
+_As of: refreshed session 203 (2026-06-18)._
+
 ## @commonpub/config
 
 `packages/config/src/`
 
-- `types.ts` — `FeatureFlags` (**23 boolean flags + `identity` object** with 5 sub-flags; `themeStudio` added session 192), `IdentityFeatures`, `AuthConfig`, `InstanceConfig`, `FederationConfig`, `DocsConfig`, `CookieDefinition`, `RegisteredTheme`, `CommonPubConfig`. **session 196 (0.22.x): `defaultTheme?: string`** — a thin app pins its brand theme in code; the layer's resolution chain is DB `theme.default` → `config.defaultTheme` → `'stoa'`.
+- `types.ts` — `FeatureFlags` (**24 top-level boolean flags + `identity` object** with 5 sub-flags; `themeStudio` added session 192, `publicApiMetricsFederation` added session 199-200), `IdentityFeatures`, `AuthConfig`, `InstanceConfig`, `FederationConfig`, `DocsConfig`, `CookieDefinition`, `RegisteredTheme`, `CommonPubConfig`. **session 196 (0.22.x): `defaultTheme?: string`** — a thin app pins its brand theme in code; the layer's resolution chain is DB `theme.default` → `config.defaultTheme` → `'stoa'`.
 - `schema.ts` — Zod with defaults
 - `config.ts` — `defineCommonPubConfig()` factory; validates, fills defaults. 0.22.1: the factory's INPUT type accepts `themes` + `defaultTheme` (the zod schema always did; declaring registered themes used to TS2353).
 
 **Defaults ON:** `content`, `social`, `hubs`, `docs`, `video`, `learning`, `explainers`, `editorial`, `contentImport`, `announceToRegistry`. **Defaults OFF:** `contests`, `events`, `federation`, `seamlessFederation`, `federateHubs`, `admin`, `emailNotifications`, `publicApi`, `publicApiMetricsFederation`, `actAsRegistry`, `layoutEngine`, `rbac`, and all 5 `identity.*` sub-flags — must be explicitly enabled. (Note: `admin` is OFF in the schema default but turned ON per-instance in production configs; `announceToRegistry` defaults ON since config 0.18.0 but only fires when `federation` is also on.)
 
 Feature flags are **runtime** (environment via `nuxt.config` `runtimeConfig.public.features.*`), not compile-time. They gate server endpoints, page renders, and nav items.
+
+**runtimeConfig landmine:** the nested `identity` object is NOT declared in the layer's `runtimeConfig.public.features` (`nuxt.config.ts`), so `NUXT_PUBLIC_FEATURES_IDENTITY_*` env overrides silently drop (Nuxt only propagates env to DECLARED keys). Mitigated by the DB `/api/features` path, and all `identity.*` sub-flags default OFF, so the silent drop is benign in practice.
 
 ## @commonpub/auth
 
@@ -33,6 +37,8 @@ Feature flags are **runtime** (environment via `nuxt.config` `runtimeConfig.publ
 
 `packages/protocol/src/`
 
+**Stale dep:** `package.json` declares `@commonpub/schema` but no `src/` file imports it (unused; `@commonpub/config` IS used — federation.ts/nodeinfo.ts).
+
 - `types.ts` — AP actor + activity interfaces
 - `activityTypes.ts` — AP **interface/type definitions only** (`APArticle`, `APNote`, `APTombstone`, `APGroup`, `APCreate`/`APUpdate`/`APDelete`, `APObject`, …) — no mapping logic. The CommonPub→AP `cpub:type` mapping (`item.type === 'article' ? 'blog' : item.type`) lives in `contentMapper.ts`, not here.
 - `contentMapper.ts` (13KB) — bidirectional BlockTuple[] ↔ AP object. `contentToArticle` + **`contentToCreateActivity`** (session 183 — wraps an Article in a Create with a DETERMINISTIC id `<object id>#create` + the content's real `published`, unlike `buildCreateActivity`'s random id + `now`; used by both the outbox projection and live delivery so they stay de-dupable).
@@ -41,8 +47,8 @@ Feature flags are **runtime** (environment via `nuxt.config` `runtimeConfig.publ
 - `activities.ts` — Create/Announce/Delete/Update builders
 - `inbox.ts` — inbound dispatch
 - `outbox.ts` — outbound coordinator
-- `sign.ts` — HTTP Signature (jose); signs `(request-target) host date digest` exactly (strict coverage policy in verify; do not change without also updating verify)
-- `keypairs.ts` — RSA 2048 keypair + `verifyHttpSignature` with strict coverage policy (since 0.11.0): `(request-target)`, `host`, `date` MUST be in the signed header set; `digest` MUST be in the set AND match SHA-256 of the raw body when body is non-empty
+- `sign.ts` — HTTP Signature (jose); **signs only** — signs `(request-target) host date digest` exactly (strict coverage policy lives in verify, which is in `keypairs.ts`, not here; do not change the signed header set without also updating verify)
+- `keypairs.ts` — RSA 2048 keypair + **`verifyHttpSignature` (`keypairs.ts:54`)** with strict coverage policy (since 0.11.0): `(request-target)`, `host`, `date` MUST be in the signed header set; `digest` MUST be in the set AND match SHA-256 of the raw body when body is non-empty. **Test-coverage note:** the protocol sign↔verify ROUND-TRIP is well unit-tested. The UNTESTED path is the **layer-side glue** — `verifyInboxRequest` + `assertActorMatchesSigner` (`layers/base/server/utils/inbox.ts`), which wire the protocol verifier into inbound H3 inbox handling and the actor-host check — both have zero unit tests.
 - `sanitize.ts` — HTML sanitizer with CSP integration
 - `oauth.ts` — OAuth2 token endpoints
 - `webfinger.ts`, `nodeinfo.ts` — `.well-known` handlers
@@ -90,11 +96,15 @@ Layout group also gained `sidebar-width-collapsed`, `cpub-card-min`, `cpub-card-
   a Glass archetype; text AA floored against the FLATTENED composite (`blendOver`) for both the
   page bg and a modal panel over the 50% black scrim. Legacy recipes (no treatment) project
   byte-identically (regression-locked). `suggestPalettes` + HSL sliders landed in 0.5 (session 193 P4).
-- **No runtime deps.** Consumed by the layer (wizard `components/admin/theme/studio/AdminThemeStudio.vue`, `AdminThemeSceneSheet.vue`, create flow, editor, SSR font `<link>` via `instanceTheme.ts`). The validation test reads `@commonpub/ui`'s pure `tokens.ts` source directly (no Vue) to assert every emitted key is canonical. Published to npm since session 192 (0.1.0; 0.6.x as of session 195).
+- **No runtime deps.** Consumed by the layer (wizard `components/admin/theme/studio/AdminThemeStudio.vue`, `AdminThemeSceneSheet.vue`, create flow, editor, SSR font `<link>` via `instanceTheme.ts`). The validation test reads `@commonpub/ui`'s pure `tokens.ts` source directly (no Vue) to assert every emitted key is canonical. Published to npm since session 192 (0.1.0; **0.6.1** verified session 203 — still pure-TS, zero Vue/DOM/Nuxt; session 195 advanced-tokens/glass work is reflected above).
 
 ## @commonpub/editor
 
 `packages/editor/src/` (pure TS engine) + top-level `packages/editor/vue/` (Vue editor surface, exported via the `./vue` subpath — `@commonpub/editor/vue`; a sibling of `src/`, like explainer)
+
+**Stale deps:** `package.json` declares both `@commonpub/config` and `@commonpub/schema`, but neither `src/` nor `vue/` imports either; the only reference is the **playground vite alias** (`playground/vite.config.ts`). Both are effectively unused runtime deps.
+
+**Risk:** `vue/utils.ts` `sanitizeBlockHtml(html)` is a **no-op identity function** (`return html`) despite its name — latent XSS for any `v-html` consumer relying on it. Mitigated by server-side DOMPurify sanitization on write.
 
 20 registered block types (`blocks/registry.ts`):
 
@@ -150,6 +160,8 @@ Paths use `status: 'archived'` (soft delete) to preserve enrollment/certificate 
 
 `packages/docs/src/`
 
+**Stale deps:** `package.json` declares `@commonpub/config` and `@commonpub/schema`, but no `src/` file imports either — both are unused runtime deps.
+
 Markdown rendering pipeline:
 `remark-parse → remark-gfm → remark-frontmatter → remark-rehype → rehype-slug → @shikijs/rehype → rehype-sanitize → rehype-stringify`
 
@@ -167,7 +179,7 @@ New pages store content as BlockTuple[]. Legacy md supported on read; converted 
 
 Pure utility adapters — no domain coupling:
 
-- **storage.ts** — `LocalStorageAdapter`, `S3StorageAdapter`, `createStorageFromEnv()`; DO Spaces CDN URL derivation when `S3_CDN=true` (added in 0.7.0)
+- **storage.ts** — `LocalStorageAdapter`, `S3StorageAdapter`, `createStorageFromEnv()`; DO Spaces CDN URL derivation when `S3_CDN=true` (added in 0.7.0). **Risk:** `ALLOWED_MIME_TYPES` includes `image/svg+xml` (storage.ts:284) and uploads are served public-read — SVGs can embed scripts, so a public-read SVG upload is a stored-XSS vector if served from the app origin.
 - **image.ts** — Sharp integration, `IMAGE_VARIANTS` (thumb=150, small=300, medium=600, large=1200 — widths in px); `limitInputPixels: 100_000_000` caps decoded bitmap memory
 - **email.ts** — SMTP/Resend/Console adapters + `emailTemplates`: verification, passwordReset, notificationDigest, notificationInstant, contestAnnouncement, certificateIssued
 - **security.ts** — `buildCspHeader()`, rate-limit store with 6 tiers (auth=5/min, upload=10/min, social=30/min, federation=60/min, api=60/min, general=120/min), nonce. Re-exports **`getClientIp(event, opts?)` (added in 0.8.0)** for XFF-spoof-resistant client IP extraction.
@@ -184,7 +196,9 @@ Peer deps: AWS SDK + Sharp (optional).
 `packages/test-utils/src/`
 
 - `factories.ts` — `createTestUser`, `createTestSession`, `createTestFederatedAccount`, `createTestOAuthClient`, `resetFactoryCounter` (no content/hub factories)
-- `mockConfig.ts` — `createTestConfig(overrides?)` factory (a function, not a pre-built constant)
+- `mockConfig.ts` — `createTestConfig(overrides?)` factory (a function, not a pre-built constant). Flag parity with `featureFlagsSchema` is complete, incl. `publicApiMetricsFederation`.
+
+**Version note:** the prior STATUS-reported 0.5.6 source/published mismatch is resolved — now **0.5.7** (source == published).
 
 ## apps/reference/
 

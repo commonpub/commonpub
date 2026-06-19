@@ -11,7 +11,7 @@ import {
   listNotifications,
 } from '@commonpub/server';
 import type { NotificationType } from '@commonpub/server';
-import { users } from '@commonpub/schema';
+import { users, digestRuns } from '@commonpub/schema';
 import { and, isNotNull, eq } from 'drizzle-orm';
 
 export default defineNitroPlugin((nitro) => {
@@ -76,7 +76,9 @@ export default defineNitroPlugin((nitro) => {
     }
   }, 5_000);
 
-  // Track the last date digests were sent to prevent duplicates on server restart during 8am hour
+  // Cheap in-process pre-check to avoid hitting the DB once this replica has already
+  // observed today's digest as claimed. The DB claim (digest_runs) is the authority:
+  // it guarantees exactly-one-replica-wins across N replicas / restarts.
   let lastDigestDate = '';
 
   async function runDigest(siteUrl: string, siteName: string): Promise<void> {
@@ -91,10 +93,27 @@ export default defineNitroPlugin((nitro) => {
 
       if (!isDigestHour) return;
 
-      // Prevent duplicate sends if server restarts during digest hour
+      // Deterministic UTC date key (YYYY-MM-DD). toISOString() is always UTC.
       const todayKey = now.toISOString().slice(0, 10);
+
+      // Cheap pre-check: this replica already knows today's digest is handled.
       if (lastDigestDate === todayKey) return;
+
+      // Atomic cross-replica claim: INSERT today's row, ON CONFLICT DO NOTHING.
+      // Exactly one replica gets a returned row (it won the claim); the rest get
+      // an empty array and bail without sending. Replaces the per-process guard
+      // that sent N duplicate digests on N replicas.
+      const claimed = await db
+        .insert(digestRuns)
+        .values({ digestDate: todayKey })
+        .onConflictDoNothing({ target: digestRuns.digestDate })
+        .returning({ digestDate: digestRuns.digestDate });
+
+      // Record locally regardless of outcome so this replica skips the DB on
+      // subsequent hourly ticks within the same UTC day.
       lastDigestDate = todayKey;
+
+      if (claimed.length === 0) return; // another replica already claimed today
 
       // Find users with digest preferences
       const digestUsers = await db

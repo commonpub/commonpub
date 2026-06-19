@@ -14,6 +14,9 @@ function updateMeta(key: string, value: unknown): void {
   emit('update:metadata', { ...props.metadata, [key]: value });
 }
 
+const { uploadFile } = useFileUpload();
+const toast = useToast();
+
 const activeLeftTab = ref<'modules' | 'structure' | 'assets'>('modules');
 
 // Interactive blocks FIRST — they're the core of an explainer
@@ -118,10 +121,7 @@ function onAssetUpload(event: Event): void {
   if (!input.files?.length) return;
   const file = input.files[0];
   if (!file) return;
-  const formData = new FormData();
-  formData.append('file', file);
-  formData.append('purpose', 'content');
-  $fetch<{ url: string; originalName: string; size: number }>('/api/files/upload', { method: 'POST', body: formData })
+  uploadFile<{ url: string; originalName: string; size: number }>(file, 'content')
     .then((res) => {
       uploadedFiles.value.unshift({
         name: res.originalName || file.name,
@@ -129,7 +129,10 @@ function onAssetUpload(event: Event): void {
         type: file.type.startsWith('image/') ? 'image' : 'file',
       });
     })
-    .catch(() => { /* silent */ });
+    .catch((err: unknown) => {
+      const msg = (err as { data?: { statusMessage?: string } })?.data?.statusMessage;
+      toast.error(msg || 'Upload failed');
+    });
 }
 
 const openSections = ref<Record<string, boolean>>({

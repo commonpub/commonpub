@@ -371,13 +371,12 @@ async function handleBuild(): Promise<void> {
         <!-- Author Row -->
         <div class="cpub-author-row">
           <NuxtLink :to="authorUrl" :external="isFederated" :target="isFederated ? '_blank' : undefined" class="cpub-av-link">
-            <img
-              v-if="content.author?.avatarUrl"
-              :src="content.author.avatarUrl"
-              :alt="content.author?.displayName || content.author?.username"
-              class="cpub-av cpub-av-lg cpub-av-img"
+            <ContentAvatar
+              :src="content.author?.avatarUrl"
+              :name="content.author?.displayName || content.author?.username || ''"
+              :size="36"
+              :font-size="12"
             />
-            <div v-else class="cpub-av cpub-av-lg">{{ content.author?.displayName?.slice(0, 2).toUpperCase() || 'CP' }}</div>
           </NuxtLink>
           <div>
             <NuxtLink :to="authorUrl" :external="isFederated" :target="isFederated ? '_blank' : undefined" class="cpub-author-name cpub-author-link">
@@ -763,41 +762,7 @@ async function handleBuild(): Promise<void> {
   flex-wrap: wrap;
 }
 
-/* See ArticleView.vue's .cpub-av comment for why display:flex is scoped
- * to the div-variant only — stops img-variant from squishing portrait
- * avatars (object-fit:cover gets dropped on flex-set replaced elements). */
-.cpub-av {
-  --cpub-av-size: 28px;
-  width: var(--cpub-av-size);
-  height: var(--cpub-av-size);
-  /* Hard-lock to a square (min/max on both axes) so a portrait photo can't
-     render as an oval if a global reset or dropped dimension lets the <img>
-     take its intrinsic aspect ratio. See ArticleView.vue. */
-  min-width: var(--cpub-av-size);
-  max-width: var(--cpub-av-size);
-  min-height: var(--cpub-av-size);
-  max-height: var(--cpub-av-size);
-  border-radius: 50%;
-  background: var(--surface3);
-  border: var(--border-width-default) solid var(--border);
-  flex-shrink: 0;
-}
-
-div.cpub-av {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 10px;
-  font-weight: 700;
-  color: var(--text-dim);
-  font-family: var(--font-mono);
-}
-
-img.cpub-av {
-  object-fit: cover;
-}
-
-.cpub-av-lg { --cpub-av-size: 36px; font-size: 12px; }
+/* Author avatar lives in <ContentAvatar> (its .cpub-av CSS travels with it). */
 
 .cpub-author-name {
   font-size: 13px;
@@ -813,12 +778,6 @@ img.cpub-av {
 }
 .cpub-av-link {
   text-decoration: none;
-}
-.cpub-av-img {
-  width: 36px;
-  height: 36px;
-  object-fit: cover;
-  border: var(--border-width-default) solid var(--border);
 }
 
 .cpub-author-meta-row {

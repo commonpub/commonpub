@@ -8,6 +8,7 @@ const likeQuerySchema = z.object({
 });
 
 export default defineEventHandler(async (event): Promise<{ liked: boolean }> => {
+  requireFeature('social');
   const user = requireAuth(event);
   const db = useDB();
   const query = parseQueryParams(event, likeQuerySchema);

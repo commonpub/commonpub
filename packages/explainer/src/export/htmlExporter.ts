@@ -1,6 +1,6 @@
 import type { ExplainerSection, ExplainerDocument, ExplainerDocSection, ExportOptions } from '../types.js';
 import { isExplainerDocument } from '../types.js';
-import { renderSection } from '../render/sectionRenderer.js';
+import { renderSection, sanitizeRichHtml } from '../render/sectionRenderer.js';
 import { generateCss, generateJs } from './templates.js';
 import { minifyCss, minifyJs, wrapStyle, wrapScript } from './inlineAssets.js';
 
@@ -273,13 +273,9 @@ function escapeAttr(text: string): string {
     .replace(/>/g, '&gt;');
 }
 
-/** Sanitize rich-text HTML — strip scripts, event handlers, javascript: URLs */
-function sanitizeRichHtml(html: string): string {
-  let sanitized = html.replace(/<script[\s>][\s\S]*?<\/script>/gi, '');
-  sanitized = sanitized.replace(/\s+on\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]*)/gi, '');
-  sanitized = sanitized.replace(/href\s*=\s*(?:"javascript:[^"]*"|'javascript:[^']*')/gi, '');
-  return sanitized;
-}
+// sanitizeRichHtml now comes from sectionRenderer.ts (allowlist-based — strips
+// iframe/object/embed/svg + unquoted javascript: hrefs), replacing this file's old
+// denylist-only version that let crafted markup into the exported artifact (session 204).
 
 // ─── Document-format CSS ───────────────────────────────────────────
 

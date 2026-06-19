@@ -149,7 +149,7 @@ export async function listPosts(
       .leftJoin(users, eq(hubPosts.authorId, users.id))
       .leftJoin(remoteActors, eq(hubPosts.remoteActorUri, remoteActors.actorUri))
       .where(where)
-      .orderBy(desc(hubPosts.isPinned), desc(hubPosts.createdAt))
+      .orderBy(desc(hubPosts.isPinned), desc(hubPosts.createdAt), desc(hubPosts.id))
       .limit(limit)
       .offset(offset),
     countRows(db, hubPosts, where),
@@ -239,14 +239,22 @@ export async function deletePost(
     }
   }
 
-  await db.delete(hubPosts).where(eq(hubPosts.id, postId));
+  return db.transaction(async (tx) => {
+    const deleted = await tx
+      .delete(hubPosts)
+      .where(eq(hubPosts.id, postId))
+      .returning();
 
-  await db
-    .update(hubs)
-    .set({ postCount: sql`GREATEST(${hubs.postCount} - 1, 0)` })
-    .where(eq(hubs.id, hubId));
+    // Only decrement postCount when a row was actually removed.
+    if (deleted.length === 0) return false;
 
-  return true;
+    await tx
+      .update(hubs)
+      .set({ postCount: sql`GREATEST(${hubs.postCount} - 1, 0)` })
+      .where(eq(hubs.id, hubId));
+
+    return true;
+  });
 }
 
 /**

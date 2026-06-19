@@ -182,7 +182,7 @@ const VIEWPORTS: Array<{ value: 'mobile' | 'tablet' | 'desktop'; icon: string; l
     -->
     <div
       class="cpub-admin-layouts-toolbar-viewport"
-      role="radiogroup"
+      role="group"
       aria-label="Preview viewport"
     >
       <button

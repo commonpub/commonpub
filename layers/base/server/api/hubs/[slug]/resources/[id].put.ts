@@ -4,8 +4,7 @@ import { updateHubResourceSchema } from '@commonpub/schema';
 export default defineEventHandler(async (event) => {
   const db = useDB();
   const user = requireAuth(event);
-  const id = getRouterParam(event, 'id');
-  if (!id) throw createError({ statusCode: 400, statusMessage: 'Missing resource ID' });
+  const { id } = parseParams(event, { id: 'uuid' });
 
   const input = await parseBody(event, updateHubResourceSchema);
 

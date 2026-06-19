@@ -379,11 +379,11 @@ useSeoMeta({
   display: flex; gap: 6px;
 }
 
-.cpub-btn-primary { background: var(--accent); color: var(--accent-text, #fff); border-color: var(--accent); }
+.cpub-btn-primary { background: var(--accent); color: var(--color-on-accent); border-color: var(--accent); }
 .cpub-btn-primary:hover:not(:disabled) { opacity: 0.9; }
 .cpub-btn-primary:disabled { opacity: 0.5; cursor: default; }
 .cpub-btn-danger { color: var(--red); border-color: var(--red); }
-.cpub-btn-danger:hover { background: var(--red); color: var(--accent-text, #fff); }
+.cpub-btn-danger:hover { background: var(--red); color: var(--color-on-accent); }
 
 /* Reply form */
 .cpub-reply-form { margin-bottom: 16px; }

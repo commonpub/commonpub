@@ -272,7 +272,7 @@ export async function listContests(
       .select()
       .from(contests)
       .where(where)
-      .orderBy(desc(contests.startDate))
+      .orderBy(desc(contests.startDate), desc(contests.id))
       .limit(limit)
       .offset(offset),
     countRows(db, contests, where),
@@ -586,8 +586,9 @@ export async function listContestEntries(
           sql`${contestEntries.rank} asc nulls last`,
           sql`${contestEntries.score} desc nulls last`,
           desc(contestEntries.submittedAt),
+          desc(contestEntries.id),
         ]
-      : [desc(contestEntries.submittedAt)];
+      : [desc(contestEntries.submittedAt), desc(contestEntries.id)];
 
   const [rows, total] = await Promise.all([
     db
@@ -1016,17 +1017,21 @@ export async function transitionContestStatus(
     return { transitioned: false, error: `Cannot transition from ${currentStatus} to ${newStatus}` };
   }
 
-  await db
-    .update(contests)
-    .set({
-      status: newStatus,
-      updatedAt: new Date(),
-    })
-    .where(eq(contests.id, contestId));
+  // Status flip + (on completion) rank calculation must be atomic so we never
+  // leave a 'completed' contest with stale/partial ranks.
+  await db.transaction(async (tx) => {
+    await tx
+      .update(contests)
+      .set({
+        status: newStatus,
+        updatedAt: new Date(),
+      })
+      .where(eq(contests.id, contestId));
 
-  if (newStatus === 'completed') {
-    await calculateContestRanks(db, contestId);
-  }
+    if (newStatus === 'completed') {
+      await calculateContestRanks(tx, contestId);
+    }
+  });
 
   // Notify contest entrants about status change (non-critical)
   try {
@@ -1390,21 +1395,28 @@ export async function advanceContestStage(
     advancedIds = new Set(sorted.slice(0, n).map((e) => e.id));
   }
 
+  const nextStage = stages[idx + 1];
+
+  // Per-entry stage advance + the currentStageId bump must be atomic so a
+  // partial failure can't leave the cohort half-advanced against the new stage.
   let advancedCount = 0;
   let eliminatedCount = 0;
-  for (const e of eligible) {
-    const isAdv = advancedIds.has(e.id);
-    const prior = (e.stageState ?? []).filter((s) => s.stageId !== input.reviewStageId);
-    const next = [...prior, { stageId: input.reviewStageId, status: isAdv ? ('advanced' as const) : ('eliminated' as const), score: e.score ?? null, rank: e.rank ?? null }];
-    await db.update(contestEntries).set({ stageState: next }).where(eq(contestEntries.id, e.id));
-    if (isAdv) advancedCount++;
-    else eliminatedCount++;
-  }
+  await db.transaction(async (tx) => {
+    advancedCount = 0;
+    eliminatedCount = 0;
+    for (const e of eligible) {
+      const isAdv = advancedIds.has(e.id);
+      const prior = (e.stageState ?? []).filter((s) => s.stageId !== input.reviewStageId);
+      const next = [...prior, { stageId: input.reviewStageId, status: isAdv ? ('advanced' as const) : ('eliminated' as const), score: e.score ?? null, rank: e.rank ?? null }];
+      await tx.update(contestEntries).set({ stageState: next }).where(eq(contestEntries.id, e.id));
+      if (isAdv) advancedCount++;
+      else eliminatedCount++;
+    }
 
-  const nextStage = stages[idx + 1];
-  if (nextStage) {
-    await db.update(contests).set({ currentStageId: nextStage.id, updatedAt: new Date() }).where(eq(contests.id, contestId));
-  }
+    if (nextStage) {
+      await tx.update(contests).set({ currentStageId: nextStage.id, updatedAt: new Date() }).where(eq(contests.id, contestId));
+    }
+  });
 
   // Notify entrants of the outcome (non-critical, de-duped by user).
   try {

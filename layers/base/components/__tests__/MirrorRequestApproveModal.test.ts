@@ -33,7 +33,8 @@ function makeRequest(overrides: Record<string, unknown> = {}) {
 }
 
 function mount(request = makeRequest()) {
-  return render(MirrorRequestApproveModal, { props: { request } });
+  // Stub <Teleport to="body"> so content mounts in place for container-scoped queries (session 204).
+  return render(MirrorRequestApproveModal, { props: { request }, global: { stubs: { teleport: true } } });
 }
 
 beforeEach(() => {

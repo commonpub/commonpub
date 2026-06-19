@@ -134,10 +134,12 @@ export async function listNotifications(
       .from(notifications)
       .leftJoin(users, eq(notifications.actorId, users.id))
       .where(where)
-      .orderBy(desc(notifications.createdAt))
+      .orderBy(desc(notifications.createdAt), desc(notifications.id))
       .limit(limit)
       .offset(offset),
-    countRows(db, notifications, where),
+    // COUNT(*) only on the first page: the notifications UI detects "has more" via
+    // items.length and never reads `total` on deep pages. `-1` = "not computed".
+    offset === 0 ? countRows(db, notifications, where) : Promise.resolve(-1),
   ]);
 
   const items: NotificationItem[] = rows.map((row) => ({

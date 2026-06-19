@@ -17,5 +17,11 @@ export default defineEventHandler(async (event) => {
   const version = result.versions?.find((v) => v.isDefault) ?? result.versions?.[0];
   if (!version) return [];
 
-  return searchDocsPages(db, result.site.id, version.id, query.q ?? '', config.docs.searchLanguage);
+  // Public viewers only search published pages; the site owner/admin sees drafts too.
+  const viewer = getOptionalUser(event);
+  const canSeeDrafts = !!viewer && (viewer.role === 'admin' || viewer.id === result.site.ownerId);
+
+  return searchDocsPages(db, result.site.id, version.id, query.q ?? '', config.docs.searchLanguage, {
+    publishedOnly: !canSeeDrafts,
+  });
 });

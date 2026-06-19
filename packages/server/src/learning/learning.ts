@@ -76,7 +76,7 @@ export async function listPaths(
       .innerJoin(users, eq(learningPaths.authorId, users.id))
       .leftJoin(moduleCountSubquery, eq(learningPaths.id, moduleCountSubquery.pathId))
       .where(where)
-      .orderBy(desc(learningPaths.createdAt))
+      .orderBy(desc(learningPaths.createdAt), desc(learningPaths.id))
       .limit(limit)
       .offset(offset),
     countRows(db, learningPaths, where),
@@ -593,35 +593,49 @@ export async function enroll(
 
   if (path.length === 0) throw new Error('Path not found or not published');
 
-  const [enrollment] = await db.insert(enrollments).values({ userId, pathId }).returning();
+  return db.transaction(async (tx) => {
+    // Idempotent insert on the (userId, pathId) unique; only bump the counter
+    // when a row was actually inserted, so a concurrent enroll can't double-count.
+    const [inserted] = await tx
+      .insert(enrollments)
+      .values({ userId, pathId })
+      .onConflictDoNothing({ target: [enrollments.userId, enrollments.pathId] })
+      .returning();
 
-  await db
-    .update(learningPaths)
-    .set({ enrollmentCount: sql`${learningPaths.enrollmentCount} + 1` })
-    .where(eq(learningPaths.id, pathId));
+    if (inserted) {
+      await tx
+        .update(learningPaths)
+        .set({ enrollmentCount: sql`${learningPaths.enrollmentCount} + 1` })
+        .where(eq(learningPaths.id, pathId));
+      return inserted;
+    }
 
-  return enrollment!;
+    // Lost the race: another concurrent enroll already created the row.
+    const [current] = await tx
+      .select()
+      .from(enrollments)
+      .where(and(eq(enrollments.userId, userId), eq(enrollments.pathId, pathId)))
+      .limit(1);
+    return current!;
+  });
 }
 
 export async function unenroll(db: DB, userId: string, pathId: string): Promise<boolean> {
-  const existing = await db
-    .select()
-    .from(enrollments)
-    .where(and(eq(enrollments.userId, userId), eq(enrollments.pathId, pathId)))
-    .limit(1);
+  return db.transaction(async (tx) => {
+    const deleted = await tx
+      .delete(enrollments)
+      .where(and(eq(enrollments.userId, userId), eq(enrollments.pathId, pathId)))
+      .returning();
 
-  if (existing.length === 0) return false;
+    if (deleted.length === 0) return false;
 
-  await db
-    .delete(enrollments)
-    .where(and(eq(enrollments.userId, userId), eq(enrollments.pathId, pathId)));
+    await tx
+      .update(learningPaths)
+      .set({ enrollmentCount: sql`GREATEST(${learningPaths.enrollmentCount} - 1, 0)` })
+      .where(eq(learningPaths.id, pathId));
 
-  await db
-    .update(learningPaths)
-    .set({ enrollmentCount: sql`GREATEST(${learningPaths.enrollmentCount} - 1, 0)` })
-    .where(eq(learningPaths.id, pathId));
-
-  return true;
+    return true;
+  });
 }
 
 // --- Progress ---

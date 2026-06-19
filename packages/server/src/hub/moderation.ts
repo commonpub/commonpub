@@ -169,7 +169,7 @@ export async function listBans(db: DB, hubId: string, opts: { limit?: number; of
     .innerJoin(users, eq(hubBans.userId, users.id))
     .innerJoin(sql`users AS banner`, sql`banner.id = ${hubBans.bannedById}`)
     .where(eq(hubBans.hubId, hubId))
-    .orderBy(desc(hubBans.createdAt))
+    .orderBy(desc(hubBans.createdAt), desc(hubBans.id))
     .limit(limit)
     .offset(offset);
 
@@ -295,7 +295,7 @@ export async function listInvites(db: DB, hubId: string, opts: { limit?: number;
     .from(hubInvites)
     .innerJoin(users, eq(hubInvites.createdById, users.id))
     .where(eq(hubInvites.hubId, hubId))
-    .orderBy(desc(hubInvites.createdAt))
+    .orderBy(desc(hubInvites.createdAt), desc(hubInvites.id))
     .limit(limit)
     .offset(offset);
 

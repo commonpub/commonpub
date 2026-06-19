@@ -11,11 +11,9 @@ const siteSlug = computed(() => route.params.siteSlug as string);
 const { show: toast } = useToast();
 
 // Provide upload handler to block components (ImageBlock, GalleryBlock)
+const { uploadFile } = useFileUpload();
 provide(UPLOAD_HANDLER_KEY, async (file: File) => {
-  const formData = new FormData();
-  formData.append('file', file);
-  formData.append('purpose', 'content');
-  const res = await $fetch<{ url: string; width?: number | null; height?: number | null }>('/api/files/upload', { method: 'POST', body: formData });
+  const res = await uploadFile<{ url: string; width?: number | null; height?: number | null }>(file, 'content');
   return { url: res.url, width: res.width ?? null, height: res.height ?? null };
 });
 
@@ -279,6 +277,15 @@ onUnmounted(() => {
   document.removeEventListener('keydown', handleKeydown);
   window.removeEventListener('beforeunload', handleBeforeUnload);
   if (autoSaveTimer.value) clearTimeout(autoSaveTimer.value);
+});
+
+// Warn before in-app navigation (beforeunload only covers full-page unload)
+onBeforeRouteLeave((_to, _from, next) => {
+  if (isDirty.value && !window.confirm('You have unsaved changes. Leave anyway?')) {
+    next(false);
+  } else {
+    next();
+  }
 });
 
 // ═══ PAGE TREE ACTIONS ═══

@@ -91,6 +91,10 @@ export const contentItems = pgTable('content_items', {
   // Counters (denormalized for read performance)
   viewCount: integer('view_count').default(0).notNull(),
   likeCount: integer('like_count').default(0).notNull(),
+  // Remote (federated) portion of likeCount. Inbound Like activities have no local `likes`
+  // row, so reconcile-counters.mjs computes likeCount = (local likes) + remoteLikeCount.
+  // Without this, reconciling would wipe every fediverse like (audit session 203).
+  remoteLikeCount: integer('remote_like_count').default(0).notNull(),
   commentCount: integer('comment_count').default(0).notNull(),
   forkCount: integer('fork_count').default(0).notNull(),
   buildCount: integer('build_count').default(0).notNull(),
@@ -121,6 +125,12 @@ export const contentItems = pgTable('content_items', {
   index('idx_content_items_feed_popular')
     .on(t.viewCount.desc().nullsFirst(), t.id.desc().nullsFirst())
     .where(sql`${t.status} = 'published' AND ${t.deletedAt} IS NULL`),
+  // Hot detail-page reads (audit session 204): author published-count + related-content
+  // queries filter on these composites; without them they index-scan one column then
+  // filter+sort the rest.
+  index('idx_content_items_author_status').on(t.authorId, t.status),
+  index('idx_content_items_type_status_published')
+    .on(t.type, t.status, t.publishedAt.desc().nullsLast()),
 ]);
 
 export const contentVersions = pgTable('content_versions', {

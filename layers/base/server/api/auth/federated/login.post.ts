@@ -1,5 +1,5 @@
 import { discoverOAuthEndpoint } from '@commonpub/auth';
-import { storeOAuthState, isDomainTrusted } from '@commonpub/server';
+import { storeOAuthState, isDomainTrusted, createSafeActorFetchFn } from '@commonpub/server';
 import { z } from 'zod';
 
 const loginSchema = z.object({
@@ -27,7 +27,10 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  const endpoints = await discoverOAuthEndpoint(instanceDomain, 'instance');
+  // SSRF-safe fetch (pinned dispatcher): even a trusted domain's WebFinger/registration
+  // response must not be able to drive a request to an internal address (audit session 204).
+  const safeFetch = createSafeActorFetchFn();
+  const endpoints = await discoverOAuthEndpoint(instanceDomain, 'instance', safeFetch as unknown as typeof fetch);
   if (!endpoints) {
     throw createError({
       statusCode: 502,
@@ -43,15 +46,19 @@ export default defineEventHandler(async (event) => {
   if (!clientId) {
     try {
       const regUrl = endpoints.tokenEndpoint.replace('/token', '/register');
-      const regResult = await $fetch<{ client_id: string; client_secret: string }>(regUrl, {
+      // regUrl is derived from the remote's discovery response — route the POST through
+      // the SSRF-safe fetch so it can't be pointed at an internal address.
+      const regRes = await safeFetch(regUrl, {
         method: 'POST',
-        body: {
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
           client_name: config.instance.name || config.instance.domain,
           redirect_uris: [redirectUri],
           client_uri: `https://${config.instance.domain}`,
           instance_domain: config.instance.domain,
-        },
+        }),
       });
+      const regResult = (await regRes.json()) as { client_id: string; client_secret: string };
       effectiveClientId = regResult.client_id;
       effectiveClientSecret = regResult.client_secret;
     } catch {

@@ -1,4 +1,5 @@
 import { AP_CONTEXT, AP_PUBLIC, type APArticle, type APNote, type APTag, type APCreate } from './activityTypes.js';
+import { sanitizeHtml } from './sanitize.js';
 
 /**
  * Render content to HTML for federation.
@@ -34,16 +35,16 @@ function explainerDocumentToHtml(doc: Record<string, unknown>): string {
   if (sections) {
     for (const section of sections) {
       if (section.heading) parts.push(`<h2>${escapeHtml(String(section.heading))}</h2>`);
-      if (section.body) parts.push(sanitizeBlockHtml(section.body));
+      if (section.body) parts.push(sanitizeFederatedHtml(section.body));
       if (section.insight) parts.push(`<aside><strong>Insight:</strong> ${escapeHtml(String(section.insight))}</aside>`);
-      if (section.bridge) parts.push(`<p><em>${sanitizeBlockHtml(section.bridge)}</em></p>`);
+      if (section.bridge) parts.push(`<p><em>${sanitizeFederatedHtml(section.bridge)}</em></p>`);
     }
   }
 
   // Conclusion
   if (conclusion) {
     if (conclusion.heading) parts.push(`<h2>${escapeHtml(String(conclusion.heading))}</h2>`);
-    if (conclusion.body) parts.push(sanitizeBlockHtml(conclusion.body));
+    if (conclusion.body) parts.push(sanitizeFederatedHtml(conclusion.body));
   }
 
   return parts.join('\n');
@@ -60,12 +61,12 @@ function blockTuplesToHtml(blocks: unknown): string {
     switch (type) {
       case 'paragraph':
       case 'text':
-        if (data.html) parts.push(`<p>${sanitizeBlockHtml(data.html)}</p>`);
+        if (data.html) parts.push(`<p>${sanitizeFederatedHtml(data.html)}</p>`);
         else if (data.text) parts.push(`<p>${escapeHtml(String(data.text))}</p>`);
         break;
       case 'heading': {
         const level = Math.min(Math.max(Number(data.level) || 2, 1), 6);
-        const text = sanitizeBlockHtml(data.html) || escapeHtml(String(data.text ?? ''));
+        const text = sanitizeFederatedHtml(data.html) || escapeHtml(String(data.text ?? ''));
         parts.push(`<h${level}>${text}</h${level}>`);
         break;
       }
@@ -85,7 +86,7 @@ function blockTuplesToHtml(blocks: unknown): string {
         break;
       case 'quote':
       case 'blockquote':
-        if (data.html) parts.push(`<blockquote>${sanitizeBlockHtml(data.html)}</blockquote>`);
+        if (data.html) parts.push(`<blockquote>${sanitizeFederatedHtml(data.html)}</blockquote>`);
         else if (data.text) parts.push(`<blockquote><p>${escapeHtml(String(data.text))}</p></blockquote>`);
         break;
       case 'divider':
@@ -98,15 +99,15 @@ function blockTuplesToHtml(blocks: unknown): string {
         if (data.url) parts.push(`<p><a href="${escapeAttr(String(data.url))}">${escapeHtml(String(data.title ?? 'Embedded content'))}</a></p>`);
         break;
       case 'callout':
-        parts.push(`<aside>${sanitizeBlockHtml(data.html) || escapeHtml(String(data.text ?? ''))}</aside>`);
+        parts.push(`<aside>${sanitizeFederatedHtml(data.html) || escapeHtml(String(data.text ?? ''))}</aside>`);
         break;
       case 'markdown':
-        if (data.html) parts.push(sanitizeBlockHtml(data.html));
+        if (data.html) parts.push(sanitizeFederatedHtml(data.html));
         else if (data.text) parts.push(`<p>${escapeHtml(String(data.text))}</p>`);
         break;
       case 'build_step': {
         const title = data.title ? `<strong>${escapeHtml(String(data.title))}</strong>` : '';
-        const body = sanitizeBlockHtml(data.html) || escapeHtml(String(data.text ?? ''));
+        const body = sanitizeFederatedHtml(data.html) || escapeHtml(String(data.text ?? ''));
         parts.push(`<div>${title}${body ? `<p>${body}</p>` : ''}</div>`);
         break;
       }
@@ -122,7 +123,7 @@ function blockTuplesToHtml(blocks: unknown): string {
       }
       default:
         // Unknown block types: try html, text, or skip
-        if (data.html) parts.push(`<div>${sanitizeBlockHtml(data.html)}</div>`);
+        if (data.html) parts.push(`<div>${sanitizeFederatedHtml(data.html)}</div>`);
         else if (data.text) parts.push(`<p>${escapeHtml(String(data.text))}</p>`);
         break;
     }
@@ -139,27 +140,18 @@ function escapeAttr(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
-/** Safe inline HTML tags allowed in federated block content */
-const SAFE_TAGS = new Set(['p', 'br', 'strong', 'em', 'b', 'i', 'u', 's', 'code', 'a', 'ul', 'ol', 'li', 'blockquote', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'pre', 'span', 'sub', 'sup', 'hr', 'figure', 'figcaption', 'img', 'table', 'thead', 'tbody', 'tr', 'th', 'td']);
-const SAFE_ATTRS = new Set(['href', 'src', 'alt', 'title', 'class', 'width', 'height', 'target', 'rel']);
-
 /**
- * Strip dangerous HTML while preserving safe formatting tags.
- * Used for data.html fields from TipTap editor blocks before federation.
+ * Sanitize HTML from TipTap editor block `data.html` fields before federation.
+ *
+ * Delegates to the package's allowlist-based {@link sanitizeHtml} so that
+ * outbound federated HTML is held to the same allowlist as inbound content:
+ * only allowlisted elements survive, dangerous attributes (event handlers,
+ * `style`) are stripped, and URL schemes are validated. Replaces the previous
+ * denylist-only regex (which let unknown tags such as `<iframe>` through).
  */
-function sanitizeBlockHtml(html: unknown): string {
+function sanitizeFederatedHtml(html: unknown): string {
   if (typeof html !== 'string') return '';
-  return String(html)
-    // Remove script/style tags and content
-    .replace(/<script[\s\S]*?<\/script>/gi, '')
-    .replace(/<style[\s\S]*?<\/style>/gi, '')
-    // Remove event handlers (onclick, onerror, etc.)
-    .replace(/\s+on\w+\s*=\s*("[^"]*"|'[^']*'|[^\s>]*)/gi, '')
-    // Remove javascript: URLs
-    .replace(/href\s*=\s*["']javascript:[^"']*["']/gi, 'href="#"')
-    .replace(/src\s*=\s*["']javascript:[^"']*["']/gi, 'src=""')
-    // Remove data: URIs except safe image formats
-    .replace(/src\s*=\s*["']data:(?!image\/(png|jpeg|jpg|gif|webp|svg\+xml))[^"']*["']/gi, 'src=""');
+  return sanitizeHtml(html);
 }
 
 export interface ContentItemInput {

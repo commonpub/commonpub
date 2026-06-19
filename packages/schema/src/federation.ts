@@ -74,6 +74,20 @@ export const actorKeypairs = pgTable('actor_keypairs', {
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
+/**
+ * Inbox replay dedup. Inbound activities are processed with no activity-level idempotency,
+ * so a signed POST replayed within the 5-min signature window double-applies non-idempotent
+ * effects (e.g. reply commentCount + 1, onAccept backfill). The inbox records each
+ * `activity.id` here ON CONFLICT DO NOTHING and skips dispatch if it was already seen.
+ * (audit session 204)
+ */
+export const processedActivities = pgTable('processed_activities', {
+  activityId: text('activity_id').primaryKey(),
+  seenAt: timestamp('seen_at', { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [
+  index('idx_processed_activities_seen_at').on(t.seenAt),
+]);
+
 /** Federated content received from remote instances via inbox Create activities */
 export const federatedContent = pgTable('federated_content', {
   id: uuid('id').defaultRandom().primaryKey(),

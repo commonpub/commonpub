@@ -42,7 +42,7 @@ export async function listConversations(
     .select()
     .from(conversations)
     .where(sql`${conversations.participants} @> ${JSON.stringify([userId])}::jsonb`)
-    .orderBy(desc(conversations.lastMessageAt))
+    .orderBy(desc(conversations.lastMessageAt), desc(conversations.id))
     .limit(limit)
     .offset(offset);
 

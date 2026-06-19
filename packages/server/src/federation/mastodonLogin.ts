@@ -34,7 +34,9 @@
  * See docs/sessions/136-cross-instance-identity-plan.md.
  */
 import { eq } from 'drizzle-orm';
+import { isPrivateUrl } from '@commonpub/protocol';
 import generator, { detector } from 'megalodon';
+import { assertPublicHost } from './assertPublicHost.js';
 import { instanceSettings } from '@commonpub/schema';
 import type { SoftwareKind } from '@commonpub/auth';
 import type { DB } from '../types.js';
@@ -102,6 +104,12 @@ export function isValidHost(host: string): boolean {
   if (normalized.length > 253) return false;
   if (!/^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$/i.test(normalized)) return false;
   if (!normalized.includes('.')) return false;
+  // SSRF guard: reject hosts that resolve (by literal) to private/loopback/link-local
+  // ranges — incl. the 169.254.169.254 cloud-metadata IP. megalodon uses its own axios
+  // (not the SSRF-pinned dispatcher), so an IP-literal host would otherwise drive
+  // server-side requests to internal targets. (audit session 204 — P0; the residual
+  // DNS-rebind-via-hostname case needs a global pinned dispatcher, tracked separately.)
+  if (isPrivateUrl(`https://${normalized}`)) return false;
   return true;
 }
 
@@ -123,6 +131,11 @@ export async function getOrRegisterRemoteClient(
   if (!isValidHost(host)) {
     throw new Error(`Invalid host for Mastodon-login: ${host}`);
   }
+  // DNS-rebind SSRF guard: isValidHost only blocks IP *literals*. A public
+  // hostname can still resolve to a private address, and megalodon's axios
+  // bypasses the SSRF-pinned dispatcher. Resolve + classify before we let
+  // megalodon contact the host. (TOCTOU residual — see assertPublicHost.ts.)
+  await assertPublicHost(host);
   const key = `${CLIENT_PREFIX}${host}`;
   const [cached] = await db.select().from(instanceSettings).where(eq(instanceSettings.key, key)).limit(1);
   if (cached) {
@@ -222,6 +235,11 @@ export async function consumeMastodonLoginState(
  *   'pixelfed'   → 'unknown'    (not in our enum yet)
  */
 export async function detectSoftwareKind(host: string): Promise<SoftwareKind> {
+  // DNS-rebind SSRF guard before megalodon's detector (own axios, bypasses
+  // the SSRF-pinned dispatcher). assertPublicHost throws PrivateHostError;
+  // we let it propagate rather than swallowing it into the 'unknown'
+  // fallback, so a private-resolving host aborts the flow.
+  await assertPublicHost(host);
   try {
     const sns = await detector(`https://${host}`);
     return mapDetectorToSoftwareKind(sns);

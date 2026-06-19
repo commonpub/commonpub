@@ -8,6 +8,7 @@ const bookmarksQuerySchema = z.object({
 });
 
 export default defineEventHandler(async (event): Promise<PaginatedResponse<BookmarkItem>> => {
+  requireFeature('social');
   const user = requireAuth(event);
   const db = useDB();
   const query = parseQueryParams(event, bookmarksQuerySchema);

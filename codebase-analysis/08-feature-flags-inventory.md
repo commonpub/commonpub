@@ -5,12 +5,17 @@ Flags live in `packages/config/src/types.ts` → `FeatureFlags`. Set in
 site), layer pages (`feature-gate.global.ts` middleware), layer components
 (via `useFeatures()` composable), nav items (per-item `requiredFeature`).
 
-**23 boolean top-level flags + `identity` object (5 nested sub-flags).** Re-verified session 192 (2026-06-08) against `packages/config/src/types.ts`. (Live per-instance flag state drifts — always `curl /api/features` before any "on/off in prod" claim; see [[feedback_verify_flag_state]].)
+**24 boolean top-level flags + `identity` object (5 nested sub-flags) + `auth` object (`authConfigSchema` sub-flags).** Re-verified session 203 (2026-06-18) against `packages/config/src/schema.ts`. (Live per-instance flag state drifts — always `curl /api/features` before any "on/off in prod" claim; see [[feedback_verify_flag_state]].)
+
+> ⚠️ **`social` is declared but gates NOTHING (session 203 audit).** There is no
+> `requireFeature('social')` / `features.social` check anywhere — likes/comments/follows/
+> bookmarks/reports are always on regardless of the flag. The "What it gates" cell below is
+> aspirational, not enforced. Either wire the gate or drop the flag.
 
 | Flag | Default | What it gates | Runtime override? |
 |---|---|---|---|
 | `content` | ON | Content CRUD, `/[type]`, `/u/:user/:type/:slug`, editor pages | admin `/features` |
-| `social` | ON | Likes, follows, comments, bookmarks, reports | admin |
+| `social` | ON | ⚠️ NOT ENFORCED (see box above) — intended: likes, follows, comments, bookmarks, reports | admin |
 | `hubs` | ON | `/hubs/**`, hub API routes, hub nav item | admin |
 | `docs` | ON | `/docs/**`, docs editor, search | admin |
 | `video` | ON | `/videos/**`, video submit, video API | admin |
@@ -21,6 +26,7 @@ site), layer pages (`feature-gate.global.ts` middleware), layer components
 | `themeStudio` | ON (added config session 192) | Guided theme generator (`@commonpub/theme-studio`) in `/admin/theme` create flow + editor "Studio" toggle. OFF hides the wizard; the granular token editor is unchanged. Client-gated only (theme CRUD stays `admin`+`theme.manage`). | admin |
 | `contentImport` | ON (added config 0.13.0) | `/api/content/import` (URL → content) | admin |
 | `contests` | **OFF** | `/contests/**`, contest API, judges, voting | admin |
+| `contestStageSubmissions` | **ON** (added config 0.21.0, session 194) | Per-stage entry artifacts (proposal/prototype submission templates filled by entrants). Inert until a contest stage defines a `submissionTemplate`. | admin |
 | `events` | **OFF** | `/events/**`, events API, RSVP | admin |
 | `federation` | **OFF default** (live `true` on commonpub.io + deveco.io as of session 137-ish; verify with `curl /api/features` before any "dormant" claim) | AP `.well-known/*`, `/api/federation/**`, inbox, outbox | admin |
 | `federateHubs` | **OFF default** (live `true` on commonpub.io + deveco.io) | Hub Group actor + FEP-1b12 hub federation | admin |

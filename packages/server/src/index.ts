@@ -109,7 +109,6 @@ export {
   onContentPublished,
   onContentUpdated,
   onContentDeleted,
-  onContentStatusChange,
   createContentVersion,
   listContentVersions,
   forkContent,
@@ -546,6 +545,8 @@ export {
   joinFederatedHub,
   getFederatedHubFollowStatus,
   getLikedFederatedHubPostIds,
+  createSafeActorFetchFn,
+  recordActivitySeen,
 } from './federation/index.js';
 
 // OAuth Codes

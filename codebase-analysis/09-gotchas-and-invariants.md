@@ -88,7 +88,7 @@ Reproduced cleanly in `node:22-alpine` containers across pnpm `10.10.0` AND `10.
 2. If that doesn't fix it: switch the consumer's Dockerfile from `pnpm install --frozen-lockfile` to `npm install` (heatsync's approach — known-good).
 3. Long-term: file a pnpm bug with the reproducer; consider standardising consumer-site Dockerfiles on `npm install`.
 
-**Pre-bump sanity check** — before pushing a deveco-style consumer-site pin bump, build the image and confirm the installed `@commonpub/schema` dist is COMPLETE. Don't hardcode a magic number — the count grows with the schema (it was ~80 at 0.17.0 / 18 src files; schema is now 0.35.0 / **24 src files**, so expect proportionally more). Compare against a fresh `npm pack` / non-frozen install of the SAME version, and verify `dist/index.js` actually `export *`s every domain module:
+**Pre-bump sanity check** — before pushing a deveco-style consumer-site pin bump, build the image and confirm the installed `@commonpub/schema` dist is COMPLETE. Don't hardcode a magic number — the count grows with the schema (it was ~80 at 0.17.0 / 18 src files; schema is now 0.45.0 / **24 src files**, so expect proportionally more). Compare against a fresh `npm pack` / non-frozen install of the SAME version, and verify `dist/index.js` actually `export *`s every domain module:
 ```sh
 docker build -t verify .
 docker run --rm --entrypoint sh verify -c 'ls /app/.output/server/node_modules/@commonpub/schema/dist | wc -l'
@@ -976,16 +976,27 @@ pinning in config is now the recommended, repo-reviewable fix.
 ## Denormalized counters: drift has a repair path — `scripts/reconcile-counters.mjs`
 
 Counters (`hubs.member_count`, `contests.entry_count`, `events.attendee_count`, `hub_posts.vote_score`,
-content `like_count`/`comment_count`, etc.) are maintained inline alongside writes. The known writers
-are now all transaction-wrapped — including `leaveHub` (`members.ts`, "mirrors joinHub") and
-`submitContestEntry` (`contest.ts`, "Atomic"), which the session-182 audit had flagged as the two
-non-transactional offenders; both have since been wrapped. A crash mid-write, a manual DB edit, or
-pre-transaction-era drift can still desync a counter, so the safety net is
-**`scripts/reconcile-counters.mjs`** (added after that same audit, which flagged the absence of any
-recount path): it recomputes each counter from its source rows. `--check` reports drift and exits 1
-(CI/cron-friendly), no args fixes in place. It is **idempotent** and safe on production (only UPDATEs
-rows whose stored counter already disagrees). Needs `NUXT_DATABASE_URL`/`DATABASE_URL`. If you add a
-new denormalized counter, add it to this script's recompute list too.
+content `like_count`/`comment_count`, etc.) are maintained inline alongside writes. The HOT writers
+are transaction-wrapped — `joinHub`/`leaveHub` (`members.ts`), `submitContestEntry` (`contest.ts`),
+`voteOnPost`, `rsvpEvent`, `toggleBuildMark` — which closed the two non-tx offenders the session-182
+audit flagged. **But "all known writers are wrapped" is FALSE (session 203 re-audit):** hub `kick`
+(`members.ts:359`), `ban` (`moderation.ts:73`), contest `withdraw` (`contest.ts:1144`),
+`toggleFederatedHubPostLike` (`hubMirroring.ts:1317`, 4 non-tx writes + a like-branch double-count
+race), and all comment/reply/post-count writers are NON-transactional. A crash mid-write, a manual DB
+edit, or these non-tx paths can desync a counter.
+
+The repair net is **`scripts/reconcile-counters.mjs`** (`--check` reports drift and exits 1, no-args
+fixes in place; needs `NUXT_DATABASE_URL`/`DATABASE_URL`). It is idempotent BUT **NOT safe to run in
+fix mode on a federating instance (session 203):** it recomputes `content_items.like_count` /
+`hub_posts.like_count` purely from the `likes`/`hub_post_likes` tables (`reconcile:79,54`), while
+inbound **federated likes increment the counter without inserting a source row**
+(`inboxHandlers.ts:1137,1155`). Running fix mode on commonpub.io/deveco.io would delete every
+fediverse like. Fix the recompute to add remote likes before using fix mode there.
+Also: the script covers only 10 counters — `content_items.comment_count`, `hub_posts.reply_count`,
+`hubs.post_count`, `learning_paths.{enrollment_count,completion_count}`, `content_items.boost_count`,
+and `federatedHubs.{localPostCount,localReplyCount}` are NOT in the list and drift uncorrected.
+If you add a new denormalized counter, add it to this script — and the codebase already violates that
+rule for the six above.
 
 ## Search is mirror-aware ONLY on the listContent path (session 196)
 

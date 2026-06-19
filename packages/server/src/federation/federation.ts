@@ -924,13 +924,17 @@ export async function listFederationActivity(
       .select()
       .from(activities)
       .where(where)
-      .orderBy(desc(activities.createdAt))
+      // desc(id) tiebreaker: createdAt is non-unique, so without it offset pages overlap.
+      .orderBy(desc(activities.createdAt), desc(activities.id))
       .limit(limit)
       .offset(offset),
-    db
-      .select({ count: sql<number>`count(*)::int` })
-      .from(activities)
-      .where(where),
+    // COUNT(*) only on the first page; deep pages skip it (`-1` = "not computed").
+    offset === 0
+      ? db
+          .select({ count: sql<number>`count(*)::int` })
+          .from(activities)
+          .where(where)
+      : Promise.resolve([{ count: -1 }]),
   ]);
 
   return {

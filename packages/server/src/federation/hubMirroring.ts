@@ -1292,96 +1292,116 @@ export async function toggleFederatedHubPostLike(
   userId: string,
   localActorUri: string,
 ): Promise<{ liked: boolean }> {
-  const [post] = await db
-    .select({
-      objectUri: federatedHubPosts.objectUri,
-      actorUri: federatedHubPosts.actorUri,
-    })
-    .from(federatedHubPosts)
-    .where(eq(federatedHubPosts.id, postId))
-    .limit(1);
+  // Transactional + idempotent: the like row insert/delete GATES the counter update so a
+  // concurrent double-toggle (or a retry) can't double-count or queue duplicate deliveries
+  // (audit session 203 — was 4 sequential non-tx writes).
+  return db.transaction(async (tx) => {
+    const [post] = await tx
+      .select({
+        objectUri: federatedHubPosts.objectUri,
+        actorUri: federatedHubPosts.actorUri,
+      })
+      .from(federatedHubPosts)
+      .where(eq(federatedHubPosts.id, postId))
+      .limit(1);
 
-  if (!post) throw new Error('Post not found');
+    if (!post) throw new Error('Post not found');
 
-  const [existing] = await db
-    .select({ id: federatedHubPostLikes.id })
-    .from(federatedHubPostLikes)
-    .where(and(
-      eq(federatedHubPostLikes.postId, postId),
-      eq(federatedHubPostLikes.userId, userId),
-    ))
-    .limit(1);
-
-  if (existing) {
-    // Unlike
-    await db.delete(federatedHubPostLikes).where(eq(federatedHubPostLikes.id, existing.id));
-    await unlikeFederatedHubPost(db, postId);
-
-    const [likeAct] = await db
-      .select({ payload: activities.payload })
-      .from(activities)
+    const [existing] = await tx
+      .select({ id: federatedHubPostLikes.id })
+      .from(federatedHubPostLikes)
       .where(and(
-        eq(activities.type, 'Like'),
-        eq(activities.actorUri, localActorUri),
-        eq(activities.objectUri, post.objectUri),
-        eq(activities.direction, 'outbound'),
+        eq(federatedHubPostLikes.postId, postId),
+        eq(federatedHubPostLikes.userId, userId),
       ))
       .limit(1);
 
-    const undoActivity = {
-      '@context': AP_CONTEXT,
-      type: 'Undo',
-      id: `${localActorUri}/undo/${crypto.randomUUID()}`,
-      actor: localActorUri,
-      object: likeAct?.payload ?? {
+    if (existing) {
+      // Unlike — only decrement + queue the Undo if we actually removed a row.
+      const deleted = await tx
+        .delete(federatedHubPostLikes)
+        .where(eq(federatedHubPostLikes.id, existing.id))
+        .returning({ id: federatedHubPostLikes.id });
+
+      if (deleted.length > 0) {
+        await tx
+          .update(federatedHubPosts)
+          .set({ localLikeCount: sql`GREATEST(${federatedHubPosts.localLikeCount} - 1, 0)` })
+          .where(eq(federatedHubPosts.id, postId));
+
+        const [likeAct] = await tx
+          .select({ payload: activities.payload })
+          .from(activities)
+          .where(and(
+            eq(activities.type, 'Like'),
+            eq(activities.actorUri, localActorUri),
+            eq(activities.objectUri, post.objectUri),
+            eq(activities.direction, 'outbound'),
+          ))
+          .limit(1);
+
+        const undoActivity = {
+          '@context': AP_CONTEXT,
+          type: 'Undo',
+          id: `${localActorUri}/undo/${crypto.randomUUID()}`,
+          actor: localActorUri,
+          object: likeAct?.payload ?? {
+            type: 'Like',
+            actor: localActorUri,
+            object: post.objectUri,
+          },
+          to: [post.actorUri],
+          cc: [AP_PUBLIC],
+        };
+
+        await tx.insert(activities).values({
+          type: 'Undo',
+          actorUri: localActorUri,
+          objectUri: post.objectUri,
+          payload: undoActivity,
+          direction: 'outbound',
+          status: 'pending',
+        });
+      }
+
+      return { liked: false };
+    }
+
+    // Like — gate the counter + delivery on the row actually being inserted.
+    const inserted = await tx
+      .insert(federatedHubPostLikes)
+      .values({ postId, userId })
+      .onConflictDoNothing()
+      .returning({ id: federatedHubPostLikes.id });
+
+    if (inserted.length > 0) {
+      await tx
+        .update(federatedHubPosts)
+        .set({ localLikeCount: sql`${federatedHubPosts.localLikeCount} + 1` })
+        .where(eq(federatedHubPosts.id, postId));
+
+      const likeActivity = {
+        '@context': AP_CONTEXT,
         type: 'Like',
+        id: `${localActorUri}/likes/${crypto.randomUUID()}`,
         actor: localActorUri,
         object: post.objectUri,
-      },
-      to: [post.actorUri],
-      cc: [AP_PUBLIC],
-    };
+        to: [post.actorUri],
+        cc: [AP_PUBLIC],
+      };
 
-    await db.insert(activities).values({
-      type: 'Undo',
-      actorUri: localActorUri,
-      objectUri: post.objectUri,
-      payload: undoActivity,
-      direction: 'outbound',
-      status: 'pending',
-    });
+      await tx.insert(activities).values({
+        type: 'Like',
+        actorUri: localActorUri,
+        objectUri: post.objectUri,
+        payload: likeActivity,
+        direction: 'outbound',
+        status: 'pending',
+      });
+    }
 
-    return { liked: false };
-  }
-
-  // Like
-  await db.insert(federatedHubPostLikes).values({
-    postId,
-    userId,
-  }).onConflictDoNothing();
-
-  await likeFederatedHubPost(db, postId);
-
-  const likeActivity = {
-    '@context': AP_CONTEXT,
-    type: 'Like',
-    id: `${localActorUri}/likes/${crypto.randomUUID()}`,
-    actor: localActorUri,
-    object: post.objectUri,
-    to: [post.actorUri],
-    cc: [AP_PUBLIC],
-  };
-
-  await db.insert(activities).values({
-    type: 'Like',
-    actorUri: localActorUri,
-    objectUri: post.objectUri,
-    payload: likeActivity,
-    direction: 'outbound',
-    status: 'pending',
+    return { liked: true };
   });
-
-  return { liked: true };
 }
 
 // --- Federated Hub Follow (User-Level) ---

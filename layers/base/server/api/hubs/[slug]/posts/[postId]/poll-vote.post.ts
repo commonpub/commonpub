@@ -13,8 +13,7 @@ export default defineEventHandler(async (event) => {
   requireFeature('hubs');
   const user = requireAuth(event);
   const db = useDB();
-  const postId = getRouterParam(event, 'postId');
-  if (!postId) throw createError({ statusCode: 400, statusMessage: 'Missing postId' });
+  const { postId } = parseParams(event, { postId: 'uuid' });
 
   const body = await parseBody(event, pollVoteSchema);
   const result = await voteOnPoll(db, postId, body.optionId, user.id);
