@@ -92,9 +92,28 @@ dropping the `codeBlock` type alias each turned only their own test red.
 - New util suite 16/16 + the pre-existing `ProjectView.test.ts` 3/3 green.
 - Full layer suite **1105/1105 green** (70 files); `nuxt typecheck` clean (EXIT 0).
 
+## Part 4 — deep verification audit (3 parallel agents, findings re-verified)
+
+After the splits, ran a deep audit: an adversarial diff review of both commits, a fact-check of
+the deferred backlog against source, and a targeted regression sweep since the 203-204 merge. Full
+write-up + recommended next steps in `docs/sessions/207-kickoff-next.md`. Headlines:
+- **Branch is safe to build on** — both extractions behavior-faithful, no P0/P1 introduced.
+- **NEW P1** (pre-existing, not the branch): `likeRemoteContent` (timeline.ts:225-281) is a
+  non-transactional check-then-act like race + duplicate-Like federation + unrecoverable counter
+  drift (not in reconcile-counters). Same shape the audit fixed elsewhere but missed. Top next action.
+- **NEW P2 latent**: 10 hand-rolled `Math.min(limit ?? N, 100)` clamps repeat the NaN-500 footgun
+  (not live — edges validate with `z.coerce`).
+- **FIXED this session (P2)**: `extractTocEntries` stripped HTML before slugging, diverging from the
+  renderer (`BlockHeadingView`/`ArticleView` slug raw text) → broken TOC anchors for HTML-in-heading.
+  Pre-existing; fixed to slug raw text (matching the renderer) with a test. Comment nit also fixed.
+- **Two documented autosave drifts** (no fix): refreshPages-failure-leaves-dirty + non-blocking
+  save-before-switch — both arguably improvements; the commit's "behavior preserved" was overstated.
+- Backlog correction: deveco/heatsync publish list is schema → protocol → server → infra →
+  **explainer** → layer (NOT docs/editor — verified via `git diff d32e773f^1 d32e773f`).
+
 ## Open / next
-- Both splits committed on branch `monolith-splits` (no PR per request; continuing all
-  remaining work on this branch).
+- Splits + TOC fix committed on branch `monolith-splits` (no PR per request; continuing all
+  remaining work on this branch). See `207-kickoff-next.md` for the full audit + priority list.
 - Future consolidation opportunity (own effort): three autosave call-sites now exist
   (`useLayoutAutoSave`, `useContentSave` inline, `useEditorAutosave`); could unify behind one
   engine with a debounce-mode option.

@@ -135,9 +135,9 @@ describe('headingSlug', () => {
 });
 
 describe('extractTocEntries', () => {
-  it('builds entries from headings, stripping HTML and defaulting level to 2', () => {
+  it('builds entries from headings: HTML-stripped label, level defaulting to 2', () => {
     const entries = extractTocEntries([
-      ['heading', { text: '<b>Overview</b>', level: 3 }],
+      ['heading', { text: 'Overview', level: 3 }],
       ['heading', { text: 'Wiring' }],          // level defaults to 2
       ['heading', { text: '<i></i>' }],          // empty after strip -> skipped
       ['paragraph', { html: 'not a heading' }],
@@ -146,5 +146,13 @@ describe('extractTocEntries', () => {
       { id: 'overview', text: 'Overview', level: 3 },
       { id: 'wiring', text: 'Wiring', level: 2 },
     ]);
+  });
+
+  it('id matches the rendered anchor (slug of RAW text), even when heading text contains HTML', () => {
+    // BlockHeadingView.vue / ArticleView.vue both slug the RAW text without
+    // stripping HTML, so the TOC id MUST do the same or getElementById misses.
+    const [entry] = extractTocEntries([['heading', { text: '<b>Overview</b>', level: 2 }]]);
+    expect(entry.id).toBe(headingSlug('<b>Overview</b>')); // 'b-overview-b' — matches the rendered <h2 id>
+    expect(entry.text).toBe('Overview');                   // label still strips HTML for display
   });
 });

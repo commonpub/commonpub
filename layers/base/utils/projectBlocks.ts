@@ -144,11 +144,15 @@ export function extractTocEntries(blocks: unknown): TocEntry[] {
   const entries: TocEntry[] = [];
   for (const [type, data] of asBlocks(blocks)) {
     if (type === 'heading' && data.text) {
-      const text = String(data.text).replace(/<[^>]+>/g, '');
-      if (text.trim()) {
+      const raw = String(data.text);
+      const label = raw.replace(/<[^>]+>/g, '');
+      if (label.trim()) {
         entries.push({
-          id: headingSlug(text),
-          text: text.trim(),
+          // Slug the RAW text: BlockHeadingView.vue (and ArticleView.vue) render
+          // the anchor id by slugging the unstripped text, so the TOC id must match
+          // or getElementById()/scroll-spy can't find the heading.
+          id: headingSlug(raw),
+          text: label.trim(),
           level: (data.level as number) ?? 2,
         });
       }

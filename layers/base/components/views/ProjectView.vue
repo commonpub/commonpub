@@ -101,7 +101,7 @@ const formattedDate = computed(() => {
 });
 
 // Structured views of the project's block content. The parsing lives in the
-// pure, unit-tested helpers in utils/projectBlocks.ts (auto-imported); the BOM,
+// pure, unit-tested helpers in utils/projectBlocks.ts (imported above); the BOM,
 // build-steps, code, files, and TOC tabs all read from these computeds.
 const partsFromBlocks = computed(() => extractParts(props.content?.content));
 const buildStepsFromBlocks = computed(() => extractBuildSteps(props.content?.content));
