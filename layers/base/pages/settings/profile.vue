@@ -215,7 +215,7 @@ async function handleSave(): Promise<void> {
 
         <!-- Banner upload -->
         <div class="cpub-form-group">
-          <label class="cpub-form-label">Banner Image</label>
+          <span class="cpub-form-label">Banner Image</span>
           <button
             type="button"
             class="cpub-banner-upload"
@@ -245,7 +245,7 @@ async function handleSave(): Promise<void> {
 
         <!-- Avatar upload -->
         <div class="cpub-form-group">
-          <label class="cpub-form-label">Avatar</label>
+          <span class="cpub-form-label">Avatar</span>
           <button
             type="button"
             class="cpub-avatar-upload"

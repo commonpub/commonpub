@@ -72,22 +72,22 @@ async function handleDeleteAccount(): Promise<void> {
     <h2 class="cpub-section-title-lg">Account Settings</h2>
 
     <div class="cpub-form-group">
-      <label class="cpub-form-label">Email</label>
-      <input type="email" class="cpub-input" :value="user?.email" disabled />
+      <label for="acct-email" class="cpub-form-label">Email</label>
+      <input id="acct-email" type="email" class="cpub-input" :value="user?.email" disabled />
       <span class="cpub-form-hint">Contact support to change your email.</span>
     </div>
 
     <form class="cpub-form-group" @submit.prevent="handlePasswordChange">
-      <label class="cpub-form-label">Change Password</label>
-      <input v-model="currentPassword" type="password" class="cpub-input" placeholder="Current password" required />
-      <input v-model="newPassword" type="password" class="cpub-input cpub-mt-2" placeholder="New password (min 8 characters)" required minlength="8" />
+      <label for="acct-current-password" class="cpub-form-label">Change Password</label>
+      <input id="acct-current-password" v-model="currentPassword" type="password" class="cpub-input" placeholder="Current password" aria-label="Current password" required />
+      <input v-model="newPassword" type="password" class="cpub-input cpub-mt-2" placeholder="New password (min 8 characters)" aria-label="New password (min 8 characters)" required minlength="8" />
       <button type="submit" class="cpub-btn cpub-btn-sm cpub-mt-2" :disabled="passwordLoading">
         {{ passwordLoading ? 'Updating...' : 'Update Password' }}
       </button>
     </form>
 
     <div class="cpub-form-group">
-      <label class="cpub-form-label">Your Data</label>
+      <span class="cpub-form-label">Your Data</span>
       <p class="cpub-form-hint cpub-mb-2">Download a copy of all your data in JSON format.</p>
       <a href="/api/auth/export-data" download class="cpub-btn cpub-btn-sm">
         <i class="fa-solid fa-download"></i> Download My Data
@@ -104,8 +104,8 @@ async function handleDeleteAccount(): Promise<void> {
 
       <template v-if="deleteConfirm">
         <div class="cpub-form-group">
-          <label class="cpub-form-label">Type your username <strong>{{ user?.username ?? '' }}</strong> to confirm</label>
-          <input v-model="deleteConfirmText" type="text" class="cpub-input" :placeholder="user?.username" autocomplete="off" />
+          <label for="acct-delete-confirm" class="cpub-form-label">Type your username <strong>{{ user?.username ?? '' }}</strong> to confirm</label>
+          <input id="acct-delete-confirm" v-model="deleteConfirmText" type="text" class="cpub-input" :placeholder="user?.username" autocomplete="off" />
         </div>
         <div class="cpub-danger-actions">
           <button
