@@ -109,18 +109,48 @@ const pageSlug = ref('');
 const pageSidebarLabel = ref('');
 const pageDescription = ref('');
 const pageStatus = ref<'draft' | 'published'>('draft');
-const savingPage = ref(false);
-const autoSaveTimer = ref<ReturnType<typeof setTimeout> | null>(null);
-const autoSaveStatus = ref<'idle' | 'saving' | 'saved' | 'error'>('idle');
-const isDirty = ref(false);
-const isLoadingPage = ref(false); // Guard: suppresses dirty-marking during page load
 const markdownNotice = ref<string | null>(null); // Shows notice when markdown page is converted
+
+// ═══ AUTOSAVE ENGINE ═══
+// persistPage() does the actual PUT + tree refresh; useEditorAutosave owns the
+// dirty flag, save-status machine, 5s trailing debounce, Cmd+S, and the
+// unsaved-changes (beforeunload) guard. The destructured refs keep their
+// historical names so the template + the rest of setup read unchanged.
+async function persistPage(): Promise<void> {
+  await $fetch(`/api/docs/${siteSlug.value}/pages/${selectedPageId.value}`, {
+    method: 'PUT',
+    body: {
+      title: selectedPage.value?.title,
+      slug: pageSlug.value,
+      sidebarLabel: pageSidebarLabel.value || null,
+      description: pageDescription.value || null,
+      content: blockEditor.toBlockTuples(),
+    },
+  });
+  // Keep the page tree in sync with the saved slug/label.
+  await refreshPages();
+}
+
+const {
+  isDirty,
+  isLoading: isLoadingPage, // Guard: suppresses dirty-marking during page load
+  status: autoSaveStatus,
+  saving: savingPage,
+  markDirty,
+  saveNow,
+  reset: resetAutosave,
+} = useEditorAutosave({
+  persist: persistPage,
+  canSave: () => !!selectedPageId.value,
+  debounceMs: 5000,
+  onError: (err: unknown) => toast(err instanceof Error ? err.message : 'Failed to save page', 'error'),
+});
 
 // Load page content when selecting
 async function selectPage(pageId: string): Promise<void> {
   // Save current page first if dirty
   if (isDirty.value && selectedPageId.value) {
-    await saveCurrentPage();
+    await saveNow();
   }
 
   selectedPageId.value = pageId;
@@ -149,44 +179,14 @@ async function selectPage(pageId: string): Promise<void> {
   pageSidebarLabel.value = (page as unknown as Record<string, unknown>).sidebarLabel as string ?? '';
   pageDescription.value = (page as unknown as Record<string, unknown>).description as string ?? '';
   pageStatus.value = ((page as unknown as Record<string, unknown>).status as 'draft' | 'published') || 'draft';
-  isDirty.value = false;
-  autoSaveStatus.value = 'idle';
+  resetAutosave();
 
   // Release guard after watchers have flushed
   await nextTick();
   isLoadingPage.value = false;
 }
 
-// ══�� SAVING ═══
-async function saveCurrentPage(): Promise<void> {
-  if (!selectedPageId.value) return;
-  savingPage.value = true;
-  autoSaveStatus.value = 'saving';
-
-  try {
-    await $fetch(`/api/docs/${siteSlug.value}/pages/${selectedPageId.value}`, {
-      method: 'PUT',
-      body: {
-        title: selectedPage.value?.title,
-        slug: pageSlug.value,
-        sidebarLabel: pageSidebarLabel.value || null,
-        description: pageDescription.value || null,
-        content: blockEditor.toBlockTuples(),
-      },
-    });
-    isDirty.value = false;
-    autoSaveStatus.value = 'saved';
-    // Refresh pages list to keep tree in sync
-    await refreshPages();
-  } catch (err: unknown) {
-    autoSaveStatus.value = 'error';
-    toast(err instanceof Error ? err.message : 'Failed to save page', 'error');
-  } finally {
-    savingPage.value = false;
-  }
-}
-
-// Autosave: debounce 5 seconds for docs (shorter than article 30s)
+// ═══ PUBLISH / UNPUBLISH ═══
 async function publishPage(): Promise<void> {
   if (!selectedPageId.value) return;
   try {
@@ -217,47 +217,17 @@ async function unpublishPage(): Promise<void> {
   }
 }
 
-function scheduleAutoSave(): void {
-  if (autoSaveTimer.value) clearTimeout(autoSaveTimer.value);
-  autoSaveTimer.value = setTimeout(() => {
-    if (isDirty.value && selectedPageId.value) {
-      saveCurrentPage();
-    }
-  }, 5000);
-}
-
-// Watch for changes — skip during page load to avoid false dirty
+// Watch for changes — markDirty() no-ops during page load (isLoadingPage guard)
+// and arms the autosave engine's trailing debounce.
 watch(() => blockEditor.blocks.value, () => {
-  if (isLoadingPage.value) return;
-  isDirty.value = true;
-  scheduleAutoSave();
+  markDirty();
 }, { deep: true });
 
 watch([pageSlug, pageSidebarLabel, pageDescription], () => {
-  if (isLoadingPage.value) return;
-  isDirty.value = true;
-  scheduleAutoSave();
+  markDirty();
 });
 
-// Keyboard shortcut: Cmd+S to save
-function handleKeydown(e: KeyboardEvent): void {
-  if ((e.metaKey || e.ctrlKey) && e.key === 's') {
-    e.preventDefault();
-    saveCurrentPage();
-  }
-}
-
-// Warn about unsaved changes on navigation
-function handleBeforeUnload(e: BeforeUnloadEvent): void {
-  if (isDirty.value) {
-    e.preventDefault();
-  }
-}
-
 onMounted(() => {
-  document.addEventListener('keydown', handleKeydown);
-  window.addEventListener('beforeunload', handleBeforeUnload);
-
   // Auto-select page from ?page= query or first page
   const requestedPage = route.query.page as string | undefined;
   if (requestedPage && pages.value.length > 0) {
@@ -271,12 +241,6 @@ onMounted(() => {
     const first = [...pages.value].sort((a, b) => a.sortOrder - b.sortOrder)[0];
     if (first) selectPage(first.id);
   }
-});
-
-onUnmounted(() => {
-  document.removeEventListener('keydown', handleKeydown);
-  window.removeEventListener('beforeunload', handleBeforeUnload);
-  if (autoSaveTimer.value) clearTimeout(autoSaveTimer.value);
 });
 
 // Warn before in-app navigation (beforeunload only covers full-page unload)
@@ -431,8 +395,7 @@ function handleMarkdownImport(md: string, mode: 'append' | 'replace'): void {
   const { importMarkdown } = useMarkdownImport(blockEditor);
   importMarkdown(md, mode);
   showImportDialog.value = false;
-  isDirty.value = true;
-  scheduleAutoSave();
+  markDirty();
 }
 
 // ═══ SITE SETTINGS ═══
@@ -543,7 +506,7 @@ async function createVersion(): Promise<void> {
         class="cpub-docs-toolbar-btn"
         :class="{ 'cpub-docs-toolbar-btn-saving': savingPage }"
         :disabled="!isDirty || savingPage"
-        @click="saveCurrentPage"
+        @click="saveNow"
       >
         <i class="fa-solid" :class="savingPage ? 'fa-spinner fa-spin' : 'fa-floppy-disk'" />
         <span>{{ savingPage ? 'Saving' : isDirty ? 'Save' : 'Saved' }}</span>
