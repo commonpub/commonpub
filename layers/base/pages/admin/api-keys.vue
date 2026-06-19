@@ -9,6 +9,7 @@ useSeoMeta({ title: `API Keys, Admin, ${useSiteName()}` });
 // Keys only authenticate when the Public API feature is on (public-api-auth 404s
 // every /api/public/* route otherwise). Surface that so admins don't mint dead keys.
 const { publicApi } = useFeatures();
+const toast = useToast();
 
 interface KeyListResponse {
   items: AdminApiKeyView[];
@@ -126,8 +127,9 @@ async function revoke(id: string, name: string): Promise<void> {
   try {
     await $fetch(`/api/admin/api-keys/${id}`, { method: 'DELETE' });
     await refresh();
+    toast.success(`Revoked "${name}"`);
   } catch {
-    // toast would go here
+    toast.error('Failed to revoke key');
   }
 }
 

@@ -150,16 +150,23 @@ export function useEngagement(opts: EngagementOptions) {
 
   async function share(): Promise<void> {
     if (!contentId.value) return;
+    const url = window.location.href;
     if (navigator.share) {
       try {
-        await navigator.share({
-          url: window.location.href,
-        });
+        await navigator.share({ url });
       } catch {
-        // User cancelled or not supported
+        // User cancelled or share unavailable — nothing to report.
       }
-    } else {
-      await navigator.clipboard.writeText(window.location.href);
+      return;
+    }
+    // No Web Share API (desktop / non-secure context): copy + confirm so the
+    // button isn't a silent no-op.
+    const toast = useToast();
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success('Link copied to clipboard');
+    } catch {
+      toast.error('Could not copy the link');
     }
   }
 

@@ -26,6 +26,8 @@ const isExternal = computed(() => props.item.type === 'external' && props.item.h
     v-else-if="item.route"
     :to="item.route"
     class="cpub-nav-link"
+    :active-class="item.route === '/' ? '' : undefined"
+    :exact-active-class="item.route === '/' ? 'router-link-active' : undefined"
   >
     <i v-if="item.icon" :class="item.icon"></i> {{ item.label }}
   </NuxtLink>

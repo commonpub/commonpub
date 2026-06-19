@@ -345,6 +345,10 @@ onUnmounted(() => { document.removeEventListener('keydown', onKeydown); });
             </div>
           </div>
         </div>
+
+        <!-- Discussion — explainers are a federating content type like projects/blogs,
+             so readers can comment (parity with ProjectView/ArticleView). -->
+        <CommentSection :target-type="content.type" :target-id="content.id" :federated-content-id="federatedId" />
       </main>
     </div>
   </div>

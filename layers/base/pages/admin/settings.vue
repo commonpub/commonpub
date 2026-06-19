@@ -4,6 +4,7 @@ definePageMeta({ layout: 'admin', middleware: 'auth' });
 useSeoMeta({ title: `Settings, Admin, ${useSiteName()}` });
 
 const { data: settings, pending, refresh } = await useFetch<Record<string, string>>('/api/admin/settings');
+const toast = useToast();
 
 const saving = ref(false);
 const editKey = ref('');
@@ -40,7 +41,7 @@ async function saveSetting(key: string, value: string): Promise<void> {
     editValue.value = '';
     await refresh();
   } catch {
-    // Error handling via toast if available
+    toast.error('Failed to save setting');
   } finally {
     saving.value = false;
   }

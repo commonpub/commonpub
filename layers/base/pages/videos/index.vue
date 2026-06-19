@@ -22,6 +22,9 @@ const { data: videosData, pending: loadingVideos } = useFetch<{ items: any[]; to
 });
 
 const videos = computed(() => videosData.value?.items ?? []);
+// The first video is shown in the Featured hero, so the grid below skips it
+// (otherwise the most-recent video renders twice).
+const gridVideos = computed(() => videos.value.slice(1));
 const totalVideos = computed(() => videosData.value?.total ?? 0);
 
 const filterOptions = computed(() => {
@@ -134,9 +137,9 @@ function formatDate(dateStr: string): string {
             </div>
           </div>
 
-          <!-- Real data -->
-          <div v-else-if="videos.length" class="cpub-video-grid">
-            <NuxtLink v-for="v in videos" :key="v.id" :to="`/videos/${v.id}`" style="text-decoration: none;">
+          <!-- Real data (skip videos[0] — it's the Featured hero above) -->
+          <div v-else-if="gridVideos.length" class="cpub-video-grid">
+            <NuxtLink v-for="v in gridVideos" :key="v.id" :to="`/videos/${v.id}`" style="text-decoration: none;">
               <VideoCard :video="v" />
             </NuxtLink>
           </div>

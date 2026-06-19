@@ -2,7 +2,7 @@
 const route = useRoute();
 const code = route.params.code as string;
 
-const { data: certData } = useLazyFetch(`/api/cert/${code}`);
+const { data: certData, pending } = useLazyFetch(`/api/cert/${code}`);
 
 useSeoMeta({
   title: () => certData.value ? `Certificate, ${certData.value.path.title}, ${useSiteName()}` : `Certificate, ${useSiteName()}`,
@@ -12,7 +12,11 @@ useSeoMeta({
 
 <template>
   <div class="cert-page">
-    <div v-if="certData" class="cert-card">
+    <div v-if="pending" class="cert-not-found">
+      <div class="cert-not-found-icon"><i class="fa-solid fa-circle-notch fa-spin"></i></div>
+      <p>Loading certificate...</p>
+    </div>
+    <div v-else-if="certData" class="cert-card">
       <!-- Certificate Badge -->
       <div class="cert-badge-wrap">
         <div class="cert-badge">
