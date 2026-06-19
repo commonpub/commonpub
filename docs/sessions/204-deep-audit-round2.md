@@ -175,3 +175,48 @@ global SSRF-pinned dispatcher (megalodon/axios bypass the per-call safe-fetch; f
 search `pg_trgm` GIN index (extension/ops decision); `/api/content` main feed → keyset; the big
 structural refactors from 203 (field-cascade DRY, homepage 3-path consolidation, content-view
 dedup, monolith file splits); shell `db:push` footgun + shell env-flag map; user-block model.
+
+---
+
+## Round 4 — Test-quality / mutation-testing pass
+
+The earlier rounds proved the fixes by *reading* the code; this pass proves them by **test**:
+for each fix, a test must go RED when the fix is reverted (mutation testing) — otherwise the
+"passing" test is hollow. Audit of the existing suite found many fixes had **no proving test**
+(they only "passed CI" because nothing exercised them): the content-ap visibility P0, products
+IDOR, hub-vote ban, hub-metadata redaction, docs/event draft gating, CSRF, inbox dedup,
+`isValidHost`, `toggleFederatedHubPostLike`, etc.
+
+**Added 48 proving tests** (server 1388→1410, layer 1043→1069; full suite 33/33), each
+exercising the REAL path (PGlite + real server fns / real route+middleware handlers / component
+render — no tautological mocks) and **each mutation-verified** (revert the fix → RED → restore →
+GREEN). Mutation evidence captured per fix, e.g.:
+- content-ap P0: drop `visibility='public'` → middleware returns a full Article for a private item
+  (`expected {…} to be undefined`).
+- products IDOR: drop membership check → `createProduct` resolves instead of rejecting.
+- private-hub redaction: drop branch → `expected 'Members-only description' to be null`.
+- docs publishedOnly: drop filter → `expected [...] not to include 'Draft Guide'`.
+- CSRF: drop origin throw → cross-origin cookie POST returns null instead of 403.
+- `isValidHost`: drop `isPrivateUrl` → `isValidHost('169.254.169.254')` true instead of false.
+- `remoteLikeCount`: drop the inbox increment → `expected 0 to be 1`.
+- editor + protocol + normalizePagination: validated first-hand (no-op/denylist/`??`-NaN reverts
+  all go red).
+
+**Honestly NOT fully provable by a unit/integration test (documented, not faked):**
+- `toggleFederatedHubPostLike` / `createContentVersion` / `enroll` **concurrency** gates — PGlite
+  uses one serialized connection, so a true concurrent double-call can't be reproduced; the
+  deterministic part (clamped/gated counter, sequential versions) is tested, the race is
+  reasoned-only. A real-Postgres concurrency harness would be needed to prove the race.
+- inbox-dedup **route wiring** is invoked from the reference-app layer (not unit-invocable from
+  the server package); `recordActivitySeen`'s true-then-false contract is proven at the DB level
+  and the wiring is grep-verified at the 4 call sites.
+- inbox **SSRF** (the pinned `createSafeActorFetchFn`) — proving DNS-rebind blocking needs network
+  control; the call-site swap is verified by code, and `isValidHost` (the Mastodon path) IS tested.
+- migration 0027 + the reconcile recompute — validated against real Postgres (rolled-back tx),
+  not via the PGlite suite (which uses `pushSchema`, not the migration files).
+- multi-replica digest/hub-sync claims, deploy `pipefail` — environmental (N processes / CI YAML);
+  the claim logic is reasoned, not unit-tested.
+
+Net: every security/correctness fix with a deterministic, observable behavior now has a test that
+provably fails without the fix; the residual unprovable items are concurrency/network/CI-env and
+are explicitly listed rather than papered over with green-but-hollow tests.
