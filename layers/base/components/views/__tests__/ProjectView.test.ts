@@ -86,6 +86,7 @@ function makeContent(overrides: Record<string, unknown> = {}): ContentViewData {
 
 beforeEach(() => {
   engagement.isFederated.value = false;
+  (globalThis as unknown as { $fetch: unknown }).$fetch = vi.fn();
 });
 
 describe('ProjectView — smoke', () => {
@@ -104,6 +105,17 @@ describe('ProjectView — smoke', () => {
     const img = container.querySelector('img.cpub-av, img[src="https://example.test/avatars/alice.png"]');
     expect(img).toBeTruthy();
     expect(img?.getAttribute('src')).toBe('https://example.test/avatars/alice.png');
+  });
+
+  it('hydrates the "I Built This" active state from the build endpoint on mount', async () => {
+    const $fetch = vi.fn().mockResolvedValue({ marked: true });
+    (globalThis as unknown as { $fetch: unknown }).$fetch = $fetch;
+    const { container } = render(ProjectView, { props: { content: makeContent() }, global: { stubs, components } });
+    // Let onMounted's hydrateBuildState() $fetch resolve.
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect($fetch).toHaveBeenCalledWith('/api/content/proj-1/build');
+    const buildBtn = container.querySelector('.cpub-engage-btn-green');
+    expect(buildBtn?.classList.contains('cpub-engage-active')).toBe(true);
   });
 
   it('renders initials fallback when avatarUrl is absent', () => {

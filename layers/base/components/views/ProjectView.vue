@@ -50,6 +50,7 @@ const { liked, bookmarked, likeCount, isFederated, toggleLike, toggleBookmark, s
 
 onMounted(() => {
   fetchInitialState(props.content?.likeCount ?? 0);
+  hydrateBuildState();
 });
 
 const config = useRuntimeConfig();
@@ -183,6 +184,21 @@ async function handleFork(): Promise<void> {
 // I Built This
 const buildMarked = ref(false);
 const localBuildCount = ref(props.content?.buildCount ?? 0);
+
+// Hydrate the "I Built This" state on load — without this the button always
+// renders inactive after a reload and a re-click un-marks + decrements.
+async function hydrateBuildState(): Promise<void> {
+  if (!props.content?.id && !props.federatedId) return;
+  const url = isFederated.value
+    ? `/api/federation/content/${props.federatedId}/build`
+    : `/api/content/${props.content.id}/build`;
+  try {
+    const res = await $fetch<{ marked: boolean }>(url);
+    buildMarked.value = res.marked;
+  } catch {
+    // logged-out (401) or not-found → leave unmarked
+  }
+}
 const buildToggling = ref(false);
 async function handleBuild(): Promise<void> {
   buildToggling.value = true;
