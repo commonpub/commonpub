@@ -315,17 +315,17 @@ function prizeLabel(prize: Prize): string {
         <div v-for="(crit, ci) in criteria" :key="ci" class="cpub-criterion-row">
           <div class="cpub-form-row">
             <div class="cpub-form-field" style="flex: 3">
-              <label class="cpub-form-label">Criterion</label>
-              <input v-model="crit.label" type="text" class="cpub-form-input" placeholder="e.g. Documentation" />
+              <label :for="`crit-label-${ci}`" class="cpub-form-label">Criterion</label>
+              <input :id="`crit-label-${ci}`" v-model="crit.label" type="text" class="cpub-form-input" placeholder="e.g. Documentation" />
             </div>
             <div class="cpub-form-field" style="flex: 1">
-              <label class="cpub-form-label">Points</label>
-              <input v-model.number="crit.weight" type="number" min="0" max="100" class="cpub-form-input" placeholder="20" />
+              <label :for="`crit-weight-${ci}`" class="cpub-form-label">Points</label>
+              <input :id="`crit-weight-${ci}`" v-model.number="crit.weight" type="number" min="0" max="100" class="cpub-form-input" placeholder="20" />
             </div>
             <button type="button" class="cpub-delete-btn cpub-criterion-del" aria-label="Remove criterion" @click="removeCriterion(ci)"><i class="fa-solid fa-xmark"></i></button>
           </div>
           <div class="cpub-form-field">
-            <input v-model="crit.description" type="text" class="cpub-form-input" placeholder="What judges look for (optional)" />
+            <input v-model="crit.description" type="text" class="cpub-form-input" :aria-label="`Criterion ${ci + 1} description`" placeholder="What judges look for (optional)" />
           </div>
         </div>
       </section>
@@ -365,27 +365,27 @@ function prizeLabel(prize: Prize): string {
           </div>
           <div class="cpub-form-row">
             <div class="cpub-form-field" style="flex: 1">
-              <label class="cpub-form-label">Place</label>
-              <input v-model.number="prize.place" type="number" min="1" class="cpub-form-input" placeholder="1" />
+              <label :for="`prize-place-${idx}`" class="cpub-form-label">Place</label>
+              <input :id="`prize-place-${idx}`" v-model.number="prize.place" type="number" min="1" class="cpub-form-input" placeholder="1" />
             </div>
             <div class="cpub-form-field" style="flex: 2">
-              <label class="cpub-form-label">Category (optional)</label>
-              <input v-model="prize.category" type="text" class="cpub-form-input" placeholder="e.g. Best in Show" />
+              <label :for="`prize-category-${idx}`" class="cpub-form-label">Category (optional)</label>
+              <input :id="`prize-category-${idx}`" v-model="prize.category" type="text" class="cpub-form-input" placeholder="e.g. Best in Show" />
             </div>
           </div>
           <div class="cpub-form-row">
             <div class="cpub-form-field" style="flex: 2">
-              <label class="cpub-form-label">Title</label>
-              <input v-model="prize.title" type="text" class="cpub-form-input" placeholder="Prize title" />
+              <label :for="`prize-title-${idx}`" class="cpub-form-label">Title</label>
+              <input :id="`prize-title-${idx}`" v-model="prize.title" type="text" class="cpub-form-input" placeholder="Prize title" />
             </div>
             <div class="cpub-form-field" style="flex: 1">
-              <label class="cpub-form-label">Value</label>
-              <input v-model="prize.value" type="text" class="cpub-form-input" placeholder="$500" />
+              <label :for="`prize-value-${idx}`" class="cpub-form-label">Value</label>
+              <input :id="`prize-value-${idx}`" v-model="prize.value" type="text" class="cpub-form-input" placeholder="$500" />
             </div>
           </div>
           <div class="cpub-form-field">
-            <label class="cpub-form-label">Description</label>
-            <input v-model="prize.description" type="text" class="cpub-form-input" placeholder="What the winner receives..." />
+            <label :for="`prize-desc-${idx}`" class="cpub-form-label">Description</label>
+            <input :id="`prize-desc-${idx}`" v-model="prize.description" type="text" class="cpub-form-input" placeholder="What the winner receives..." />
           </div>
         </div>
       </section>
