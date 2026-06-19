@@ -169,8 +169,9 @@ const missingSubmission = computed(() => stages.value.length > 0 && !stages.valu
 
           <div class="cpub-form-row">
             <div class="cpub-form-field" style="flex: 2;">
-              <label class="cpub-form-label">Stage name</label>
+              <label :for="`stage-name-${i}`" class="cpub-form-label">Stage name</label>
               <input
+                :id="`stage-name-${i}`"
                 :value="stage.name"
                 type="text"
                 class="cpub-form-input"
@@ -179,8 +180,9 @@ const missingSubmission = computed(() => stages.value.length > 0 && !stages.valu
               />
             </div>
             <div class="cpub-form-field" style="flex: 1;">
-              <label class="cpub-form-label">Type</label>
+              <label :for="`stage-type-${i}`" class="cpub-form-label">Type</label>
               <select
+                :id="`stage-type-${i}`"
                 :value="stage.kind"
                 class="cpub-form-input"
                 @change="setField(i, { kind: ($event.target as HTMLSelectElement).value as ContestStage['kind'] })"
@@ -194,18 +196,19 @@ const missingSubmission = computed(() => stages.value.length > 0 && !stages.valu
 
           <div class="cpub-form-row">
             <div class="cpub-form-field">
-              <label class="cpub-form-label">Starts</label>
-              <input type="datetime-local" class="cpub-form-input" :value="toLocal(stage.startsAt)" @input="onDate(i, 'startsAt', $event)" />
+              <label :for="`stage-starts-${i}`" class="cpub-form-label">Starts</label>
+              <input :id="`stage-starts-${i}`" type="datetime-local" class="cpub-form-input" :value="toLocal(stage.startsAt)" @input="onDate(i, 'startsAt', $event)" />
             </div>
             <div class="cpub-form-field">
-              <label class="cpub-form-label">Ends (countdown target)</label>
-              <input type="datetime-local" class="cpub-form-input" :value="toLocal(stage.endsAt)" @input="onDate(i, 'endsAt', $event)" />
+              <label :for="`stage-ends-${i}`" class="cpub-form-label">Ends (countdown target)</label>
+              <input :id="`stage-ends-${i}`" type="datetime-local" class="cpub-form-input" :value="toLocal(stage.endsAt)" @input="onDate(i, 'endsAt', $event)" />
             </div>
           </div>
 
           <div class="cpub-form-field">
-            <label class="cpub-form-label">Description (optional)</label>
+            <label :for="`stage-desc-${i}`" class="cpub-form-label">Description (optional)</label>
             <input
+              :id="`stage-desc-${i}`"
               :value="stage.description ?? ''"
               type="text"
               class="cpub-form-input"
@@ -217,8 +220,8 @@ const missingSubmission = computed(() => stages.value.length > 0 && !stages.valu
           <!-- Per-round config (review stages): how many advance + the rubric -->
           <div v-if="stage.kind === 'review'" class="cpub-stage-criteria">
             <div class="cpub-form-field" style="margin-bottom: 10px;">
-              <label class="cpub-form-label">Advance the top N to the next stage</label>
-              <input :value="stage.advanceCount ?? ''" type="number" min="1" class="cpub-form-input cpub-stage-advn" placeholder="e.g. 50, leave blank to decide at advance time" @input="advanceCountInput(i, $event)" />
+              <label :for="`stage-advance-${i}`" class="cpub-form-label">Advance the top N to the next stage</label>
+              <input :id="`stage-advance-${i}`" :value="stage.advanceCount ?? ''" type="number" min="1" class="cpub-form-input cpub-stage-advn" placeholder="e.g. 50, leave blank to decide at advance time" @input="advanceCountInput(i, $event)" />
             </div>
             <div class="cpub-stage-criteria-head">
               <span class="cpub-form-label" style="margin: 0;">Judging criteria, this round</span>
@@ -226,8 +229,8 @@ const missingSubmission = computed(() => stages.value.length > 0 && !stages.valu
             </div>
             <p class="cpub-form-hint" style="margin: 4px 0;">Optional, leave empty to use the contest’s default criteria. Set per-round criteria for multi-round contests (e.g. judge proposals on Feasibility, prototypes on Deployment readiness).</p>
             <div v-for="(crit, ci) in (stage.criteria ?? [])" :key="ci" class="cpub-stage-crit-row">
-              <input :value="crit.label" type="text" class="cpub-form-input" placeholder="Criterion (e.g. Community impact)" @input="setCriterion(i, ci, { label: ($event.target as HTMLInputElement).value })" />
-              <input :value="crit.weight ?? ''" type="number" min="0" max="100" class="cpub-form-input cpub-stage-crit-pts" placeholder="pts" @input="critWeightInput(i, ci, $event)" />
+              <input :value="crit.label" type="text" class="cpub-form-input" :aria-label="`Criterion ${ci + 1}`" placeholder="Criterion (e.g. Community impact)" @input="setCriterion(i, ci, { label: ($event.target as HTMLInputElement).value })" />
+              <input :value="crit.weight ?? ''" type="number" min="0" max="100" class="cpub-form-input cpub-stage-crit-pts" :aria-label="`Criterion ${ci + 1} points`" placeholder="pts" @input="critWeightInput(i, ci, $event)" />
               <button type="button" class="cpub-stage-iconbtn cpub-stage-del" aria-label="Remove criterion" @click="removeCriterion(i, ci)"><i class="fa-solid fa-xmark"></i></button>
             </div>
           </div>
@@ -282,12 +285,12 @@ const missingSubmission = computed(() => stages.value.length > 0 && !stages.valu
 
           <div v-if="stage.kind === 'event'" class="cpub-form-row">
             <div class="cpub-form-field">
-              <label class="cpub-form-label">Location</label>
-              <input :value="stage.location ?? ''" type="text" class="cpub-form-input" placeholder="e.g. Washington, D.C." @input="setField(i, { location: ($event.target as HTMLInputElement).value || undefined })" />
+              <label :for="`stage-location-${i}`" class="cpub-form-label">Location</label>
+              <input :id="`stage-location-${i}`" :value="stage.location ?? ''" type="text" class="cpub-form-input" placeholder="e.g. Washington, D.C." @input="setField(i, { location: ($event.target as HTMLInputElement).value || undefined })" />
             </div>
             <div class="cpub-form-field">
-              <label class="cpub-form-label">Link</label>
-              <input :value="stage.url ?? ''" type="url" class="cpub-form-input" placeholder="https://…" @input="setField(i, { url: ($event.target as HTMLInputElement).value || undefined })" />
+              <label :for="`stage-url-${i}`" class="cpub-form-label">Link</label>
+              <input :id="`stage-url-${i}`" :value="stage.url ?? ''" type="url" class="cpub-form-input" placeholder="https://…" @input="setField(i, { url: ($event.target as HTMLInputElement).value || undefined })" />
             </div>
           </div>
         </li>

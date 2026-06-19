@@ -349,33 +349,33 @@ async function transitionStatus(newStatus: string): Promise<void> {
       <section class="cpub-form-section">
         <h2 class="cpub-form-section-title">Details</h2>
         <div class="cpub-form-field">
-          <label class="cpub-form-label">Title</label>
-          <input v-model="title" type="text" class="cpub-form-input" />
+          <label for="contest-title" class="cpub-form-label">Title</label>
+          <input id="contest-title" v-model="title" type="text" class="cpub-form-input" />
         </div>
         <div class="cpub-form-field">
-          <label class="cpub-form-label">URL Slug</label>
-          <input v-model="slugInput" type="text" class="cpub-form-input" @blur="slugInput = slugify(slugInput)" />
+          <label for="contest-slug" class="cpub-form-label">URL Slug</label>
+          <input id="contest-slug" v-model="slugInput" type="text" class="cpub-form-input" @blur="slugInput = slugify(slugInput)" />
           <p class="cpub-form-hint">The contest URL: <code>/contests/{{ slugify(slugInput) || 'your-contest' }}</code>. Changing it breaks old links, they won't redirect.</p>
         </div>
         <div class="cpub-form-field">
-          <label class="cpub-form-label">Subheading</label>
-          <input v-model="subheading" type="text" maxlength="300" class="cpub-form-input" placeholder="One-line tagline shown in the contest header" />
+          <label for="contest-subheading" class="cpub-form-label">Subheading</label>
+          <input id="contest-subheading" v-model="subheading" type="text" maxlength="300" class="cpub-form-input" placeholder="One-line tagline shown in the contest header" />
           <p class="cpub-form-hint">Short plain-text tagline shown under the title in the hero. The Description below is the full body.</p>
         </div>
         <div class="cpub-form-field">
           <div class="cpub-field-head">
-            <label class="cpub-form-label">Description</label>
+            <label for="contest-desc" class="cpub-form-label">Description</label>
             <FormatToggle v-model="descriptionFormat" />
           </div>
-          <textarea v-model="description" class="cpub-form-textarea" rows="4" maxlength="50000" />
+          <textarea id="contest-desc" v-model="description" class="cpub-form-textarea" rows="4" maxlength="50000" />
           <p class="cpub-form-hint">{{ descriptionFormat === 'html' ? 'Rendered as your raw HTML, CSS, and SVG (scripts removed for safety).' : 'Supports Markdown (headings, lists, bold, links) and inline HTML.' }} Shown formatted on the contest page.</p>
         </div>
         <div class="cpub-form-field">
           <div class="cpub-field-head">
-            <label class="cpub-form-label">Rules</label>
+            <label for="contest-rules" class="cpub-form-label">Rules</label>
             <FormatToggle v-model="rulesFormat" />
           </div>
-          <textarea v-model="rules" class="cpub-form-textarea" rows="6" maxlength="50000" placeholder="One rule per line, or full Markdown" />
+          <textarea id="contest-rules" v-model="rules" class="cpub-form-textarea" rows="6" maxlength="50000" placeholder="One rule per line, or full Markdown" />
           <p class="cpub-form-hint">{{ rulesFormat === 'html' ? 'Rendered as your raw HTML, CSS, and SVG (scripts removed for safety).' : 'Supports Markdown. Plain one-rule-per-line text renders as a list.' }}</p>
         </div>
         <div class="cpub-form-field">
@@ -390,17 +390,17 @@ async function transitionStatus(newStatus: string): Promise<void> {
         <h2 class="cpub-form-section-title">Schedule</h2>
         <div class="cpub-form-row">
           <div class="cpub-form-field">
-            <label class="cpub-form-label">Start Date</label>
-            <input v-model="startDate" type="datetime-local" class="cpub-form-input" />
+            <label for="contest-start" class="cpub-form-label">Start Date</label>
+            <input id="contest-start" v-model="startDate" type="datetime-local" class="cpub-form-input" />
           </div>
           <div class="cpub-form-field">
-            <label class="cpub-form-label">End Date</label>
-            <input v-model="endDate" type="datetime-local" class="cpub-form-input" />
+            <label for="contest-end" class="cpub-form-label">End Date</label>
+            <input id="contest-end" v-model="endDate" type="datetime-local" class="cpub-form-input" />
           </div>
         </div>
         <div class="cpub-form-field">
-          <label class="cpub-form-label">Judging End Date</label>
-          <input v-model="judgingEndDate" type="datetime-local" class="cpub-form-input" />
+          <label for="contest-judging-end" class="cpub-form-label">Judging End Date</label>
+          <input id="contest-judging-end" v-model="judgingEndDate" type="datetime-local" class="cpub-form-input" />
         </div>
         <p v-if="dateError" class="cpub-form-error" role="alert">{{ dateError }}</p>
       </section>
@@ -464,10 +464,10 @@ async function transitionStatus(newStatus: string): Promise<void> {
         <p class="cpub-form-hint">Every field is optional. Use <strong>place</strong> for ranked prizes, a <strong>category</strong> for themed awards, or just a <strong>description</strong>, whatever fits. Cash value is optional.</p>
         <div class="cpub-form-field">
           <div class="cpub-field-head">
-            <label class="cpub-form-label">Prizes overview (optional)</label>
+            <label for="contest-prizes-desc" class="cpub-form-label">Prizes overview (optional)</label>
             <FormatToggle v-model="prizesDescriptionFormat" />
           </div>
-          <textarea v-model="prizesDescription" class="cpub-form-textarea" rows="3" maxlength="50000" placeholder="Intro shown above the prize cards." />
+          <textarea id="contest-prizes-desc" v-model="prizesDescription" class="cpub-form-textarea" rows="3" maxlength="50000" placeholder="Intro shown above the prize cards." />
           <p class="cpub-form-hint">{{ prizesDescriptionFormat === 'html' ? 'Rendered as your raw HTML, CSS, and SVG (scripts removed for safety).' : 'Markdown intro' }} displayed on the Prizes tab, above the individual prizes.</p>
         </div>
         <div v-for="(prize, i) in prizes" :key="i" class="cpub-prize-row">
@@ -477,27 +477,27 @@ async function transitionStatus(newStatus: string): Promise<void> {
           </div>
           <div class="cpub-form-row">
             <div class="cpub-form-field">
-              <label class="cpub-form-label">Place</label>
-              <input v-model.number="prize.place" type="number" min="1" class="cpub-form-input" placeholder="1" />
+              <label :for="`prize-place-${i}`" class="cpub-form-label">Place</label>
+              <input :id="`prize-place-${i}`" v-model.number="prize.place" type="number" min="1" class="cpub-form-input" placeholder="1" />
             </div>
             <div class="cpub-form-field">
-              <label class="cpub-form-label">Category (optional)</label>
-              <input v-model="prize.category" type="text" class="cpub-form-input" placeholder="e.g. Best in Show" />
+              <label :for="`prize-category-${i}`" class="cpub-form-label">Category (optional)</label>
+              <input :id="`prize-category-${i}`" v-model="prize.category" type="text" class="cpub-form-input" placeholder="e.g. Best in Show" />
             </div>
           </div>
           <div class="cpub-form-row">
             <div class="cpub-form-field">
-              <label class="cpub-form-label">Title</label>
-              <input v-model="prize.title" type="text" class="cpub-form-input" placeholder="e.g. Gold Prize" />
+              <label :for="`prize-title-${i}`" class="cpub-form-label">Title</label>
+              <input :id="`prize-title-${i}`" v-model="prize.title" type="text" class="cpub-form-input" placeholder="e.g. Gold Prize" />
             </div>
             <div class="cpub-form-field">
-              <label class="cpub-form-label">Value</label>
-              <input v-model="prize.value" type="text" class="cpub-form-input" placeholder="e.g. $500" />
+              <label :for="`prize-value-${i}`" class="cpub-form-label">Value</label>
+              <input :id="`prize-value-${i}`" v-model="prize.value" type="text" class="cpub-form-input" placeholder="e.g. $500" />
             </div>
           </div>
           <div class="cpub-form-field">
-            <label class="cpub-form-label">Description</label>
-            <input v-model="prize.description" type="text" class="cpub-form-input" placeholder="Optional description" />
+            <label :for="`prize-desc-${i}`" class="cpub-form-label">Description</label>
+            <input :id="`prize-desc-${i}`" v-model="prize.description" type="text" class="cpub-form-input" placeholder="Optional description" />
           </div>
         </div>
         <button type="button" class="cpub-btn cpub-btn-sm" @click="addPrize"><i class="fa-solid fa-plus"></i> Add Prize</button>
@@ -506,8 +506,8 @@ async function transitionStatus(newStatus: string): Promise<void> {
       <section class="cpub-form-section">
         <h2 class="cpub-form-section-title">Judging</h2>
         <div class="cpub-form-field">
-          <label class="cpub-form-label">Score Visibility</label>
-          <select v-model="judgingVisibility" class="cpub-form-input">
+          <label for="contest-judging-visibility" class="cpub-form-label">Score Visibility</label>
+          <select id="contest-judging-visibility" v-model="judgingVisibility" class="cpub-form-input">
             <option value="judges-only">Judges only, scores hidden until results</option>
             <option value="public">Public, show scores during judging</option>
             <option value="private">Private, scores stay with organizers</option>
@@ -525,17 +525,17 @@ async function transitionStatus(newStatus: string): Promise<void> {
         <div v-for="(crit, ci) in criteria" :key="ci" class="cpub-criterion-row">
           <div class="cpub-form-row">
             <div class="cpub-form-field" style="flex: 3">
-              <label class="cpub-form-label">Criterion</label>
-              <input v-model="crit.label" type="text" class="cpub-form-input" placeholder="e.g. Documentation" />
+              <label :for="`crit-label-${ci}`" class="cpub-form-label">Criterion</label>
+              <input :id="`crit-label-${ci}`" v-model="crit.label" type="text" class="cpub-form-input" placeholder="e.g. Documentation" />
             </div>
             <div class="cpub-form-field" style="flex: 1">
-              <label class="cpub-form-label">Points</label>
-              <input v-model.number="crit.weight" type="number" min="0" max="100" class="cpub-form-input" placeholder="20" />
+              <label :for="`crit-weight-${ci}`" class="cpub-form-label">Points</label>
+              <input :id="`crit-weight-${ci}`" v-model.number="crit.weight" type="number" min="0" max="100" class="cpub-form-input" placeholder="20" />
             </div>
             <button type="button" class="cpub-prize-remove cpub-criterion-del" aria-label="Remove criterion" @click="removeCriterion(ci)"><i class="fa-solid fa-times"></i></button>
           </div>
           <div class="cpub-form-field">
-            <input v-model="crit.description" type="text" class="cpub-form-input" placeholder="What judges look for (optional)" />
+            <input v-model="crit.description" type="text" class="cpub-form-input" :aria-label="`Criterion ${ci + 1} description`" placeholder="What judges look for (optional)" />
           </div>
         </div>
       </section>
@@ -544,8 +544,8 @@ async function transitionStatus(newStatus: string): Promise<void> {
       <section class="cpub-form-section">
         <h2 class="cpub-form-section-title">Visibility &amp; Access</h2>
         <div class="cpub-form-field">
-          <label class="cpub-form-label">Who can see this contest</label>
-          <select v-model="visibility" class="cpub-form-input">
+          <label for="contest-visibility" class="cpub-form-label">Who can see this contest</label>
+          <select id="contest-visibility" v-model="visibility" class="cpub-form-input">
             <option value="public">Public, listed and visible to everyone</option>
             <option value="unlisted">Unlisted, visible by direct link, hidden from listings</option>
             <option value="private">Private, restricted</option>
@@ -589,8 +589,8 @@ async function transitionStatus(newStatus: string): Promise<void> {
           </div>
         </div>
         <div class="cpub-form-field">
-          <label class="cpub-form-label">Max entries per person</label>
-          <input v-model.number="maxEntriesPerUser" type="number" min="1" class="cpub-form-input" placeholder="Unlimited" />
+          <label for="contest-max-entries" class="cpub-form-label">Max entries per person</label>
+          <input id="contest-max-entries" v-model.number="maxEntriesPerUser" type="number" min="1" class="cpub-form-input" placeholder="Unlimited" />
         </div>
       </section>
 
