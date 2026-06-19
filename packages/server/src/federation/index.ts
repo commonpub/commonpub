@@ -1,4 +1,5 @@
 export { createSafeActorFetchFn } from './safeFetchFn.js';
+export { recordActivitySeen } from './activityDedup.js';
 export {
   getOrCreateActorKeypair,
   getOrCreateInstanceKeypair,

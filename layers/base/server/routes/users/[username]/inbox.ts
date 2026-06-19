@@ -1,5 +1,5 @@
 import { processInboxActivity } from '@commonpub/protocol';
-import { createInboxHandlers } from '@commonpub/server';
+import { createInboxHandlers, recordActivitySeen } from '@commonpub/server';
 import { verifyInboxRequest, assertActorMatchesSigner, extractDomain } from '../../../utils/inbox';
 
 export default defineEventHandler(async (event) => {
@@ -17,6 +17,18 @@ export default defineEventHandler(async (event) => {
   assertActorMatchesSigner(actorUri, body, 'user-inbox');
 
   const db = useDB();
+
+  // Replay dedup: claim the verified activity id BEFORE dispatch so a replayed,
+  // validly-signed activity can't double-apply side effects. No id = process
+  // normally. Placed after verification so attacker-chosen ids can't be seeded.
+  const activityId = body.id;
+  if (typeof activityId === 'string' && activityId.length > 0) {
+    const first = await recordActivitySeen(db, activityId);
+    if (!first) {
+      return { status: 'accepted' };
+    }
+  }
+
   const runtimeConfig = useRuntimeConfig();
   const domain = extractDomain((runtimeConfig.public?.siteUrl as string) || `https://${config.instance.domain}`);
   const callbacks = createInboxHandlers({ db, domain });

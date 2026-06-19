@@ -2,7 +2,21 @@ import { contentItems, hubs, hubPosts } from '@commonpub/schema';
 import { federateContent, federateHubPost, federateHubActor } from '@commonpub/server';
 import { eq, and, gte, desc, isNull } from 'drizzle-orm';
 import { z } from 'zod';
+import { createHash, timingSafeEqual } from 'node:crypto';
 import { extractDomain } from '../../../utils/inbox';
+
+/**
+ * Constant-time secret comparison. `===` on the raw strings short-circuits at the
+ * first differing byte, leaking the secret's length and a per-character timing
+ * oracle on the signing secret. We SHA-256 both sides to a fixed 32-byte digest
+ * first (so neither length nor content leaks via timing), then compare the digests
+ * with `timingSafeEqual` (which requires equal-length buffers — always true here).
+ */
+function secretsMatch(a: string, b: string): boolean {
+  const da = createHash('sha256').update(a).digest();
+  const db = createHash('sha256').update(b).digest();
+  return timingSafeEqual(da, db);
+}
 
 /** Default re-federation window when neither `all` nor `since` is given — avoids a delivery storm. */
 const DEFAULT_SINCE_DAYS = 30;
@@ -27,7 +41,10 @@ export default defineEventHandler(async (event) => {
   // Allow CLI trigger via AUTH_SECRET header (for server-side automation)
   const cliSecret = getRequestHeader(event, 'x-admin-secret');
   const runtimeConfig = useRuntimeConfig();
-  if (cliSecret && cliSecret === runtimeConfig.authSecret) {
+  const authSecret = runtimeConfig.authSecret as string | undefined;
+  // Fail-closed: only accept the shared-secret bypass when BOTH the header and a
+  // configured server secret are present, compared in constant time.
+  if (cliSecret && authSecret && secretsMatch(cliSecret, authSecret)) {
     // Authorized via shared secret
   } else {
     requirePermission(event, 'federation.manage');
