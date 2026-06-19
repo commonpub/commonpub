@@ -172,13 +172,4 @@ const { hubs: hubsEnabled } = useFeatures();
 
 .cpub-related-hub-name:hover { color: var(--accent); }
 .cpub-related-hub-members { font-size: 10px; font-family: var(--font-mono); color: var(--text-faint); }
-
-.cpub-btn-join-sm {
-  font-size: 10px; font-family: var(--font-mono); padding: 3px 8px;
-  border: var(--border-width-default) solid var(--border); background: var(--green-bg); color: var(--green);
-  cursor: pointer; flex-shrink: 0; display: inline-flex; align-items: center; gap: 4px;
-  box-shadow: var(--shadow-sm); transition: all 0.15s;
-}
-
-.cpub-btn-join-sm:hover { box-shadow: var(--shadow-sm); }
 </style>

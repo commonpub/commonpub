@@ -17,7 +17,7 @@
 import type { LayoutRecord } from '@commonpub/server';
 import { PublishStepError } from '../../../composables/useLayoutEditor';
 import { useLayoutAnnouncer, narrateUndo, narrateRedo, narrateUndoEmpty, narrateRedoEmpty, narrateRowAdded, narrateRowRemoved } from '../../../composables/useLayoutAnnouncer';
-import { useLayoutHistory, addRowCommand, removeRowCommand } from '../../../composables/useLayoutHistory';
+import { useLayoutHistory, addRowCommand, removeRowCommand, insertSectionCommand } from '../../../composables/useLayoutHistory';
 import { useLayoutHotkeys } from '../../../composables/useLayoutHotkeys';
 import { DnDProvider } from '@vue-dnd-kit/core';
 import { useSectionRegistry } from '../../../sections/registry';
@@ -176,11 +176,18 @@ function onPaletteInsert(section: SectionDefinition): void {
   if (!draft || draft.zones.length === 0) return;
   const zone = draft.zones.find((z) => z.rows.length > 0) ?? draft.zones[0]!;
   let row = zone.rows[zone.rows.length - 1];
+  // Record each mutation to history so Cmd+Z reverses it and the undo stack
+  // stays in sync with the draft (mirrors onAddRow + the LayoutRow drop path).
   if (!row) {
-    row = { id: crypto.randomUUID(), order: 0, config: null, sections: [] };
+    const position = zone.rows.length;
+    row = { id: crypto.randomUUID(), order: position, config: null, sections: [] };
     zone.rows.push(row);
+    history.record(addRowCommand({ zoneSlug: zone.zone, position, row, label: `add row to ${zone.zone}` }));
   }
-  row.sections.push(createSectionFromSpec(paletteDragPayload(section)));
+  const newSection = createSectionFromSpec(paletteDragPayload(section));
+  const at = row.sections.length;
+  row.sections.push(newSection);
+  history.record(insertSectionCommand({ rowId: row.id, at, section: newSection, label: `insert ${section.type}` }));
   useLayoutAnnouncer().announce(`Inserted ${section.name} section into ${zone.zone}`);
 }
 

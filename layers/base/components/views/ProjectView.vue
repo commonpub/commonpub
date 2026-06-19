@@ -330,7 +330,7 @@ async function handleBuild(): Promise<void> {
           :class="{ active: activeTab === tab.value }"
           role="tab"
           :aria-selected="activeTab === tab.value"
-          :aria-controls="`cpub-panel-${tab.value}`"
+          aria-controls="cpub-project-tabpanel"
           :tabindex="activeTab === tab.value ? 0 : -1"
           @click="activeTab = tab.value"
           @keydown="onTabKeydown($event, idx)"
@@ -366,7 +366,7 @@ async function handleBuild(): Promise<void> {
         <div
           class="cpub-content-col"
           role="tabpanel"
-          :id="`cpub-panel-${activeTab}`"
+          id="cpub-project-tabpanel"
           :aria-labelledby="`cpub-tab-${activeTab}`"
           tabindex="0"
         >

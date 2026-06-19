@@ -308,7 +308,7 @@ function fmtErrorRate(rate: number): string {
 
     <!-- List -->
     <div v-if="pending" class="cpub-loading">Loading keys...</div>
-    <p v-else-if="listError" class="cpub-form-error">Failed to load keys.</p>
+    <p v-else-if="publicApi && listError" class="cpub-form-error">Failed to load keys.</p>
     <p v-else-if="!data?.items?.length" class="cpub-empty">
       No API keys yet. Create one to start consuming <code>/api/public/v1/*</code>.
     </p>

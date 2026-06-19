@@ -116,10 +116,10 @@ function formatDate(dateStr: string): string {
             </div>
           </div>
 
-          <hr v-if="videos.length" class="cpub-divider" style="margin:20px 0;" />
+          <hr v-if="gridVideos.length" class="cpub-divider" style="margin:20px 0;" />
 
-          <!-- VIDEO GRID -->
-          <div class="cpub-sec-head">
+          <!-- VIDEO GRID — shown when there are non-featured videos, or while loading -->
+          <div v-if="loadingVideos || gridVideos.length" class="cpub-sec-head">
             <h2>Recent Videos</h2>
             <span class="cpub-sec-sub">{{ totalVideos }} videos</span>
           </div>
@@ -144,8 +144,9 @@ function formatDate(dateStr: string): string {
             </NuxtLink>
           </div>
 
-          <!-- Empty state -->
-          <div v-else class="cpub-empty-state">
+          <!-- Empty state — only when there are genuinely no videos (not just an
+               empty grid because the sole video is in the Featured hero above). -->
+          <div v-else-if="!videos.length" class="cpub-empty-state">
             <div class="cpub-empty-icon"><i class="fa-solid fa-film"></i></div>
             <p class="cpub-empty-title">No videos yet</p>
             <p class="cpub-empty-sub">Be the first to upload a video to the community.</p>
