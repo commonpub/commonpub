@@ -9,8 +9,15 @@ since session 181: `mirror_requests` (0014) + `registry_instances` +
 `metrics_daily` (0020) public-API time-series rollups, session 190;
 `contest_entries.stage_submissions` (0021) per-stage artifacts, session 194.)
 
-**26 migrations, 0000–0025; latest `0025_round_malice`** (= `contest_stakeholders.role`
-reviewer\|editor + seeds 5 RBAC system roles/permission sets/`user_roles` backfill, session 203;
+**28 migrations, 0000–0027; latest `0027_audit204_indexes_dedup`** (session 204 — hot-read composite
+indexes on `content_items` `(author_id,status)` + `(type,status,published_at)` + notifications
+`(user_id,created_at,id)`, AND two new tables: `processed_activities` (inbox replay dedup,
+`activity_id` PK) + `digest_runs` (multi-replica digest claim, `digest_date` PK); `0026_remote_like_count`
+= `content_items`/`hub_posts`.`remote_like_count` column + backfill so reconcile can't wipe federated
+likes. Both additive. Applied on commonpub.io only — deveco/heatsync still at 0025 until npm publish.
+**`validators.ts` is now a re-export shim; the 118 `*Schema` exports live in `validators/<domain>.ts`.**
+Prior: `0025_round_malice` = `contest_stakeholders.role`
+reviewer\|editor + seeds 5 RBAC system roles/permission sets/`user_roles` backfill, session 201;
 `0021_thick_speed` = `contest_entries.stage_submissions`
 jsonb — per-stage submission artifacts, session 194; `0020_spooky_gideon` = `metrics_daily` table —
 public-API Phase 3 analytics time-series, session 190; `0019_regular_tinkerer` =

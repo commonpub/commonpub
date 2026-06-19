@@ -18,8 +18,12 @@
 > for the findings report. For LIVE versions/flags defer to `docs/STATUS.md` (the tables below drift).
 > Latest published versions (2026-06-18): **schema 0.45.0, server 2.89.0, config 0.22.1,
 > layer 0.82.0, ui 0.13.1, theme-studio 0.6.1, protocol 0.13.0, auth 0.8.0, infra 0.8.0, editor 0.7.12,
-> explainer 0.7.15, learning 0.5.2, docs 0.6.3, test-utils 0.5.6.** 26 migrations
-> (0000–0025). RBAC activation + per-contest editors (session 201), scheduled publishing + field-drop
+> explainer 0.7.15, learning 0.5.2, docs 0.6.3, test-utils 0.5.6.** 28 migrations
+> (0000–0027). **NOTE (sessions 203-204, merge `d32e773f`, 2026-06-19): the audit remediation is
+> LIVE on commonpub.io only (workspace build of main) — npm is UNCHANGED, so deveco/heatsync still
+> run the published 0.45.0/2.89.0/0.82.0. `validators.ts` is now split into `validators/<domain>`;
+> +`processed_activities`/`digest_runs` tables + `remote_like_count` (migrations 0026/0027).**
+> RBAC activation + per-contest editors (session 201), scheduled publishing + field-drop
 > fixes + terms (sessions 199–200), Theme Studio advanced tokens/glass (sessions 192–195), contest
 > per-stage submissions (session 194), search/nav/theme-identity (session 196), public API metrics +
 > CORS + time-series (session 190), contest stages / cohorts / per-round judging (session 189),
@@ -48,7 +52,7 @@ Not to be confused with the stale `/Users/obsidian/Projects/commonpub/` director
 | Shared Nuxt layer | 1 (@commonpub/layer) |
 | Apps | 2 (reference, shell) |
 | Tools | 2 (create-commonpub Rust CLI, worker) |
-| Tables in schema | 90 (`grep -c pgTable`) |
+| Tables in schema | 92 (`grep -c pgTable`; +`processed_activities`/`digest_runs`, session 204) |
 | Enums in schema | 46 (`grep -c pgEnum`) |
 | Zod validators | 118 `*Schema` exports in `validators.ts` (1254 LOC) |
 | Server modules | 26 module dirs + 11 top-level utility files |
@@ -59,7 +63,7 @@ Not to be confused with the stale `/Users/obsidian/Projects/commonpub/` director
 | Route middleware | 3; server (Nitro) middleware 11; server plugins 11 |
 | Feature flags | 24 boolean top-level + `identity` object (5 sub-flags) + `auth` (3 sub-flags) |
 | Themes | 7 built-in (base, dark, generics, agora, agora-dark, stoa, stoa-dark — stoa is the default) + DB-stored + code-registered |
-| Migrations | 26 (0000_session128_baseline → 0025_round_malice = `contest_stakeholders.role` + RBAC seed, session 201; all published/deployed) |
+| Migrations | 28 (0000_session128_baseline → 0027_audit204_indexes_dedup; 0026 = `remote_like_count`, 0027 = hot-read indexes + `processed_activities`/`digest_runs`, session 204 — applied on commonpub.io; deveco/heatsync still at 0025 until packages published) |
 | Production instances | 3 (commonpub.io, deveco.io, heatsynclabs.io — all auto-deploy from main) |
 | Tests | 304 git-tracked `*.test.ts` files (`git ls-files '*.test.ts'`) |
 | Latest versions | schema 0.45.0, server 2.89.0, config 0.22.1, layer 0.82.0, ui 0.13.1, theme-studio 0.6.1, auth 0.8.0, protocol 0.13.0, infra 0.8.0, editor 0.7.12, explainer 0.7.15, learning 0.5.2, docs 0.6.3, test-utils 0.5.6 (verify with `npm view`; defer to `docs/STATUS.md`) |

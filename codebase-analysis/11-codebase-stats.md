@@ -4,13 +4,14 @@
 > The session-by-session delta entries that follow are kept as historical record
 > (accurate at the time of each session); for live ground truth always prefer the
 > Headline table + `docs/STATUS.md` + `npm view`.
-> **Re-measured source counts (session 203):** 90 tables · 46 enums · 118 validators ·
-> 26 migrations (0000–0025) · 92 pages · 144 components · 35 composables (non-test) ·
+> **Re-measured source counts (session 203; +204 deltas):** 92 tables (+`processed_activities`/
+> `digest_runs`, 204) · 46 enums · 118 validators (now split into `validators/<domain>.ts`) ·
+> 28 migrations (0000–0027) · 92 pages · 144 components · 35 composables (non-test) ·
 > 338 `server/api` files (332 handlers + 6 `__tests__`) · 22 `server/routes` · 26 server
-> module dirs · 304 git-tracked `*.test.ts`.
+> module dirs · ~330 git-tracked `*.test.ts` (204 added ~40 proving/concurrency tests).
 > Current (published): **schema 0.45.0, config 0.22.1, protocol 0.13.0, auth 0.8.0,
 > server 2.89.0, ui 0.13.1, theme-studio 0.6.1, layer 0.82.0; create-commonpub 0.5.16
-> (crates.io); 26 migrations (0000–0025, 0025 = `contest_stakeholders.role` + RBAC seed).**
+> (crates.io); 28 migrations (0000–0027 — 0026/0027 on commonpub.io only, npm unbumped).**
 > Sessions 197–201 (since last refresh): contest large-text/HTML hardening (197); field-drop
 > sweep + scheduled publishing + uploads infra + hub-icon federation + terms (199–200);
 > RBAC activation (seed + `/admin/roles` UI + `useCan` + per-contest editor role) (201).
@@ -122,7 +123,7 @@ Numbers are approximate — exact counts vary with test exclusions.
 | Composables | 35 (non-test) + 13 `__tests__/` files |
 | Feature flags | 24 boolean top-level (+ `contestStageSubmissions` session 194, `themeStudio`, `publicApi`, `publicApiMetricsFederation`, `actAsRegistry`, `announceToRegistry`, `layoutEngine`, `rbac`) + 5 nested `identity.*` + `auth.*` sub-flags |
 | Themes | 7 built-in (base, dark, generics, agora, agora-dark, stoa, stoa-dark — stoa is the default) + N DB-stored custom + N code-registered (admin-managed via `/admin/theme`, session 154) |
-| Migrations | 26 (0000_session128_baseline → 0025_round_malice; 0025 = `contest_stakeholders.role` + RBAC seed, 0024 = scheduled publishing, 0023 = contest text formats, 0021 = contest stage submissions, 0020 = `metrics_daily`, 0017–0019 = contest stages, 0014/0015 = mirror requests/registry, 0012 = composite feed indexes, 0009 = RBAC) |
+| Migrations | 28 (0000_session128_baseline → 0027_audit204_indexes_dedup; 0026/0027 = `remote_like_count` + hot-read indexes + `processed_activities`/`digest_runs` (204, commonpub.io only), 0025 = `contest_stakeholders.role` + RBAC seed, 0024 = scheduled publishing, 0020 = `metrics_daily`, 0017–0019 = contest stages, 0012 = composite feed indexes, 0009 = RBAC) |
 | ADRs | 26 (through 028) |
 | Production instances | 3 (commonpub.io, deveco.io, heatsynclabs.io — all auto-deploy from main) |
 | Tests | **304** git-tracked `*.test.ts` files (`git ls-files '*.test.ts'`). [An earlier "275" double-counted `.stryker-tmp/` sandbox copies via `find`; use `git ls-files`.] |

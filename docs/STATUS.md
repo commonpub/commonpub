@@ -1,16 +1,47 @@
 # CommonPub — Status & Operator Runbook
 
-> **Living doc — your "come back later" reference.** Snapshot updated 2026-06-18 (session 201).
+> **Living doc — your "come back later" reference.** Snapshot updated 2026-06-19 (sessions 203-204).
 > Verify any version/flag claim before trusting it: `npm view @commonpub/<pkg> version`,
 > `curl https://<instance>/api/features`, `cargo search create-commonpub`.
-> Companion docs: the rolling handoff `docs/sessions/202-kickoff-next.md`, work log
-> `docs/sessions/201-rbac-activation-and-contest-editors.md`, RBAC plan
-> `docs/plans/rbac-activation-and-contest-editors.md`, contest guide
+> Companion docs: the rolling handoff `docs/sessions/205-kickoff-next.md`, the audit
+> `docs/sessions/203-full-codebase-audit.md` + `docs/sessions/204-deep-audit-round2.md`,
+> RBAC plan `docs/plans/rbac-activation-and-contest-editors.md`, contest guide
 > `docs/reference/guides/contests.md`.
 
 ---
 
 ## TL;DR — where things stand
+
+**Sessions 203-204 — full codebase audit + remediation MERGED to main, LIVE on commonpub.io ONLY
+(merge commit `d32e773f`, 2026-06-19).** Deploy ✅ (run 27812795608, 6m39s); commonpub.io verified
+healthy (health/homepage/content/keyset feed 200, flags intact, CSRF live + not over-blocking).
+Migrations **0026** (`remote_like_count` + backfill) and **0027** (`processed_activities` +
+`digest_runs` tables, hot-read composite indexes) applied. **42 commits**, full suite 33/33 green,
+mutation-proven tests incl. a real-Postgres concurrency harness.
+
+⚠️ **NOT rolled to deveco.io / heatsynclabs.io.** Those pin *published* npm packages, and **nothing
+was published this cycle** — so the changed packages (schema/server/layer/protocol/editor/infra)
+have source changes on `main` (driving commonpub.io's workspace build) but the npm registry is still
+at schema 0.45.0 / server 2.89.0 / layer 0.82.0. To roll the security fixes to deveco/heatsync:
+bump + publish in dependency order, then bump their pins + CLI (`docs/sessions/205-kickoff-next.md`
+has the plan). Branch `audit-203-fixes` preserved on origin.
+
+What shipped (commonpub.io): **Security** — closed a private-content AP leak (P0), unauthenticated
+inbox + Mastodon-host + megalodon SSRF, stored XSS (custom-HTML/editor/federation-output sanitizers),
+added a CSRF origin-check middleware, inbox replay dedup, constant-time admin-secret, products-IDOR /
+hub-vote-ban / private-hub-redaction / version-history + docs/event draft-leak / uuid-param + NaN-limit
+DoS guards. **Data integrity** — `remote_like_count` (reconcile no longer wipes fediverse likes),
+transactional `createContentVersion`/`fork`/`enroll`/`deletePost`/`advanceContestStage`, delivery N+1
+batched. **Perf** — composite indexes, page-1 COUNT gating, pagination tiebreakers. **Architecture** —
+field-cascade DRY (create/update share `CONTENT_PASSTHROUGH_FIELDS`), `validators.ts` split into
+`validators/<domain>`, inbox-parsing + `ContentAvatar` extraction. **Ops** — multi-replica worker
+claims, deploy `pipefail` (a failing migration now fails the deploy). Detail: `docs/sessions/203` + `204`.
+
+**Deferred (each its own follow-up — see 205-kickoff-next):** roll to deveco/heatsync (publish + pins);
+homepage 3-path consolidation (2-phase deploy: seed default layouts first); user-block feature;
+`pg_trgm` search index (PGlite-contrib not portable to layer vitest); megalodon SSRF TOCTOU residual.
+
+---
 
 **Session 201 — SHIPPED + ROLLED to all 3 (PR #51, 2026-06-17).** npm: **schema 0.45.0 /
 server 2.89.0 / layer 0.82.0**. Migration **0025** applied on all 3 (`db:migrate` ✅ each). CLI
@@ -356,7 +387,12 @@ a minute (`curl deveco.io/api/content?limit=5`, today's timestamp).
 | @commonpub/layer | **0.82.0** | | @commonpub/theme-studio | 0.6.1 |
 | create-commonpub (crates.io) | **0.5.16** (pins ^0.45/^2.89/^0.82) | | | |
 
-Latest migration: **0025** (session 201, applied on all 3) — additive: adds `contest_stakeholders.role`
+Latest migration: **0027** (session 204) — but applied on **commonpub.io ONLY** (via main); deveco/
+heatsync are still effectively at **0025** until the packages are published + rolled. **0027**
+`audit204_indexes_dedup` (hot-read composite indexes on `content_items` + new `processed_activities`
+inbox-replay-dedup and `digest_runs` multi-replica-claim tables). **0026** `remote_like_count` (column
+on `content_items`/`hub_posts` + backfill so reconcile-counters can't wipe federated likes). Both
+additive. **0025** (session 201, applied on all 3) — adds `contest_stakeholders.role`
 (`reviewer`|`editor`) AND seeds the 5 RBAC system roles + permission sets + backfills `user_roles`
 (`ON CONFLICT DO NOTHING`, idempotent). Prior: **0024** (session 199, scheduled-publishing fields) ·
 **0023** (per-field contest text formats, session 197; the now-deprecated `content_format` column from
