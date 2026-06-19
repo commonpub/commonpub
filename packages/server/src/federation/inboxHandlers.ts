@@ -30,6 +30,13 @@ import { matchMirrorForContent } from './mirroring.js';
 import { handleHubFollow, handleHubUnfollow } from './hubFederation.js';
 import { createNotification } from '../notification/notification.js';
 import { isPrivateUrl, safeFetch } from '../import/ssrf.js';
+import {
+  UUID_RE,
+  isLocalHost,
+  lastPathSegment,
+  matchHubPostUri,
+  findAnnouncedObjectUri,
+} from './inboxParsing.js';
 
 /** Resolve a remote actor's display name from cache, falling back to URI username segment */
 async function resolveRemoteActorName(db: DB, actorUri: string): Promise<string> {
@@ -43,11 +50,7 @@ async function resolveRemoteActorName(db: DB, actorUri: string): Promise<string>
     if (actor?.preferredUsername) return actor.preferredUsername;
   } catch { /* fallback */ }
   // Fallback: extract username from URI
-  try {
-    return new URL(actorUri).pathname.split('/').filter(Boolean).pop() ?? 'Someone';
-  } catch {
-    return 'Someone';
-  }
+  return lastPathSegment(actorUri) ?? 'Someone';
 }
 
 /**
@@ -364,16 +367,13 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
           const segments = url.split('/').filter(Boolean);
 
           // Try hub post by Note URI pattern (/hubs/{slug}/posts/{postId})
-          if (segments.length >= 4 && segments[0] === 'hubs' && segments[2] === 'posts') {
-            const postId = segments[3]!;
-            const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-            if (UUID_RE.test(postId)) {
-              await db.update(hubPosts).set({
-                likeCount: sql`GREATEST(${hubPosts.likeCount} - 1, 0)`,
-                remoteLikeCount: sql`GREATEST(${hubPosts.remoteLikeCount} - 1, 0)`,
-              }).where(eq(hubPosts.id, postId));
-              unliked = true;
-            }
+          const hubPost = matchHubPostUri(objectId);
+          if (hubPost) {
+            await db.update(hubPosts).set({
+              likeCount: sql`GREATEST(${hubPosts.likeCount} - 1, 0)`,
+              remoteLikeCount: sql`GREATEST(${hubPosts.remoteLikeCount} - 1, 0)`,
+            }).where(eq(hubPosts.id, hubPost.postId));
+            unliked = true;
           }
 
           // UUID-form local content (mirrors onLike's by-id branch): an Undo whose
@@ -381,10 +381,8 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
           // slug-only lookup below never matches a uuid URI, permanently inflating
           // like_count + remote_like_count (audit session 204).
           if (!unliked) {
-            let isLocalUri = false;
-            try { isLocalUri = new URL(objectId).hostname === domain; } catch { /* invalid */ }
+            const isLocalUri = isLocalHost(objectId, domain);
             const lastSeg = segments[segments.length - 1];
-            const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
             if (isLocalUri && lastSeg && UUID_RE.test(lastSeg)) {
               const upd = await db.update(contentItems).set({
                 likeCount: sql`GREATEST(${contentItems.likeCount} - 1, 0)`,
@@ -412,21 +410,10 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
 
           // Try matching an outbound Announce activity (someone unliked the Announce itself)
           if (!unliked) {
-            const [announceActivity] = await db
-              .select({ objectUri: activities.objectUri })
-              .from(activities)
-              .where(
-                and(
-                  eq(activities.type, 'Announce'),
-                  eq(activities.direction, 'outbound'),
-                  sql`${activities.payload}->>'id' = ${objectId}`,
-                ),
-              )
-              .limit(1);
-
-            if (announceActivity?.objectUri) {
+            const announcedUri = await findAnnouncedObjectUri(db, objectId);
+            if (announcedUri) {
               try {
-                const noteSegments = new URL(announceActivity.objectUri).pathname.split('/').filter(Boolean);
+                const noteSegments = new URL(announcedUri).pathname.split('/').filter(Boolean);
                 if (noteSegments.length >= 4 && noteSegments[0] === 'hubs' && noteSegments[2] === 'posts') {
                   const announcePostId = noteSegments[3]!;
                   await db.update(hubPosts).set({
@@ -826,7 +813,6 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
             if (parentSegments.length >= 4 && parentSegments[0] === 'hubs' && parentSegments[2] === 'posts') {
               const hubSlug = parentSegments[1]!;
               const postId = parentSegments[3]!;
-              const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
               if (UUID_RE.test(postId)) {
                 // Resolve remote actor name for display
@@ -1157,14 +1143,7 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
       // First check if the objectUri belongs to our domain (local content).
       // Then try slug/UUID match. If neither, it's federated content.
       let matched = false;
-      let isLocalUri = false;
-
-      try {
-        const parsedUri = new URL(objectUri);
-        isLocalUri = parsedUri.hostname === domain;
-      } catch {
-        // Invalid URI — skip
-      }
+      const isLocalUri = isLocalHost(objectUri, domain);
 
       if (isLocalUri) {
         // Extract slug or UUID from the URI path
@@ -1174,7 +1153,6 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
 
           if (idOrSlug) {
             // Try UUID first (more specific)
-            const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
             if (UUID_RE.test(idOrSlug)) {
               const byId = await db.select({ id: contentItems.id, authorId: contentItems.authorId, title: contentItems.title, type: contentItems.type, slug: contentItems.slug, authorUsername: users.username })
                 .from(contentItems).innerJoin(users, eq(contentItems.authorId, users.id))
@@ -1219,53 +1197,36 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
 
       // If not local content, try hub post by Note URI pattern (/hubs/{slug}/posts/{postId})
       if (!matched && isLocalUri) {
-        try {
-          const segments = new URL(objectUri).pathname.split('/').filter(Boolean);
-          // Match /hubs/{slug}/posts/{postId}
-          if (segments.length >= 4 && segments[0] === 'hubs' && segments[2] === 'posts') {
-            const postId = segments[3]!;
-            const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-            if (UUID_RE.test(postId)) {
-              const [post] = await db.select({ id: hubPosts.id, authorId: hubPosts.authorId }).from(hubPosts)
-                .where(eq(hubPosts.id, postId)).limit(1);
-              if (post) {
-                await db.update(hubPosts).set({
-                  likeCount: sql`${hubPosts.likeCount} + 1`,
-                  remoteLikeCount: sql`${hubPosts.remoteLikeCount} + 1`,
-                }).where(eq(hubPosts.id, post.id));
-                matched = true;
+        const hubPost = matchHubPostUri(objectUri);
+        if (hubPost) {
+          const { slug: hubSlug, postId } = hubPost;
+          const [post] = await db.select({ id: hubPosts.id, authorId: hubPosts.authorId }).from(hubPosts)
+            .where(eq(hubPosts.id, postId)).limit(1);
+          if (post) {
+            await db.update(hubPosts).set({
+              likeCount: sql`${hubPosts.likeCount} + 1`,
+              remoteLikeCount: sql`${hubPosts.remoteLikeCount} + 1`,
+            }).where(eq(hubPosts.id, post.id));
+            matched = true;
 
-                // Notify hub post author (skip for federated posts with no local author)
-                if (post.authorId) {
-                  const remoteUser = await resolveRemoteActorName(db, actorUri);
-                  await notifyRemoteInteraction(db, post.authorId, 'like', actorUri,
-                    'New like', `${remoteUser} from the fediverse liked your hub post`,
-                    `/hubs/${segments[1]}/posts/${postId}`);
-                }
-              }
+            // Notify hub post author (skip for federated posts with no local author)
+            if (post.authorId) {
+              const remoteUser = await resolveRemoteActorName(db, actorUri);
+              await notifyRemoteInteraction(db, post.authorId, 'like', actorUri,
+                'New like', `${remoteUser} from the fediverse liked your hub post`,
+                `/hubs/${hubSlug}/posts/${postId}`);
             }
           }
-        } catch { /* invalid URL */ }
+        }
       }
 
       // Try matching an outbound Announce activity (someone liked the Announce itself)
       if (!matched) {
-        const [announceActivity] = await db
-          .select({ objectUri: activities.objectUri })
-          .from(activities)
-          .where(
-            and(
-              eq(activities.type, 'Announce'),
-              eq(activities.direction, 'outbound'),
-              sql`${activities.payload}->>'id' = ${objectUri}`,
-            ),
-          )
-          .limit(1);
-
-        if (announceActivity?.objectUri) {
+        const announcedUri = await findAnnouncedObjectUri(db, objectUri);
+        if (announcedUri) {
           // The Announce wraps a Note — try to find the hub post from the Note URI
           try {
-            const noteSegments = new URL(announceActivity.objectUri).pathname.split('/').filter(Boolean);
+            const noteSegments = new URL(announcedUri).pathname.split('/').filter(Boolean);
             if (noteSegments.length >= 4 && noteSegments[0] === 'hubs' && noteSegments[2] === 'posts') {
               const postId = noteSegments[3]!;
               await db.update(hubPosts).set({
@@ -1331,11 +1292,7 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
 
       // Check if the boosted object is local content
       let matched = false;
-      let isLocalUri = false;
-
-      try {
-        isLocalUri = new URL(objectUri).hostname === domain;
-      } catch { /* invalid URL */ }
+      const isLocalUri = isLocalHost(objectUri, domain);
 
       if (isLocalUri) {
         try {
