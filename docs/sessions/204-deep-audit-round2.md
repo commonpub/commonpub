@@ -267,3 +267,41 @@ can't create it → schema-vs-migration drift; needs an ops/extension decision);
 DNS-rebind residual (needs an axios-transport guard; flag-gated off in prod); `/api/content` →
 keyset feed; the 203 structural refactors (field-cascade DRY, homepage 3-path consolidation,
 content-view dedup, monolith splits); user-block model (a feature, not a fix).
+
+---
+
+## Round 7 — structural backlog worked down
+
+Continued the backlog on-branch. Done + green (full suite 33/33):
+- **field-cascade DRY** (#1 architectural finding): `createContent`/`updateContent` now share one
+  compile-checked `CONTENT_PASSTHROUGH_FIELDS` list, so a new field can't be wired into one path
+  and dropped from the other (the 199/200 silent-field-drop class). Special-cased fields stay explicit.
+- **validators.ts monolith split** into `validators/<domain>.ts` + barrel + back-compat shim;
+  export parity verified IDENTICAL (121 const / 104 type / 1 fn), no cycles.
+- **inboxHandlers dedup**: `UUID_RE`(×5)/hub-URI/Announce-lookup extracted to `inboxParsing.ts`.
+- **megalodon DNS-rebind SSRF**: `assertPublicHost` (DNS-resolve + `isPrivateIp`, fail-closed) at
+  all 3 user-host entry points; mutation-verified; TOCTOU residual documented.
+- **Flake fixes**: editor 2k-node parse test + server `testTimeout` 15s→30s (DB-heavy suite under
+  the new real-PG concurrency load).
+
+Corrected / re-classified:
+- **`/api/content` → keyset is ALREADY DONE** (not a gap): `useContentFeed.ts` transparently routes
+  recency feeds to `/api/content/feed` (keyset) and keeps offset `/api/content` only for
+  `popular`/`featured`/`editorial` — sorts whose keys mutate mid-scroll and genuinely can't keyset.
+- **pg_trgm search index — attempted then REVERTED**: the index/migration/harness wiring works in
+  the *server* vitest env, but the `@electric-sql/pglite/contrib/pg_trgm` extension fails to load
+  in the *layer* vitest runtime (`a.arrayBuffer is not a function`) — the shared PGlite testdb
+  helper isn't portable across both. Reverted (it was breaking 3 layer tests). Still an ops item:
+  needs a portable extension-load (or prod-only raw migration + a drift exception).
+
+**TRUE remainder (each needs its own effort — NOT bundled, by design):**
+- **content-view dedup** — in progress this round, done TEST-FIRST (add view smoke tests, then
+  extract `ContentAvatar` moving its scoped CSS; the views had zero tests + this is the scoped-CSS-
+  extraction trap, so a safety net is mandatory).
+- **homepage 3-path consolidation** — requires a 2-phase coordinated deploy: seed a default layout
+  on all 3 instances FIRST, then remove the legacy hardcoded `index.vue` fallback. Removing the
+  fallback without the seed = blank homepages. Not a safe single-branch change.
+- **user-block model** — a net-new feature (table + block/unblock API + enforcement + UI), not
+  audit remediation. Request it as a feature with the UX decisions.
+- **monolith file splits** beyond validators/inbox (docs `[siteSlug]/edit.vue` own autosave,
+  ProjectView size) — maintainability refactors for their own PRs.
