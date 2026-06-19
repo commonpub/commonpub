@@ -1,16 +1,25 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import type { HomepageSectionConfig } from '@commonpub/server';
+import { sanitizeRichHtml } from '../../composables/useSanitize';
 
 const props = defineProps<{
   config: HomepageSectionConfig;
   title?: string;
 }>();
+
+// Admin-authored raw HTML renders on the PUBLIC homepage with v-html; strip
+// scripts/event-handlers/javascript: before injecting (CSP allows unsafe-inline,
+// so this is the only XSS barrier). (audit session 204 — P1)
+const safeHtml = computed(() =>
+  typeof props.config.html === 'string' ? sanitizeRichHtml(props.config.html) : '',
+);
 </script>
 
 <template>
-  <section v-if="config.html" class="cpub-custom-section">
+  <section v-if="safeHtml" class="cpub-custom-section">
     <h2 v-if="title" class="cpub-custom-title">{{ title }}</h2>
-    <div class="cpub-custom-content" v-html="config.html" />
+    <div class="cpub-custom-content" v-html="safeHtml" />
   </section>
 </template>
 
