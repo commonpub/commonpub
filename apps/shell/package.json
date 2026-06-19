@@ -9,7 +9,7 @@
     "preview": "nuxt preview",
     "typecheck": "nuxt typecheck",
     "clean": "rm -rf .nuxt .output",
-    "db:push": "drizzle-kit push",
+    "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
