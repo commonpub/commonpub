@@ -51,6 +51,17 @@ async function resolveRemoteActorName(db: DB, actorUri: string): Promise<string>
 }
 
 /**
+ * Parse an untrusted ActivityPub date string into a Date, or null if it isn't a valid
+ * date. Guards against `new Date('garbage')` → Invalid Date → Postgres timestamp-bind
+ * crash, which on the public inbox was an unauthenticated 500 (audit session 203).
+ */
+function parseApDate(value: unknown): Date | null {
+  if (typeof value !== 'string') return null;
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+/**
  * Parse a local content URI into its components.
  * Handles both new format (/u/{username}/{type}/{slug}) and legacy (/content/{slug}).
  * Returns null if the URI doesn't match any known pattern.
@@ -752,7 +763,7 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
             cpubMetadata,
             cpubBlocks,
             mirrorId,
-            publishedAt: typeof object.published === 'string' ? new Date(object.published) : null,
+            publishedAt: parseApDate(object.published),
           })
           .onConflictDoUpdate({
             target: federatedContent.objectUri,
@@ -1417,7 +1428,7 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
                   actorUri: noteActorUri,
                   content: noteContent,
                   postType: ((note as Record<string, unknown>)['cpub:postType'] as string) ?? (sharedContentMeta ? 'share' : 'text'),
-                  publishedAt: note.published ? new Date(note.published as string) : undefined,
+                  publishedAt: parseApDate(note.published) ?? undefined,
                   sharedContentMeta,
                 });
               }
