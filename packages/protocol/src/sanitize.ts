@@ -86,6 +86,9 @@ function isSafeUrl(url: string): boolean {
  * This implementation covers the critical security cases without
  * adding a DOM dependency.
  */
+/** Elements whose entire subtree (including text) must be dropped, not unwrapped. */
+const STRIP_WITH_CONTENT = ['script', 'style', 'iframe', 'object', 'embed', 'template', 'noscript'];
+
 export function sanitizeHtml(html: string): string {
   if (!html || typeof html !== 'string') return '';
 
@@ -93,6 +96,14 @@ export function sanitizeHtml(html: string): string {
 
   // Strip HTML comments (can hide content from parsers)
   result = result.replace(/<!--[\s\S]*?-->/g, '');
+
+  // Drop dangerous elements together with their text contents (the allowlist
+  // pass below only removes tags, which would leave inert CSS/JS text behind).
+  for (const tag of STRIP_WITH_CONTENT) {
+    result = result.replace(new RegExp(`<${tag}\\b[^>]*>[\\s\\S]*?<\\/${tag}\\s*>`, 'gi'), '');
+    // Also drop unterminated / self-closing openers.
+    result = result.replace(new RegExp(`<${tag}\\b[^>]*\\/?>`, 'gi'), '');
+  }
 
   // Process all HTML tags
   result = result.replace(/<\/?([a-zA-Z][a-zA-Z0-9]*)\b([^>]*)?\/?>/g, (match, tagName, attrs) => {

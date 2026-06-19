@@ -236,10 +236,12 @@ describe('sanitizeBlockHtml — XSS prevention', () => {
     expect(html).not.toContain('onmouseover');
   });
 
-  it('replaces javascript: URLs in href', () => {
+  it('drops javascript: URLs in href (allowlist: unsafe attr removed)', () => {
     const html = renderBlocks([['paragraph', { html: '<a href="javascript:alert(1)">click</a>' }]]);
     expect(html).not.toContain('javascript:');
-    expect(html).toContain('href="#"');
+    // Allowlist sanitizer drops the unsafe attribute entirely; link text survives.
+    expect(html).toContain('click');
+    expect(html).not.toContain('alert(1)');
   });
 
   it('replaces javascript: URLs in src', () => {
@@ -249,12 +251,25 @@ describe('sanitizeBlockHtml — XSS prevention', () => {
 
   it('strips unsafe data: URIs', () => {
     const html = renderBlocks([['paragraph', { html: '<img src="data:text/html,<script>alert(1)</script>">' }]]);
-    expect(html).toContain('src=""');
+    // Allowlist sanitizer drops the unsafe src attribute entirely (no data:text/html survives).
+    expect(html).not.toContain('data:text/html');
+    expect(html).not.toContain('<script');
   });
 
   it('preserves safe data:image URIs', () => {
     const html = renderBlocks([['paragraph', { html: '<img src="data:image/png;base64,abc123">' }]]);
     expect(html).toContain('data:image/png');
+  });
+
+  it('strips non-allowlisted tags on federation output (iframe/object/embed)', () => {
+    const html = renderBlocks([['paragraph', {
+      html: 'before<iframe src="https://evil.test"></iframe><object data="x"></object><embed src="y">after',
+    }]]);
+    expect(html.toLowerCase()).not.toContain('<iframe');
+    expect(html.toLowerCase()).not.toContain('<object');
+    expect(html.toLowerCase()).not.toContain('<embed');
+    expect(html).toContain('before');
+    expect(html).toContain('after');
   });
 
   it('preserves safe inline HTML tags', () => {
@@ -266,7 +281,7 @@ describe('sanitizeBlockHtml — XSS prevention', () => {
 
   it('handles nested script tags', () => {
     const html = renderBlocks([['paragraph', { html: '<script><script>alert(1)</script></script>' }]]);
-    // Regex strips the inner <script>...</script>, leaving </script> which is just text
+    // Inner <script>...</script> is stripped with its content; no executable script remains.
     expect(html).not.toContain('alert');
     expect(html).not.toContain('<script>');
   });

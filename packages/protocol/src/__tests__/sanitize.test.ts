@@ -65,14 +65,12 @@ describe('sanitizeHtml', () => {
   // --- Dangerous elements stripped ---
 
   describe('dangerous elements', () => {
-    it('strips script tags', () => {
-      expect(sanitizeHtml('<script>alert(1)</script>')).toBe('alert(1)');
+    it('strips script tags with their contents', () => {
+      expect(sanitizeHtml('<script>alert(1)</script>')).toBe('');
     });
 
-    it('strips script tags with attributes', () => {
-      expect(sanitizeHtml('<script type="text/javascript">alert(1)</script>')).toBe(
-        'alert(1)',
-      );
+    it('strips script tags with attributes and contents', () => {
+      expect(sanitizeHtml('<script type="text/javascript">alert(1)</script>')).toBe('');
     });
 
     it('strips iframe tags', () => {
@@ -91,10 +89,8 @@ describe('sanitizeHtml', () => {
       expect(sanitizeHtml('<form action="/steal"><input type="text"></form>')).toBe('');
     });
 
-    it('strips style tags', () => {
-      expect(sanitizeHtml('<style>body { display: none; }</style>')).toBe(
-        'body { display: none; }',
-      );
+    it('strips style tags with their contents', () => {
+      expect(sanitizeHtml('<style>body { display: none; }</style>')).toBe('');
     });
 
     it('strips svg tags', () => {
