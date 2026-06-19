@@ -131,7 +131,7 @@ export async function listEvents(
   const { limit, offset } = normalizePagination(filters);
 
   const [rows, total] = await Promise.all([
-    db.select().from(events).where(where).orderBy(asc(events.startDate)).limit(limit).offset(offset),
+    db.select().from(events).where(where).orderBy(asc(events.startDate), desc(events.id)).limit(limit).offset(offset),
     countRows(db, events, where),
   ]);
 

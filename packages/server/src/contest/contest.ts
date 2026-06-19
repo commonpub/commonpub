@@ -272,7 +272,7 @@ export async function listContests(
       .select()
       .from(contests)
       .where(where)
-      .orderBy(desc(contests.startDate))
+      .orderBy(desc(contests.startDate), desc(contests.id))
       .limit(limit)
       .offset(offset),
     countRows(db, contests, where),
@@ -586,8 +586,9 @@ export async function listContestEntries(
           sql`${contestEntries.rank} asc nulls last`,
           sql`${contestEntries.score} desc nulls last`,
           desc(contestEntries.submittedAt),
+          desc(contestEntries.id),
         ]
-      : [desc(contestEntries.submittedAt)];
+      : [desc(contestEntries.submittedAt), desc(contestEntries.id)];
 
   const [rows, total] = await Promise.all([
     db

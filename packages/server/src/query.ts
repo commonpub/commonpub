@@ -135,12 +135,22 @@ export interface PaginationOpts {
   offset?: number;
 }
 
-/** Normalize pagination options to safe values */
+/**
+ * Normalize pagination options to safe values.
+ *
+ * Guards non-finite input: routes pass `Number(query.limit)`, so `?limit=abc` yields NaN.
+ * `??` does NOT catch NaN, and `Math.min(NaN, 100)` is NaN → `LIMIT NaN` → an
+ * unauthenticated 500 on public list endpoints (audit session 203). Clamp limit to
+ * [1, 100] and offset to >= 0, falling back to defaults when not a finite number.
+ */
 export function normalizePagination(opts: PaginationOpts): { limit: number; offset: number } {
-  return {
-    limit: Math.min(opts.limit ?? 20, 100),
-    offset: Math.max(opts.offset ?? 0, 0),
-  };
+  const limit = Number.isFinite(opts.limit)
+    ? Math.min(Math.max(Math.trunc(opts.limit as number), 1), 100)
+    : 20;
+  const offset = Number.isFinite(opts.offset)
+    ? Math.max(Math.trunc(opts.offset as number), 0)
+    : 0;
+  return { limit, offset };
 }
 
 /**

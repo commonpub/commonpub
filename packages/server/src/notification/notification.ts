@@ -134,7 +134,7 @@ export async function listNotifications(
       .from(notifications)
       .leftJoin(users, eq(notifications.actorId, users.id))
       .where(where)
-      .orderBy(desc(notifications.createdAt))
+      .orderBy(desc(notifications.createdAt), desc(notifications.id))
       .limit(limit)
       .offset(offset),
     countRows(db, notifications, where),

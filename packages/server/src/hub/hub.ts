@@ -49,7 +49,7 @@ export async function listHubs(
       .from(hubs)
       .innerJoin(users, eq(hubs.createdById, users.id))
       .where(where)
-      .orderBy(desc(hubs.createdAt))
+      .orderBy(desc(hubs.createdAt), desc(hubs.id))
       .limit(limit)
       .offset(offset),
     countRows(db, hubs, where),

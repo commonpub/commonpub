@@ -101,7 +101,7 @@ export async function listFederatedTimeline(
     .from(federatedContent)
     .leftJoin(remoteActors, eq(federatedContent.remoteActorId, remoteActors.id))
     .where(where)
-    .orderBy(desc(federatedContent.receivedAt))
+    .orderBy(desc(federatedContent.receivedAt), desc(federatedContent.id))
     .limit(limit)
     .offset(offset);
 
@@ -481,7 +481,7 @@ export async function searchFederatedContent(
     .from(federatedContent)
     .leftJoin(remoteActors, eq(federatedContent.remoteActorId, remoteActors.id))
     .where(where)
-    .orderBy(desc(federatedContent.receivedAt))
+    .orderBy(desc(federatedContent.receivedAt), desc(federatedContent.id))
     .limit(limit)
     .offset(offset);
 

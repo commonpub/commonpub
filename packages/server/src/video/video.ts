@@ -73,7 +73,7 @@ export async function listVideos(
       .innerJoin(users, eq(videos.authorId, users.id))
       .leftJoin(videoCategories, eq(videos.categoryId, videoCategories.id))
       .where(where)
-      .orderBy(desc(videos.createdAt))
+      .orderBy(desc(videos.createdAt), desc(videos.id))
       .limit(limit)
       .offset(offset),
     countRows(db, videos, where),

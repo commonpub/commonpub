@@ -149,7 +149,7 @@ export async function listPosts(
       .leftJoin(users, eq(hubPosts.authorId, users.id))
       .leftJoin(remoteActors, eq(hubPosts.remoteActorUri, remoteActors.actorUri))
       .where(where)
-      .orderBy(desc(hubPosts.isPinned), desc(hubPosts.createdAt))
+      .orderBy(desc(hubPosts.isPinned), desc(hubPosts.createdAt), desc(hubPosts.id))
       .limit(limit)
       .offset(offset),
     countRows(db, hubPosts, where),

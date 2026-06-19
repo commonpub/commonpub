@@ -76,7 +76,7 @@ export async function listPaths(
       .innerJoin(users, eq(learningPaths.authorId, users.id))
       .leftJoin(moduleCountSubquery, eq(learningPaths.id, moduleCountSubquery.pathId))
       .where(where)
-      .orderBy(desc(learningPaths.createdAt))
+      .orderBy(desc(learningPaths.createdAt), desc(learningPaths.id))
       .limit(limit)
       .offset(offset),
     countRows(db, learningPaths, where),

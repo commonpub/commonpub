@@ -236,7 +236,7 @@ export async function listHubProducts(
       .select()
       .from(products)
       .where(where)
-      .orderBy(desc(products.createdAt))
+      .orderBy(desc(products.createdAt), desc(products.id))
       .limit(limit)
       .offset(offset),
     countRows(db, products, where),
@@ -285,7 +285,7 @@ export async function searchProducts(
       .select()
       .from(products)
       .where(where)
-      .orderBy(desc(products.createdAt))
+      .orderBy(desc(products.createdAt), desc(products.id))
       .limit(limit)
       .offset(offset),
     countRows(db, products, where),
