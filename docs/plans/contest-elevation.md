@@ -315,3 +315,52 @@ All additive until Phase 6's drops; one migration per phase that needs DDL, gene
 TDD (tests first) · every new feature flagged · `var(--*)` only (no hardcoded color/font) · TS strict,
 no `any` · **no em dashes in user-facing copy** · `cpub-` class prefix · WCAG 2.1 AA + axe on new
 components · committed migrations only (never `db:push`) · session log after · **no AI co-author in git**.
+
+---
+
+## Target contest editor — full shell layout (2e, refined session 211 after visual verification)
+
+> Operator vision (session 211): a full block-style editor with contest settings in a right-side
+> panel, the body switching between description/rules/prizes via tabs, and the cover/banner shown as
+> placeholders like the project/blog editors. Refined here into a concrete architecture. The
+> stepping-stone 2e-1 (inline block editor for the Description on the existing form, shipped + visually
+> verified) proved the pieces; visual testing showed the block editor wants the **editor-shell layout**,
+> not a narrow form column (its floating toolbar overlaps when embedded in the form). So 2e graduates to
+> a full shell, reusing `ContestBodyEditor` unchanged.
+
+### Layout (mirrors `cpub-editor-layout` / EditorShell used by projects/blogs)
+- **Topbar:** back, contest title, autosave status (`useEditorAutosave`), Save/lifecycle controls
+  (Move to Draft / Activate / …), a **View** link, and **Write / Preview / Code** mode switch (Preview
+  renders the real contest page; Code shows the BlockTuple[] JSON).
+- **Center canvas:** the block body via `ContestBodyEditor`, with a **body switcher (tabs/segmented):
+  Overview · Rules · Prizes** — each its own `BlockTuple[]` (`descriptionBlocks` / `rulesBlocks` /
+  `prizesBlocks`). Switching swaps which block document the canvas edits. **Cover + banner placeholders**
+  shown above the canvas (like the project editor) so the organizer sees where each image appears.
+- **Right settings panel (collapsible, `EditorSection` groups):**
+  - *Basics* — title, slug, subheading (hero/card tagline), cover upload, banner upload.
+  - *Schedule & Stages* — top-level dates (`CpubDateTimeField`) + the drag-drop `ContestStagesEditor`.
+  - *Entries* — eligible content types, max entries/user, per-stage submission templates.
+  - *Judging* — criteria (merge the two divergent editors into one), score visibility, community voting.
+  - *Prizes* — show-prizes toggle + structured prize cards (the "Prizes" body tab is the prose overview).
+  - *Access* — visibility, roles, collaborators (`ContestStakeholderManager`), judges (`ContestJudgeManager`).
+
+### Architecture (clean, typed, non-crufty)
+- ONE `ContestEditor.vue` orchestrator → `create.vue` + `[slug]/edit.vue` become thin route shells
+  mounting it (kills the ~470/~775-line duplication). Create = blank model; edit = hydrated.
+- A single `ContestEditorModel` TS type = the full editable shape (one source of truth) shared by
+  create/edit, mapped to/from the API payload in one place.
+- `ContestBodyEditor` (built, verified) reused per body tab. New `prizesBlocks` jsonb column (mirrors
+  description/rulesBlocks; one additive migration) so Prizes is block-edited too.
+- Right-panel sections are existing focused components (StagesEditor / JudgeManager / StakeholderManager
+  / criteria / prizes), deduped; AutoForm for the structured config where it fits.
+- Settings persist via `updateContest`; body via the `*Blocks` columns. Autosave for drafts.
+- Phased build (each visually verifiable via the local run + Playwright flow proven this session):
+  **2e-2a** shell scaffold + body tabs (Overview/Rules/Prizes) reusing ContestBodyEditor + `prizesBlocks`
+  migration; **2e-2b** right-panel settings (move existing fields in, dedupe); **2e-2c** cover/banner
+  placeholders + Write/Preview/Code modes + autosave; **2e-2d** collapse create/edit into the orchestrator.
+
+### Verified working live (session 211, local run + Playwright)
+Create → edit page shows the block body (legacy markdown auto-converted to a heading + text/list blocks)
+→ save `descriptionBlocks` (DB: 3 blocks persisted) → public overview renders the blocks incl. the
+`judgesShowcase` (Ada Lovelace / Alan Turing avatar cards). `?tab=` deep links work. No page errors.
+Also confirmed the hero is visibly "too thick" (Phase 3) — banner band + tall dark hero stacked.
