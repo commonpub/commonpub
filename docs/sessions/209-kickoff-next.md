@@ -57,7 +57,9 @@ Landing decision (2026-06-22): **keep iterating** on the branch (no push/deploy/
 - [x] **Phase 2** Ban UI (Ban beside Kick + Banned section on members.vue) — `2be2e46e`
 - [x] **3a** Profile per-tab keyset pagination + owner-only Drafts tab (server-side draft authz) — `521064b2`
   - Decisions: separate owner-only Drafts tab + Load-more (keyset).
-- [ ] Phase 3b/3c (DECISION NEEDED — ask first)
+- [x] **3b** Real approval join workflow (pending requests + approve/deny + authz hardening) — `8ea8bd8b`
+  - Decisions: requests section on members page + 'Request pending' state.
+- [ ] Phase 3c (DECISION NEEDED — ask first)
 - [ ] Phase 4a/4b (high-risk, last)
 
 ---
