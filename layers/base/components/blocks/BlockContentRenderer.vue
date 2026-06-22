@@ -26,6 +26,7 @@ import BlockMathView from './BlockMathView.vue';
 import BlockGalleryView from './BlockGalleryView.vue';
 import BlockSectionHeaderView from './BlockSectionHeaderView.vue';
 import BlockMarkdownView from './BlockMarkdownView.vue';
+import BlockJudgesShowcaseView from './BlockJudgesShowcaseView.vue';
 import type { BlockTuple } from '@commonpub/editor';
 
 const props = defineProps<{
@@ -67,6 +68,7 @@ const componentMap: Record<string, unknown> = {
   gallery: BlockGalleryView,
   sectionHeader: BlockSectionHeaderView,
   markdown: BlockMarkdownView,
+  judgesShowcase: BlockJudgesShowcaseView,
 };
 
 const visibleBlocks = computed(() => {
