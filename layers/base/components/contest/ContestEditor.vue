@@ -198,7 +198,13 @@ async function advanceStage(stageId: string): Promise<void> {
 
       <!-- Body canvas — full width so the block editor has room. -->
       <section class="cpub-form-section cpub-edit-body">
-        <h2 class="cpub-form-section-title">Contest body</h2>
+        <!-- Cover + banner shown as visual placeholders above the canvas (like the
+             project/blog editors) so the organizer sees where each image appears. -->
+        <ContestMediaStrip
+          v-model:banner-url="bannerUrl"
+          v-model:cover-image-url="coverImageUrl"
+        />
+        <h2 class="cpub-form-section-title cpub-edit-body-title">Contest body</h2>
         <ContestBodyTabs
           v-if="mode === 'create' || contest"
           v-model:description="descriptionBlocks"
@@ -289,13 +295,7 @@ async function advanceStage(stageId: string): Promise<void> {
         <div class="cpub-form-field">
           <label for="contest-subheading" class="cpub-form-label">Subheading</label>
           <input id="contest-subheading" v-model="subheading" type="text" maxlength="300" class="cpub-form-input" placeholder="One-line tagline shown in the contest header" />
-          <p class="cpub-form-hint">Short plain-text tagline shown under the title in the hero. The Contest body above is the full content.</p>
-        </div>
-        <div class="cpub-form-field">
-          <ImageUpload v-model="bannerUrl" purpose="banner" label="Banner Image" hint="Wide hero image across the top of the contest page (~4:1)." />
-        </div>
-        <div class="cpub-form-field">
-          <ImageUpload v-model="coverImageUrl" purpose="cover" label="Cover Image (optional)" hint="Card/thumbnail image shown in listings (~4:3). Falls back to the banner if unset." />
+          <p class="cpub-form-hint">Short plain-text tagline shown under the title in the hero. The Contest body above is the full content. The banner and cover images are set above the body canvas.</p>
         </div>
       </section>
 
@@ -490,6 +490,7 @@ async function advanceStage(stageId: string): Promise<void> {
 .cpub-edit-side { display: flex; flex-direction: column; gap: 16px; position: sticky; top: 76px; }
 .cpub-form-section { border: var(--border-width-default) solid var(--border); background: var(--surface); padding: 20px; box-shadow: var(--shadow-md); }
 .cpub-form-section-title { font-size: 14px; font-weight: 700; margin-bottom: 14px; }
+.cpub-edit-body-title { margin-top: 20px; }
 .cpub-form-field { display: flex; flex-direction: column; gap: var(--space-1); margin-bottom: var(--space-3); }
 .cpub-field-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .cpub-form-field:last-child { margin-bottom: 0; }
