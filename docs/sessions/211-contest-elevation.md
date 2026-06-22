@@ -11,8 +11,41 @@ Multi-phase **contest elevation**. A 6-agent deep audit found the contest *engin
 and **Phase 2a–2d + 2e-1 + 2e-2a/b.1/b.2/b.3/b.4 + 2e-2d** are done, tested, and visually verified in a
 locally-run app. The contest editor is now ONE shell-style component (`ContestEditor.vue`, mode-aware)
 used by BOTH create and edit as thin route shells: a sticky topbar + full-width body canvas with tabs
-**Overview · Rules · Prizes · Stages · Judging** + a settings rail. **create ≡ edit (divergence fixed).**
-**Gates: schema 470, server 1469, layer 1187 (+15), reference vue-tsc 0.** Nothing outward-facing.
+**Overview · Rules · Prizes · Stages · Judging** + a settings rail. **create ≡ edit (divergence fixed).** Phase **2e-2c** (cover/banner placeholders, Write/Preview/Code,
+draft autosave) now done too.
+**Gates: schema 470, server 1469, layer 1200 (+13 this session), reference vue-tsc 0.** Nothing outward-facing.
+
+**Session 214 (2026-06-22) — Phase 2e-2c (editor polish, 3 slices):**
+- `eb1adbbd` **2e-2c.1** `ContestMediaStrip.vue` (banner 4:1 + cover, reusing the themed `ImageUpload`
+  zones) mounted ABOVE the body canvas like the project/blog editors; the two `ImageUpload` fields removed
+  from the Details section (no duplication). 5 component tests + axe.
+- `ebd7f1c7` **2e-2c.2** Write/Preview/Code segmented switch on the `ContestBodyTabs` tabbar, shown ONLY for
+  the block-body tabs (Overview/Rules/Prizes), hidden on Stages/Judging. `ContestBodyEditor` gained a `mode`
+  prop: Write keeps the canvas mounted (`v-show`, so block state + undo survive), Preview renders the live
+  blocks through `BlocksBlockContentRenderer` (the SAME view renderer the public page uses, in `cpub-prose`),
+  Code shows read-only `BlockTuple[]` JSON. Preview/Code derive from the editor's OWN block state (not the
+  parent v-model, which only emits after the first edit) so they work on a freshly-loaded legacy contest.
+  The switch sits on the canvas (not the topbar per the original plan wording) so it is never dead on the
+  non-body tabs. Decision confirmed with operator: Preview = per-tab rendered blocks (not a full-page
+  reproduction); the topbar `View` link already opens the real page.
+- `0b83de9c` **2e-2c.3** Draft autosave via `useEditorAutosave`, gated `mode==='edit' && status==='draft'`
+  (create has no slug; published/upcoming/etc. keep save-on-action). `useContestEditor.save` gained a
+  `{ silent }` mode: no toast/refresh/navigation, rethrows on failure for the status machine, and on a slug
+  rename calls a new `onRenamed` callback INSTEAD of navigating. The orchestrator renames in place via
+  `navigateTo(..., { replace: true })` (same page component, no remount) and a **hydrate guard** (skip
+  re-hydration while `formDirty`) keeps the refetch from clobbering in-progress edits. Topbar shows a live
+  `role=status aria-live` indicator (All changes saved / Unsaved changes / Saving / Couldn't autosave); the
+  Save button flushes immediately. 4 silent-save unit tests.
+- Visually verified live (local run + Playwright): media strip on create+edit (strip precedes the tabs, 0
+  image fields left in Details); all three body modes (Preview renders Audit Heading, Code shows the tuple
+  JSON, switch hides on Stages, mode persists across body tabs); autosave round-trip (edit -> 3s debounce ->
+  persisted to DB), **slug rename swaps the URL in place and stays in the editor** (DB slug updated, no
+  view-page jump), upcoming contest shows NO autosave + keeps manual Save. Confirmed create-via-editor-button
+  still POSTs 200 + navigates + "Contest created" toast (the Playwright datetime-local fill is flaky on the
+  FIRST fill of a field; double-fill or `waitForFunction` on the enabled button is the reliable driver — NOT
+  a product bug, `canSubmit` + date wiring unchanged).
+- Pre-existing "Hydration completed but contains mismatches" on the authenticated edit/view path is NOT from
+  this session (A/B'd: baseline create is clean too); still a Phase 3 item.
 
 **Session 213 (2026-06-22) — Phase 2e-2d (unify create/edit, de-monolith):**
 - `5556af55` **2e-2d.1** `useContestEditor` composable — the single form model (refs, slugify, ISO date
@@ -91,9 +124,11 @@ save) + the settings sections.
    bottom action bar gone (including on create, via the unified shell).
 5. ~~**edit.vue script is a monolith.**~~ **DONE (2e-2d.1).** Form model extracted to `useContestEditor`
    (tested); edit.vue + create.vue are 1-line shells; orchestrator holds only the edit-only lifecycle logic.
-6. **Cover/banner placeholders** in the canvas (like projects/blogs) — not done. (Cover + banner are still
-   `ImageUpload` fields in the Details section, not visual placeholders above the canvas — Phase 2e-2c.)
-7. **Write/Preview/Code modes + autosave** — not done.
+6. ~~**Cover/banner placeholders** in the canvas (like projects/blogs).~~ **DONE (2e-2c.1).**
+   `ContestMediaStrip` shows the banner + cover as visual placeholders above the body canvas; removed from
+   Details.
+7. ~~**Write/Preview/Code modes + autosave.**~~ **DONE (2e-2c.2 + 2e-2c.3).** Body-tab Write/Preview/Code
+   switch + draft autosave (silent save + rename-in-place + hydrate guard).
 8. **B5a** — `judge.post.ts` ignores its `:slug` (misleading contract; not an escalation) — NOT fixed.
 9. **B3** — `judgeContestEntry` doesn't validate `criteriaScores` against the rubric — deferred to Phase 5.
 10. **Phase 3** layout/cover redesign (slim hero, surface coverImageUrl) · **Phase 4** submission paths
