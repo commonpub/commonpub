@@ -82,8 +82,11 @@ The branch mixes internal refactors, user-facing UX/a11y fixes, AND server-packa
   (one Announce per actor+object; it previously had none). No schema change, no migration. Proven by the
   real-Postgres concurrency harness (25 concurrent same-user calls → counter == 1, one outbound activity);
   goes RED on revert (20/20 single bursts raced at N=25). Server suite 1433 pass, layer 1109 green.
-- **P2 latent**: 10 hand-rolled `Math.min(limit ?? N, 100)` clamps repeat the NaN-500 footgun (not live —
-  edges use `z.coerce`). Route them through `normalizePagination`.
+- ~~**P2 latent**: 10 hand-rolled `Math.min(limit ?? N, 100)` clamps~~ — **FIXED in session 209, commit
+  `31203d91`.** All 10 (admin audit log, content search meili+pg, federated timeline+search, hub bans+invites,
+  conversations, comments) now route through `normalizePagination`, which gained an additive
+  `defaults: { limit?, maxLimit? }` param so each keeps its own page size (20/24/50). Not-live footgun
+  closed (NaN/zero/negative/fractional now clamped). Tests cover the new param paths.
 
 **From the UI/UX audit (`208`, Phase C — feature builds / product decisions):**
 - **Hub invite UI (P0)** — invite-only/approval hubs are unjoinable (no invite UI exists). Highest UX gap.
