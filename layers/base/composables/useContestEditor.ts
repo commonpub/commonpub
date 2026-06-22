@@ -76,8 +76,8 @@ export interface UseContestEditorOptions {
   toast: (message: string, kind: 'success' | 'error') => void;
   /** Extract a human message from an API error (useApiError().extract). */
   extractError: (err: unknown) => string;
-  /** Navigate to a path (navigateTo). */
-  navigate: (path: string) => Promise<unknown> | void;
+  /** Navigate to a path (navigateTo); the return is awaited but otherwise unused. */
+  navigate: (path: string) => unknown;
   /** Re-fetch the contest after an edit save (edit mode only). */
   refresh?: () => Promise<void> | void;
 }
