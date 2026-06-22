@@ -107,32 +107,19 @@ watch(pagePath, () => {
 
 // TOC from rendered page
 const toc = computed<TocEntry[]>(() => renderedPage.value?.toc ?? []);
-const activeHeadingId = ref('');
-
-// Scroll spy for TOC
-function setupScrollSpy(): void {
-  if (!import.meta.client) return;
-  const headings = document.querySelectorAll('.docs-content h2[id], .docs-content h3[id], .docs-content .cpub-block-heading[id]');
-  if (!headings.length) return;
-  const observer = new IntersectionObserver(
-    (entries) => {
-      for (const entry of entries) {
-        if (entry.isIntersecting) {
-          activeHeadingId.value = entry.target.id;
-        }
-      }
-    },
-    { rootMargin: '-80px 0px -60% 0px', threshold: 0 },
-  );
-  headings.forEach(h => observer.observe(h));
-}
-
-onMounted(() => {
-  nextTick(setupScrollSpy);
-});
-
-watch(renderedPage, () => {
-  nextTick(setupScrollSpy);
+// TOC scroll-spy, shared with ProjectView via useScrollSpy. Re-observes when the
+// rendered page changes and disconnects the previous observer each time (the
+// inline version leaked one observer per navigation). TOC links are native
+// anchors, so only the active-id highlight is wired here.
+const { activeId: activeHeadingId } = useScrollSpy({
+  source: () => renderedPage.value,
+  getHeadingElements: () =>
+    Array.from(
+      document.querySelectorAll<HTMLElement>(
+        '.docs-content h2[id], .docs-content h3[id], .docs-content .cpub-block-heading[id]',
+      ),
+    ),
+  rootMargin: '-80px 0px -60% 0px',
 });
 
 // Prev/Next links

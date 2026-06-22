@@ -7,6 +7,9 @@ import {
   extractDownloadFiles,
   extractTocEntries,
 } from '../../utils/projectBlocks';
+// Explicit import (not Nuxt auto-import): ProjectView.test.ts mounts the SFC with
+// no Nuxt transform, so an auto-imported composable would be undefined there.
+import { useScrollSpy } from '../../composables/useScrollSpy';
 
 const { hubs: hubsEnabled } = useFeatures();
 const { user: authUser } = useAuth();
@@ -127,59 +130,17 @@ const codeBlocks = computed(() => extractCodeBlocks(props.content?.content));
 const downloadFiles = computed(() => extractDownloadFiles(props.content?.content));
 const tocEntries = computed(() => extractTocEntries(props.content?.content));
 
-const tocActiveId = ref('');
-
-function scrollToHeading(id: string): void {
-  const el = document.getElementById(id);
-  if (el) {
-    // CSS scroll-behavior is reduced-motion-gated in base.css, but the JS
-    // smooth option ignores that — honour the preference explicitly.
-    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    el.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
-    tocActiveId.value = id;
-  }
-}
-
-// Scroll-spy: highlight active TOC entry based on which heading is in view
-let observer: IntersectionObserver | null = null;
-
-onMounted(() => {
-  nextTick(() => {
-    setupScrollSpy();
-  });
+// TOC scroll-spy + smooth scroll, shared with the docs viewer via useScrollSpy.
+// Re-observes when the heading set changes (the inline version never did, so the
+// highlight went stale on content change) and disconnects on unmount.
+const { activeId: tocActiveId, scrollTo: scrollToHeading } = useScrollSpy({
+  source: () => tocEntries.value,
+  getHeadingElements: () =>
+    tocEntries.value
+      .map((e) => document.getElementById(e.id))
+      .filter((el): el is HTMLElement => !!el),
+  rootMargin: '-80px 0px -70% 0px',
 });
-
-onUnmounted(() => {
-  observer?.disconnect();
-});
-
-function setupScrollSpy(): void {
-  if (!tocEntries.value.length) return;
-  observer?.disconnect();
-
-  const headingEls = tocEntries.value
-    .map((e) => document.getElementById(e.id))
-    .filter((el): el is HTMLElement => !!el);
-
-  if (!headingEls.length) return;
-
-  observer = new IntersectionObserver(
-    (entries) => {
-      // Find the topmost visible heading
-      for (const entry of entries) {
-        if (entry.isIntersecting) {
-          tocActiveId.value = entry.target.id;
-          break;
-        }
-      }
-    },
-    { rootMargin: '-80px 0px -70% 0px', threshold: 0 },
-  );
-
-  for (const el of headingEls) {
-    observer.observe(el);
-  }
-}
 
 // Fork
 const forking = ref(false);
