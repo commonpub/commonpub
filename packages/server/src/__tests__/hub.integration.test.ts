@@ -4,7 +4,7 @@ import { createTestDB, createTestUser, closeTestDB } from './helpers/testdb.js';
 import { createHub, getHubBySlug, listHubs, updateHub } from '../hub/hub.js';
 import { joinHub, leaveHub, listMembers } from '../hub/members.js';
 import { createPost, listPosts, likePost, unlikePost, hasLikedPost } from '../hub/posts.js';
-import { banUser, checkBan, unbanUser, listBans, createInvite, listInvites } from '../hub/moderation.js';
+import { banUser, checkBan, unbanUser, listBans, createInvite, listInvites, revokeInvite } from '../hub/moderation.js';
 
 describe('hub integration', () => {
   let db: DB;
@@ -140,6 +140,53 @@ describe('hub integration', () => {
 
     const invites = await listInvites(db, hub.id);
     expect(invites.length).toBe(1);
+  });
+
+  it('revokes an invite (managers only)', async () => {
+    const hub = await createHub(db, ownerId, { name: 'Revoke Hub' });
+    const invite = await createInvite(db, ownerId, hub.id, 5);
+    expect(invite).toBeTruthy();
+
+    // A non-member cannot revoke (no manageMembers permission).
+    const stranger = await createTestUser(db, { username: 'invite-stranger' });
+    const denied = await revokeInvite(db, invite!.id, stranger.id, hub.id);
+    expect(denied).toBe(false);
+    expect((await listInvites(db, hub.id)).length).toBe(1);
+
+    // The owner can revoke.
+    const ok = await revokeInvite(db, invite!.id, ownerId, hub.id);
+    expect(ok).toBe(true);
+    expect((await listInvites(db, hub.id)).length).toBe(0);
+  });
+
+  it('joins an invite-only hub only with a valid token', async () => {
+    const hub = await createHub(db, ownerId, { name: 'Invite Only Hub' });
+    await updateHub(db, hub.id, ownerId, { joinPolicy: 'invite' });
+    const joiner = await createTestUser(db, { username: 'invitee-valid' });
+
+    // Without a token → rejected (this is the gap that made invite hubs unjoinable).
+    const noToken = await joinHub(db, joiner.id, hub.id);
+    expect(noToken.joined).toBe(false);
+
+    // With a valid token → joined.
+    const invite = await createInvite(db, ownerId, hub.id, 1);
+    const withToken = await joinHub(db, joiner.id, hub.id, invite!.token);
+    expect(withToken.joined).toBe(true);
+
+    const { items } = await listMembers(db, hub.id);
+    expect(items.some((m) => m.userId === joiner.id)).toBe(true);
+  });
+
+  it('rejects an invite token whose uses are exhausted', async () => {
+    const hub = await createHub(db, ownerId, { name: 'Max Uses Hub' });
+    await updateHub(db, hub.id, ownerId, { joinPolicy: 'invite' });
+    const invite = await createInvite(db, ownerId, hub.id, 1); // single use
+    const first = await createTestUser(db, { username: 'maxuse-first' });
+    const second = await createTestUser(db, { username: 'maxuse-second' });
+
+    expect((await joinHub(db, first.id, hub.id, invite!.token)).joined).toBe(true);
+    // The single use is spent → the second redemption is rejected.
+    expect((await joinHub(db, second.id, hub.id, invite!.token)).joined).toBe(false);
   });
 
   it('updates hub settings', async () => {

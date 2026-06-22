@@ -4,6 +4,12 @@ import type { HubViewModel, HubPostViewModel, HubMemberViewModel, HubTabDef } fr
 
 const route = useRoute();
 const slug = computed(() => route.params.slug as string);
+// Invite-link redemption: `/hubs/<slug>?invite=<token>` lets a recipient join an
+// invite-only / approval hub. The token rides along to the join endpoint below.
+const inviteToken = computed(() => {
+  const q = route.query.invite;
+  return typeof q === 'string' ? q : '';
+});
 
 function remoteDomain(uri: string | undefined): string | null {
   if (!uri) return null;
@@ -253,13 +259,23 @@ function handleLinkInsert(): void {
 
 async function handleJoin(): Promise<void> {
   if (!isAuthenticated.value) {
-    await navigateTo(`/auth/login?redirect=/hubs/${slug.value}`);
+    // Preserve the invite token across login so the redemption survives the round-trip.
+    const target = `/hubs/${slug.value}${inviteToken.value ? `?invite=${inviteToken.value}` : ''}`;
+    await navigateTo(`/auth/login?redirect=${encodeURIComponent(target)}`);
     return;
   }
   try {
-    await $fetch(`/api/hubs/${slug.value}/join`, { method: 'POST' });
-    toast.success('Joined hub!');
-    await refreshHub();
+    const result = await $fetch<{ joined: boolean; error?: string }>(`/api/hubs/${slug.value}/join`, {
+      method: 'POST',
+      body: inviteToken.value ? { inviteToken: inviteToken.value } : undefined,
+    });
+    if (result.joined) {
+      toast.success('Joined hub!');
+      await refreshHub();
+    } else {
+      // joinHub resolves 200 with { joined: false } for policy failures (e.g. invite required).
+      toast.error(result.error || 'Could not join this hub');
+    }
   } catch {
     toast.error('Failed to join hub');
   }
@@ -292,13 +308,14 @@ async function onRefreshGallery(): Promise<void> {
     <template #hero>
       <HubHero :hub="hubVM" :gallery-total="gallery?.total">
         <template #actions>
-          <button v-if="isAuthenticated && !hub?.currentUserRole" class="cpub-btn cpub-btn-primary" @click="handleJoin">
-            <i class="fa-solid fa-plus"></i> Join Hub
+          <button v-if="(isAuthenticated || inviteToken) && !hub?.currentUserRole" class="cpub-btn cpub-btn-primary" @click="handleJoin">
+            <i class="fa-solid fa-plus"></i> {{ inviteToken ? 'Accept invite' : 'Join Hub' }}
           </button>
           <span v-else-if="hub?.currentUserRole" class="cpub-member-badge">
             <i class="fa-solid fa-check"></i> Joined
           </span>
           <button class="cpub-btn cpub-btn-sm" aria-label="Share hub" @click="handleShare"><i class="fa-solid fa-share-nodes"></i></button>
+          <NuxtLink v-if="['owner', 'admin', 'moderator'].includes(hub?.currentUserRole ?? '')" :to="`/hubs/${slug}/invites`" class="cpub-btn cpub-btn-sm" aria-label="Manage invites"><i class="fa-solid fa-user-plus"></i> Invites</NuxtLink>
           <NuxtLink v-if="hub?.currentUserRole === 'owner'" :to="`/hubs/${slug}/settings`" class="cpub-btn cpub-btn-sm" aria-label="Hub settings"><i class="fa-solid fa-gear"></i> Settings</NuxtLink>
         </template>
         <template #badges>
