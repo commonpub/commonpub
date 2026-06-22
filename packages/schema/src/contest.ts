@@ -107,6 +107,14 @@ export const contests = pgTable('contests', {
   descriptionFormat: contestContentFormatEnum('description_format').default('markdown').notNull(),
   rulesFormat: contestContentFormatEnum('rules_format').default('markdown').notNull(),
   prizesDescriptionFormat: contestContentFormatEnum('prizes_description_format').default('markdown').notNull(),
+  /**
+   * Block-editor body (BlockTuple[]) for the overview/rules — the house editor
+   * format (same as projects/blogs/docs). When present, the viewer renders these
+   * INSTEAD of the legacy `description`/`rules` text + `*Format` toggle (which stay
+   * for back-compat + rollback; converted into blocks on first block-edit). Null ⇒
+   * legacy text. Untyped jsonb mirrors `content_items.content`. */
+  descriptionBlocks: jsonb('description_blocks'),
+  rulesBlocks: jsonb('rules_blocks'),
   /** Master switch for the Prizes tab. When false the tab is hidden even if
    *  prize data exists (and prizes are optional regardless). */
   showPrizes: boolean('show_prizes').default(true).notNull(),

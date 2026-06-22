@@ -16,6 +16,11 @@ const contestVisibilitySchema = z.enum(contestVisibilityEnum.enumValues);
 const judgingVisibilitySchema = z.enum(judgingVisibilityEnum.enumValues);
 const userRoleSchema = z.enum(userRoleEnum.enumValues);
 
+// Block-editor body (BlockTuple[] = `[type, content][]`) for the contest overview
+// + rules — the house editor format (loosely shaped, matches docs content blocks).
+// Bounded so a runaway array can't DoS; the 10MB JSON body limit is the backstop.
+const contestBlocksSchema = z.array(z.array(z.unknown())).max(1000);
+
 // --- Contest validators ---
 
 export const contestPrizeSchema = z
@@ -135,6 +140,9 @@ export const createContestSchema = z
     descriptionFormat: contentFormatSchema.optional(),
     rulesFormat: contentFormatSchema.optional(),
     prizesDescriptionFormat: contentFormatSchema.optional(),
+    // Block-editor body (overrides description/rules text when present).
+    descriptionBlocks: contestBlocksSchema.optional(),
+    rulesBlocks: contestBlocksSchema.optional(),
     bannerUrl: optionalUrl(),
     coverImageUrl: optionalUrl(),
     showPrizes: z.boolean().optional(),
@@ -183,6 +191,8 @@ export const updateContestSchema = z
     descriptionFormat: contentFormatSchema.optional(),
     rulesFormat: contentFormatSchema.optional(),
     prizesDescriptionFormat: contentFormatSchema.optional(),
+    descriptionBlocks: contestBlocksSchema.optional(),
+    rulesBlocks: contestBlocksSchema.optional(),
     bannerUrl: optionalUrl(),
     coverImageUrl: optionalUrl(),
     showPrizes: z.boolean().optional(),

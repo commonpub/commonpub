@@ -63,6 +63,10 @@ export interface ContestDetail extends ContestListItem {
   descriptionFormat: 'markdown' | 'html';
   rulesFormat: 'markdown' | 'html';
   prizesDescriptionFormat: 'markdown' | 'html';
+  /** Block-editor body (BlockTuple[]); when non-null the viewer renders these
+   *  instead of the legacy description/rules text + format toggle. */
+  descriptionBlocks: unknown[] | null;
+  rulesBlocks: unknown[] | null;
   showPrizes: boolean;
   prizes: ContestPrize[] | null;
   judgingCriteria: ContestJudgingCriterion[] | null;
@@ -103,6 +107,9 @@ export interface CreateContestInput {
   descriptionFormat?: 'markdown' | 'html';
   rulesFormat?: 'markdown' | 'html';
   prizesDescriptionFormat?: 'markdown' | 'html';
+  /** Block-editor body (BlockTuple[]) for overview/rules. */
+  descriptionBlocks?: unknown[];
+  rulesBlocks?: unknown[];
   showPrizes?: boolean;
   bannerUrl?: string;
   coverImageUrl?: string;
@@ -317,6 +324,8 @@ function toContestDetail(row: ContestRow): ContestDetail {
     descriptionFormat: row.descriptionFormat,
     rulesFormat: row.rulesFormat,
     prizesDescriptionFormat: row.prizesDescriptionFormat,
+    descriptionBlocks: (row.descriptionBlocks as unknown[] | null) ?? null,
+    rulesBlocks: (row.rulesBlocks as unknown[] | null) ?? null,
     showPrizes: row.showPrizes,
     stages: row.stages ?? [],
     currentStageId: row.currentStageId ?? null,
@@ -419,6 +428,8 @@ export async function createContest(
         descriptionFormat: input.descriptionFormat ?? 'markdown',
         rulesFormat: input.rulesFormat ?? 'markdown',
         prizesDescriptionFormat: input.prizesDescriptionFormat ?? 'markdown',
+        descriptionBlocks: input.descriptionBlocks ?? null,
+        rulesBlocks: input.rulesBlocks ?? null,
         showPrizes: input.showPrizes ?? true,
         stages: input.stages ?? [],
         // Only keep currentStageId if it references a stage that actually exists.
@@ -494,6 +505,8 @@ export async function updateContest(
   if (data.descriptionFormat !== undefined) updates.descriptionFormat = data.descriptionFormat;
   if (data.rulesFormat !== undefined) updates.rulesFormat = data.rulesFormat;
   if (data.prizesDescriptionFormat !== undefined) updates.prizesDescriptionFormat = data.prizesDescriptionFormat;
+  if (data.descriptionBlocks !== undefined) updates.descriptionBlocks = data.descriptionBlocks;
+  if (data.rulesBlocks !== undefined) updates.rulesBlocks = data.rulesBlocks;
   if (data.bannerUrl !== undefined) updates.bannerUrl = data.bannerUrl;
   if (data.coverImageUrl !== undefined) updates.coverImageUrl = data.coverImageUrl;
   if (data.showPrizes !== undefined) updates.showPrizes = data.showPrizes;

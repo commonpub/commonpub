@@ -57,7 +57,7 @@ const visibilityNote = computed(() => {
 interface Tab { key: string; label: string; icon: string; count?: number }
 const tabs = computed<Tab[]>(() => {
   const t: Tab[] = [{ key: 'overview', label: 'Overview', icon: 'fa-circle-info' }];
-  if (c.value?.rules) t.push({ key: 'rules', label: 'Rules', icon: 'fa-file-lines' });
+  if (c.value?.rules || c.value?.rulesBlocks?.length) t.push({ key: 'rules', label: 'Rules', icon: 'fa-file-lines' });
   if (c.value?.showPrizes !== false && (c.value?.prizes?.length || c.value?.prizesDescription)) t.push({ key: 'prizes', label: 'Prizes', icon: 'fa-trophy' });
   t.push({ key: 'entries', label: 'Entries', icon: 'fa-box-open', count: c.value?.entryCount ?? entries.value.length });
   if (participants.value.length) t.push({ key: 'participants', label: 'Participants', icon: 'fa-users', count: participants.value.length });
@@ -340,7 +340,12 @@ async function withdrawEntry(entryId: string): Promise<void> {
             <div class="cpub-about-section">
               <div class="cpub-sec-head"><h2><i class="fa fa-circle-info" style="color: var(--accent);"></i> About This Contest</h2></div>
               <div class="cpub-about-card">
-                <CpubMarkdown v-if="c?.description" :source="c.description" :format="c?.descriptionFormat" />
+                <BlocksBlockContentRenderer
+                  v-if="c?.descriptionBlocks?.length"
+                  :blocks="(c.descriptionBlocks as [string, Record<string, unknown>][])"
+                  class="cpub-prose cpub-md"
+                />
+                <CpubMarkdown v-else-if="c?.description" :source="c.description" :format="c?.descriptionFormat" />
                 <p v-else>No description available for this contest.</p>
               </div>
             </div>
@@ -349,7 +354,7 @@ async function withdrawEntry(entryId: string): Promise<void> {
 
           <!-- RULES -->
           <div v-show="activeTab === 'rules'" id="cpub-panel-rules" role="tabpanel" aria-labelledby="cpub-tab-rules" tabindex="0">
-            <ContestRules v-if="c?.rules" :rules="c.rules" :format="c?.rulesFormat" />
+            <ContestRules v-if="c?.rules || c?.rulesBlocks?.length" :rules="c?.rules ?? ''" :blocks="c?.rulesBlocks" :format="c?.rulesFormat" />
           </div>
 
           <!-- PRIZES -->

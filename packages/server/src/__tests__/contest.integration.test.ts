@@ -467,6 +467,29 @@ describe('contest integration', () => {
       expect(second.added).toBe(false);
       expect(second.error).toBe('User is already a judge');
     });
+
+    it('round-trips descriptionBlocks/rulesBlocks (BlockTuple[]) through create + get', async () => {
+      const blocks = [['heading', { level: 2, text: 'Mission' }], ['text', { text: 'Build something.' }]];
+      const contest = await createContest(db, {
+        ...makeContestInput({ slug: `blocks-${Date.now()}` }),
+        descriptionBlocks: blocks,
+        rulesBlocks: [['text', { text: 'Be nice.' }]],
+      });
+      const fetched = await getContestBySlug(db, contest.slug);
+      expect(fetched?.descriptionBlocks).toEqual(blocks);
+      expect(fetched?.rulesBlocks).toEqual([['text', { text: 'Be nice.' }]]);
+    });
+
+    it('updateContest sets descriptionBlocks and preserves them when other fields change', async () => {
+      const contest = await createContest(db, makeContestInput({ slug: `blocks-upd-${Date.now()}` }));
+      await updateContest(db, contest.slug, organizerId, { descriptionBlocks: [['text', { text: 'A' }]] }, true);
+      expect((await getContestBySlug(db, contest.slug))?.descriptionBlocks).toEqual([['text', { text: 'A' }]]);
+      // An unrelated update doesn't wipe blocks (only written when provided).
+      await updateContest(db, contest.slug, organizerId, { title: 'Renamed' }, true);
+      const f = await getContestBySlug(db, contest.slug);
+      expect(f?.title).toBe('Renamed');
+      expect(f?.descriptionBlocks).toEqual([['text', { text: 'A' }]]);
+    });
   });
 
   // --- New tests: rank calc, withdrawal, feedback, cancellation, multi-judge ---
