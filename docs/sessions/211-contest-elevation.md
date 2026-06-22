@@ -8,10 +8,27 @@ published / deployed**). Plan: `docs/plans/contest-elevation.md`. Memory:
 
 Multi-phase **contest elevation**. A 6-agent deep audit found the contest *engine* mature/correct; the
 *surface* (editor, layout, submission breadth, polish) is the work. **Phase 1** (bug-fixes + foundations)
-and **Phase 2a–2d + 2e-1 + 2e-2a/b.1/b.2/b.3** are done, tested, and visually verified in a locally-run
-app. The contest **editor on the EDIT page** is now a shell-style canvas: a full-width body with tabs
-**Overview · Rules · Prizes · Stages · Judging**. **Gates: schema 470, server 1469, layer 1172, reference
-vue-tsc 0.** Nothing outward-facing.
+and **Phase 2a–2d + 2e-1 + 2e-2a/b.1/b.2/b.3/b.4 + 2e-2d** are done, tested, and visually verified in a
+locally-run app. The contest editor is now ONE shell-style component (`ContestEditor.vue`, mode-aware)
+used by BOTH create and edit as thin route shells: a sticky topbar + full-width body canvas with tabs
+**Overview · Rules · Prizes · Stages · Judging** + a settings rail. **create ≡ edit (divergence fixed).**
+**Gates: schema 470, server 1469, layer 1187 (+15), reference vue-tsc 0.** Nothing outward-facing.
+
+**Session 213 (2026-06-22) — Phase 2e-2d (unify create/edit, de-monolith):**
+- `5556af55` **2e-2d.1** `useContestEditor` composable — the single form model (refs, slugify, ISO date
+  validation, dirty tracking, prize/type/role helpers, hydrate, buildPayload, mode-aware POST/PUT save).
+  Dates now stored as **ISO** (CpubDateTimeField handles local display; dropped the `new Date().toISOString`
+  re-conversion). 15 unit tests (stubbed `$fetch` + spies).
+- `2b43a17e` **2e-2d.2** `ContestEditor.vue` orchestrator + `edit.vue` → 1-line thin shell. Edit-only rails
+  (People, lifecycle transitions, advancement, danger zone) gated on `mode==='edit'`. Top-level Schedule
+  switched to `CpubDateTimeField` (closing the last raw `datetime-local` from Phase 2a).
+- `2d9cd055` **2e-2d.3** `create.vue` → 1-line thin shell; the legacy ~470-line form deleted. Create now
+  uses the same block body + canvas tabs + `ContestCriteriaEditor` as edit.
+- Visually verified live (Playwright, local run): create through the shell → contest created → edit shows
+  status badge / People / Stage&Status / Danger rails; dates round-trip in local time (no offset shift).
+- **Observed (pre-existing, out of scope):** the public contest VIEW page `/contests/[slug]` logs
+  "Hydration completed but contains mismatches" (untouched file; likely a date/countdown SSR mismatch).
+  Worth a look in Phase 3 (layout redesign touches the hero).
 
 ## What's done (commits on `contests`, by area)
 
@@ -45,18 +62,20 @@ save) + the settings sections.
 
 ## COMPLETENESS SWEEP — what's NOT done yet (don't forget)
 
-1. **create.vue is DIVERGENT (biggest gap).** The CREATE page still uses the OLD form (FormatToggle +
-   textareas for description/rules/prizes, old stages section) — it does NOT use ContestBodyTabs / block
-   editor / Judging tab. So creating ≠ editing. Resolved by **2e-2d** (one `ContestEditor` orchestrator for
-   both) — until then, new contests start with legacy text (converted to blocks on first edit).
-2. **People not yet in the right panel.** Collaborators (`ContestStakeholderManager`) + Judges
-   (`ContestJudgeManager`) are in edit.vue's MAIN column; operator wants them in the right panel (aside).
-3. **Light settings not yet in a right panel** — Details/Schedule/Prizes-cards/Visibility still in the main
-   flow (the full `[body | settings]` 2-col reorg is pending).
-4. **Topbar** — still the bottom sticky `cpub-edit-actionbar` save bar (not a topbar).
-5. **edit.vue script is still a monolith** — refs/hydration/dirty/save inline. Anti-monolith move: extract a
-   `useContestEditor(slug)` composable (testable) before/with the orchestrator.
-6. **Cover/banner placeholders** in the canvas (like projects/blogs) — not done.
+1. ~~**create.vue is DIVERGENT (biggest gap).**~~ **DONE (2e-2d).** create + edit are now thin shells over
+   one `ContestEditor.vue`; create uses the same block body + canvas tabs + ContestCriteriaEditor.
+2. ~~**People not yet in the right panel.**~~ **DONE (2e-2b.4 + 2e-2d).** Judges + Collaborators live in the
+   aside (edit mode); create shows a "add them after creating" placeholder.
+3. **Light settings 2-col reorg.** Details/Schedule/Prizes-cards/Visibility now sit in the orchestrator's
+   `cpub-edit-main` column with Entries/People/Stage&Status/Danger in the `cpub-edit-side` aside. The body
+   is full-width above. (The operator's "all settings in a right panel" vision is partially there; a tighter
+   grouping pass could move more of Details/Schedule into the aside if desired.)
+4. ~~**Topbar.**~~ **DONE (2e-2b.4).** Sticky topbar (back, title, status, dirty/required, View, Save);
+   bottom action bar gone (including on create, via the unified shell).
+5. ~~**edit.vue script is a monolith.**~~ **DONE (2e-2d.1).** Form model extracted to `useContestEditor`
+   (tested); edit.vue + create.vue are 1-line shells; orchestrator holds only the edit-only lifecycle logic.
+6. **Cover/banner placeholders** in the canvas (like projects/blogs) — not done. (Cover + banner are still
+   `ImageUpload` fields in the Details section, not visual placeholders above the canvas — Phase 2e-2c.)
 7. **Write/Preview/Code modes + autosave** — not done.
 8. **B5a** — `judge.post.ts` ignores its `:slug` (misleading contract; not an escalation) — NOT fixed.
 9. **B3** — `judgeContestEntry` doesn't validate `criteriaScores` against the rubric — deferred to Phase 5.
