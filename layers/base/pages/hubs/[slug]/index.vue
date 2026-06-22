@@ -315,6 +315,7 @@ async function onRefreshGallery(): Promise<void> {
             <i class="fa-solid fa-check"></i> Joined
           </span>
           <button class="cpub-btn cpub-btn-sm" aria-label="Share hub" @click="handleShare"><i class="fa-solid fa-share-nodes"></i></button>
+          <NuxtLink v-if="['owner', 'admin'].includes(hub?.currentUserRole ?? '')" :to="`/hubs/${slug}/members`" class="cpub-btn cpub-btn-sm" aria-label="Manage members"><i class="fa-solid fa-users-gear"></i> Members</NuxtLink>
           <NuxtLink v-if="['owner', 'admin'].includes(hub?.currentUserRole ?? '')" :to="`/hubs/${slug}/invites`" class="cpub-btn cpub-btn-sm" aria-label="Manage invites"><i class="fa-solid fa-user-plus"></i> Invites</NuxtLink>
           <NuxtLink v-if="hub?.currentUserRole === 'owner'" :to="`/hubs/${slug}/settings`" class="cpub-btn cpub-btn-sm" aria-label="Hub settings"><i class="fa-solid fa-gear"></i> Settings</NuxtLink>
         </template>
