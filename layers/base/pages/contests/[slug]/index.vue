@@ -2,6 +2,7 @@
 import type { Serialized, ContestEntryItem, ContestJudgeItem } from '@commonpub/server';
 
 const route = useRoute();
+const router = useRouter();
 const slug = route.params.slug as string;
 const toast = useToast();
 const { extract: extractError } = useApiError();
@@ -63,10 +64,34 @@ const tabs = computed<Tab[]>(() => {
   if (judges.value.length || isOwner.value) t.push({ key: 'judges', label: 'Judges', icon: 'fa-gavel', count: judges.value.length || undefined });
   return t;
 });
-const activeTab = ref('overview');
+// Active tab is synced to ?tab= so every section is directly linkable + shareable
+// and survives reload (the WAI-ARIA tablist + keyboard nav below are unchanged).
+// Validate against the known tab keys; unknown/garbage falls back to overview.
+const KNOWN_TABS = ['overview', 'rules', 'prizes', 'entries', 'participants', 'judges'];
+function tabFromQuery(): string {
+  const t = route.query.tab;
+  return typeof t === 'string' && KNOWN_TABS.includes(t) ? t : 'overview';
+}
+const activeTab = ref(tabFromQuery());
 watch(tabs, (list) => {
   if (!list.some((t) => t.key === activeTab.value)) activeTab.value = 'overview';
 });
+// Reflect tab changes in the URL (replace, not push, so tab clicks don't flood
+// history); overview is the default and omits the param for a clean URL.
+watch(activeTab, (key) => {
+  const q = { ...route.query };
+  if (key === 'overview') delete q.tab;
+  else q.tab = key;
+  if (q.tab !== route.query.tab) router.replace({ query: q });
+});
+// Honor browser back/forward that lands on a different ?tab=.
+watch(
+  () => route.query.tab,
+  () => {
+    const key = tabFromQuery();
+    if (key !== activeTab.value && tabs.value.some((t) => t.key === key)) activeTab.value = key;
+  },
+);
 
 // WAI-ARIA tabs keyboard pattern (arrow keys + Home/End, roving focus).
 function focusTab(key: string): void {
