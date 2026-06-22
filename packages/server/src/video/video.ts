@@ -34,6 +34,7 @@ export interface VideoDetail extends VideoListItem {
 export interface VideoFilters {
   categoryId?: string;
   authorId?: string;
+  sort?: 'recent' | 'viewed' | 'liked';
   limit?: number;
   offset?: number;
 }
@@ -60,6 +61,14 @@ export async function listVideos(
   const where = conditions.length > 0 ? and(...conditions) : undefined;
   const { limit, offset } = normalizePagination(filters);
 
+  // Primary sort column by option; always tie-break on id (pagination stability).
+  const sortColumn =
+    filters.sort === 'viewed'
+      ? videos.viewCount
+      : filters.sort === 'liked'
+        ? videos.likeCount
+        : videos.createdAt;
+
   const [rows, total] = await Promise.all([
     db
       .select({
@@ -74,7 +83,7 @@ export async function listVideos(
       .innerJoin(users, eq(videos.authorId, users.id))
       .leftJoin(videoCategories, eq(videos.categoryId, videoCategories.id))
       .where(where)
-      .orderBy(desc(videos.createdAt), desc(videos.id))
+      .orderBy(desc(sortColumn), desc(videos.id))
       .limit(limit)
       .offset(offset),
     // COUNT(*) only on the first page; deep load-more pages skip it (`-1` = "not computed").

@@ -12,6 +12,7 @@ import {
   createLearningPathSchema,
   createLessonSchema,
   createVideoSchema,
+  videoFiltersSchema,
   updateContentSchema,
   createReportSchema,
   displayNameSchema,
@@ -1665,6 +1666,13 @@ describe('validator field-drop regressions', () => {
     expect(() =>
       createVideoSchema.parse({ title: 'v', url: 'https://x.test/v', categoryId: 'not-a-uuid' }),
     ).toThrow();
+  });
+
+  it('videoFiltersSchema keeps the sort option (was stripped → every sort returned identical results)', () => {
+    expect(videoFiltersSchema.parse({ sort: 'recent' }).sort).toBe('recent');
+    expect(videoFiltersSchema.parse({ sort: 'viewed' }).sort).toBe('viewed');
+    expect(videoFiltersSchema.parse({ sort: 'liked' }).sort).toBe('liked');
+    expect(() => videoFiltersSchema.parse({ sort: 'bogus' })).toThrow();
   });
 
   it('createContentSchema keeps a custom slug (editor slug field was a no-op)', () => {

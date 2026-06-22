@@ -78,8 +78,7 @@ function formatDate(dateStr: string): string {
         <select v-model="sortOption" class="cpub-sort-select">
           <option value="recent">Sort: Most Recent</option>
           <option value="viewed">Sort: Most Viewed</option>
-          <option value="rated">Sort: Top Rated</option>
-          <option value="shortest">Sort: Shortest First</option>
+          <option value="liked">Sort: Most Liked</option>
         </select>
       </div>
     </div>
