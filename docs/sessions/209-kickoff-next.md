@@ -64,6 +64,56 @@ Landing decision (2026-06-22): **keep iterating** on the branch (no push/deploy/
 
 ---
 
+## Session 210 wrap-up (2026-06-22) — START HERE on resume
+
+**Branch `monolith-splits` is the active work; STILL not pushed / no PR / not deployed / not
+published.** Clean tree. Gates after this session: **server 1458, layer 1136, `pnpm typecheck` EXIT 0.**
+
+This session executed Phase 1 (1a–1g), Phase 2, and Phase 3a + 3b of
+`docs/plans/monolith-splits-remaining-backlog.md` — 13 feature/refactor commits (`257184c6` … `8ea8bd8b`),
+each atomic + tested (RED-on-revert where there's a test surface; typecheck-gated for UI-only wiring).
+Landing decision was **keep iterating** (no outward-facing actions).
+
+**Changed publishable set (main..HEAD): `@commonpub/schema`, `@commonpub/server`, `@commonpub/layer`.**
+Notable server-package surface added/changed this session (relevant when Phase 5 publishes):
+- `videoFiltersSchema.sort` enum (schema); `VideoFilters.sort` + `listVideos` orderBy (server).
+- `VideoCategoryItem` gained `description` + `sortOrder` (additive); `listVideoCategories`/create/update return them.
+- `getPathBySlug` tags per-lesson `isCompleted`; `LearningPathDetail` lesson shape gained `isCompleted`.
+- `getUserContent` signature changed to an options object returning `{ items, nextCursor }` (keyset);
+  resolves draft visibility server-side from `viewerId`. **Breaking shape change** for that one fn.
+- New hub exports: `listJoinRequests`, `approveJoinRequest`, `denyJoinRequest`. `joinHub` return gained
+  optional `pending`. `HubDetail` gained `joinRequestPending: boolean` (constructed in `getHubDetail`).
+- **Authz hardening (security):** `getMember`/`listMembers` + 7 member-action gates (create post/reply/
+  share, product, resource, post vote, poll vote) now require `status='active'`; `leaveHub` lets a pending
+  member cancel without decrementing count; `kickMember`/`changeRole` only target active members. These are
+  additive-safe for open/invite hubs (all members already active) — verified, full suites green.
+
+**No new migration this session** (the `hub_member_status` 'pending' enum value already existed). Verify
+before Phase 5: `git diff --name-only main..HEAD | grep migrations` (expect none from this session).
+
+### Remaining backlog (for the next session)
+- **3c Federated follow from profile** — DECISION NEEDED (lightweight handle/URI input vs full remote-actor
+  profile page). Gate behind `features.federation`. Backend ready (`federation/follow.post.ts`,
+  `remote-follow.post.ts`, `resolveRemoteActor`); the gap is a UI entry surface. See plan §3c.
+- **Phase 4a Homepage 3-path consolidation** — HIGH blank-page risk + OUTWARD-FACING/multi-instance. Strict
+  per-instance seed → flag → remove ordering; do the `v-else`/legacy removal ONLY after curl-verifying every
+  instance is seeded. Gate hard on the user. See plan §4a.
+- **Phase 4b Extract `inboxHandlers.onCreate`** — HIGH risk; anchor with inbound-Create integration tests
+  FIRST, then refactor. See plan §4b.
+- **Phase 5 Landing & roll** — OUTWARD-FACING, explicit go-ahead required. Re-derive the changed set at
+  execution time; follow `docs/STATUS.md` §Runbook. This also clears the still-pending 203/204 security roll
+  to deveco.io / heatsynclabs.io. Publish order (changed only): schema → server → layer (`pnpm run
+  publish:layer`); then bump deveco/heatsync caret pins + BOTH lockfiles + CLI.
+- **Phase 6 residuals** — megalodon SSRF TOCTOU (flag-gated off); pg_trgm search ranking. Ops, low priority.
+
+### Resume checklist (Phase 0 every session)
+1. `git -C <repo> log --oneline main..HEAD` (expect 45+), `git status` clean, branch `monolith-splits`.
+2. `pnpm -C packages/server exec vitest run` (1458), `pnpm -C layers/base exec vitest run` (1136),
+   `pnpm typecheck` (EXIT 0). If red, fix before new work.
+3. Decide: keep iterating (3c → Phase 4) vs land (Phase 5, needs go-ahead).
+
+---
+
 ## What's on the branch (3 bodies of work)
 
 **1. Monolith splits + refactors (TDD, tested):**
