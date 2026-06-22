@@ -55,7 +55,9 @@ Landing decision (2026-06-22): **keep iterating** on the branch (no push/deploy/
 - [x] **1f** Extract `useDocsSiteSettings` (edit.vue 1323→1289; 6 tests) — `a554d298`
 - [x] **1g** RBAC `useCan`-driven admin chrome (per-route perm keys, flag-off no-op; 3 tests) — `23275eaa`
 - [x] **Phase 2** Ban UI (Ban beside Kick + Banned section on members.vue) — `2be2e46e`
-- [ ] Phase 3a/3b/3c (DECISION NEEDED — ask first)
+- [x] **3a** Profile per-tab keyset pagination + owner-only Drafts tab (server-side draft authz) — `521064b2`
+  - Decisions: separate owner-only Drafts tab + Load-more (keyset).
+- [ ] Phase 3b/3c (DECISION NEEDED — ask first)
 - [ ] Phase 4a/4b (high-risk, last)
 
 ---
