@@ -48,13 +48,13 @@ and adversarially self-audited.
 Landing decision (2026-06-22): **keep iterating** on the branch (no push/deploy/publish this session).
 
 - [x] **1a** Link hub member-management page from the hub header — `257184c6`
-- [ ] 1b Wire video sort
-- [ ] 1c Product edit/delete UI
-- [ ] 1d Video-category admin UI
-- [ ] 1e Learning completion read-back
-- [ ] 1f Extract `useDocsSiteSettings`
-- [ ] 1g RBAC `useCan`-driven admin chrome
-- [ ] Phase 2 Ban UI
+- [x] **1b** Wire video sort (recent/viewed/liked end-to-end) — `86d725c5`
+- [x] **1c** Product edit/delete UI (ProductEditModal + delete on detail page) — `29c81c98`
+- [x] **1d** Video-category admin UI (/admin/video-categories + sidebar link; enriched VideoCategoryItem) — `892c49b9`
+- [x] **1e** Learning completion read-back (getPathBySlug tags isCompleted; lesson page seeds from server) — `e19a5110`
+- [x] **1f** Extract `useDocsSiteSettings` (edit.vue 1323→1289; 6 tests) — `a554d298`
+- [x] **1g** RBAC `useCan`-driven admin chrome (per-route perm keys, flag-off no-op; 3 tests) — `23275eaa`
+- [x] **Phase 2** Ban UI (Ban beside Kick + Banned section on members.vue) — `2be2e46e`
 - [ ] Phase 3a/3b/3c (DECISION NEEDED — ask first)
 - [ ] Phase 4a/4b (high-risk, last)
 
