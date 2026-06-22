@@ -11,6 +11,10 @@
    =========================================== */
 
 [data-theme="stoa-dark"] {
+  /* Theme native UI (date/time pickers, scrollbars) dark — dark.css/agora-dark.css
+     already do this; stoa-dark was missing it, so native controls rendered light. */
+  color-scheme: dark;
+
   /* === SURFACES (warm near-black) === */
   --bg: #15130d;
   --surface: #1f1c14;
