@@ -89,8 +89,16 @@ The branch mixes internal refactors, user-facing UX/a11y fixes, AND server-packa
   closed (NaN/zero/negative/fractional now clamped). Tests cover the new param paths.
 
 **From the UI/UX audit (`208`, Phase C — feature builds / product decisions):**
-- **Hub invite UI (P0)** — invite-only/approval hubs are unjoinable (no invite UI exists). Highest UX gap.
-- Hub member-management page is orphaned (unlinked) + ban backend has no UI.
+- ~~**Hub invite UI (P0)**~~ — **DONE in session 209, commit `04b33771`.** New `/hubs/[slug]/invites`
+  manager page (create with max-uses/expiry, list, copy join link, revoke) + the missing
+  `DELETE /api/hubs/[slug]/invites/[id]` route + invite-link redemption on the hub page
+  (`?invite=<token>` → join button sends it, "Accept invite" label, token preserved across login) +
+  a "Manage invites" link for managers. Also fixed a latent bug: handleJoin toasted "Joined hub!"
+  even on `{ joined: false }`. Tests added for revoke/redeem/max-uses (were untested). NOTE: the
+  "approval" join policy still behaves identically to "invite" (both just require a token; no distinct
+  pending-request workflow) — that remains a separate, larger feature.
+- Hub member-management page is orphaned (unlinked) + ban backend has no UI. (The invite page is now
+  linked from the hub header; members.vue is still only reachable via the new-member notification link.)
 - Video sort options are dead (no `sort` in `videoFiltersSchema`) + no video-category admin UI.
 - Products are read-only after create (edit/delete backend, no UI).
 - Learning per-lesson completion never reads back (`getCompletedLessonIds` called by no endpoint).
