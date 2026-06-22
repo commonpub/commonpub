@@ -253,105 +253,31 @@ onBeforeRouteLeave((_to, _from, next) => {
 });
 
 // ═══ PAGE TREE ACTIONS ═══
-const pendingReparent = ref(false);
-async function handleCreatePage(parentId: string | null, title: string): Promise<void> {
-  try {
-    const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-    const result = await $fetch(`/api/docs/${siteSlug.value}/pages`, {
-      method: 'POST',
-      body: {
-        title,
-        slug,
-        content: [['paragraph', { html: '' }]],
-        parentId: parentId ?? undefined,
-        sortOrder: (pages.value?.length ?? 0) + 1,
-        versionId: selectedVersionId.value,
-      },
-    });
-    await refreshPages();
-    if (result && typeof result === 'object' && 'id' in result) {
-      selectPage((result as { id: string }).id);
-    }
-    toast('Page created', 'success');
-  } catch (err: unknown) {
-    toast(err instanceof Error ? err.message : 'Failed to create page', 'error');
-  }
-}
-
-async function handleRenamePage(pageId: string, newTitle: string): Promise<void> {
-  try {
-    await $fetch(`/api/docs/${siteSlug.value}/pages/${pageId}`, {
-      method: 'PUT',
-      body: { title: newTitle },
-    });
-    await refreshPages();
-    toast('Page renamed', 'success');
-  } catch (err: unknown) {
-    toast(err instanceof Error ? err.message : 'Failed to rename', 'error');
-  }
-}
-
-async function handleDuplicatePage(pageId: string): Promise<void> {
-  try {
-    const result = await $fetch(`/api/docs/${siteSlug.value}/pages/${pageId}/duplicate`, {
-      method: 'POST',
-    });
-    await refreshPages();
-    if (result && typeof result === 'object' && 'id' in result) {
-      selectPage((result as { id: string }).id);
-    }
-    toast('Page duplicated', 'success');
-  } catch (err: unknown) {
-    toast(err instanceof Error ? err.message : 'Failed to duplicate page', 'error');
-  }
-}
-
-async function handleDeletePage(pageId: string): Promise<void> {
-  try {
-    await $fetch(`/api/docs/${siteSlug.value}/pages/${pageId}`, { method: 'DELETE' });
+// CRUD orchestration (incl. the reparent/reorder deferred-refresh coordination)
+// lives in useDocsPageTree; this page just supplies its context. Handler names
+// are preserved for the template bindings + the inline title edit below.
+const {
+  createPage: handleCreatePage,
+  renamePage: handleRenamePage,
+  duplicatePage: handleDuplicatePage,
+  deletePage: handleDeletePage,
+  reorder: handleReorder,
+  reparent: handleReparent,
+} = useDocsPageTree({
+  siteSlug: () => siteSlug.value,
+  versionId: () => selectedVersionId.value,
+  version: () => selectedVersion.value,
+  pageCount: () => pages.value.length,
+  refreshPages,
+  selectPage,
+  onDeleted: (pageId) => {
     if (selectedPageId.value === pageId) {
       selectedPageId.value = null;
       blockEditor.clearBlocks();
     }
-    await refreshPages();
-    toast('Page deleted', 'success');
-  } catch (err: unknown) {
-    toast(err instanceof Error ? err.message : 'Failed to delete', 'error');
-  }
-}
-
-async function handleReorder(pageIds: string[]): Promise<void> {
-  pendingReparent.value = false; // Cancel reparent's deferred refresh
-  try {
-    await $fetch(`/api/docs/${siteSlug.value}/pages/reorder`, {
-      method: 'POST',
-      body: { pageIds, version: selectedVersion.value || undefined },
-    });
-    await refreshPages();
-  } catch {
-    toast('Failed to reorder', 'error');
-  }
-}
-
-async function handleReparent(pageId: string, newParentId: string | null): Promise<void> {
-  try {
-    await $fetch(`/api/docs/${siteSlug.value}/pages/${pageId}`, {
-      method: 'PUT',
-      body: { parentId: newParentId ?? null },
-    });
-    // Don't refresh here — if reorder follows immediately, let reorder refresh
-    // If reparent is standalone (drag inside), refresh
-    pendingReparent.value = true;
-    setTimeout(async () => {
-      if (pendingReparent.value) {
-        pendingReparent.value = false;
-        await refreshPages();
-      }
-    }, 100);
-  } catch {
-    toast('Failed to move page', 'error');
-  }
-}
+  },
+  toast,
+});
 
 
 // ═══ PAGE TITLE EDITING ═══
