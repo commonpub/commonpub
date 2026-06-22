@@ -2,6 +2,7 @@ import { eq, and, desc, sql, notExists, inArray } from 'drizzle-orm';
 import { conversations, messages, messageReads, users } from '@commonpub/schema';
 import type { DB } from '../types.js';
 import { publishSseEvent } from '../realtime/index.js';
+import { normalizePagination } from '../query.js';
 
 /** Truncate a string at a Unicode-safe boundary (never splits surrogate pairs or grapheme clusters). */
 function truncateUnicode(str: string, maxChars: number): string {
@@ -34,8 +35,7 @@ export async function listConversations(
   userId: string,
   opts: { limit?: number; offset?: number } = {},
 ): Promise<ConversationItem[]> {
-  const limit = Math.min(opts.limit ?? 50, 100);
-  const offset = opts.offset ?? 0;
+  const { limit, offset } = normalizePagination(opts, { limit: 50 });
 
   // jsonb @> check: participants array contains userId
   const rows = await db

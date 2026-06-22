@@ -28,4 +28,23 @@ describe('normalizePagination', () => {
   it('passes through valid values', () => {
     expect(normalizePagination({ limit: 50, offset: 25 })).toEqual({ limit: 50, offset: 25 });
   });
+
+  // defaults param: each list endpoint keeps its own page size when limit is absent/invalid.
+  it('uses a custom default limit when limit is absent', () => {
+    expect(normalizePagination({}, { limit: 50 })).toEqual({ limit: 50, offset: 0 });
+    expect(normalizePagination({ offset: 10 }, { limit: 24 })).toEqual({ limit: 24, offset: 10 });
+  });
+
+  it('falls back to the custom default for NaN (not the hardcoded 20)', () => {
+    expect(normalizePagination({ limit: NaN }, { limit: 50 })).toEqual({ limit: 50, offset: 0 });
+  });
+
+  it('still clamps explicit limit to maxLimit even with a custom default', () => {
+    expect(normalizePagination({ limit: 500 }, { limit: 50 })).toEqual({ limit: 100, offset: 0 });
+  });
+
+  it('honors a custom maxLimit for both explicit and default limit', () => {
+    expect(normalizePagination({ limit: 80 }, { maxLimit: 50 })).toEqual({ limit: 50, offset: 0 });
+    expect(normalizePagination({}, { limit: 200, maxLimit: 50 })).toEqual({ limit: 50, offset: 0 });
+  });
 });

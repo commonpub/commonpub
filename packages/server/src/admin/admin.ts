@@ -133,8 +133,7 @@ export async function listAuditLogs(
   }
 
   const where = conditions.length > 0 ? and(...conditions) : undefined;
-  const limit = Math.min(filters.limit ?? 50, 100);
-  const offset = filters.offset ?? 0;
+  const { limit, offset } = normalizePagination(filters, { limit: 50 });
 
   const [rows, total] = await Promise.all([
     db

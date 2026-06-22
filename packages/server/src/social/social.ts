@@ -181,8 +181,7 @@ export async function listComments(
   limit?: number,
   offset?: number,
 ): Promise<CommentItem[]> {
-  const safeLimit = Math.min(limit ?? 20, 100);
-  const safeOffset = offset ?? 0;
+  const { limit: safeLimit, offset: safeOffset } = normalizePagination({ limit, offset }, { limit: 20 });
 
   // Step 1: Fetch paginated root comment IDs
   const rootRows = await db

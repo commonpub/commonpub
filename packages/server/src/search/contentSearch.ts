@@ -8,6 +8,7 @@
 import { eq, and, desc, sql, isNull, ilike, or, gte, lte } from 'drizzle-orm';
 import { contentItems, users, tags, contentTags } from '@commonpub/schema';
 import type { DB } from '../types.js';
+import { normalizePagination } from '../query.js';
 
 export interface ContentSearchResult {
   id: string;
@@ -68,8 +69,7 @@ export async function searchWithMeilisearch(
   db: DB,
   opts: ContentSearchOptions,
 ): Promise<{ items: ContentSearchResult[]; total: number }> {
-  const limit = Math.min(opts.limit ?? 24, 100);
-  const offset = opts.offset ?? 0;
+  const { limit, offset } = normalizePagination(opts, { limit: 24 });
 
   // Escape user-supplied values that get interpolated into Meilisearch
   // filter strings. Meili's filter syntax uses double-quoted string
@@ -138,8 +138,7 @@ export async function searchWithPostgres(
   db: DB,
   opts: ContentSearchOptions,
 ): Promise<{ items: ContentSearchResult[]; total: number }> {
-  const limit = Math.min(opts.limit ?? 24, 100);
-  const offset = opts.offset ?? 0;
+  const { limit, offset } = normalizePagination(opts, { limit: 24 });
 
   const conditions = [
     eq(contentItems.status, 'published'),

@@ -13,7 +13,7 @@ import type {
   HubRole,
 } from '../types.js';
 import { hasPermission, canManageRole } from '../utils.js';
-import { USER_REF_SELECT } from '../query.js';
+import { USER_REF_SELECT, normalizePagination } from '../query.js';
 import { createNotification } from '../notification/notification.js';
 
 // --- Bans ---
@@ -156,8 +156,7 @@ export async function listBans(db: DB, hubId: string, opts: { limit?: number; of
     bannerAvatarUrl: sql<string | null>`banner.avatar_url`.as('banner_avatar_url'),
   };
 
-  const limit = Math.min(opts.limit ?? 50, 100);
-  const offset = opts.offset ?? 0;
+  const { limit, offset } = normalizePagination(opts, { limit: 50 });
 
   const rows = await db
     .select({
@@ -279,8 +278,7 @@ export async function revokeInvite(
 }
 
 export async function listInvites(db: DB, hubId: string, opts: { limit?: number; offset?: number } = {}): Promise<HubInviteItem[]> {
-  const limit = Math.min(opts.limit ?? 50, 100);
-  const offset = opts.offset ?? 0;
+  const { limit, offset } = normalizePagination(opts, { limit: 50 });
 
   const rows = await db
     .select({

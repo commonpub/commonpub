@@ -12,6 +12,7 @@ import {
 import { buildLikeActivity, buildAnnounceActivity, buildCreateActivity, contentToNote } from '@commonpub/protocol';
 import type { DB } from '../types.js';
 import { safeFetch } from '../import/ssrf.js';
+import { normalizePagination } from '../query.js';
 
 /** A federated content item with resolved actor info */
 export interface FederatedContentItem {
@@ -68,8 +69,7 @@ export async function listFederatedTimeline(
   db: DB,
   opts: FederatedTimelineOptions = {},
 ): Promise<{ items: FederatedContentItem[]; total: number }> {
-  const limit = Math.min(opts.limit ?? 20, 100);
-  const offset = opts.offset ?? 0;
+  const { limit, offset } = normalizePagination(opts, { limit: 20 });
 
   // Build where conditions
   const conditions = [isNull(federatedContent.deletedAt), eq(federatedContent.isHidden, false)];
@@ -483,8 +483,7 @@ export async function searchFederatedContent(
   query: string,
   opts: { limit?: number; offset?: number; language?: string } = {},
 ): Promise<{ items: FederatedContentItem[]; total: number }> {
-  const limit = Math.min(opts.limit ?? 20, 100);
-  const offset = opts.offset ?? 0;
+  const { limit, offset } = normalizePagination(opts, { limit: 20 });
   const ftsLang = opts.language && VALID_FTS_LANGUAGES.has(opts.language) ? opts.language : 'english';
   const langLiteral = sql.raw(`'${ftsLang}'`);
 
