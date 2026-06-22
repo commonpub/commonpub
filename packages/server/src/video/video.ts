@@ -43,6 +43,8 @@ export interface VideoCategoryItem {
   id: string;
   name: string;
   slug: string;
+  description: string | null;
+  sortOrder: number;
 }
 
 export async function listVideos(
@@ -198,6 +200,8 @@ export async function listVideoCategories(db: DB): Promise<VideoCategoryItem[]> 
       id: videoCategories.id,
       name: videoCategories.name,
       slug: videoCategories.slug,
+      description: videoCategories.description,
+      sortOrder: videoCategories.sortOrder,
     })
     .from(videoCategories)
     .orderBy(videoCategories.sortOrder);
@@ -228,7 +232,7 @@ export async function createVideoCategory(
     })
     .returning();
 
-  return { id: row!.id, name: row!.name, slug: row!.slug };
+  return { id: row!.id, name: row!.name, slug: row!.slug, description: row!.description, sortOrder: row!.sortOrder };
 }
 
 export async function updateVideoCategory(
@@ -261,7 +265,7 @@ export async function updateVideoCategory(
     .returning();
 
   if (!row) return null;
-  return { id: row.id, name: row.name, slug: row.slug };
+  return { id: row.id, name: row.name, slug: row.slug, description: row.description, sortOrder: row.sortOrder };
 }
 
 export async function deleteVideoCategory(db: DB, id: string): Promise<boolean> {

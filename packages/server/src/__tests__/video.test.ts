@@ -201,6 +201,15 @@ describe('video', () => {
       }
     });
 
+    it('list returns description + sortOrder (so the admin form can round-trip them)', async () => {
+      await createVideoCategory(db, { name: 'Roundtrip Cat', description: 'A described category', sortOrder: 42 });
+      const cats = await listVideoCategories(db);
+      const found = cats.find((c) => c.name === 'Roundtrip Cat');
+      expect(found).toBeDefined();
+      expect(found!.description).toBe('A described category');
+      expect(found!.sortOrder).toBe(42);
+    });
+
     it('updates a category name and regenerates slug', async () => {
       const cat = await createVideoCategory(db, { name: 'Old Name' });
       const updated = await updateVideoCategory(db, cat.id, { name: 'New Name' });

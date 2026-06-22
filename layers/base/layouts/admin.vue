@@ -72,6 +72,9 @@ const { desktopCollapsed, mobileOpen, toggleDesktop, toggleMobile, closeMobile }
           <NuxtLink to="/admin/categories" class="admin-nav-link" :title="desktopCollapsed ? 'Categories' : undefined" @click="closeMobile">
             <i class="fa-solid fa-tags"></i><span class="admin-nav-label">Categories</span>
           </NuxtLink>
+          <NuxtLink to="/admin/video-categories" class="admin-nav-link" :title="desktopCollapsed ? 'Video Categories' : undefined" @click="closeMobile">
+            <i class="fa-solid fa-film"></i><span class="admin-nav-label">Video Categories</span>
+          </NuxtLink>
           <NuxtLink to="/admin/reports" class="admin-nav-link" :title="desktopCollapsed ? 'Reports' : undefined" @click="closeMobile">
             <i class="fa-solid fa-flag"></i><span class="admin-nav-label">Reports</span>
           </NuxtLink>
