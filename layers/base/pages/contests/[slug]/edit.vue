@@ -372,8 +372,54 @@ async function transitionStatus(newStatus: string): Promise<void> {
           :legacy-rules-format="rulesFormat"
           :legacy-prizes="prizesDescription"
           :legacy-prizes-format="prizesDescriptionFormat"
-        />
-        <p class="cpub-form-hint">Edit the <strong>Overview</strong>, <strong>Rules</strong>, and <strong>Prizes</strong> copy as blocks (headings, lists, images, callouts, and the <strong>Judges Showcase</strong>), like the project and blog editors. Legacy text converts to blocks on first edit.</p>
+          :has-stages="true"
+        >
+          <template #stages>
+            <p class="cpub-form-hint">Optional. The standard flow (Submissions → Judging → Results) is derived from the schedule (Details &rsaquo; Schedule). Add custom stages for multi-round contests, proposal rounds, a Top-N selection, a build sprint, multiple judging rounds, or a showcase event.</p>
+            <p class="cpub-form-hint">How the pieces fit: <strong>Stages</strong> are the public timeline entrants see. The <strong>Status</strong> control (right) is what's actually open right now (accepting entries / judging / completed). <strong>Advancement</strong> (below) runs each review round's Top-N cut. Mark a stage <strong>Current</strong> to point judges + the countdown at it.</p>
+            <ContestStagesEditor
+              v-model="stages"
+              v-model:current-stage-id="currentStageIdRef"
+              :start-date="startDate"
+              :end-date="endDate"
+              :judging-end-date="judgingEndDate"
+            />
+            <section v-if="reviewStages.length" class="cpub-form-section cpub-advance-section">
+              <h2 class="cpub-form-section-title">Advancement</h2>
+              <p class="cpub-form-hint">Multi-round contests: after judging a review stage, advance the top entries to the next stage. Entries below the cut are marked "not advanced" and excluded from later judging + final results. Re-running re-computes the cut. (Save any stage changes above first.)</p>
+              <div v-for="rs in reviewStages" :key="rs.id" class="cpub-advance-block">
+                <div class="cpub-advance-row">
+                  <span class="cpub-advance-name"><i class="fa-solid fa-gavel"></i> {{ rs.name }}</span>
+                  <div class="cpub-advance-mode">
+                    <label class="cpub-form-check"><input type="radio" :name="`mode-${rs.id}`" :checked="(advanceMode[rs.id] ?? 'topN') === 'topN'" @change="advanceMode[rs.id] = 'topN'" /> <span>Top N</span></label>
+                    <label class="cpub-form-check"><input type="radio" :name="`mode-${rs.id}`" :checked="advanceMode[rs.id] === 'manual'" @change="advanceMode[rs.id] = 'manual'" /> <span>Pick manually</span></label>
+                  </div>
+                </div>
+                <div v-if="(advanceMode[rs.id] ?? 'topN') === 'topN'" class="cpub-advance-ctl">
+                  <label class="cpub-form-label" :for="`adv-${rs.id}`">Advance top</label>
+                  <input :id="`adv-${rs.id}`" v-model.number="advanceN[rs.id]" type="number" min="1" class="cpub-form-input cpub-advance-n" placeholder="50" />
+                  <button type="button" class="cpub-btn cpub-btn-sm" :disabled="advancing === rs.id" @click="advanceStage(rs.id)">
+                    <i class="fa-solid fa-arrow-up-right-dots"></i> {{ advancing === rs.id ? 'Advancing…' : 'Advance' }}
+                  </button>
+                </div>
+                <div v-else class="cpub-advance-manual">
+                  <p v-if="!eligibleEntries.length" class="cpub-form-hint" style="margin: 0;">No entries in the current cohort to pick from yet.</p>
+                  <template v-else>
+                    <label v-for="e in eligibleEntries" :key="e.id" class="cpub-advance-pick">
+                      <input type="checkbox" :checked="(manualPick[rs.id] ?? []).includes(e.id)" @change="toggleManual(rs.id, e.id)" />
+                      <span class="cpub-advance-pick-title">{{ e.contentTitle }}</span>
+                      <span v-if="e.score != null" class="cpub-advance-pick-score">{{ e.score }}</span>
+                    </label>
+                    <button type="button" class="cpub-btn cpub-btn-sm" :disabled="advancing === rs.id || !(manualPick[rs.id] ?? []).length" @click="advanceStageManual(rs.id)">
+                      <i class="fa-solid fa-arrow-up-right-dots"></i> {{ advancing === rs.id ? 'Advancing…' : `Advance ${(manualPick[rs.id] ?? []).length} selected` }}
+                    </button>
+                  </template>
+                </div>
+              </div>
+            </section>
+          </template>
+        </ContestBodyTabs>
+        <p class="cpub-form-hint">Edit the <strong>Overview</strong>, <strong>Rules</strong>, <strong>Prizes</strong>, and <strong>Stages</strong> in the tabs above. The body copy is blocks (headings, lists, images, callouts, and the <strong>Judges Showcase</strong>), like the project and blog editors. Legacy text converts to blocks on first edit.</p>
       </section>
 
       <div class="cpub-edit-layout">
@@ -419,55 +465,6 @@ async function transitionStatus(newStatus: string): Promise<void> {
           <input id="contest-judging-end" v-model="judgingEndDate" type="datetime-local" class="cpub-form-input" />
         </div>
         <p v-if="dateError" class="cpub-form-error" role="alert">{{ dateError }}</p>
-      </section>
-
-      <section class="cpub-form-section">
-        <h2 class="cpub-form-section-title">Stages</h2>
-        <p class="cpub-form-hint">Optional. The standard flow (Submissions → Judging → Results) is derived from the schedule above. Add custom stages for multi-round contests, proposal rounds, a Top-N selection, a build sprint, multiple judging rounds, or a showcase event.</p>
-        <p class="cpub-form-hint">How the pieces fit: <strong>Stages</strong> are the public timeline entrants see. The <strong>Status</strong> control (right) is what's actually open right now (accepting entries / judging / completed). <strong>Advancement</strong> (below) runs each review round's Top-N cut. Mark a stage <strong>Current</strong> to point judges + the countdown at it.</p>
-        <ContestStagesEditor
-          v-model="stages"
-          v-model:current-stage-id="currentStageIdRef"
-          :start-date="startDate"
-          :end-date="endDate"
-          :judging-end-date="judgingEndDate"
-        />
-      </section>
-
-      <section v-if="reviewStages.length" class="cpub-form-section">
-        <h2 class="cpub-form-section-title">Advancement</h2>
-        <p class="cpub-form-hint">Multi-round contests: after judging a review stage, advance the top entries to the next stage. Entries below the cut are marked "not advanced" and excluded from later judging + final results. Re-running re-computes the cut. (Save any stage changes above first.)</p>
-        <div v-for="rs in reviewStages" :key="rs.id" class="cpub-advance-block">
-          <div class="cpub-advance-row">
-            <span class="cpub-advance-name"><i class="fa-solid fa-gavel"></i> {{ rs.name }}</span>
-            <div class="cpub-advance-mode">
-              <label class="cpub-form-check"><input type="radio" :name="`mode-${rs.id}`" :checked="(advanceMode[rs.id] ?? 'topN') === 'topN'" @change="advanceMode[rs.id] = 'topN'" /> <span>Top N</span></label>
-              <label class="cpub-form-check"><input type="radio" :name="`mode-${rs.id}`" :checked="advanceMode[rs.id] === 'manual'" @change="advanceMode[rs.id] = 'manual'" /> <span>Pick manually</span></label>
-            </div>
-          </div>
-
-          <div v-if="(advanceMode[rs.id] ?? 'topN') === 'topN'" class="cpub-advance-ctl">
-            <label class="cpub-form-label" :for="`adv-${rs.id}`">Advance top</label>
-            <input :id="`adv-${rs.id}`" v-model.number="advanceN[rs.id]" type="number" min="1" class="cpub-form-input cpub-advance-n" placeholder="50" />
-            <button type="button" class="cpub-btn cpub-btn-sm" :disabled="advancing === rs.id" @click="advanceStage(rs.id)">
-              <i class="fa-solid fa-arrow-up-right-dots"></i> {{ advancing === rs.id ? 'Advancing…' : 'Advance' }}
-            </button>
-          </div>
-
-          <div v-else class="cpub-advance-manual">
-            <p v-if="!eligibleEntries.length" class="cpub-form-hint" style="margin: 0;">No entries in the current cohort to pick from yet.</p>
-            <template v-else>
-              <label v-for="e in eligibleEntries" :key="e.id" class="cpub-advance-pick">
-                <input type="checkbox" :checked="(manualPick[rs.id] ?? []).includes(e.id)" @change="toggleManual(rs.id, e.id)" />
-                <span class="cpub-advance-pick-title">{{ e.contentTitle }}</span>
-                <span v-if="e.score != null" class="cpub-advance-pick-score">{{ e.score }}</span>
-              </label>
-              <button type="button" class="cpub-btn cpub-btn-sm" :disabled="advancing === rs.id || !(manualPick[rs.id] ?? []).length" @click="advanceStageManual(rs.id)">
-                <i class="fa-solid fa-arrow-up-right-dots"></i> {{ advancing === rs.id ? 'Advancing…' : `Advance ${(manualPick[rs.id] ?? []).length} selected` }}
-              </button>
-            </template>
-          </div>
-        </div>
       </section>
 
       <section class="cpub-form-section">

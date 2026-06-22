@@ -34,4 +34,22 @@ describe('ContestBodyTabs', () => {
     expect(rules.getAttribute('aria-selected')).toBe('true');
     expect(overview.getAttribute('aria-selected')).toBe('false');
   });
+
+  it('has no Stages tab by default', () => {
+    const { queryByRole } = render(ContestBodyTabs, { props: {}, global: { stubs } });
+    expect(queryByRole('tab', { name: /Stages/ })).toBeNull();
+  });
+
+  it('adds a Stages canvas tab (hasStages) rendering the #stages slot', async () => {
+    const { getByRole, getByText } = render(ContestBodyTabs, {
+      props: { hasStages: true },
+      slots: { stages: '<div>STAGES PANEL</div>' },
+      global: { stubs },
+    });
+    const stagesTab = getByRole('tab', { name: /Stages/ });
+    expect(stagesTab).toBeTruthy();
+    expect(getByText('STAGES PANEL')).toBeTruthy(); // slot content present (v-show)
+    await fireEvent.click(stagesTab);
+    expect(stagesTab.getAttribute('aria-selected')).toBe('true');
+  });
 });

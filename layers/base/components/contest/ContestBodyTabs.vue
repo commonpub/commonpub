@@ -8,7 +8,7 @@
  */
 type Fmt = 'markdown' | 'html' | null;
 
-defineProps<{
+const props = defineProps<{
   description?: unknown[] | null;
   rules?: unknown[] | null;
   prizes?: unknown[] | null;
@@ -18,6 +18,8 @@ defineProps<{
   legacyRulesFormat?: Fmt;
   legacyPrizes?: string | null;
   legacyPrizesFormat?: Fmt;
+  /** Show a Stages tab in the canvas (content supplied via the `#stages` slot). */
+  hasStages?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -26,21 +28,29 @@ const emit = defineEmits<{
   'update:prizes': [v: unknown[]];
 }>();
 
-const TABS = [
+interface Tab { key: string; label: string; icon: string }
+const BODY_TABS: Tab[] = [
   { key: 'overview', label: 'Overview', icon: 'fa-circle-info' },
   { key: 'rules', label: 'Rules', icon: 'fa-file-lines' },
   { key: 'prizes', label: 'Prizes', icon: 'fa-trophy' },
-] as const;
-type TabKey = (typeof TABS)[number]['key'];
-const active = ref<TabKey>('overview');
+];
+// Non-body editors (e.g. Stages) appear as additional canvas tabs, shown full-width
+// in the same area as the body — supplied via slots so this component stays
+// decoupled from their logic.
+const tabs = computed<Tab[]>(() =>
+  props.hasStages ? [...BODY_TABS, { key: 'stages', label: 'Stages', icon: 'fa-diagram-project' }] : BODY_TABS,
+);
+const active = ref<string>('overview');
 
 // Roving-arrow keyboard nav for the tablist (WCAG).
-function onKey(e: KeyboardEvent, key: TabKey): void {
-  const i = TABS.findIndex((t) => t.key === key);
-  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); active.value = TABS[(i + 1) % TABS.length]!.key; }
-  else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); active.value = TABS[(i - 1 + TABS.length) % TABS.length]!.key; }
-  else if (e.key === 'Home') { e.preventDefault(); active.value = TABS[0]!.key; }
-  else if (e.key === 'End') { e.preventDefault(); active.value = TABS[TABS.length - 1]!.key; }
+function onKey(e: KeyboardEvent, key: string): void {
+  const list = tabs.value;
+  const i = list.findIndex((t) => t.key === key);
+  if (i < 0) return;
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); active.value = list[(i + 1) % list.length]!.key; }
+  else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); active.value = list[(i - 1 + list.length) % list.length]!.key; }
+  else if (e.key === 'Home') { e.preventDefault(); active.value = list[0]!.key; }
+  else if (e.key === 'End') { e.preventDefault(); active.value = list[list.length - 1]!.key; }
 }
 </script>
 
@@ -48,7 +58,7 @@ function onKey(e: KeyboardEvent, key: TabKey): void {
   <div class="cpub-body-tabs">
     <div class="cpub-body-tablist" role="tablist" aria-label="Contest body sections">
       <button
-        v-for="t in TABS"
+        v-for="t in tabs"
         :id="`cpub-body-tab-${t.key}`"
         :key="t.key"
         type="button"
@@ -72,6 +82,9 @@ function onKey(e: KeyboardEvent, key: TabKey): void {
     </div>
     <div v-show="active === 'prizes'" role="tabpanel" aria-labelledby="cpub-body-tab-prizes">
       <ContestBodyEditor :model-value="prizes" :legacy="legacyPrizes" :legacy-format="legacyPrizesFormat" @update:model-value="emit('update:prizes', $event)" />
+    </div>
+    <div v-if="hasStages" v-show="active === 'stages'" role="tabpanel" aria-labelledby="cpub-body-tab-stages">
+      <slot name="stages" />
     </div>
   </div>
 </template>
