@@ -115,6 +115,7 @@ export const contests = pgTable('contests', {
    * legacy text. Untyped jsonb mirrors `content_items.content`. */
   descriptionBlocks: jsonb('description_blocks'),
   rulesBlocks: jsonb('rules_blocks'),
+  prizesBlocks: jsonb('prizes_blocks'),
   /** Master switch for the Prizes tab. When false the tab is hidden even if
    *  prize data exists (and prizes are optional regardless). */
   showPrizes: boolean('show_prizes').default(true).notNull(),

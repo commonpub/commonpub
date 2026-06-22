@@ -474,10 +474,12 @@ describe('contest integration', () => {
         ...makeContestInput({ slug: `blocks-${Date.now()}` }),
         descriptionBlocks: blocks,
         rulesBlocks: [['text', { text: 'Be nice.' }]],
+        prizesBlocks: [['text', { text: 'Cash + hardware.' }]],
       });
       const fetched = await getContestBySlug(db, contest.slug);
       expect(fetched?.descriptionBlocks).toEqual(blocks);
       expect(fetched?.rulesBlocks).toEqual([['text', { text: 'Be nice.' }]]);
+      expect(fetched?.prizesBlocks).toEqual([['text', { text: 'Cash + hardware.' }]]);
     });
 
     it('updateContest sets descriptionBlocks and preserves them when other fields change', async () => {

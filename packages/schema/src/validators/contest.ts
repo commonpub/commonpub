@@ -143,6 +143,7 @@ export const createContestSchema = z
     // Block-editor body (overrides description/rules text when present).
     descriptionBlocks: contestBlocksSchema.optional(),
     rulesBlocks: contestBlocksSchema.optional(),
+    prizesBlocks: contestBlocksSchema.optional(),
     bannerUrl: optionalUrl(),
     coverImageUrl: optionalUrl(),
     showPrizes: z.boolean().optional(),
@@ -193,6 +194,7 @@ export const updateContestSchema = z
     prizesDescriptionFormat: contentFormatSchema.optional(),
     descriptionBlocks: contestBlocksSchema.optional(),
     rulesBlocks: contestBlocksSchema.optional(),
+    prizesBlocks: contestBlocksSchema.optional(),
     bannerUrl: optionalUrl(),
     coverImageUrl: optionalUrl(),
     showPrizes: z.boolean().optional(),

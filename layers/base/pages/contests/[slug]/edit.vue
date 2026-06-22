@@ -36,6 +36,8 @@ const description = ref('');
 // Block-editor body (BlockTuple[]); when set, the viewer renders it instead of the
 // legacy `description` text. Null until the contest loads (seeded by ContestBodyEditor).
 const descriptionBlocks = ref<unknown[] | null>(null);
+const rulesBlocks = ref<unknown[] | null>(null);
+const prizesBlocks = ref<unknown[] | null>(null);
 const rules = ref('');
 // Per-field render mode: Markdown (default) or raw HTML, independent per field.
 const descriptionFormat = ref<'markdown' | 'html'>('markdown');
@@ -98,6 +100,8 @@ watch(contest, (c) => {
   subheading.value = c.subheading ?? '';
   description.value = c.description ?? '';
   descriptionBlocks.value = (c.descriptionBlocks as unknown[] | null) ?? null;
+  rulesBlocks.value = (c.rulesBlocks as unknown[] | null) ?? null;
+  prizesBlocks.value = (c.prizesBlocks as unknown[] | null) ?? null;
   rules.value = c.rules ?? '';
   descriptionFormat.value = (c.descriptionFormat as 'markdown' | 'html') ?? 'markdown';
   rulesFormat.value = (c.rulesFormat as 'markdown' | 'html') ?? 'markdown';
@@ -142,7 +146,7 @@ watch(contest, (c) => {
 // Mark the form dirty on any post-hydration edit (gives the save bar its
 // "unsaved changes" cue). Worst case (timing) is a harmless early "dirty".
 watch(
-  [title, slugInput, subheading, description, descriptionBlocks, rules, descriptionFormat, rulesFormat, prizesDescriptionFormat, bannerUrl, coverImageUrl, startDate, endDate, judgingEndDate,
+  [title, slugInput, subheading, description, descriptionBlocks, rulesBlocks, prizesBlocks, rules, descriptionFormat, rulesFormat, prizesDescriptionFormat, bannerUrl, coverImageUrl, startDate, endDate, judgingEndDate,
     communityVotingEnabled, judgingVisibility, eligibleContentTypes, maxEntriesPerUser, visibility, visibleToRoles,
     showPrizes, stages, currentStageIdRef, prizesDescription, prizes, criteria],
   () => { if (!hydratingForm) formDirty.value = true; },
@@ -213,6 +217,8 @@ async function handleSave(): Promise<void> {
         subheading: subheading.value || undefined,
         description: description.value || undefined,
         descriptionBlocks: descriptionBlocks.value ?? undefined,
+        rulesBlocks: rulesBlocks.value ?? undefined,
+        prizesBlocks: prizesBlocks.value ?? undefined,
         rules: rules.value || undefined,
         descriptionFormat: descriptionFormat.value,
         rulesFormat: rulesFormat.value,
@@ -370,22 +376,20 @@ async function transitionStatus(newStatus: string): Promise<void> {
           <p class="cpub-form-hint">Short plain-text tagline shown under the title in the hero. The Description below is the full body.</p>
         </div>
         <div class="cpub-form-field">
-          <div class="cpub-form-label">Description</div>
-          <ContestBodyEditor
+          <div class="cpub-form-label">Contest body</div>
+          <ContestBodyTabs
             v-if="contest"
-            v-model="descriptionBlocks"
-            :legacy="description"
-            :legacy-format="descriptionFormat"
+            v-model:description="descriptionBlocks"
+            v-model:rules="rulesBlocks"
+            v-model:prizes="prizesBlocks"
+            :legacy-description="description"
+            :legacy-description-format="descriptionFormat"
+            :legacy-rules="rules"
+            :legacy-rules-format="rulesFormat"
+            :legacy-prizes="prizesDescription"
+            :legacy-prizes-format="prizesDescriptionFormat"
           />
-          <p class="cpub-form-hint">The full contest overview, edited in blocks like the project and blog editors: headings, lists, images, callouts, and the <strong>Judges Showcase</strong> (avatar + bio cards). Legacy text is converted to blocks on first edit.</p>
-        </div>
-        <div class="cpub-form-field">
-          <div class="cpub-field-head">
-            <label for="contest-rules" class="cpub-form-label">Rules</label>
-            <FormatToggle v-model="rulesFormat" />
-          </div>
-          <textarea id="contest-rules" v-model="rules" class="cpub-form-textarea" rows="6" maxlength="50000" placeholder="One rule per line, or full Markdown" />
-          <p class="cpub-form-hint">{{ rulesFormat === 'html' ? 'Rendered as your raw HTML, CSS, and SVG (scripts removed for safety).' : 'Supports Markdown. Plain one-rule-per-line text renders as a list.' }}</p>
+          <p class="cpub-form-hint">Edit the <strong>Overview</strong>, <strong>Rules</strong>, and <strong>Prizes</strong> copy as blocks (headings, lists, images, callouts, and the <strong>Judges Showcase</strong>), like the project and blog editors. Legacy text converts to blocks on first edit.</p>
         </div>
         <div class="cpub-form-field">
           <ImageUpload v-model="bannerUrl" purpose="banner" label="Banner Image" hint="Wide hero image across the top of the contest page (~4:1)." />
@@ -470,15 +474,7 @@ async function transitionStatus(newStatus: string): Promise<void> {
           <span>Show the Prizes tab on the contest page</span>
         </label>
         <p v-if="!showPrizes" class="cpub-form-hint">The Prizes tab is hidden, any prizes below are saved but not shown to visitors.</p>
-        <p class="cpub-form-hint">Every field is optional. Use <strong>place</strong> for ranked prizes, a <strong>category</strong> for themed awards, or just a <strong>description</strong>, whatever fits. Cash value is optional.</p>
-        <div class="cpub-form-field">
-          <div class="cpub-field-head">
-            <label for="contest-prizes-desc" class="cpub-form-label">Prizes overview (optional)</label>
-            <FormatToggle v-model="prizesDescriptionFormat" />
-          </div>
-          <textarea id="contest-prizes-desc" v-model="prizesDescription" class="cpub-form-textarea" rows="3" maxlength="50000" placeholder="Intro shown above the prize cards." />
-          <p class="cpub-form-hint">{{ prizesDescriptionFormat === 'html' ? 'Rendered as your raw HTML, CSS, and SVG (scripts removed for safety).' : 'Markdown intro' }} displayed on the Prizes tab, above the individual prizes.</p>
-        </div>
+        <p class="cpub-form-hint">Every field is optional. Use <strong>place</strong> for ranked prizes, a <strong>category</strong> for themed awards, or just a <strong>description</strong>, whatever fits. Cash value is optional. The prizes <em>overview</em> copy is edited in the Contest body &rsaquo; Prizes tab above.</p>
         <div v-for="(prize, i) in prizes" :key="i" class="cpub-prize-row">
           <div class="cpub-prize-header">
             <span class="cpub-prize-label">{{ prizeLabel(prize) }}</span>

@@ -67,6 +67,7 @@ export interface ContestDetail extends ContestListItem {
    *  instead of the legacy description/rules text + format toggle. */
   descriptionBlocks: unknown[] | null;
   rulesBlocks: unknown[] | null;
+  prizesBlocks: unknown[] | null;
   showPrizes: boolean;
   prizes: ContestPrize[] | null;
   judgingCriteria: ContestJudgingCriterion[] | null;
@@ -110,6 +111,7 @@ export interface CreateContestInput {
   /** Block-editor body (BlockTuple[]) for overview/rules. */
   descriptionBlocks?: unknown[];
   rulesBlocks?: unknown[];
+  prizesBlocks?: unknown[];
   showPrizes?: boolean;
   bannerUrl?: string;
   coverImageUrl?: string;
@@ -326,6 +328,7 @@ function toContestDetail(row: ContestRow): ContestDetail {
     prizesDescriptionFormat: row.prizesDescriptionFormat,
     descriptionBlocks: (row.descriptionBlocks as unknown[] | null) ?? null,
     rulesBlocks: (row.rulesBlocks as unknown[] | null) ?? null,
+    prizesBlocks: (row.prizesBlocks as unknown[] | null) ?? null,
     showPrizes: row.showPrizes,
     stages: row.stages ?? [],
     currentStageId: row.currentStageId ?? null,
@@ -430,6 +433,7 @@ export async function createContest(
         prizesDescriptionFormat: input.prizesDescriptionFormat ?? 'markdown',
         descriptionBlocks: input.descriptionBlocks ?? null,
         rulesBlocks: input.rulesBlocks ?? null,
+        prizesBlocks: input.prizesBlocks ?? null,
         showPrizes: input.showPrizes ?? true,
         stages: input.stages ?? [],
         // Only keep currentStageId if it references a stage that actually exists.
@@ -507,6 +511,7 @@ export async function updateContest(
   if (data.prizesDescriptionFormat !== undefined) updates.prizesDescriptionFormat = data.prizesDescriptionFormat;
   if (data.descriptionBlocks !== undefined) updates.descriptionBlocks = data.descriptionBlocks;
   if (data.rulesBlocks !== undefined) updates.rulesBlocks = data.rulesBlocks;
+  if (data.prizesBlocks !== undefined) updates.prizesBlocks = data.prizesBlocks;
   if (data.bannerUrl !== undefined) updates.bannerUrl = data.bannerUrl;
   if (data.coverImageUrl !== undefined) updates.coverImageUrl = data.coverImageUrl;
   if (data.showPrizes !== undefined) updates.showPrizes = data.showPrizes;

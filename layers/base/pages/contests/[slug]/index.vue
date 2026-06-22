@@ -58,7 +58,7 @@ interface Tab { key: string; label: string; icon: string; count?: number }
 const tabs = computed<Tab[]>(() => {
   const t: Tab[] = [{ key: 'overview', label: 'Overview', icon: 'fa-circle-info' }];
   if (c.value?.rules || c.value?.rulesBlocks?.length) t.push({ key: 'rules', label: 'Rules', icon: 'fa-file-lines' });
-  if (c.value?.showPrizes !== false && (c.value?.prizes?.length || c.value?.prizesDescription)) t.push({ key: 'prizes', label: 'Prizes', icon: 'fa-trophy' });
+  if (c.value?.showPrizes !== false && (c.value?.prizes?.length || c.value?.prizesDescription || c.value?.prizesBlocks?.length)) t.push({ key: 'prizes', label: 'Prizes', icon: 'fa-trophy' });
   t.push({ key: 'entries', label: 'Entries', icon: 'fa-box-open', count: c.value?.entryCount ?? entries.value.length });
   if (participants.value.length) t.push({ key: 'participants', label: 'Participants', icon: 'fa-users', count: participants.value.length });
   if (judges.value.length || isOwner.value) t.push({ key: 'judges', label: 'Judges', icon: 'fa-gavel', count: judges.value.length || undefined });
@@ -359,7 +359,7 @@ async function withdrawEntry(entryId: string): Promise<void> {
 
           <!-- PRIZES -->
           <div v-show="activeTab === 'prizes'" id="cpub-panel-prizes" role="tabpanel" aria-labelledby="cpub-tab-prizes" tabindex="0">
-            <ContestPrizes v-if="c?.showPrizes !== false && (c?.prizes?.length || c?.prizesDescription)" :prizes="c?.prizes ?? []" :description="c?.prizesDescription" :format="c?.prizesDescriptionFormat" />
+            <ContestPrizes v-if="c?.showPrizes !== false && (c?.prizes?.length || c?.prizesDescription || c?.prizesBlocks?.length)" :prizes="c?.prizes ?? []" :description="c?.prizesDescription" :blocks="c?.prizesBlocks" :format="c?.prizesDescriptionFormat" />
           </div>
 
           <!-- ENTRIES -->
