@@ -39,6 +39,17 @@ const BODY_TABS: Tab[] = [
 const tabs = computed<Tab[]>(() => [...BODY_TABS, ...(props.extraTabs ?? [])]);
 const active = ref<string>('overview');
 
+// Write / Preview / Code applies only to the block-body tabs; the extra tabs
+// (Stages/Judging) are their own editors, so the switch hides there.
+type BodyMode = 'write' | 'preview' | 'code';
+const bodyMode = ref<BodyMode>('write');
+const isBodyTab = computed<boolean>(() => BODY_TABS.some((t) => t.key === active.value));
+const MODES: { key: BodyMode; label: string; icon: string }[] = [
+  { key: 'write', label: 'Write', icon: 'fa-pen' },
+  { key: 'preview', label: 'Preview', icon: 'fa-eye' },
+  { key: 'code', label: 'Code', icon: 'fa-code' },
+];
+
 // Roving-arrow keyboard nav for the tablist (WCAG).
 function onKey(e: KeyboardEvent, key: string): void {
   const list = tabs.value;
@@ -53,32 +64,47 @@ function onKey(e: KeyboardEvent, key: string): void {
 
 <template>
   <div class="cpub-body-tabs">
-    <div class="cpub-body-tablist" role="tablist" aria-label="Contest body sections">
-      <button
-        v-for="t in tabs"
-        :id="`cpub-body-tab-${t.key}`"
-        :key="t.key"
-        type="button"
-        role="tab"
-        :aria-selected="active === t.key"
-        :tabindex="active === t.key ? 0 : -1"
-        class="cpub-body-tab"
-        :class="{ 'cpub-body-tab-active': active === t.key }"
-        @click="active = t.key"
-        @keydown="onKey($event, t.key)"
-      >
-        <i class="fa-solid" :class="t.icon"></i> {{ t.label }}
-      </button>
+    <div class="cpub-body-tabbar">
+      <div class="cpub-body-tablist" role="tablist" aria-label="Contest body sections">
+        <button
+          v-for="t in tabs"
+          :id="`cpub-body-tab-${t.key}`"
+          :key="t.key"
+          type="button"
+          role="tab"
+          :aria-selected="active === t.key"
+          :tabindex="active === t.key ? 0 : -1"
+          class="cpub-body-tab"
+          :class="{ 'cpub-body-tab-active': active === t.key }"
+          @click="active = t.key"
+          @keydown="onKey($event, t.key)"
+        >
+          <i class="fa-solid" :class="t.icon"></i> {{ t.label }}
+        </button>
+      </div>
+      <div v-if="isBodyTab" class="cpub-body-mode" role="group" aria-label="Body view mode">
+        <button
+          v-for="m in MODES"
+          :key="m.key"
+          type="button"
+          class="cpub-body-mode-btn"
+          :class="{ 'cpub-body-mode-active': bodyMode === m.key }"
+          :aria-pressed="bodyMode === m.key"
+          @click="bodyMode = m.key"
+        >
+          <i class="fa-solid" :class="m.icon"></i> {{ m.label }}
+        </button>
+      </div>
     </div>
 
     <div v-show="active === 'overview'" role="tabpanel" aria-labelledby="cpub-body-tab-overview">
-      <ContestBodyEditor :model-value="description" :legacy="legacyDescription" :legacy-format="legacyDescriptionFormat" @update:model-value="emit('update:description', $event)" />
+      <ContestBodyEditor :model-value="description" :legacy="legacyDescription" :legacy-format="legacyDescriptionFormat" :mode="bodyMode" @update:model-value="emit('update:description', $event)" />
     </div>
     <div v-show="active === 'rules'" role="tabpanel" aria-labelledby="cpub-body-tab-rules">
-      <ContestBodyEditor :model-value="rules" :legacy="legacyRules" :legacy-format="legacyRulesFormat" @update:model-value="emit('update:rules', $event)" />
+      <ContestBodyEditor :model-value="rules" :legacy="legacyRules" :legacy-format="legacyRulesFormat" :mode="bodyMode" @update:model-value="emit('update:rules', $event)" />
     </div>
     <div v-show="active === 'prizes'" role="tabpanel" aria-labelledby="cpub-body-tab-prizes">
-      <ContestBodyEditor :model-value="prizes" :legacy="legacyPrizes" :legacy-format="legacyPrizesFormat" @update:model-value="emit('update:prizes', $event)" />
+      <ContestBodyEditor :model-value="prizes" :legacy="legacyPrizes" :legacy-format="legacyPrizesFormat" :mode="bodyMode" @update:model-value="emit('update:prizes', $event)" />
     </div>
     <template v-for="t in (extraTabs ?? [])" :key="t.key">
       <div v-show="active === t.key" role="tabpanel" :aria-labelledby="`cpub-body-tab-${t.key}`">
@@ -89,7 +115,8 @@ function onKey(e: KeyboardEvent, key: string): void {
 </template>
 
 <style scoped>
-.cpub-body-tablist { display: flex; gap: 4px; margin-bottom: var(--space-3); border-bottom: var(--border-width-default) solid var(--border); }
+.cpub-body-tabbar { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--space-3); flex-wrap: wrap; margin-bottom: var(--space-3); border-bottom: var(--border-width-default) solid var(--border); }
+.cpub-body-tablist { display: flex; gap: 4px; }
 .cpub-body-tab {
   display: inline-flex; align-items: center; gap: 6px;
   padding: 8px 14px; background: transparent; border: none; cursor: pointer;
@@ -98,4 +125,16 @@ function onKey(e: KeyboardEvent, key: string): void {
 }
 .cpub-body-tab:hover { color: var(--text); }
 .cpub-body-tab-active { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* Write / Preview / Code segmented switch (body tabs only). */
+.cpub-body-mode { display: inline-flex; margin-bottom: 6px; border: var(--border-width-default) solid var(--border); }
+.cpub-body-mode-btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 5px 10px; background: transparent; border: none; cursor: pointer;
+  font-size: var(--text-xs); font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.04em;
+  color: var(--text-faint); border-right: var(--border-width-default) solid var(--border);
+}
+.cpub-body-mode-btn:last-child { border-right: none; }
+.cpub-body-mode-btn:hover { background: var(--surface2); color: var(--text-dim); }
+.cpub-body-mode-active { background: var(--accent-bg); color: var(--accent); }
 </style>

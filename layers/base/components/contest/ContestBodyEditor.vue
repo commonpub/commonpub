@@ -20,8 +20,11 @@ const props = withDefaults(
     /** Legacy markdown/html body to seed from when there are no blocks yet. */
     legacy?: string | null;
     legacyFormat?: 'markdown' | 'html' | null;
+    /** Write = block canvas; Preview = the same blocks through the view renderer
+     *  (faithful to the public page); Code = read-only BlockTuple[] JSON. */
+    mode?: 'write' | 'preview' | 'code';
   }>(),
-  { modelValue: null, legacy: '', legacyFormat: 'markdown' },
+  { modelValue: null, legacy: '', legacyFormat: 'markdown', mode: 'write' },
 );
 
 const emit = defineEmits<{ 'update:modelValue': [blocks: unknown[]] }>();
@@ -38,6 +41,14 @@ const blockEditor = useBlockEditor(seedBodyBlocks(props.modelValue, props.legacy
 
 // One-way out: the editor owns its state; the parent reads changes for save/dirty.
 watch(blockEditor.blocks, () => emit('update:modelValue', blockEditor.toBlockTuples()), { deep: true });
+
+// Live blocks for Preview/Code — derived from the editor's own state (not the
+// parent v-model, which only emits after the first edit) so they reflect the
+// current canvas even on a freshly-loaded legacy contest.
+const previewBlocks = computed<[string, Record<string, unknown>][]>(
+  () => blockEditor.toBlockTuples() as [string, Record<string, unknown>][],
+);
+const codeJson = computed<string>(() => JSON.stringify(previewBlocks.value, null, 2));
 
 const blockTypes: BlockTypeGroup[] = [
   {
@@ -70,8 +81,15 @@ const blockTypes: BlockTypeGroup[] = [
 </script>
 
 <template>
-  <div class="cpub-contest-body-editor">
-    <BlockCanvas :block-editor="blockEditor" :block-types="blockTypes" />
+  <div class="cpub-contest-body-editor" :class="`cpub-cbe-${mode}`">
+    <!-- Canvas stays mounted (v-show) so block state + undo history survive a
+         hop to Preview/Code and back. -->
+    <BlockCanvas v-show="mode === 'write'" :block-editor="blockEditor" :block-types="blockTypes" />
+    <div v-if="mode === 'preview'" class="cpub-cbe-preview">
+      <BlocksBlockContentRenderer v-if="previewBlocks.length" :blocks="previewBlocks" class="cpub-prose cpub-md" />
+      <p v-else class="cpub-cbe-empty">Nothing to preview yet. Switch to Write and add some blocks.</p>
+    </div>
+    <pre v-else-if="mode === 'code'" class="cpub-cbe-code" aria-label="Block content as JSON"><code>{{ codeJson }}</code></pre>
   </div>
 </template>
 
@@ -80,5 +98,13 @@ const blockTypes: BlockTypeGroup[] = [
   border: var(--border-width-default) solid var(--border);
   background: var(--surface);
   padding: var(--space-2);
+}
+.cpub-cbe-preview { padding: var(--space-3); }
+.cpub-cbe-empty { font-size: var(--text-sm); color: var(--text-faint); margin: 0; padding: var(--space-4) 0; text-align: center; }
+.cpub-cbe-code {
+  margin: 0; padding: var(--space-3); overflow: auto; max-height: 60vh;
+  background: var(--surface2); color: var(--text-dim);
+  font-family: var(--font-mono); font-size: var(--text-xs); line-height: 1.6;
+  white-space: pre; tab-size: 2;
 }
 </style>

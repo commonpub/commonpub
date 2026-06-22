@@ -6,8 +6,8 @@ import ContestBodyTabs from '../ContestBodyTabs.vue';
 // this focuses on the tab structure + switching.
 const stubs = {
   ContestBodyEditor: {
-    props: ['modelValue', 'legacy', 'legacyFormat'],
-    template: '<div class="cpub-contest-body-editor" />',
+    props: ['modelValue', 'legacy', 'legacyFormat', 'mode'],
+    template: '<div class="cpub-contest-body-editor" :data-mode="mode" />',
   },
 };
 
@@ -39,6 +39,35 @@ describe('ContestBodyTabs', () => {
     const { queryByRole } = render(ContestBodyTabs, { props: {}, global: { stubs } });
     expect(queryByRole('tab', { name: /Stages/ })).toBeNull();
     expect(queryByRole('tab', { name: /Judging/ })).toBeNull();
+  });
+
+  it('shows a Write/Preview/Code switch on body tabs and forwards the mode to every editor', async () => {
+    const { getByRole, container } = render(ContestBodyTabs, { props: {}, global: { stubs } });
+    const writeBtn = getByRole('button', { name: /Write/ });
+    const previewBtn = getByRole('button', { name: /Preview/ });
+    expect(writeBtn.getAttribute('aria-pressed')).toBe('true');
+    expect(previewBtn.getAttribute('aria-pressed')).toBe('false');
+    const editors = () => Array.from(container.querySelectorAll('.cpub-contest-body-editor'));
+    expect(editors().length).toBe(3);
+    editors().forEach((e) => expect(e.getAttribute('data-mode')).toBe('write'));
+    await fireEvent.click(previewBtn);
+    expect(previewBtn.getAttribute('aria-pressed')).toBe('true');
+    expect(writeBtn.getAttribute('aria-pressed')).toBe('false');
+    editors().forEach((e) => expect(e.getAttribute('data-mode')).toBe('preview'));
+  });
+
+  it('hides the mode switch on extra (non-body) tabs', async () => {
+    const { getByRole, queryByRole } = render(ContestBodyTabs, {
+      props: { extraTabs: [{ key: 'stages', label: 'Stages', icon: 'fa-diagram-project' }] },
+      slots: { stages: '<div>STAGES</div>' },
+      global: { stubs },
+    });
+    expect(getByRole('button', { name: /Preview/ })).toBeTruthy();
+    await fireEvent.click(getByRole('tab', { name: /Stages/ }));
+    expect(queryByRole('button', { name: /Preview/ })).toBeNull();
+    // Returning to a body tab brings the switch back.
+    await fireEvent.click(getByRole('tab', { name: /Overview/ }));
+    expect(getByRole('button', { name: /Preview/ })).toBeTruthy();
   });
 
   it('renders extraTabs as canvas tabs, each from its named slot', async () => {
