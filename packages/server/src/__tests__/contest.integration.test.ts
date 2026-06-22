@@ -446,6 +446,27 @@ describe('contest integration', () => {
       const contest = await createContest(db, makeContestInput({ slug: `compat-${Date.now()}` }));
       expect(contest.id).toBeDefined();
     });
+
+    it('createContest rolls back the contest when seeding a bad judge id fails (atomicity)', async () => {
+      const slug = `atomic-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+      const ghost = '00000000-0000-0000-0000-000000000000';
+      await expect(
+        createContest(db, { ...makeContestInput({ slug }), judges: [ghost] }),
+      ).rejects.toThrow();
+      // RED on revert: without the wrapping transaction the contest row persists
+      // even though the judges seed threw (FK violation on the ghost user id).
+      const found = await getContestBySlug(db, slug);
+      expect(found).toBeNull();
+    });
+
+    it('addContestJudge returns "already a judge" on a duplicate add (race-safe, no 500)', async () => {
+      const contest = await createContest(db, makeContestInput({ slug: `dupe-judge-${Date.now()}` }));
+      const first = await addContestJudge(db, contest.id, judgeUserId, 'judge');
+      expect(first.added).toBe(true);
+      const second = await addContestJudge(db, contest.id, judgeUserId, 'judge');
+      expect(second.added).toBe(false);
+      expect(second.error).toBe('User is already a judge');
+    });
   });
 
   // --- New tests: rank calc, withdrawal, feedback, cancellation, multi-judge ---

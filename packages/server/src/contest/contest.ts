@@ -403,57 +403,64 @@ export async function createContest(
       throw new Error(`Insufficient permissions: contest creation requires ${policy} role`);
     }
   }
-  const [row] = await db
-    .insert(contests)
-    .values({
-      title: input.title,
-      slug: input.slug,
-      subheading: input.subheading ?? null,
-      description: input.description ?? null,
-      rules: input.rules ?? null,
-      prizesDescription: input.prizesDescription ?? null,
-      descriptionFormat: input.descriptionFormat ?? 'markdown',
-      rulesFormat: input.rulesFormat ?? 'markdown',
-      prizesDescriptionFormat: input.prizesDescriptionFormat ?? 'markdown',
-      showPrizes: input.showPrizes ?? true,
-      stages: input.stages ?? [],
-      // Only keep currentStageId if it references a stage that actually exists.
-      currentStageId: input.currentStageId && (input.stages ?? []).some((s) => s.id === input.currentStageId) ? input.currentStageId : null,
-      bannerUrl: input.bannerUrl ?? null,
-      coverImageUrl: input.coverImageUrl ?? null,
-      prizes: input.prizes ?? null,
-      judgingCriteria: input.judgingCriteria ?? null,
-      communityVotingEnabled: input.communityVotingEnabled ?? false,
-      judgingVisibility: input.judgingVisibility ?? 'judges-only',
-      eligibleContentTypes: input.eligibleContentTypes ?? null,
-      maxEntriesPerUser: input.maxEntriesPerUser ?? null,
-      visibility: input.visibility ?? 'public',
-      visibleToRoles: input.visibleToRoles ?? null,
-      startDate: new Date(input.startDate),
-      endDate: new Date(input.endDate),
-      judgingEndDate: input.judgingEndDate ? new Date(input.judgingEndDate) : null,
-      createdById: input.createdBy,
-    })
-    .returning();
+  // Atomic: the contest row and its seeded judges/stakeholders must commit
+  // together, so a failed seed (e.g. a bad judge id) can't leave a contest
+  // missing the judges/reviewers the organizer asked for.
+  const row = await db.transaction(async (tx) => {
+    const [inserted] = await tx
+      .insert(contests)
+      .values({
+        title: input.title,
+        slug: input.slug,
+        subheading: input.subheading ?? null,
+        description: input.description ?? null,
+        rules: input.rules ?? null,
+        prizesDescription: input.prizesDescription ?? null,
+        descriptionFormat: input.descriptionFormat ?? 'markdown',
+        rulesFormat: input.rulesFormat ?? 'markdown',
+        prizesDescriptionFormat: input.prizesDescriptionFormat ?? 'markdown',
+        showPrizes: input.showPrizes ?? true,
+        stages: input.stages ?? [],
+        // Only keep currentStageId if it references a stage that actually exists.
+        currentStageId: input.currentStageId && (input.stages ?? []).some((s) => s.id === input.currentStageId) ? input.currentStageId : null,
+        bannerUrl: input.bannerUrl ?? null,
+        coverImageUrl: input.coverImageUrl ?? null,
+        prizes: input.prizes ?? null,
+        judgingCriteria: input.judgingCriteria ?? null,
+        communityVotingEnabled: input.communityVotingEnabled ?? false,
+        judgingVisibility: input.judgingVisibility ?? 'judges-only',
+        eligibleContentTypes: input.eligibleContentTypes ?? null,
+        maxEntriesPerUser: input.maxEntriesPerUser ?? null,
+        visibility: input.visibility ?? 'public',
+        visibleToRoles: input.visibleToRoles ?? null,
+        startDate: new Date(input.startDate),
+        endDate: new Date(input.endDate),
+        judgingEndDate: input.judgingEndDate ? new Date(input.judgingEndDate) : null,
+        createdById: input.createdBy,
+      })
+      .returning();
 
-  // Single source of truth: seed the contest_judges table from any judge IDs
-  // provided at creation. The legacy `judges` jsonb column is no longer written
-  // or read — authorization + display use the table exclusively.
-  if (input.judges && input.judges.length > 0) {
-    await db
-      .insert(contestJudges)
-      .values(input.judges.map((userId) => ({ contestId: row!.id, userId })))
-      .onConflictDoNothing();
-  }
-  // Seed stakeholders (view-only reviewers) from create input.
-  if (input.stakeholders && input.stakeholders.length > 0) {
-    await db
-      .insert(contestStakeholders)
-      .values(input.stakeholders.map((userId) => ({ contestId: row!.id, userId })))
-      .onConflictDoNothing();
-  }
+    // Single source of truth: seed the contest_judges table from any judge IDs
+    // provided at creation. The legacy `judges` jsonb column is no longer written
+    // or read — authorization + display use the table exclusively.
+    if (input.judges && input.judges.length > 0) {
+      await tx
+        .insert(contestJudges)
+        .values(input.judges.map((userId) => ({ contestId: inserted!.id, userId })))
+        .onConflictDoNothing();
+    }
+    // Seed stakeholders (view-only reviewers) from create input.
+    if (input.stakeholders && input.stakeholders.length > 0) {
+      await tx
+        .insert(contestStakeholders)
+        .values(input.stakeholders.map((userId) => ({ contestId: inserted!.id, userId })))
+        .onConflictDoNothing();
+    }
 
-  return toContestDetail(row!);
+    return inserted!;
+  });
+
+  return toContestDetail(row);
 }
 
 /**
@@ -1072,7 +1079,7 @@ export async function transitionContestStatus(
             createNotification(db, {
               userId: entrant.userId,
               type: 'contest',
-              title: '🏆 You won!',
+              title: 'You won!',
               message: `Congratulations — you placed ${ordinalPlace(rank!)} in "${contestInfo.title}"${won}!`,
               link,
               actorId: userId,
@@ -1143,11 +1150,16 @@ export async function withdrawContestEntry(
     return { withdrawn: false, error: 'Can only withdraw from active contests' };
   }
 
-  await db.delete(contestEntries).where(eq(contestEntries.id, entryId));
-  await db
-    .update(contests)
-    .set({ entryCount: sql`GREATEST(${contests.entryCount} - 1, 0)` })
-    .where(eq(contests.id, row.entry.contestId));
+  // Atomic: delete + the denormalized entryCount decrement commit together, so
+  // a mid-operation failure can't leave entryCount overcounting (mirrors the
+  // transactional insert in submitContestEntry).
+  await db.transaction(async (tx) => {
+    await tx.delete(contestEntries).where(eq(contestEntries.id, entryId));
+    await tx
+      .update(contests)
+      .set({ entryCount: sql`GREATEST(${contests.entryCount} - 1, 0)` })
+      .where(eq(contests.id, row.entry.contestId));
+  });
 
   return { withdrawn: true };
 }
@@ -1432,7 +1444,7 @@ export async function advanceContestStage(
         createNotification(db, {
           userId: e.userId,
           type: 'contest',
-          title: adv ? '✅ You advanced!' : 'Contest update',
+          title: adv ? 'You advanced!' : 'Contest update',
           message: adv
             ? `Your entry advanced to ${nextName} in "${info.title}".`
             : `Your entry wasn't selected to continue in "${info.title}".`,

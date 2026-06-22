@@ -21,6 +21,7 @@ import {
   federatedHubPostLikes,
   federatedContent,
   activities,
+  contestJudges,
 } from '@commonpub/schema';
 import { createRealTestDB, realPgReachable, type RealTestDb } from './helpers/realpgdb.js';
 import { createTestUser } from './helpers/testdb.js';
@@ -28,6 +29,8 @@ import { createContentVersion } from '../content/content.js';
 import { enroll } from '../learning/learning.js';
 import { toggleFederatedHubPostLike } from '../federation/hubMirroring.js';
 import { likeRemoteContent, boostRemoteContent } from '../federation/timeline.js';
+import { createContest } from '../contest/contest.js';
+import { addContestJudge } from '../contest/judges.js';
 
 const reachable = await realPgReachable();
 if (!reachable) {
@@ -164,5 +167,31 @@ describe.skipIf(!reachable)('real-Postgres concurrency proofs', () => {
     };
     const results = await Promise.all([claim(), claim(), claim(), claim(), claim()]);
     expect(results.filter(Boolean).length).toBe(1);
+  });
+
+  it('addContestJudge: concurrent same (contest,user) invites never 500 — one wins, rest report already-a-judge', async () => {
+    const organizer = await createTestUser(h.db);
+    const judge = await createTestUser(h.db);
+    const contest = await createContest(h.db, {
+      title: 'Race Judges',
+      slug: `race-judges-${crypto.randomUUID().slice(0, 8)}`,
+      startDate: new Date('2026-04-01').toISOString(),
+      endDate: new Date('2026-05-01').toISOString(),
+      createdBy: organizer.id,
+    });
+    // 8 concurrent invites of the SAME user: the old check-then-insert let several
+    // pass the "already a judge?" read before any committed, then raced the unique
+    // (contestId,userId) constraint → some threw (500). onConflictDoNothing resolves
+    // them all: exactly one inserted, the rest report already-a-judge, none throw.
+    const N = 40;
+    const settled = await Promise.allSettled(
+      Array.from({ length: N }, () => addContestJudge(h.db, contest.id, judge.id, 'judge')),
+    );
+    // RED on revert: a check-then-insert raced the unique constraint → rejection.
+    expect(settled.every((s) => s.status === 'fulfilled')).toBe(true);
+    const results = settled.flatMap((s) => (s.status === 'fulfilled' ? [s.value] : []));
+    expect(results.filter((r) => r.added).length).toBe(1);
+    const rows = await h.db.select().from(contestJudges).where(eq(contestJudges.contestId, contest.id));
+    expect(rows.length).toBe(1);
   });
 });

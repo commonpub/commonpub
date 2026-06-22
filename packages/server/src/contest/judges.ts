@@ -72,16 +72,16 @@ export async function addContestJudge(
 
   if (!user) return { added: false, error: 'User not found' };
 
-  // Check if already a judge
-  const [existing] = await db
-    .select({ id: contestJudges.id })
-    .from(contestJudges)
-    .where(and(eq(contestJudges.contestId, contestId), eq(contestJudges.userId, userId)))
-    .limit(1);
+  // Race-safe add: rely on the unique (contestId,userId) constraint via
+  // onConflictDoNothing instead of a check-then-insert, which could race a
+  // concurrent double-invite into a 500. No inserted row ⇒ already a judge.
+  const [inserted] = await db
+    .insert(contestJudges)
+    .values({ contestId, userId, role })
+    .onConflictDoNothing()
+    .returning({ id: contestJudges.id });
 
-  if (existing) return { added: false, error: 'User is already a judge' };
-
-  await db.insert(contestJudges).values({ contestId, userId, role });
+  if (!inserted) return { added: false, error: 'User is already a judge' };
 
   // Notify the invited judge (non-critical)
   if (context) {
