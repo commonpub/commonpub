@@ -573,7 +573,7 @@ async function transitionStatus(newStatus: string): Promise<void> {
       <section class="cpub-form-section">
         <h2 class="cpub-form-section-title">Judges</h2>
         <p class="cpub-form-hint">Invited judges receive a notification and must accept before they can score.</p>
-        <ContestJudgeManager :contest-slug="slug" :is-owner="true" />
+        <ContestJudgeManager :contest-slug="slug" :is-owner="isOwner" />
       </section>
       </div><!-- /cpub-edit-main -->
 

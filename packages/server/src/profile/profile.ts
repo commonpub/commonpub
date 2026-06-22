@@ -1,8 +1,35 @@
-import { eq, and, sql, isNull } from 'drizzle-orm';
+import { eq, and, or, sql, ilike, isNull } from 'drizzle-orm';
 import { contentItems, users, follows } from '@commonpub/schema';
 import type { ContentType } from '@commonpub/schema';
 import type { DB, ContentListItem, UserProfile } from '../types.js';
 import { listContentKeyset } from '../content/content.js';
+
+export interface UserSearchResult {
+  id: string;
+  username: string;
+  displayName: string | null;
+  avatarUrl: string | null;
+}
+
+/**
+ * Minimal user lookup by username/display name for invite pickers (contest
+ * judges/reviewers, etc.). Returns PUBLIC fields only — never email/role — so it
+ * is safe to expose to non-admin contest managers, unlike the admin user list.
+ * Soft-deleted users are excluded; LIKE metacharacters in the query are escaped.
+ */
+export async function searchUsers(db: DB, query: string, limit = 10): Promise<UserSearchResult[]> {
+  const q = query.trim();
+  if (q.length < 2) return [];
+  // Escape %, _ and \ so they match literally (backslash is PG LIKE's default escape).
+  const term = `%${q.replace(/[\\%_]/g, '\\$&')}%`;
+  const capped = Math.min(Math.max(1, Math.trunc(limit) || 1), 25);
+  return db
+    .select({ id: users.id, username: users.username, displayName: users.displayName, avatarUrl: users.avatarUrl })
+    .from(users)
+    .where(and(isNull(users.deletedAt), or(ilike(users.username, term), ilike(users.displayName, term))))
+    .orderBy(users.username)
+    .limit(capped);
+}
 
 export async function getUserByUsername(db: DB, username: string): Promise<UserProfile | null> {
   const rows = await db
