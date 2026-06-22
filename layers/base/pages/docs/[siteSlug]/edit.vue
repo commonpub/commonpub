@@ -325,13 +325,25 @@ function handleMarkdownImport(md: string, mode: 'append' | 'replace'): void {
 }
 
 // ═══ SITE SETTINGS ═══
-const showSettings = ref(false);
-const settingsName = ref('');
-const settingsDesc = ref('');
-const savingSettings = ref(false);
-const newVersion = ref('');
-const newVersionDefault = ref(false);
-const savingVersion = ref(false);
+// Settings/versions actions live in useDocsSiteSettings (composable extraction).
+// The page keeps the watch(site) seeding below, since it owns the site fetch.
+const {
+  showSettings,
+  settingsName,
+  settingsDesc,
+  savingSettings,
+  newVersion,
+  newVersionDefault,
+  savingVersion,
+  saveSiteSettings,
+  deleteSite,
+  createVersion,
+} = useDocsSiteSettings({
+  siteSlug: () => siteSlug.value,
+  refreshSite,
+  onSiteDeleted: async () => { await navigateTo('/docs'); },
+  toast,
+});
 
 interface DocsSiteVersion {
   id: string;
@@ -344,52 +356,6 @@ watch(site, (s) => {
   settingsName.value = (s as Record<string, unknown>).name as string ?? '';
   settingsDesc.value = (s as Record<string, unknown>).description as string ?? '';
 }, { immediate: true });
-
-async function saveSiteSettings(): Promise<void> {
-  savingSettings.value = true;
-  try {
-    await $fetch(`/api/docs/${siteSlug.value}`, {
-      method: 'PUT',
-      body: { name: settingsName.value, description: settingsDesc.value },
-    });
-    toast('Site settings updated', 'success');
-    await refreshSite();
-  } catch (err: unknown) {
-    toast(err instanceof Error ? err.message : 'Failed to update settings', 'error');
-  } finally {
-    savingSettings.value = false;
-  }
-}
-
-async function deleteSite(): Promise<void> {
-  if (!confirm('Delete this entire docs site? All pages and versions will be permanently deleted.')) return;
-  try {
-    await $fetch(`/api/docs/${siteSlug.value}`, { method: 'DELETE' });
-    toast('Docs site deleted', 'success');
-    await navigateTo('/docs');
-  } catch {
-    toast('Failed to delete docs site', 'error');
-  }
-}
-
-async function createVersion(): Promise<void> {
-  if (!newVersion.value.trim()) return;
-  savingVersion.value = true;
-  try {
-    await $fetch(`/api/docs/${siteSlug.value}/versions`, {
-      method: 'POST',
-      body: { version: newVersion.value, isDefault: newVersionDefault.value },
-    });
-    toast('Version created', 'success');
-    newVersion.value = '';
-    newVersionDefault.value = false;
-    await refreshSite();
-  } catch (err: unknown) {
-    toast(err instanceof Error ? err.message : 'Failed to create version', 'error');
-  } finally {
-    savingVersion.value = false;
-  }
-}
 </script>
 
 <template>
