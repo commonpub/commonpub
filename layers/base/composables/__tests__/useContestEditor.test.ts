@@ -244,3 +244,62 @@ describe('useContestEditor — save', () => {
     expect(toast).toHaveBeenCalledWith(expect.stringMatching(/after the start date/), 'error');
   });
 });
+
+describe('useContestEditor — silent save (autosave)', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('PUTs and clears dirty but skips the toast, refresh, and navigation', async () => {
+    const fetchMock = vi.fn(async () => ({ slug: 'my-contest' }));
+    vi.stubGlobal('$fetch', fetchMock);
+    const { opts, toast, navigate, refresh } = makeOpts({ mode: 'edit' });
+    const e = useContestEditor(opts);
+    e.title.value = 'Edited';
+
+    await e.save({ silent: true });
+
+    expect(fetchMock).toHaveBeenCalledWith('/api/contests/my-contest', expect.objectContaining({ method: 'PUT' }));
+    expect(e.formDirty.value).toBe(false);
+    expect(toast).not.toHaveBeenCalled();
+    expect(refresh).not.toHaveBeenCalled();
+    expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it('renames in place via onRenamed (not navigate) when the slug changes', async () => {
+    const fetchMock = vi.fn(async () => ({ slug: 'renamed' }));
+    vi.stubGlobal('$fetch', fetchMock);
+    const onRenamed = vi.fn();
+    const { opts, navigate } = makeOpts({ mode: 'edit', onRenamed });
+    const e = useContestEditor(opts);
+    e.title.value = 'Edited';
+
+    await e.save({ silent: true });
+
+    expect(onRenamed).toHaveBeenCalledWith('renamed');
+    expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it('rethrows on failure without toasting (the status machine handles it)', async () => {
+    vi.stubGlobal('$fetch', vi.fn(async () => { throw new Error('boom'); }));
+    const { opts, toast } = makeOpts({ mode: 'edit' });
+    const e = useContestEditor(opts);
+    e.title.value = 'Edited';
+
+    await expect(e.save({ silent: true })).rejects.toThrow('boom');
+    expect(toast).not.toHaveBeenCalled();
+    expect(e.saving.value).toBe(false);
+  });
+
+  it('does not fetch or toast on a date error', async () => {
+    const fetchMock = vi.fn(async () => ({ slug: 'x' }));
+    vi.stubGlobal('$fetch', fetchMock);
+    const { opts, toast } = makeOpts({ mode: 'edit' });
+    const e = useContestEditor(opts);
+    e.startDate.value = '2026-06-20T00:00:00.000Z';
+    e.endDate.value = '2026-06-10T00:00:00.000Z';
+
+    await e.save({ silent: true });
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(toast).not.toHaveBeenCalled();
+  });
+});

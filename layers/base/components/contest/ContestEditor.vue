@@ -45,6 +45,9 @@ const editor = useContestEditor({
   extractError,
   navigate: (p) => navigateTo(p),
   refresh: () => refresh(),
+  // Autosave renames swap the edit URL in place (same page component, no remount);
+  // the hydrate guard below keeps the refetch from clobbering in-progress edits.
+  onRenamed: (s) => navigateTo(`/contests/${s}/edit`, { replace: true }),
 });
 const {
   title, slugInput, slugTouched, subheading, descriptionBlocks, rulesBlocks, prizesBlocks,
@@ -54,6 +57,36 @@ const {
   showPrizes, prizes, criteria, stages, currentStageId,
   saving, formDirty, dateError, canSubmit, slugify, toggleType, toggleRole, addPrize, removePrize, prizeLabel, save,
 } = editor;
+
+// Draft contests autosave (background PUT once edits settle); published contests
+// save on an explicit action. Create has no slug yet, so it never autosaves.
+const isDraftAutosave = computed(() => props.mode === 'edit' && contest.value?.status === 'draft');
+const autosave = useEditorAutosave({
+  persist: () => editor.save({ silent: true }),
+  canSave: () => isDraftAutosave.value && !dateError.value && !!title.value.trim(),
+  debounceMs: 3000,
+  onError: (err) => toast.error(extractError(err)),
+});
+// Any post-hydration edit re-arms the trailing debounce (only while autosaving).
+watch(formDirty, (d) => { if (d && isDraftAutosave.value) autosave.markDirty(); });
+const busy = computed(() => saving.value || autosave.saving.value);
+const autosaveError = computed(() => autosave.status.value === 'error');
+const autosaveLabel = computed(() => {
+  if (busy.value) return 'Saving changes';
+  if (autosaveError.value) return "Couldn't autosave";
+  if (formDirty.value) return 'Unsaved changes';
+  return 'All changes saved';
+});
+const autosaveIcon = computed(() => {
+  if (busy.value) return 'fa-circle-notch fa-spin';
+  if (autosaveError.value) return 'fa-triangle-exclamation';
+  if (formDirty.value) return 'fa-circle';
+  return 'fa-circle-check';
+});
+function onSave(): void {
+  if (isDraftAutosave.value) void autosave.saveNow();
+  else void save();
+}
 
 useSeoMeta({
   title: () => (props.mode === 'create'
@@ -82,6 +115,9 @@ const deleting = ref(false);
 // stage's advancement cut from its persisted advanceCount.
 watch(contest, (c) => {
   if (!c) return;
+  // Never clobber unsaved edits with a refetch (e.g. an autosave rename swaps the
+  // URL and re-fetches the renamed contest while the organizer keeps typing).
+  if (formDirty.value) return;
   editor.hydrate(c as ContestEditorSource);
   advanceN.value = {};
   for (const s of stages.value) {
@@ -178,20 +214,27 @@ async function advanceStage(stageId: string): Promise<void> {
     <NuxtLink :to="`/contests/${slug}`" class="cpub-btn cpub-btn-sm">Back to Contest</NuxtLink>
   </div>
   <div v-else-if="mode === 'create' || contest" class="cpub-contest-edit">
-    <form class="cpub-edit-form" @submit.prevent="save">
+    <form class="cpub-edit-form" @submit.prevent="onSave">
       <div class="cpub-edit-topbar">
         <NuxtLink :to="mode === 'edit' ? `/contests/${slug}` : '/contests'" class="cpub-edit-topbar-back" aria-label="Back"><i class="fa-solid fa-arrow-left"></i></NuxtLink>
         <div class="cpub-edit-topbar-titles">
           <span class="cpub-edit-topbar-title">{{ mode === 'create' ? 'Create Contest' : 'Edit Contest' }}</span>
           <span v-if="mode === 'edit' && contest" class="cpub-status-badge" :class="`cpub-status-${contest.status}`">{{ contest.status }}</span>
           <span v-if="mode === 'create'" class="cpub-edit-required">Required: title, start &amp; end dates</span>
+          <span
+            v-else-if="isDraftAutosave"
+            class="cpub-edit-autosave"
+            :class="{ 'cpub-edit-autosave-err': autosaveError }"
+            role="status"
+            aria-live="polite"
+          ><i class="fa-solid" :class="autosaveIcon"></i> {{ autosaveLabel }}</span>
           <span v-else-if="formDirty" class="cpub-edit-dirty"><i class="fa-solid fa-circle"></i> Unsaved</span>
         </div>
         <div class="cpub-edit-topbar-btns">
           <NuxtLink v-if="mode === 'edit'" :to="`/contests/${slug}`" class="cpub-btn">View</NuxtLink>
-          <button type="submit" class="cpub-btn cpub-btn-primary" :disabled="saving || !canSubmit">
+          <button type="submit" class="cpub-btn cpub-btn-primary" :disabled="busy || !canSubmit">
             <i class="fa-solid" :class="mode === 'create' ? 'fa-trophy' : 'fa-floppy-disk'"></i>
-            {{ saving ? (mode === 'create' ? 'Creating…' : 'Saving…') : (mode === 'create' ? 'Create Contest' : (formDirty ? 'Save Changes' : 'Saved')) }}
+            {{ busy ? (mode === 'create' ? 'Creating…' : 'Saving…') : (mode === 'create' ? 'Create Contest' : (formDirty ? 'Save Changes' : 'Saved')) }}
           </button>
         </div>
       </div>
@@ -547,6 +590,9 @@ async function advanceStage(stageId: string): Promise<void> {
 .cpub-advance-manual .cpub-btn { align-self: flex-start; margin-top: 6px; }
 .cpub-edit-dirty { color: var(--accent); display: inline-flex; align-items: center; gap: 5px; }
 .cpub-edit-dirty i { font-size: 6px; }
+.cpub-edit-autosave { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-faint); }
+.cpub-edit-autosave i { font-size: 9px; }
+.cpub-edit-autosave-err { color: var(--red); }
 
 /* Collapse the meta rail under the main column on narrower viewports. */
 @media (max-width: 900px) {

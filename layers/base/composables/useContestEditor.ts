@@ -80,6 +80,12 @@ export interface UseContestEditorOptions {
   navigate: (path: string) => unknown;
   /** Re-fetch the contest after an edit save (edit mode only). */
   refresh?: () => Promise<void> | void;
+  /**
+   * Called (instead of `navigate`) when a SILENT save renames the slug, so the
+   * orchestrator can swap the edit URL in place without leaving the editor (the
+   * draft-autosave path). The next save targets `newSlug` via `opts.slug()`.
+   */
+  onRenamed?: (newSlug: string) => void;
 }
 
 export interface UseContestEditor {
@@ -128,7 +134,10 @@ export interface UseContestEditor {
   // lifecycle
   hydrate: (c: ContestEditorSource) => void;
   buildPayload: () => Record<string, unknown>;
-  save: () => Promise<void>;
+  /** Persist the form. `silent` (autosave) skips the success toast + navigation +
+   *  refresh, renames in place via `onRenamed`, and rethrows on failure so the
+   *  caller's status machine can react. */
+  save: (opts?: { silent?: boolean }) => Promise<void>;
 }
 
 export function slugifyContest(s: string): string {
@@ -319,28 +328,33 @@ export function useContestEditor(opts: UseContestEditorOptions): UseContestEdito
     };
   }
 
-  async function save(): Promise<void> {
-    if (dateError.value) { opts.toast(dateError.value, 'error'); return; }
+  async function save(saveOpts?: { silent?: boolean }): Promise<void> {
+    const silent = saveOpts?.silent ?? false;
+    if (dateError.value) { if (!silent) opts.toast(dateError.value, 'error'); return; }
     if (opts.mode === 'create' && (!title.value.trim() || !startDate.value || !endDate.value)) return;
     saving.value = true;
     try {
       if (opts.mode === 'create') {
         const result = await $fetch<{ slug: string }>('/api/contests', { method: 'POST', body: buildPayload() });
-        opts.toast('Contest created', 'success');
+        if (!silent) opts.toast('Contest created', 'success');
         await opts.navigate(`/contests/${result.slug}`);
         return;
       }
-      const updated = await $fetch<{ slug: string }>(`/api/contests/${opts.slug()}`, { method: 'PUT', body: buildPayload() });
-      opts.toast('Contest updated', 'success');
+      const fromSlug = opts.slug();
+      const updated = await $fetch<{ slug: string }>(`/api/contests/${fromSlug}`, { method: 'PUT', body: buildPayload() });
+      if (!silent) opts.toast('Contest updated', 'success');
       formDirty.value = false;
-      // Slug changed -> the old URL no longer resolves. Navigate to the renamed
-      // contest's page (a different route component, so it loads fresh).
-      if (updated?.slug && updated.slug !== opts.slug()) {
-        await opts.navigate(`/contests/${updated.slug}`);
+      // Slug changed -> the old URL no longer resolves. A manual save navigates to
+      // the renamed contest's page; an autosave (silent) swaps the URL in place via
+      // onRenamed so the organizer keeps editing without a jump.
+      if (updated?.slug && updated.slug !== fromSlug) {
+        if (silent) opts.onRenamed?.(updated.slug);
+        else await opts.navigate(`/contests/${updated.slug}`);
         return;
       }
-      await opts.refresh?.();
+      if (!silent) await opts.refresh?.();
     } catch (err: unknown) {
+      if (silent) throw err; // let the autosave status machine surface it
       opts.toast(opts.extractError(err), 'error');
     } finally {
       saving.value = false;
