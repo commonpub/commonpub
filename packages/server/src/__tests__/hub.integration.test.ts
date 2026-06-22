@@ -127,6 +127,11 @@ describe('hub integration', () => {
 
     const bans = await listBans(db, hub.id);
     expect(bans.length).toBe(1);
+    // The ban-management UI renders the banned user, the reason, and who banned
+    // them — assert listBans hydrates that shape (not just the row count).
+    expect(bans[0]!.user.id).toBe(memberId);
+    expect(bans[0]!.reason).toBe('Test ban');
+    expect(bans[0]!.bannedBy.id).toBe(ownerId);
 
     await unbanUser(db, ownerId, hub.id, memberId);
     const banAfter = await checkBan(db, hub.id, memberId);
