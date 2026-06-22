@@ -7,6 +7,7 @@
  * (v-show) so block state + undo history survive tab switches.
  */
 type Fmt = 'markdown' | 'html' | null;
+interface Tab { key: string; label: string; icon: string }
 
 const props = defineProps<{
   description?: unknown[] | null;
@@ -18,8 +19,10 @@ const props = defineProps<{
   legacyRulesFormat?: Fmt;
   legacyPrizes?: string | null;
   legacyPrizesFormat?: Fmt;
-  /** Show a Stages tab in the canvas (content supplied via the `#stages` slot). */
-  hasStages?: boolean;
+  /** Extra full-width canvas tabs (e.g. Stages, Judging) for non-body editors;
+   *  each tab's content is supplied via a slot named after its `key`. Keeps this
+   *  component decoupled from those editors' logic. */
+  extraTabs?: Tab[];
 }>();
 
 const emit = defineEmits<{
@@ -28,18 +31,12 @@ const emit = defineEmits<{
   'update:prizes': [v: unknown[]];
 }>();
 
-interface Tab { key: string; label: string; icon: string }
 const BODY_TABS: Tab[] = [
   { key: 'overview', label: 'Overview', icon: 'fa-circle-info' },
   { key: 'rules', label: 'Rules', icon: 'fa-file-lines' },
   { key: 'prizes', label: 'Prizes', icon: 'fa-trophy' },
 ];
-// Non-body editors (e.g. Stages) appear as additional canvas tabs, shown full-width
-// in the same area as the body — supplied via slots so this component stays
-// decoupled from their logic.
-const tabs = computed<Tab[]>(() =>
-  props.hasStages ? [...BODY_TABS, { key: 'stages', label: 'Stages', icon: 'fa-diagram-project' }] : BODY_TABS,
-);
+const tabs = computed<Tab[]>(() => [...BODY_TABS, ...(props.extraTabs ?? [])]);
 const active = ref<string>('overview');
 
 // Roving-arrow keyboard nav for the tablist (WCAG).
@@ -83,9 +80,11 @@ function onKey(e: KeyboardEvent, key: string): void {
     <div v-show="active === 'prizes'" role="tabpanel" aria-labelledby="cpub-body-tab-prizes">
       <ContestBodyEditor :model-value="prizes" :legacy="legacyPrizes" :legacy-format="legacyPrizesFormat" @update:model-value="emit('update:prizes', $event)" />
     </div>
-    <div v-if="hasStages" v-show="active === 'stages'" role="tabpanel" aria-labelledby="cpub-body-tab-stages">
-      <slot name="stages" />
-    </div>
+    <template v-for="t in (extraTabs ?? [])" :key="t.key">
+      <div v-show="active === t.key" role="tabpanel" :aria-labelledby="`cpub-body-tab-${t.key}`">
+        <slot :name="t.key" />
+      </div>
+    </template>
   </div>
 </template>
 

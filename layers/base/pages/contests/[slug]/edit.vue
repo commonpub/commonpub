@@ -74,7 +74,7 @@ const prizesDescription = ref('');
 interface Prize { place: number | null; category: string; title: string; description: string; value: string }
 const prizes = ref<Prize[]>([]);
 
-interface Criterion { label: string; weight: number | null; description: string }
+interface Criterion { label: string; weight?: number; description?: string }
 const criteria = ref<Criterion[]>([]);
 
 // Phase B1 — explicit stage timeline (empty ⇒ standard synthesized flow).
@@ -136,8 +136,8 @@ watch(contest, (c) => {
   }));
   criteria.value = (c.judgingCriteria ?? []).map((cr: { label: string; weight?: number; description?: string }) => ({
     label: cr.label,
-    weight: cr.weight ?? null,
-    description: cr.description ?? '',
+    weight: cr.weight ?? undefined,
+    description: cr.description ?? undefined,
   }));
   // Let the field watchers settle from this hydration, then re-arm dirty tracking.
   void nextTick(() => { hydratingForm = false; });
@@ -170,13 +170,12 @@ function prizeLabel(prize: Prize): string {
   return 'Prize';
 }
 
-function addCriterion(): void {
-  criteria.value.push({ label: '', weight: null, description: '' });
-}
-function removeCriterion(index: number): void {
-  criteria.value.splice(index, 1);
-}
-const criteriaTotal = computed(() => criteria.value.reduce((s, c) => s + (c.weight ?? 0), 0));
+// Extra full-width canvas tabs beside the body (Overview/Rules/Prizes): the heavy
+// editors that need room. Light settings stay in the form below / the rail.
+const bodyExtraTabs = [
+  { key: 'stages', label: 'Stages', icon: 'fa-diagram-project' },
+  { key: 'judging', label: 'Judging', icon: 'fa-scale-balanced' },
+];
 
 const dateError = computed(() => {
   if (startDate.value && endDate.value && new Date(endDate.value) <= new Date(startDate.value)) {
@@ -206,7 +205,7 @@ async function handleSave(): Promise<void> {
       .map((c) => ({
         label: c.label.trim(),
         weight: typeof c.weight === 'number' && Number.isFinite(c.weight) ? c.weight : undefined,
-        description: c.description.trim() || undefined,
+        description: (c.description ?? '').trim() || undefined,
       }));
 
     const updated = await $fetch<{ slug: string }>(`/api/contests/${slug}`, {
@@ -372,7 +371,7 @@ async function transitionStatus(newStatus: string): Promise<void> {
           :legacy-rules-format="rulesFormat"
           :legacy-prizes="prizesDescription"
           :legacy-prizes-format="prizesDescriptionFormat"
-          :has-stages="true"
+          :extra-tabs="bodyExtraTabs"
         >
           <template #stages>
             <p class="cpub-form-hint">Optional. The standard flow (Submissions → Judging → Results) is derived from the schedule (Details &rsaquo; Schedule). Add custom stages for multi-round contests, proposal rounds, a Top-N selection, a build sprint, multiple judging rounds, or a showcase event.</p>
@@ -417,6 +416,19 @@ async function transitionStatus(newStatus: string): Promise<void> {
                 </div>
               </div>
             </section>
+          </template>
+          <template #judging>
+            <div class="cpub-form-field">
+              <label for="contest-judging-visibility" class="cpub-form-label">Score visibility</label>
+              <select id="contest-judging-visibility" v-model="judgingVisibility" class="cpub-form-input">
+                <option value="judges-only">Judges only, scores hidden until results</option>
+                <option value="public">Public, show scores during judging</option>
+                <option value="private">Private, scores stay with organizers</option>
+              </select>
+            </div>
+            <label class="cpub-form-check"><input v-model="communityVotingEnabled" type="checkbox" /> <span>Enable community voting (advisory audience favourite, doesn't affect ranks)</span></label>
+            <p class="cpub-form-hint" style="margin-top: 12px;">The rubric below is the contest's default criteria. A review stage can override it with per-round criteria (Stages tab). Leave it empty and judges score an overall 1 to 100.</p>
+            <ContestCriteriaEditor v-model="criteria" label="Judging criteria" :show-total="true" />
           </template>
         </ContestBodyTabs>
         <p class="cpub-form-hint">Edit the <strong>Overview</strong>, <strong>Rules</strong>, <strong>Prizes</strong>, and <strong>Stages</strong> in the tabs above. The body copy is blocks (headings, lists, images, callouts, and the <strong>Judges Showcase</strong>), like the project and blog editors. Legacy text converts to blocks on first edit.</p>
@@ -506,43 +518,6 @@ async function transitionStatus(newStatus: string): Promise<void> {
           </div>
         </div>
         <button type="button" class="cpub-btn cpub-btn-sm" @click="addPrize"><i class="fa-solid fa-plus"></i> Add Prize</button>
-      </section>
-
-      <section class="cpub-form-section">
-        <h2 class="cpub-form-section-title">Judging</h2>
-        <div class="cpub-form-field">
-          <label for="contest-judging-visibility" class="cpub-form-label">Score Visibility</label>
-          <select id="contest-judging-visibility" v-model="judgingVisibility" class="cpub-form-input">
-            <option value="judges-only">Judges only, scores hidden until results</option>
-            <option value="public">Public, show scores during judging</option>
-            <option value="private">Private, scores stay with organizers</option>
-          </select>
-        </div>
-        <label class="cpub-form-check">
-          <input v-model="communityVotingEnabled" type="checkbox" />
-          <span>Enable community voting</span>
-        </label>
-
-        <div class="cpub-subhead">
-          <h3 class="cpub-form-subtitle">Judging Criteria <span v-if="criteriaTotal" class="cpub-form-hint-inline">{{ criteriaTotal }} pts</span></h3>
-          <button type="button" class="cpub-btn cpub-btn-sm" @click="addCriterion"><i class="fa-solid fa-plus"></i> Add Criterion</button>
-        </div>
-        <div v-for="(crit, ci) in criteria" :key="ci" class="cpub-criterion-row">
-          <div class="cpub-form-row">
-            <div class="cpub-form-field" style="flex: 3">
-              <label :for="`crit-label-${ci}`" class="cpub-form-label">Criterion</label>
-              <input :id="`crit-label-${ci}`" v-model="crit.label" type="text" class="cpub-form-input" placeholder="e.g. Documentation" />
-            </div>
-            <div class="cpub-form-field" style="flex: 1">
-              <label :for="`crit-weight-${ci}`" class="cpub-form-label">Points</label>
-              <input :id="`crit-weight-${ci}`" v-model.number="crit.weight" type="number" min="0" max="100" class="cpub-form-input" placeholder="20" />
-            </div>
-            <button type="button" class="cpub-prize-remove cpub-criterion-del" aria-label="Remove criterion" @click="removeCriterion(ci)"><i class="fa-solid fa-times"></i></button>
-          </div>
-          <div class="cpub-form-field">
-            <input v-model="crit.description" type="text" class="cpub-form-input" :aria-label="`Criterion ${ci + 1} description`" placeholder="What judges look for (optional)" />
-          </div>
-        </div>
       </section>
 
       <!-- Visibility & Access -->
@@ -702,16 +677,13 @@ async function transitionStatus(newStatus: string): Promise<void> {
 .cpub-type-options { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 6px; }
 .cpub-subhead { display: flex; align-items: center; justify-content: space-between; margin: 18px 0 10px; }
 .cpub-form-subtitle { font-size: 12px; font-weight: 700; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: .06em; color: var(--text-dim); display: flex; align-items: center; gap: 8px; }
-.cpub-form-hint-inline { font-size: 10px; color: var(--accent); }
 .cpub-form-hint { font-size: 11px; color: var(--text-faint); margin: 0 0 12px; line-height: 1.5; }
 
-.cpub-prize-row, .cpub-criterion-row { border: var(--border-width-default) solid var(--border); padding: 14px; margin-bottom: 10px; background: var(--surface2); }
+.cpub-prize-row { border: var(--border-width-default) solid var(--border); padding: 14px; margin-bottom: 10px; background: var(--surface2); }
 .cpub-prize-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
 .cpub-prize-label { font-size: 11px; font-weight: 700; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent); }
 .cpub-prize-remove { background: none; border: none; color: var(--text-faint); cursor: pointer; font-size: 12px; }
 .cpub-prize-remove:hover { color: var(--red); }
-.cpub-criterion-row .cpub-form-row { align-items: flex-end; }
-.cpub-criterion-del { align-self: flex-end; margin-bottom: 12px; }
 
 .cpub-status-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .cpub-transition-btn { display: inline-flex; align-items: center; gap: 6px; }

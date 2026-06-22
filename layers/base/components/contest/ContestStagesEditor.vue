@@ -30,24 +30,8 @@ function setField(i: number, patch: Partial<ContestStage>): void {
   commit(next);
 }
 
-// Per-round rubric (review stages). Immutable updates via setField.
-type StageCriterion = { label: string; weight?: number; description?: string };
-function addCriterion(i: number): void {
-  const cur = (stages.value[i]?.criteria ?? []) as StageCriterion[];
-  setField(i, { criteria: [...cur, { label: '' }] });
-}
-function setCriterion(i: number, ci: number, patch: Partial<StageCriterion>): void {
-  const cur = (stages.value[i]?.criteria ?? []).map((c, idx) => (idx === ci ? { ...c, ...patch } : c));
-  setField(i, { criteria: cur });
-}
-function removeCriterion(i: number, ci: number): void {
-  const cur = (stages.value[i]?.criteria ?? []).filter((_, idx) => idx !== ci);
-  setField(i, { criteria: cur.length ? cur : undefined });
-}
-function critWeightInput(i: number, ci: number, e: Event): void {
-  const v = (e.target as HTMLInputElement).value;
-  setCriterion(i, ci, { weight: v === '' ? undefined : Math.max(0, Math.min(100, Math.round(Number(v)))) });
-}
+// Per-round rubric (review stages) is edited by the shared ContestCriteriaEditor
+// (same component as the contest-level Judging tab — one rubric editor, no dup).
 function advanceCountInput(i: number, e: Event): void {
   const v = (e.target as HTMLInputElement).value;
   setField(i, { advanceCount: v === '' ? undefined : Math.max(1, Math.round(Number(v))) });
@@ -212,16 +196,13 @@ const missingSubmission = computed(() => stages.value.length > 0 && !stages.valu
               <label :for="`stage-advance-${i}`" class="cpub-form-label">Advance the top N to the next stage</label>
               <input :id="`stage-advance-${i}`" :value="stage.advanceCount ?? ''" type="number" min="1" class="cpub-form-input cpub-stage-advn" placeholder="e.g. 50, leave blank to decide at advance time" @input="advanceCountInput(i, $event)" />
             </div>
-            <div class="cpub-stage-criteria-head">
-              <span class="cpub-form-label" style="margin: 0;">Judging criteria, this round</span>
-              <button type="button" class="cpub-btn cpub-btn-sm" @click="addCriterion(i)"><i class="fa-solid fa-plus"></i> Add</button>
-            </div>
             <p class="cpub-form-hint" style="margin: 4px 0;">Optional, leave empty to use the contest’s default criteria. Set per-round criteria for multi-round contests (e.g. judge proposals on Feasibility, prototypes on Deployment readiness).</p>
-            <div v-for="(crit, ci) in (stage.criteria ?? [])" :key="ci" class="cpub-stage-crit-row">
-              <input :value="crit.label" type="text" class="cpub-form-input" :aria-label="`Criterion ${ci + 1}`" placeholder="Criterion (e.g. Community impact)" @input="setCriterion(i, ci, { label: ($event.target as HTMLInputElement).value })" />
-              <input :value="crit.weight ?? ''" type="number" min="0" max="100" class="cpub-form-input cpub-stage-crit-pts" :aria-label="`Criterion ${ci + 1} points`" placeholder="pts" @input="critWeightInput(i, ci, $event)" />
-              <button type="button" class="cpub-stage-iconbtn cpub-stage-del" aria-label="Remove criterion" @click="removeCriterion(i, ci)"><i class="fa-solid fa-xmark"></i></button>
-            </div>
+            <ContestCriteriaEditor
+              :model-value="(stage.criteria ?? [])"
+              label="Judging criteria, this round"
+              :show-total="false"
+              @update:model-value="setField(i, { criteria: ($event as ContestStage['criteria']) })"
+            />
           </div>
 
           <!-- Per-stage submission template (submission stages): the artifact
@@ -323,9 +304,6 @@ const missingSubmission = computed(() => stages.value.length > 0 && !stages.valu
 .cpub-stage-kind-help i { color: var(--accent); margin-top: 2px; flex-shrink: 0; }
 .cpub-stage-criteria { border: var(--border-width-default) dashed var(--border2); padding: 10px; margin-top: 4px; background: var(--surface); }
 .cpub-stage-criteria-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.cpub-stage-crit-row { display: flex; align-items: center; gap: 6px; margin-top: 6px; }
-.cpub-stage-crit-row .cpub-form-input { margin: 0; }
-.cpub-stage-crit-pts { max-width: 70px; flex-shrink: 0; }
 .cpub-stage-advn { max-width: 320px; }
 .cpub-stage-tfield { margin-top: 8px; padding-top: 8px; border-top: var(--border-width-default) dashed var(--border2); }
 .cpub-stage-tfield:first-of-type { border-top: 0; padding-top: 0; }

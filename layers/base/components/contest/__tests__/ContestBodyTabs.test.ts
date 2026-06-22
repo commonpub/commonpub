@@ -35,21 +35,31 @@ describe('ContestBodyTabs', () => {
     expect(overview.getAttribute('aria-selected')).toBe('false');
   });
 
-  it('has no Stages tab by default', () => {
+  it('has only the body tabs by default (no extra tabs)', () => {
     const { queryByRole } = render(ContestBodyTabs, { props: {}, global: { stubs } });
     expect(queryByRole('tab', { name: /Stages/ })).toBeNull();
+    expect(queryByRole('tab', { name: /Judging/ })).toBeNull();
   });
 
-  it('adds a Stages canvas tab (hasStages) rendering the #stages slot', async () => {
+  it('renders extraTabs as canvas tabs, each from its named slot', async () => {
     const { getByRole, getByText } = render(ContestBodyTabs, {
-      props: { hasStages: true },
-      slots: { stages: '<div>STAGES PANEL</div>' },
+      props: {
+        extraTabs: [
+          { key: 'stages', label: 'Stages', icon: 'fa-diagram-project' },
+          { key: 'judging', label: 'Judging', icon: 'fa-scale-balanced' },
+        ],
+      },
+      slots: { stages: '<div>STAGES PANEL</div>', judging: '<div>JUDGING PANEL</div>' },
       global: { stubs },
     });
     const stagesTab = getByRole('tab', { name: /Stages/ });
+    const judgingTab = getByRole('tab', { name: /Judging/ });
     expect(stagesTab).toBeTruthy();
-    expect(getByText('STAGES PANEL')).toBeTruthy(); // slot content present (v-show)
-    await fireEvent.click(stagesTab);
-    expect(stagesTab.getAttribute('aria-selected')).toBe('true');
+    expect(judgingTab).toBeTruthy();
+    expect(getByText('STAGES PANEL')).toBeTruthy();
+    expect(getByText('JUDGING PANEL')).toBeTruthy();
+    await fireEvent.click(judgingTab);
+    expect(judgingTab.getAttribute('aria-selected')).toBe('true');
+    expect(stagesTab.getAttribute('aria-selected')).toBe('false');
   });
 });
