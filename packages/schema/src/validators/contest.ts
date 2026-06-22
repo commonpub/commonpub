@@ -1,5 +1,20 @@
 import { z } from 'zod';
 import { optionalUrl } from './_shared.js';
+import {
+  contestStatusEnum,
+  contestVisibilityEnum,
+  contestContentFormatEnum,
+  judgingVisibilityEnum,
+  userRoleEnum,
+} from '../enums.js';
+
+// Derive the enum validators from the pgEnums (single source of truth) so a new
+// enum value can't silently bypass validation by being added to the column but
+// not these hand-maintained lists. See the drift-guard test in validators.test.ts.
+const contentFormatSchema = z.enum(contestContentFormatEnum.enumValues);
+const contestVisibilitySchema = z.enum(contestVisibilityEnum.enumValues);
+const judgingVisibilitySchema = z.enum(judgingVisibilityEnum.enumValues);
+const userRoleSchema = z.enum(userRoleEnum.enumValues);
 
 // --- Contest validators ---
 
@@ -117,9 +132,9 @@ export const createContestSchema = z
     rules: z.string().max(CONTEST_RICH_TEXT_MAX).optional(),
     prizesDescription: z.string().max(CONTEST_RICH_TEXT_MAX).optional(),
     // Per-field render mode for the three long-form fields above (independent).
-    descriptionFormat: z.enum(['markdown', 'html']).optional(),
-    rulesFormat: z.enum(['markdown', 'html']).optional(),
-    prizesDescriptionFormat: z.enum(['markdown', 'html']).optional(),
+    descriptionFormat: contentFormatSchema.optional(),
+    rulesFormat: contentFormatSchema.optional(),
+    prizesDescriptionFormat: contentFormatSchema.optional(),
     bannerUrl: optionalUrl(),
     coverImageUrl: optionalUrl(),
     showPrizes: z.boolean().optional(),
@@ -140,11 +155,11 @@ export const createContestSchema = z
     // Seed-only: populates the contest_stakeholders table (view-only reviewers).
     stakeholders: z.array(z.string().uuid()).max(100).optional(),
     communityVotingEnabled: z.boolean().optional(),
-    judgingVisibility: z.enum(['public', 'judges-only', 'private']).optional(),
+    judgingVisibility: judgingVisibilitySchema.optional(),
     eligibleContentTypes: z.array(z.string().max(40)).max(20).optional(),
     maxEntriesPerUser: z.number().int().positive().max(1000).optional(),
-    visibility: z.enum(['public', 'unlisted', 'private']).optional(),
-    visibleToRoles: z.array(z.enum(['member', 'pro', 'verified', 'staff', 'admin'])).max(5).optional(),
+    visibility: contestVisibilitySchema.optional(),
+    visibleToRoles: z.array(userRoleSchema).max(5).optional(),
   })
   .refine((d) => new Date(d.endDate) > new Date(d.startDate), {
     message: 'End date must be after the start date',
@@ -165,9 +180,9 @@ export const updateContestSchema = z
     description: z.string().max(CONTEST_RICH_TEXT_MAX).optional(),
     rules: z.string().max(CONTEST_RICH_TEXT_MAX).optional(),
     prizesDescription: z.string().max(CONTEST_RICH_TEXT_MAX).optional(),
-    descriptionFormat: z.enum(['markdown', 'html']).optional(),
-    rulesFormat: z.enum(['markdown', 'html']).optional(),
-    prizesDescriptionFormat: z.enum(['markdown', 'html']).optional(),
+    descriptionFormat: contentFormatSchema.optional(),
+    rulesFormat: contentFormatSchema.optional(),
+    prizesDescriptionFormat: contentFormatSchema.optional(),
     bannerUrl: optionalUrl(),
     coverImageUrl: optionalUrl(),
     showPrizes: z.boolean().optional(),
@@ -180,11 +195,11 @@ export const updateContestSchema = z
     stages: z.array(contestStageSchema).max(20).optional(),
     currentStageId: z.string().max(64).optional(),
     communityVotingEnabled: z.boolean().optional(),
-    judgingVisibility: z.enum(['public', 'judges-only', 'private']).optional(),
+    judgingVisibility: judgingVisibilitySchema.optional(),
     eligibleContentTypes: z.array(z.string().max(40)).max(20).optional(),
     maxEntriesPerUser: z.number().int().positive().max(1000).optional(),
-    visibility: z.enum(['public', 'unlisted', 'private']).optional(),
-    visibleToRoles: z.array(z.enum(['member', 'pro', 'verified', 'staff', 'admin'])).max(5).optional(),
+    visibility: contestVisibilitySchema.optional(),
+    visibleToRoles: z.array(userRoleSchema).max(5).optional(),
   })
   // `judges` + `stakeholders` are intentionally NOT updatable here — they are
   // managed via the dedicated /judges and /stakeholders endpoints.
@@ -219,11 +234,11 @@ export const judgeEntrySchema = z
 export type JudgeEntryInput = z.infer<typeof judgeEntrySchema>;
 
 export const contestTransitionSchema = z.object({
-  status: z.enum(['draft', 'upcoming', 'active', 'paused', 'judging', 'completed', 'cancelled']),
+  status: z.enum(contestStatusEnum.enumValues),
 });
 export type ContestTransitionInput = z.infer<typeof contestTransitionSchema>;
 
-export const contestStatusSchema = z.enum(['draft', 'upcoming', 'active', 'paused', 'judging', 'completed', 'cancelled']);
+export const contestStatusSchema = z.enum(contestStatusEnum.enumValues);
 export type ContestStatus = z.infer<typeof contestStatusSchema>;
 
 // --- Contest filters ---

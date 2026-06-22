@@ -1,4 +1,6 @@
 import { describe, it, expect } from 'vitest';
+import { contestStatusEnum } from '../enums';
+import { contestTransitionSchema } from '../validators';
 import {
   usernameSchema,
   emailSchema,
@@ -1470,6 +1472,24 @@ describe('contestStatusSchema — boundary tests', () => {
 
   it('rejects invalid contest status', () => {
     expect(() => contestStatusSchema.parse('invalid-status')).toThrow();
+  });
+});
+
+describe('contest enum validators stay derived from the pgEnums (drift guard)', () => {
+  it('contestStatusSchema mirrors contestStatusEnum exactly', () => {
+    // RED if someone re-hardcodes the list and it drifts from the column enum.
+    expect([...contestStatusSchema.options].sort()).toEqual([...contestStatusEnum.enumValues].sort());
+    // Auto-covers every value (incl. draft + paused, which the boundary test omits).
+    for (const v of contestStatusEnum.enumValues) {
+      expect(contestStatusSchema.parse(v)).toBe(v);
+    }
+  });
+
+  it('contestTransitionSchema.status accepts every contest status and rejects unknowns', () => {
+    for (const v of contestStatusEnum.enumValues) {
+      expect(contestTransitionSchema.safeParse({ status: v }).success).toBe(true);
+    }
+    expect(contestTransitionSchema.safeParse({ status: 'not-a-status' }).success).toBe(false);
   });
 });
 
