@@ -2,7 +2,7 @@ import { eq, and, sql, isNull } from 'drizzle-orm';
 import { contentItems, users, follows } from '@commonpub/schema';
 import type { ContentType } from '@commonpub/schema';
 import type { DB, ContentListItem, UserProfile } from '../types.js';
-import { listContent } from '../content/content.js';
+import { listContentKeyset } from '../content/content.js';
 
 export async function getUserByUsername(db: DB, username: string): Promise<UserProfile | null> {
   const rows = await db
@@ -148,15 +148,32 @@ export async function updateUserProfile(
   return getUserByUsername(db, user[0]!.username);
 }
 
+export interface GetUserContentOptions {
+  type?: ContentType;
+  cursor?: string | null;
+  limit?: number;
+  /** Caller's intent to view unpublished work — honoured ONLY for the owner. */
+  drafts?: boolean;
+  /** The authenticated viewer's id (resolved server-side, never a client param). */
+  viewerId?: string;
+}
+
 export async function getUserContent(
   db: DB,
-  userId: string,
-  type?: ContentType,
-): Promise<{ items: ContentListItem[]; total: number }> {
-  return listContent(db, {
-    authorId: userId,
-    status: 'published',
-    type,
-    limit: 20,
+  profileUserId: string,
+  opts: GetUserContentOptions = {},
+): Promise<{ items: ContentListItem[]; nextCursor: string | null }> {
+  // Draft visibility is decided HERE from the authenticated viewer — never from a
+  // client-supplied status — so only the profile owner can see their own drafts.
+  // A non-owner (or anonymous) requesting drafts silently falls back to published.
+  const isOwner = !!opts.viewerId && opts.viewerId === profileUserId;
+  const status = opts.drafts && isOwner ? 'draft' : 'published';
+
+  return listContentKeyset(db, {
+    authorId: profileUserId,
+    status,
+    type: opts.type,
+    cursor: opts.cursor ?? undefined,
+    limit: opts.limit ?? 20,
   });
 }

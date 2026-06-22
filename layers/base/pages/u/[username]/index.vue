@@ -41,6 +41,11 @@ const tabDefs = computed(() => {
   if (learningEnabled.value) {
     tabs.push({ value: 'learning', label: 'Learning', icon: 'fa-solid fa-graduation-cap' });
   }
+  // Owner-only: their unpublished work. Draft visibility is also enforced
+  // server-side from the authenticated viewer, so this tab is the surface only.
+  if (isOwnProfile.value) {
+    tabs.push({ value: 'drafts', label: 'Drafts', icon: 'fa-solid fa-file-pen' });
+  }
   tabs.push({ value: 'about', label: 'About', icon: 'fa-solid fa-id-card' });
   return tabs;
 });
@@ -96,6 +101,34 @@ const toast = useToast();
 const isOwnProfile = computed(() => user.value?.username === username);
 const following = ref(false);
 const followLoading = ref(false);
+
+// Per-tab paginated content (projects/articles/explainers/drafts). The single
+// `content` fetch above still feeds the heatmap + About-tab teaser; these tabs
+// get their own keyset-paginated list with a Load more button.
+const FEED_TAB_TYPE: Record<string, string | undefined> = {
+  projects: 'project',
+  articles: 'blog', // the 'blog' filter also matches legacy 'article' rows server-side
+  explainers: 'explainer',
+  drafts: undefined, // the owner's drafts of any type
+};
+const FEED_TABS = ['projects', 'articles', 'explainers', 'drafts'];
+const isFeedTab = computed(() => FEED_TABS.includes(activeTab.value));
+const feedQuery = computed(() => {
+  const isDrafts = activeTab.value === 'drafts';
+  const type = FEED_TAB_TYPE[activeTab.value];
+  return {
+    ...(type ? { type } : {}),
+    ...(isDrafts ? { drafts: 'true' } : {}),
+    limit: 12,
+  };
+});
+const {
+  items: tabItems,
+  pending: tabPending,
+  loadMore: loadMoreTab,
+  canLoadMore: canLoadMoreTab,
+  loadingMore: loadingMoreTab,
+} = useProfileContent(username, feedQuery);
 
 // Initialize follow state from API response
 watch(() => profile.value, (profileData) => {
@@ -277,8 +310,8 @@ async function handleReport(): Promise<void> {
 
     <!-- Content -->
     <div class="cpub-profile-main">
-      <!-- Projects / Articles / Explainers / Videos tabs -->
-      <template v-if="['projects', 'articles', 'explainers'].includes(activeTab)">
+      <!-- Projects / Articles / Explainers / Drafts tabs -->
+      <template v-if="isFeedTab">
         <!-- Section header -->
         <div class="cpub-sec-head">
           <h2>
@@ -287,12 +320,23 @@ async function handleReport(): Promise<void> {
           </h2>
         </div>
 
-        <div v-if="filteredContent.length" class="cpub-grid-3">
-          <ContentCard v-for="item in filteredContent" :key="item.id" :item="item" />
+        <div v-if="tabPending && !tabItems.length" class="cpub-empty-state">
+          <p class="cpub-empty-state-title">Loading...</p>
         </div>
-        <div v-else class="cpub-empty-state">
-          <p class="cpub-empty-state-title">No {{ activeTab }} yet</p>
-        </div>
+        <template v-else>
+          <div v-if="tabItems.length" class="cpub-grid-3">
+            <ContentCard v-for="item in tabItems" :key="item.id" :item="item" />
+          </div>
+          <div v-else class="cpub-empty-state">
+            <p class="cpub-empty-state-title">{{ activeTab === 'drafts' ? 'No drafts yet' : `No ${activeTab} yet` }}</p>
+          </div>
+          <div v-if="canLoadMoreTab" class="cpub-load-more-row">
+            <button class="cpub-btn-load-more" :disabled="loadingMoreTab" @click="loadMoreTab">
+              <i :class="loadingMoreTab ? 'fa-solid fa-circle-notch fa-spin' : 'fa-solid fa-rotate'"></i>
+              {{ loadingMoreTab ? 'Loading...' : 'Load more' }}
+            </button>
+          </div>
+        </template>
       </template>
 
       <!-- Learning tab — Certificates + In-progress paths -->
@@ -893,5 +937,27 @@ async function handleReport(): Promise<void> {
   .cpub-profile-tab { padding: 10px 10px; font-size: 11px; min-height: 40px; }
   .cpub-profile-stat { min-width: 100%; padding: 10px 16px; }
   .cpub-profile-name { font-size: 18px; }
+}
+
+.cpub-load-more-row { display: flex; justify-content: center; padding: 20px 0 4px; }
+.cpub-btn-load-more {
+  padding: 8px 28px;
+  background: var(--surface);
+  border: var(--border-width-default) solid var(--border);
+  color: var(--text-dim);
+  font-size: 12px;
+  font-family: var(--font-mono);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.15s;
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+}
+.cpub-btn-load-more:hover {
+  background: var(--surface2);
+  color: var(--text);
+  box-shadow: var(--shadow-md);
+  transform: translate(-1px, -1px);
 }
 </style>

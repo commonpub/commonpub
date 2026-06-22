@@ -48,9 +48,9 @@ describe('profile integration', () => {
   });
 
   it('returns empty content for user with no published items', async () => {
-    const { items, total } = await getUserContent(db, ghostId);
+    const { items, nextCursor } = await getUserContent(db, ghostId);
     expect(items).toEqual([]);
-    expect(total).toBe(0);
+    expect(nextCursor).toBeNull();
   });
 
   it('returns correct content stats', async () => {
@@ -137,11 +137,49 @@ describe('profile integration', () => {
   });
 
   it('getUserContent filters by type', async () => {
-    const result = await getUserContent(db, userId, 'project');
+    const result = await getUserContent(db, userId, { type: 'project' });
 
     expect(result.items.length).toBeGreaterThanOrEqual(1);
     for (const item of result.items) {
       expect(item.type).toBe('project');
     }
+  });
+
+  it('shows the owner their own drafts but never a non-owner (server-side authz)', async () => {
+    const draft = await createContent(db, userId, { type: 'project', title: 'Secret Draft' });
+    expect(draft.status).toBe('draft');
+
+    // Owner (viewerId === profile owner) requesting drafts sees the draft.
+    const ownerView = await getUserContent(db, userId, { viewerId: userId, drafts: true });
+    expect(ownerView.items.some((i) => i.id === draft.id)).toBe(true);
+    expect(ownerView.items.every((i) => i.status === 'draft')).toBe(true);
+
+    // A different authenticated viewer requesting drafts gets only published — the
+    // draft must NOT leak (decision is server-side, not from the client `drafts` flag).
+    const otherView = await getUserContent(db, userId, { viewerId: ghostId, drafts: true });
+    expect(otherView.items.some((i) => i.id === draft.id)).toBe(false);
+    expect(otherView.items.every((i) => i.status === 'published')).toBe(true);
+
+    // Anonymous (no viewerId) requesting drafts also gets only published.
+    const anonView = await getUserContent(db, userId, { drafts: true });
+    expect(anonView.items.some((i) => i.id === draft.id)).toBe(false);
+  });
+
+  it('paginates with a stable keyset cursor (non-overlapping pages)', async () => {
+    // Ensure at least 3 published projects exist for this user.
+    for (const title of ['Page Proj A', 'Page Proj B', 'Page Proj C']) {
+      const c = await createContent(db, userId, { type: 'project', title });
+      await publishContent(db, c.id, userId);
+    }
+
+    const page1 = await getUserContent(db, userId, { type: 'project', limit: 2 });
+    expect(page1.items.length).toBe(2);
+    expect(page1.nextCursor).toBeTruthy();
+
+    const page2 = await getUserContent(db, userId, { type: 'project', limit: 2, cursor: page1.nextCursor });
+    expect(page2.items.length).toBeGreaterThanOrEqual(1);
+
+    const ids1 = new Set(page1.items.map((i) => i.id));
+    expect(page2.items.some((i) => ids1.has(i.id))).toBe(false); // no overlap (id tiebreaker)
   });
 });
