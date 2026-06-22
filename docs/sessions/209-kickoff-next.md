@@ -12,12 +12,34 @@ this doc is the current branch state). Companion: the paste-ready prompt in
 **commonpub.io is healthy and LIVE on the sessions 203-204 audit remediation** (main `d1ce1320`).
 deveco.io / heatsynclabs.io are NOT rolled (nothing published since).
 
-**Active branch: `monolith-splits` — 17 commits ahead of main, NOT pushed / NO PR / NOT deployed /
+**Active branch: `monolith-splits` — 27 commits ahead of main, NOT pushed / NO PR / NOT deployed /
 NOT published** (per standing instruction: all this session's work stays on this branch). Everything
-below is committed, fully green (layer suite **1109 tests**, `nuxt typecheck` clean), and
-adversarially self-audited.
+below is committed, fully green (server suite **1445**, layer suite **1117**, `nuxt typecheck` clean),
+and adversarially self-audited.
 
-`git diff --stat main..HEAD` → **57 files, +1634/-422.**
+### Session 209 continuation (post-handoff work, all committed on this branch)
+- **P1 like-race fix** (`0fc4b1ef`) — tx + `FOR UPDATE` on likeRemoteContent/boostRemoteContent.
+- **P2 pagination clamp hardening** (`31203d91`) — 10 hand-rolled clamps → `normalizePagination`.
+- **P0 hub-invite UI** (`04b33771`) — invites page + DELETE route + `?invite=` redemption.
+- **Invite security follow-up** (`a4e02d98`, from a 2-agent deep audit): fixed a **P1 IDOR** (revokeInvite
+  deleted by id with no hub filter → cross-hub revoke), a **P2** perm mismatch (moderators saw write
+  controls that 403'd → gated GET + UI to admin+), and a **P3** use-burn (validateAndUseInvite now
+  scoped by hubId, atomic). RED-on-revert tests added.
+- **Re-enabled 3 silently-skipped tests** (`a594ac8c`) — hub-post like/unlike, like idempotency, and
+  conversation dedup were `it.skip`'d "until real Postgres test DB"; moved onto the realpgdb harness
+  (`describe.skipIf`). Surfaced + fixed a latent swapped-arg bug in the never-run like tests. Server
+  suite 1445, **0 skipped**.
+- **useDocsPageTree extraction** (`0fee3818`) — 6 page-tree CRUD handlers (incl. the reparent/reorder
+  deferred-refresh coordination) out of edit.vue (1397→1323) into a tested composable (8 tests).
+
+**NEW deferred finding (from the elegance audit):** the IntersectionObserver TOC scroll-spy is
+duplicated + divergent in `ProjectView.vue` (130-182, rootMargin -70%, never re-setups → stale on
+content change) and `docs/[siteSlug]/[...pagePath].vue` (113-136, rootMargin -60%, **leaks observers**
+— its `observer` is local to setupScrollSpy, never disconnected on re-setup). A shared `useScrollSpy`
+composable (parameterized rootMargin + heading source, watch-and-re-observe, disconnect on unmount)
+would consolidate both and fix both bugs. Needs an IntersectionObserver mock in the layer test-setup.
+
+`git diff --stat main..HEAD` → **~70 files** (pre-209-continuation baseline was 57 files, +1634/-422).
 
 ---
 
