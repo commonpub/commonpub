@@ -72,6 +72,47 @@ describe('sanitizeRichHtml — permissive but script-free', () => {
   });
 });
 
+describe('sanitizeRichHtml — neutralizeColors (dark-mode-safe author HTML)', () => {
+  it('drops hardcoded color/background literals so the theme baseline shows through', () => {
+    const html = '<div style="color:#000;background:#fff;padding:10px">x</div>';
+    const out = sanitizeRichHtml(html, { neutralizeColors: true });
+    expect(out).not.toMatch(/color:#000/i);
+    expect(out).not.toMatch(/background:#fff/i);
+    expect(out).toContain('padding:10px'); // non-color declarations survive
+  });
+
+  it('drops rgb()/hsl()/named color literals too', () => {
+    const out = sanitizeRichHtml(
+      '<p style="color:rgb(20,20,20)">a</p><p style="background-color:white">b</p><p style="border-color:hsl(0,0%,0%)">c</p>',
+      { neutralizeColors: true },
+    );
+    expect(out).not.toMatch(/rgb\(/i);
+    expect(out).not.toMatch(/background-color:white/i);
+    expect(out).not.toMatch(/hsl\(/i);
+  });
+
+  it('KEEPS theme-adaptive color values (var(), currentColor) — author intent respected', () => {
+    const out = sanitizeRichHtml(
+      '<div style="color:var(--text);background:currentColor">x</div>',
+      { neutralizeColors: true },
+    );
+    expect(out).toContain('color:var(--text)');
+    expect(out).toContain('background:currentColor');
+  });
+
+  it('is OFF by default — colors preserved for general-purpose rendering', () => {
+    const out = sanitizeRichHtml('<div style="color:#000">x</div>');
+    expect(out).toContain('color:#000');
+  });
+
+  it('still strips dangerous CSS even with neutralizeColors on', () => {
+    const out = sanitizeRichHtml('<div style="color:#000;background:url(http://evil/x.png);width:5px">x</div>', { neutralizeColors: true });
+    expect(out).not.toMatch(/url\(/i);
+    expect(out).not.toMatch(/color:#000/i);
+    expect(out).toContain('width:5px');
+  });
+});
+
 describe('sanitizeBlockHtml — strict allowlist still strips div/style (markdown mode)', () => {
   it('strips div and style (regression: markdown mode stays strict)', () => {
     const out = sanitizeBlockHtml('<div style="color:red"><p>kept</p></div>');

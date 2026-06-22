@@ -28,7 +28,9 @@ const props = defineProps<{
 const trimmed = computed(() => (props.source ?? '').trim());
 const isHtml = computed(() => props.format === 'html');
 
-const richHtml = computed(() => (isHtml.value && trimmed.value ? sanitizeRichHtml(trimmed.value) : ''));
+// neutralizeColors: drop hardcoded color literals so the themed `.cpub-md-html`
+// baseline shows through (dark-mode-safe); author `var(--*)`/currentColor are kept.
+const richHtml = computed(() => (isHtml.value && trimmed.value ? sanitizeRichHtml(trimmed.value, { neutralizeColors: true }) : ''));
 
 const blocks = computed<BlockTuple[]>(() => {
   if (isHtml.value || !trimmed.value) return [];

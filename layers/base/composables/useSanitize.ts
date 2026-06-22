@@ -174,15 +174,49 @@ const RICH_URL_ATTRS = new Set(['href', 'src', 'xlink:href']);
 // CSS constructs that can fetch, exfiltrate, or execute — stripped per-declaration.
 const STYLE_DECL_BLOCKLIST = /expression\s*\(|javascript:|vbscript:|behavior\s*:|-moz-binding|@import|url\s*\(/i;
 
-function sanitizeStyleAttr(value: string): string {
+// Color neutralization (opt-in, for dark-mode-safe author HTML). A declaration of
+// one of these properties whose value is a HARDCODED color literal (hex / rgb()/
+// hsl() / common named) is dropped so the themed `.cpub-md-html` baseline shows
+// through — but theme-adaptive values (var(), currentColor, inherit, transparent)
+// are KEPT, so an author who writes `color: var(--text)` is respected.
+const COLOR_PROPS = new Set(['color', 'background', 'background-color', 'border-color', 'outline-color']);
+const LITERAL_COLOR = /#[0-9a-f]{3,8}\b|\b(?:rgba?|hsla?)\s*\(|\b(?:white|black|red|green|blue|yellow|orange|purple|pink|gray|grey|silver|gold|maroon|navy|teal|olive|lime|aqua|cyan|magenta|brown|beige|ivory|crimson|coral|salmon|khaki|indigo|violet)\b/i;
+const ADAPTIVE_COLOR = /var\(|currentcolor|inherit|transparent|initial|unset/i;
+
+function isClashingColorDecl(decl: string): boolean {
+  const ci = decl.indexOf(':');
+  if (ci <= 0) return false;
+  const prop = decl.slice(0, ci).trim().toLowerCase();
+  if (!COLOR_PROPS.has(prop)) return false;
+  const val = decl.slice(ci + 1);
+  if (ADAPTIVE_COLOR.test(val)) return false;
+  return LITERAL_COLOR.test(val);
+}
+
+function sanitizeStyleAttr(value: string, neutralizeColors = false): string {
   return value
     .split(';')
-    .filter((decl) => decl.trim() && !STYLE_DECL_BLOCKLIST.test(decl))
+    .filter((decl) => {
+      if (!decl.trim() || STYLE_DECL_BLOCKLIST.test(decl)) return false;
+      if (neutralizeColors && isClashingColorDecl(decl)) return false;
+      return true;
+    })
     .join(';');
 }
 
+export interface SanitizeRichOptions {
+  /**
+   * Drop inline hardcoded color/background literals so the themed render baseline
+   * (dark-safe) shows through. Theme-adaptive values (var(), currentColor) are
+   * kept. Off by default (general-purpose rendering preserves author colors);
+   * on for the contest "Full HTML" fields so a pasted light-mode document stays
+   * readable in dark mode.
+   */
+  neutralizeColors?: boolean;
+}
+
 /** Sanitize author HTML for "full HTML" rendering — permissive but script-free. */
-export function sanitizeRichHtml(html: string): string {
+export function sanitizeRichHtml(html: string, opts: SanitizeRichOptions = {}): string {
   if (!html || typeof html !== 'string') return '';
 
   let result = html.replace(/<!--[\s\S]*?-->/g, '');
@@ -219,7 +253,7 @@ export function sanitizeRichHtml(html: string): string {
         if (RICH_URL_ATTRS.has(name) && !isSafeUrl(value)) continue;
 
         if (name === 'style') {
-          const cleaned = sanitizeStyleAttr(value);
+          const cleaned = sanitizeStyleAttr(value, opts.neutralizeColors);
           if (cleaned) safeAttrs.push(`style="${escapeAttrValue(cleaned)}"`);
           continue;
         }
