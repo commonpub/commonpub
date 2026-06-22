@@ -572,3 +572,27 @@ default **false**.
   dep via `defineCommonPubConfig`, not by server's internal copy.
 - **Mastodon inbox-*forwarded* activities are now rejected** by the actor↔signer binding (we don't
   forward; direct delivery is unaffected). If a Mastodon reply-thread shows dropped activities, that's why.
+
+---
+
+## Active feature branch: `contests` (session 211 — NOT merged / published / deployed)
+
+Forked from `monolith-splits` (itself unreleased). The **contest elevation** initiative
+(`docs/plans/contest-elevation.md`, 6 phases). Phase 1 + Phase 2a/2b landed; gates green
+(server 1467, layer 1150, reference `vue-tsc` 0). Nothing is live — these notes describe BRANCH state.
+
+**Landed so far (all atomic, tested, RED-on-revert proven):**
+- Bug fixes: transactional `createContest`/`withdrawContestEntry`, race-safe `addContestJudge`, emoji
+  removed; contest enum validators derived from pgEnums; `contestCreation` route default → `admin`.
+- `utils/datetime` + `CpubDateTimeField` (fixes the UTC datetime-local display bug; themed pickers);
+  `color-scheme` declared on `:root` + all 3 dark themes (stoa-dark gap fixed).
+- Dark-mode-safe contest Full-HTML (`sanitizeRichHtml` `neutralizeColors` + `.cpub-md-html` baseline).
+- `?tab=` deep-linkable contest tabs.
+- `searchUsers` + contest-scoped `/api/contests/[slug]/user-search` (fixes the non-admin judge/reviewer
+  picker 403).
+
+**Release note when this ships (no migration yet on this branch):** changed publishable set so far is
+`@commonpub/schema` (validator derivation — additive), `@commonpub/server` (searchUsers + contest tx),
+`@commonpub/ui` (theme CSS), `@commonpub/layer` (components/routes). **Behavior change to flag:** contest
+Full-HTML color neutralization is on by default — existing contests with hardcoded HTML colors will
+render the theme baseline. Phase 2d will add the first migration (`contests.descriptionBlocks`/`rulesBlocks`).

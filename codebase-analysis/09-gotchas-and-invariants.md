@@ -1133,3 +1133,49 @@ full page load SSR populates it, so typing the URL works. But on a **client-side
 `v-else` is "Contest not found" will flash/stick on that branch, reading as a broken link. Gate on
 the fetch `status`: treat `idle`/`pending` as a *loading* state distinct from a genuinely-null
 "not found". This is why a page can "work when you type the URL but not when you click the button".
+
+## Theme native controls: every dark theme MUST declare `color-scheme: dark` (session 211)
+
+`:root` (base.css) sets `color-scheme: light`; each dark theme block overrides with `color-scheme: dark`
+(`[data-theme="dark"]`, `[data-theme="agora-dark"]`, `[data-theme="stoa-dark"]`). Without the override a
+dark theme renders native UI (the `datetime-local` calendar popup, scrollbars, `<select>` chrome) in the
+LIGHT scheme → white popups on a dark page. stoa-dark was missing it (added session 211). **A new dark
+theme — including a custom DB-stored one — must declare `color-scheme: dark`.** Custom dark themes built
+via the theme editor do NOT yet set this (known follow-up; they were already light-control pre-211, so
+no regression).
+
+## datetime-local conversion: use `utils/datetime`, never `toISOString().slice(0,16)` (session 211)
+
+A `datetime-local` control speaks LOCAL wall-clock with no zone. `new Date(iso).toISOString().slice(0,16)`
+is UTC → the value shown is shifted by the local offset, so the time an organizer picks is not the time
+stored. Use `toLocalInput(iso)` / `fromLocalInput(local)` (`layers/base/utils/datetime.ts`), which build
+the input value from LOCAL date components and parse it back as local (round-trip-correct in every TZ).
+The shared `CpubDateTimeField.vue` wraps this + `min`/`max` coupling + a11y; prefer it over a raw input.
+edit.vue's contest-date LOAD (and `seedStandardStages` seeding via it) had this exact UTC bug — fixed 211.
+
+## Contest rich-HTML is color-neutralized for dark-safety (session 211)
+
+`CpubMarkdown` renders `format:'html'` via `sanitizeRichHtml(html, { neutralizeColors: true })`, which
+DROPS inline hardcoded color/background literals (hex/rgb/hsl/named) so the themed `.cpub-md-html`
+baseline (`packages/ui/theme/prose.css`) shows through in BOTH themes. Theme-adaptive values
+(`var(...)`, `currentColor`, `inherit`, `transparent`) are KEPT. `neutralizeColors` defaults OFF
+(general-purpose `sanitizeRichHtml` preserves colors — existing tests rely on that); only the contest
+HTML path opts in. **Deploy note:** existing contests with intentional hardcoded HTML colors will show
+the theme baseline instead after this ships — intended (dark-safety), not flagged/toggled.
+
+## `?tab=` is the contest detail tab state — deep-linkable (session 211)
+
+`pages/contests/[slug]/index.vue` syncs the active tab to `?tab=` (validated against the known keys,
+`router.replace`, overview omits the param). SSR-initialized so a shared `/contests/x?tab=judges` lands
+correctly; back/forward honored. Caveat: a deep link to a LAZY-data tab (judges/participants) for a
+non-owner can reset to overview before that data loads.
+
+## `layers/base/theme/` is a GENERATED COPY — edit `packages/ui/theme/` (session 211)
+
+`layers/base/theme/*.css` is gitignored (`layers/base/.gitignore` `/theme/`); `nuxt.config.ts` uses it
+when present (the npm-published bundle), else falls back to `packages/ui/theme`. It is regenerated from
+`packages/ui/theme` by `layers/base/scripts/bundle-theme.mjs` at publish (`prepublishOnly`). **The tracked
+source of truth is `packages/ui/theme/`** (base/dark/agora-dark/stoa-dark/prose/forms/...). Editing the
+layer copy is silently uncommitted AND overwritten on the next bundle; in local dev run `node
+layers/base/scripts/bundle-theme.mjs` after editing the source so the dev server reflects it. Same class
+as the unanchored-gitignore-swallows-source landmine.

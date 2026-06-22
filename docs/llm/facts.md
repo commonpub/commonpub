@@ -162,6 +162,14 @@ live on commonpub.io** via a runtime override — verify with `curl
 
 ## Contest system (session 117, overhauled 171)
 
+> **Elevation in progress (session 211, `contests` branch — UNRELEASED):** see
+> `docs/plans/contest-elevation.md`. Landed: transactional `createContest`/`withdrawContestEntry`,
+> race-safe `addContestJudge`, pgEnum-derived validators; `utils/datetime` + `CpubDateTimeField`
+> (UTC datetime-local bug fixed) + `color-scheme` on `:root`/all dark themes; dark-safe Full-HTML
+> (`sanitizeRichHtml` neutralizeColors + `.cpub-md-html` baseline); `?tab=` deep links; contest-scoped
+> `/api/contests/[slug]/user-search` (`searchUsers`). NEXT: body-as-BlockTuple[] (+ first migration),
+> contest blocks (judgesShowcase), unified `ContestEditor`. Gotchas: `codebase-analysis/09` session-211.
+
 Behind `features.contests` (**live on all three instances**). Tables:
 `contests`, `contest_entries`, `contest_judges`, `contest_entry_votes`.
 Lifecycle FSM: `upcoming → active → judging → completed` (+ `cancelled` from any

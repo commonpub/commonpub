@@ -386,3 +386,7 @@ Federation admin (extensive):
 - `POST /api/files/upload` requires multipart; `upload-from-url` does SSRF checks in server/import/ssrf.ts before fetching.
 - `:username` lookups are **exact-match** (`eq(users.username, username)`); usernames are normalized to lowercase only on WRITE (Better Auth's `username()` plugin). A mixed-case URL like `/api/users/JohnDoe` 404s — the routes are NOT case-insensitive at read time.
 - `GET /api/me` returns null (not 401) if unauthenticated — used by the client to detect session state.
+- **`GET /api/contests/[slug]/user-search?q=` (session 211):** contest-manager-gated (owner /
+  `contest.manage`) PUBLIC-fields user search backing the judge/reviewer invite pickers — replaces their
+  old admin-only `/api/admin/users` calls (which 403'd for non-admin contest owners). `q` min 2 chars,
+  `limit` ≤ 25.

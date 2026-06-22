@@ -347,6 +347,19 @@ Key overridable tokens:
 ✔ Contest entry heart-vote UI with optimistic updates (session 125)
 ✔ Batch `/api/contests/:slug/votes` endpoint
 
+## Contest editor primitives (session 211, `contests` branch)
+
+- `components/CpubDateTimeField.vue` — themed `datetime-local` wrapper (ISO model, offset-correct via
+  `utils/datetime`, `min`/`max` coupling, SSR-safe id + a11y). Used by `ContestStagesEditor`;
+  `create.vue`/`edit.vue` top-level dates migrate to it in the editor rewrite (Phase 2e).
+- `utils/datetime.ts` — `toLocalInput`/`fromLocalInput` (the single offset-correct datetime-local
+  conversion; replaces per-file `toISOString().slice(0,16)` copies that shifted by the local offset).
+- `CpubMarkdown.vue` `format:'html'` now calls `sanitizeRichHtml(html, { neutralizeColors: true })` +
+  a global `.cpub-md-html` theme baseline (`packages/ui/theme/prose.css`) → dark-mode-safe author HTML.
+- `pages/contests/[slug]/index.vue` syncs the active tab to `?tab=` (deep-linkable, SSR-init).
+- `ContestJudgeManager`/`ContestStakeholderManager` search via `/api/contests/[slug]/user-search` (not the
+  admin user list); the judge manager is gated on the real `isOwner` (was hardcoded `:is-owner="true"`).
+
 ## Known mobile gap
 
 ~70 components lack `@media` breakpoints. Mobile polish is low-priority outstanding.

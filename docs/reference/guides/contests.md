@@ -198,3 +198,26 @@ Status transitions notify participants (in-app, + email when
 - API: `layers/base/server/api/contests/**`.
 - UI: `layers/base/pages/contests/**` + `layers/base/components/contest/**`.
 - Homepage section + layout-engine section: `components/homepage/ContestsSection.vue`, `sections/builtin/contests.ts`.
+
+## Editor surfaces (session 211, `contests` branch — unreleased)
+
+- **Dates** use `CpubDateTimeField` (`components/CpubDateTimeField.vue`): local-correct via
+  `utils/datetime`, themed native popup (`color-scheme`), and `min`/`max` coupling in the stages editor
+  (a stage's end can't precede its start). Replaces raw `datetime-local`, which had a UTC display bug on
+  the edit form.
+- **Long-text fields** (description / rules / prizes) support Markdown or Full-HTML per field
+  (`FormatToggle`). Full-HTML is **dark-mode-safe**: inline hardcoded colors are neutralized so the theme
+  baseline shows through; use `var(--text)` / `var(--accent)` etc. in author HTML to keep intentional
+  colors across themes.
+- **Tabs are deep-linkable** via `?tab=` (e.g. `/contests/<slug>?tab=judges`) — shareable + reload-stable.
+- **Adding judges / reviewers** uses a contest-scoped user search
+  (`GET /api/contests/[slug]/user-search`, gated to owner / `contest.manage`), so a non-admin organizer
+  can search users (public fields only) without the admin user list.
+
+## Reliability notes (session 211)
+
+- `createContest` and `withdrawContestEntry` are transactional — the contest plus its seeded
+  judges/reviewers, and the entry delete plus the `entryCount` decrement, each commit atomically.
+- `addContestJudge` is conflict-safe (`onConflictDoNothing`); concurrent double-invites no longer 500.
+- Contest enum validators (status/visibility/format/role) are derived from the pgEnums, so a column-enum
+  change can't silently bypass validation.
