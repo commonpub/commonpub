@@ -32,14 +32,14 @@ and adversarially self-audited.
 - **useDocsPageTree extraction** (`0fee3818`) — 6 page-tree CRUD handlers (incl. the reparent/reorder
   deferred-refresh coordination) out of edit.vue (1397→1323) into a tested composable (8 tests).
 
-**NEW deferred finding (from the elegance audit):** the IntersectionObserver TOC scroll-spy is
-duplicated + divergent in `ProjectView.vue` (130-182, rootMargin -70%, never re-setups → stale on
-content change) and `docs/[siteSlug]/[...pagePath].vue` (113-136, rootMargin -60%, **leaks observers**
-— its `observer` is local to setupScrollSpy, never disconnected on re-setup). A shared `useScrollSpy`
-composable (parameterized rootMargin + heading source, watch-and-re-observe, disconnect on unmount)
-would consolidate both and fix both bugs. Needs an IntersectionObserver mock in the layer test-setup.
+- **useScrollSpy consolidation** (`5c449b36`) — DONE. The divergent, each-buggy TOC scroll-spy copies in
+  `ProjectView.vue` (never re-observed → stale highlight) and the docs viewer (leaked an observer per
+  navigation) are now one tested `useScrollSpy` composable that re-observes on `source` change +
+  disconnects on re-observe/unmount. Per-surface element discovery + rootMargin + scrollTo stay inputs.
+  Added a no-op IntersectionObserver shim to the layer test-setup (jsdom has none); 7-test controllable
+  mock. ProjectView 1574→1535; imports the composable explicitly (SFC unit test has no auto-import).
 
-`git diff --stat main..HEAD` → **~70 files** (pre-209-continuation baseline was 57 files, +1634/-422).
+`git diff --stat main..HEAD` → **~75 files**. Gates: server **1445**, layer **1124**, typecheck clean.
 
 ---
 
