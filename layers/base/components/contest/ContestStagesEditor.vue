@@ -20,17 +20,7 @@ const props = defineProps<{
 
 const KINDS: ContestStage['kind'][] = ['submission', 'review', 'interim', 'results', 'event', 'custom'];
 
-// datetime-local <-> ISO (mirrors the rest of the contest forms' convention).
-function toLocal(iso?: string): string {
-  if (!iso) return '';
-  try { return new Date(iso).toISOString().slice(0, 16); } catch { return ''; }
-}
-function toIso(local: string): string | undefined {
-  if (!local) return undefined;
-  const d = new Date(local);
-  return Number.isNaN(d.getTime()) ? undefined : d.toISOString();
-}
-
+// datetime-local <-> ISO via the shared, offset-correct helpers (utils/datetime).
 function commit(next: ContestStage[]): void {
   stages.value = next;
 }
@@ -41,7 +31,7 @@ function setField(i: number, patch: Partial<ContestStage>): void {
 }
 
 function onDate(i: number, field: 'startsAt' | 'endsAt', e: Event): void {
-  const v = toIso((e.target as HTMLInputElement).value);
+  const v = fromLocalInput((e.target as HTMLInputElement).value);
   setField(i, { [field]: v } as Partial<ContestStage>);
 }
 
@@ -197,11 +187,11 @@ const missingSubmission = computed(() => stages.value.length > 0 && !stages.valu
           <div class="cpub-form-row">
             <div class="cpub-form-field">
               <label :for="`stage-starts-${i}`" class="cpub-form-label">Starts</label>
-              <input :id="`stage-starts-${i}`" type="datetime-local" class="cpub-form-input" :value="toLocal(stage.startsAt)" @input="onDate(i, 'startsAt', $event)" />
+              <input :id="`stage-starts-${i}`" type="datetime-local" class="cpub-form-input" :value="toLocalInput(stage.startsAt)" @input="onDate(i, 'startsAt', $event)" />
             </div>
             <div class="cpub-form-field">
               <label :for="`stage-ends-${i}`" class="cpub-form-label">Ends (countdown target)</label>
-              <input :id="`stage-ends-${i}`" type="datetime-local" class="cpub-form-input" :value="toLocal(stage.endsAt)" @input="onDate(i, 'endsAt', $event)" />
+              <input :id="`stage-ends-${i}`" type="datetime-local" class="cpub-form-input" :value="toLocalInput(stage.endsAt)" @input="onDate(i, 'endsAt', $event)" />
             </div>
           </div>
 
