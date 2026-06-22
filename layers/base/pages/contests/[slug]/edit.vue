@@ -357,6 +357,25 @@ async function transitionStatus(newStatus: string): Promise<void> {
     </p>
 
     <form class="cpub-edit-form" @submit.prevent="handleSave">
+      <!-- Body canvas — full width so the block editor has room (the cramped
+           in-column embed was a stepping stone; this is the editor-shell canvas). -->
+      <section class="cpub-form-section cpub-edit-body">
+        <h2 class="cpub-form-section-title">Contest body</h2>
+        <ContestBodyTabs
+          v-if="contest"
+          v-model:description="descriptionBlocks"
+          v-model:rules="rulesBlocks"
+          v-model:prizes="prizesBlocks"
+          :legacy-description="description"
+          :legacy-description-format="descriptionFormat"
+          :legacy-rules="rules"
+          :legacy-rules-format="rulesFormat"
+          :legacy-prizes="prizesDescription"
+          :legacy-prizes-format="prizesDescriptionFormat"
+        />
+        <p class="cpub-form-hint">Edit the <strong>Overview</strong>, <strong>Rules</strong>, and <strong>Prizes</strong> copy as blocks (headings, lists, images, callouts, and the <strong>Judges Showcase</strong>), like the project and blog editors. Legacy text converts to blocks on first edit.</p>
+      </section>
+
       <div class="cpub-edit-layout">
       <div class="cpub-edit-main">
       <section class="cpub-form-section">
@@ -374,22 +393,6 @@ async function transitionStatus(newStatus: string): Promise<void> {
           <label for="contest-subheading" class="cpub-form-label">Subheading</label>
           <input id="contest-subheading" v-model="subheading" type="text" maxlength="300" class="cpub-form-input" placeholder="One-line tagline shown in the contest header" />
           <p class="cpub-form-hint">Short plain-text tagline shown under the title in the hero. The Description below is the full body.</p>
-        </div>
-        <div class="cpub-form-field">
-          <div class="cpub-form-label">Contest body</div>
-          <ContestBodyTabs
-            v-if="contest"
-            v-model:description="descriptionBlocks"
-            v-model:rules="rulesBlocks"
-            v-model:prizes="prizesBlocks"
-            :legacy-description="description"
-            :legacy-description-format="descriptionFormat"
-            :legacy-rules="rules"
-            :legacy-rules-format="rulesFormat"
-            :legacy-prizes="prizesDescription"
-            :legacy-prizes-format="prizesDescriptionFormat"
-          />
-          <p class="cpub-form-hint">Edit the <strong>Overview</strong>, <strong>Rules</strong>, and <strong>Prizes</strong> copy as blocks (headings, lists, images, callouts, and the <strong>Judges Showcase</strong>), like the project and blog editors. Legacy text converts to blocks on first edit.</p>
         </div>
         <div class="cpub-form-field">
           <ImageUpload v-model="bannerUrl" purpose="banner" label="Banner Image" hint="Wide hero image across the top of the contest page (~4:1)." />
