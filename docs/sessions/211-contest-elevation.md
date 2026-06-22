@@ -26,6 +26,23 @@ used by BOTH create and edit as thin route shells: a sticky topbar + full-width 
   uses the same block body + canvas tabs + `ContestCriteriaEditor` as edit.
 - Visually verified live (Playwright, local run): create through the shell → contest created → edit shows
   status badge / People / Stage&Status / Danger rails; dates round-trip in local time (no offset shift).
+- Pushed to `origin/contests` (commits `5556af55`/`2b43a17e`/`2d9cd055`/`c04ccd04` + this audit follow-up).
+
+**Adversarial audit (session 213, all PASS):**
+- **`eligibleContentTypes: []` is SAFE** — old create.vue sent `undefined` when empty; the unified
+  buildPayload always sends the array (possibly `[]`). Traced `contest.ts:768`
+  (`if (eligible && eligible.length > 0 && !eligible.includes(...))`): `[]` is treated identically to
+  `null` = "all types allowed". Not a regression (edit.vue already sent the array). Verified vs source.
+- **Full E2E save-verify (the recommended pre-release gap) DONE.** Deterministic Playwright + API round-trip
+  (15/15): create with body blocks + criteria + prizes + ISO dates → every field persists exactly → the
+  EDIT page hydrates and **re-renders the persisted blocks** (Heading + paragraph; proves hydrate →
+  seedBodyBlocks → mount ordering) → start date shows `10:00` local for a `17:00Z` store (offset correct) →
+  save button pristine on load, arms on dirty → edit-save persists subheading **without clobbering the
+  blocks**. No page errors on the editor. (Block tuple shape gotcha for future tests: heading is
+  `['heading', { text, level }]`, paragraph is `['paragraph', { html }]` — NOT `{ content }`.)
+- **`FormatToggle.vue` (`layers/base/components/FormatToggle.vue`) is now ORPHANED** — zero usages after the
+  legacy create form was deleted (the block body replaced the markdown/HTML toggle). NOT removed: tied to
+  plan open-decision #4 (retain the hardened raw-HTML escape hatch vs deprecate). Removal candidate.
 - **Observed (pre-existing, out of scope):** the public contest VIEW page `/contests/[slug]` logs
   "Hydration completed but contains mismatches" (untouched file; likely a date/countdown SSR mismatch).
   Worth a look in Phase 3 (layout redesign touches the hero).
