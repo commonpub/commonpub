@@ -43,6 +43,23 @@ and adversarially self-audited.
 
 ---
 
+## Remaining-backlog execution (plan: `docs/plans/monolith-splits-remaining-backlog.md`)
+
+Landing decision (2026-06-22): **keep iterating** on the branch (no push/deploy/publish this session).
+
+- [x] **1a** Link hub member-management page from the hub header — `257184c6`
+- [ ] 1b Wire video sort
+- [ ] 1c Product edit/delete UI
+- [ ] 1d Video-category admin UI
+- [ ] 1e Learning completion read-back
+- [ ] 1f Extract `useDocsSiteSettings`
+- [ ] 1g RBAC `useCan`-driven admin chrome
+- [ ] Phase 2 Ban UI
+- [ ] Phase 3a/3b/3c (DECISION NEEDED — ask first)
+- [ ] Phase 4a/4b (high-risk, last)
+
+---
+
 ## What's on the branch (3 bodies of work)
 
 **1. Monolith splits + refactors (TDD, tested):**
