@@ -3,7 +3,7 @@ import type { DB } from '../types.js';
 import { createTestDB, createTestUser, closeTestDB } from './helpers/testdb.js';
 import { createRealTestDB, realPgReachable, type RealTestDb } from './helpers/realpgdb.js';
 import { createHub, getHubBySlug, listHubs, updateHub } from '../hub/hub.js';
-import { joinHub, leaveHub, listMembers } from '../hub/members.js';
+import { joinHub, leaveHub, listMembers, getMember, listJoinRequests, approveJoinRequest, denyJoinRequest } from '../hub/members.js';
 import { createPost, listPosts, likePost, unlikePost, hasLikedPost } from '../hub/posts.js';
 import { banUser, checkBan, unbanUser, listBans, createInvite, listInvites, revokeInvite } from '../hub/moderation.js';
 
@@ -255,6 +255,106 @@ describe('hub integration', () => {
     expect(ownerMember!.role).toBe('owner');
   });
 
+});
+
+describe('hub approval join workflow', () => {
+  let db: DB;
+  let ownerId: string;
+  let requesterId: string;
+  let requester2Id: string;
+
+  beforeAll(async () => {
+    db = await createTestDB();
+    ownerId = (await createTestUser(db, { username: 'appr-owner' })).id;
+    requesterId = (await createTestUser(db, { username: 'appr-requester' })).id;
+    requester2Id = (await createTestUser(db, { username: 'appr-requester2' })).id;
+  });
+
+  afterAll(async () => {
+    await closeTestDB(db);
+  });
+
+  it('approval-policy join creates a pending request, not an active member', async () => {
+    const hub = await createHub(db, ownerId, { name: 'Approval Hub', joinPolicy: 'approval' });
+
+    const res = await joinHub(db, requesterId, hub.id); // no token for approval
+    expect(res.joined).toBe(false);
+    expect(res.pending).toBe(true);
+
+    // No member-count bump (memberCount counts active members; owner = 1).
+    const after = await getHubBySlug(db, hub.slug);
+    expect(after!.memberCount).toBe(1);
+
+    // Pending is not in the active roster and is not a member for authz.
+    const roster = await listMembers(db, hub.id);
+    expect(roster.items.some((m) => m.userId === requesterId)).toBe(false);
+    expect(await getMember(db, hub.id, requesterId)).toBeNull();
+
+    // It IS in the pending request queue.
+    const reqs = await listJoinRequests(db, hub.id);
+    expect(reqs.items.some((r) => r.userId === requesterId)).toBe(true);
+  });
+
+  it('a pending member cannot post to the hub (privilege gate requires active)', async () => {
+    const hub = await createHub(db, ownerId, { name: 'Gate Hub', joinPolicy: 'approval' });
+    await joinHub(db, requesterId, hub.id);
+    await expect(createPost(db, requesterId, { hubId: hub.id, content: 'sneaky' })).rejects.toThrow();
+  });
+
+  it('approve activates the request, bumps the count, and adds to the roster', async () => {
+    const hub = await createHub(db, ownerId, { name: 'Approve Hub', joinPolicy: 'approval' });
+    await joinHub(db, requesterId, hub.id);
+
+    const res = await approveJoinRequest(db, ownerId, hub.id, requesterId);
+    expect(res.approved).toBe(true);
+
+    const member = await getMember(db, hub.id, requesterId);
+    expect(member?.role).toBe('member');
+
+    const after = await getHubBySlug(db, hub.slug);
+    expect(after!.memberCount).toBe(2); // owner + newly-active member
+
+    const reqs = await listJoinRequests(db, hub.id);
+    expect(reqs.items.some((r) => r.userId === requesterId)).toBe(false);
+  });
+
+  it('deny removes the pending request without activating or bumping', async () => {
+    const hub = await createHub(db, ownerId, { name: 'Deny Hub', joinPolicy: 'approval' });
+    await joinHub(db, requester2Id, hub.id);
+
+    const res = await denyJoinRequest(db, ownerId, hub.id, requester2Id);
+    expect(res.denied).toBe(true);
+
+    expect(await getMember(db, hub.id, requester2Id)).toBeNull();
+    const reqs = await listJoinRequests(db, hub.id);
+    expect(reqs.items.some((r) => r.userId === requester2Id)).toBe(false);
+    const after = await getHubBySlug(db, hub.slug);
+    expect(after!.memberCount).toBe(1);
+  });
+
+  it('a pending member can cancel their request without changing the member count', async () => {
+    const hub = await createHub(db, ownerId, { name: 'Cancel Hub', joinPolicy: 'approval' });
+    await joinHub(db, requesterId, hub.id);
+
+    const res = await leaveHub(db, requesterId, hub.id);
+    expect(res.left).toBe(true);
+
+    expect(await getMember(db, hub.id, requesterId)).toBeNull();
+    const reqs = await listJoinRequests(db, hub.id);
+    expect(reqs.items.some((r) => r.userId === requesterId)).toBe(false);
+    // memberCount must stay at 1 (owner) — a pending request never incremented it.
+    const after = await getHubBySlug(db, hub.slug);
+    expect(after!.memberCount).toBe(1);
+  });
+
+  it('non-managers cannot approve or deny', async () => {
+    const hub = await createHub(db, ownerId, { name: 'Perm Hub', joinPolicy: 'approval' });
+    await joinHub(db, requesterId, hub.id);
+    // requester2 is not a member at all → no permission.
+    const res = await approveJoinRequest(db, requester2Id, hub.id, requesterId);
+    expect(res.approved).toBe(false);
+    expect(res.error).toBeTruthy();
+  });
 });
 
 // Hub-post likes use INSERT ... ON CONFLICT DO NOTHING ... RETURNING to gate the

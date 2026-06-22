@@ -265,12 +265,16 @@ async function handleJoin(): Promise<void> {
     return;
   }
   try {
-    const result = await $fetch<{ joined: boolean; error?: string }>(`/api/hubs/${slug.value}/join`, {
+    const result = await $fetch<{ joined: boolean; pending?: boolean; error?: string }>(`/api/hubs/${slug.value}/join`, {
       method: 'POST',
       body: inviteToken.value ? { inviteToken: inviteToken.value } : undefined,
     });
     if (result.joined) {
       toast.success('Joined hub!');
+      await refreshHub();
+    } else if (result.pending) {
+      // Approval-gated hub: a pending request was created, awaiting admin review.
+      toast.success('Join request submitted');
       await refreshHub();
     } else {
       // joinHub resolves 200 with { joined: false } for policy failures (e.g. invite required).
@@ -308,9 +312,12 @@ async function onRefreshGallery(): Promise<void> {
     <template #hero>
       <HubHero :hub="hubVM" :gallery-total="gallery?.total">
         <template #actions>
-          <button v-if="(isAuthenticated || inviteToken) && !hub?.currentUserRole" class="cpub-btn cpub-btn-primary" @click="handleJoin">
-            <i class="fa-solid fa-plus"></i> {{ inviteToken ? 'Accept invite' : 'Join Hub' }}
+          <button v-if="(isAuthenticated || inviteToken) && !hub?.currentUserRole && !hub?.joinRequestPending" class="cpub-btn cpub-btn-primary" @click="handleJoin">
+            <i class="fa-solid fa-plus"></i> {{ inviteToken ? 'Accept invite' : (hub?.joinPolicy === 'approval' ? 'Request to join' : 'Join Hub') }}
           </button>
+          <span v-else-if="hub?.joinRequestPending" class="cpub-member-badge">
+            <i class="fa-solid fa-hourglass-half"></i> Request pending
+          </span>
           <span v-else-if="hub?.currentUserRole" class="cpub-member-badge">
             <i class="fa-solid fa-check"></i> Joined
           </span>

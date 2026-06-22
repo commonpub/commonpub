@@ -233,6 +233,8 @@ export interface HubDetail extends HubListItem {
   rules: string | null;
   updatedAt: Date;
   currentUserRole: HubRole | null;
+  /** True when the viewer has a pending join request (approval-gated hubs). */
+  joinRequestPending: boolean;
   isBanned: boolean;
   hubType: HubType;
   privacy: HubPrivacy;

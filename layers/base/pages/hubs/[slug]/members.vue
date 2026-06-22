@@ -26,6 +26,31 @@ const { data: bansData, refresh: refreshBans } = useLazyFetch<BanItem[]>(() => `
 const bans = computed(() => bansData.value ?? []);
 watch(canManage, (v) => { if (v) refreshBans(); }, { immediate: true });
 
+// Pending join requests (approval-gated hubs). Manager-only, fetched lazily.
+const { data: requestsData, refresh: refreshRequests } = useLazyFetch<{ items: any[]; total: number }>(() => `/api/hubs/${slug.value}/requests`, { immediate: false });
+const requests = computed(() => requestsData.value?.items ?? []);
+watch(canManage, (v) => { if (v) refreshRequests(); }, { immediate: true });
+
+async function approveRequest(userId: string): Promise<void> {
+  try {
+    await $fetch(`/api/hubs/${slug.value}/requests/${userId}/approve`, { method: 'POST' });
+    toast.success('Request approved');
+    await Promise.all([refreshRequests(), refresh()]);
+  } catch {
+    toast.error('Failed to approve request');
+  }
+}
+
+async function denyRequest(userId: string): Promise<void> {
+  try {
+    await $fetch(`/api/hubs/${slug.value}/requests/${userId}/deny`, { method: 'POST' });
+    toast.success('Request declined');
+    await refreshRequests();
+  } catch {
+    toast.error('Failed to decline request');
+  }
+}
+
 useSeoMeta({ title: () => `Members, ${hub.value?.name ?? 'Hub'}, ${useSiteName()}` });
 
 const roles = ['member', 'moderator', 'admin'] as const;
@@ -97,6 +122,28 @@ async function unbanMember(userId: string, username: string): Promise<void> {
       <h1 class="members-title">Members</h1>
       <p class="members-count" v-if="membersData?.total">{{ membersData.total }} members</p>
     </div>
+
+    <!-- Pending join requests (managers only) -->
+    <section v-if="canManage && requests.length" class="requests-section">
+      <h2 class="requests-title">Join requests</h2>
+      <div class="members-list">
+        <div class="member-card" v-for="r in requests" :key="r.userId">
+          <NuxtLink :to="`/u/${r.user.username}`" class="member-avatar">
+            <img v-if="r.user.avatarUrl" :src="r.user.avatarUrl" :alt="r.user.displayName || r.user.username" class="member-avatar-img" />
+            <span v-else>{{ (r.user.displayName || r.user.username).charAt(0).toUpperCase() }}</span>
+          </NuxtLink>
+          <div class="member-info">
+            <NuxtLink :to="`/u/${r.user.username}`" class="member-name">{{ r.user.displayName || r.user.username }}</NuxtLink>
+            <span class="member-handle">@{{ r.user.username }}</span>
+          </div>
+          <time class="member-joined">{{ new Date(r.joinedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) }}</time>
+          <div class="member-actions">
+            <button class="cpub-btn cpub-btn-sm cpub-btn-primary" @click="approveRequest(r.userId)">Approve</button>
+            <button class="cpub-btn cpub-btn-sm member-deny-btn" @click="denyRequest(r.userId)">Deny</button>
+          </div>
+        </div>
+      </div>
+    </section>
 
     <div class="members-list" v-if="members?.length">
       <div class="member-card" v-for="m in members" :key="m.userId">
@@ -194,6 +241,10 @@ async function unbanMember(userId: string, username: string): Promise<void> {
 .member-ban-btn:hover { color: var(--red); border-color: var(--red); }
 
 .members-empty { text-align: center; padding: 48px 0; color: var(--text-faint); }
+
+.requests-section { margin-bottom: 28px; }
+.requests-title { font-size: 13px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-dim); margin-bottom: 10px; }
+.member-deny-btn:hover { color: var(--red); border-color: var(--red); }
 
 .bans-section { margin-top: 28px; }
 .bans-title { font-size: 13px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-dim); margin-bottom: 10px; }
