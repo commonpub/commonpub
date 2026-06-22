@@ -100,9 +100,11 @@ watch(contest, (c) => {
   prizesDescriptionFormat.value = (c.prizesDescriptionFormat as 'markdown' | 'html') ?? 'markdown';
   bannerUrl.value = c.bannerUrl ?? '';
   coverImageUrl.value = c.coverImageUrl ?? '';
-  startDate.value = c.startDate ? new Date(c.startDate).toISOString().slice(0, 16) : '';
-  endDate.value = c.endDate ? new Date(c.endDate).toISOString().slice(0, 16) : '';
-  judgingEndDate.value = c.judgingEndDate ? new Date(c.judgingEndDate).toISOString().slice(0, 16) : '';
+  // Local wall-clock for the datetime-local inputs (toISOString would show UTC,
+  // shifting the displayed time by the local offset). Shared offset-correct util.
+  startDate.value = toLocalInput(c.startDate);
+  endDate.value = toLocalInput(c.endDate);
+  judgingEndDate.value = toLocalInput(c.judgingEndDate);
   communityVotingEnabled.value = !!c.communityVotingEnabled;
   judgingVisibility.value = (c.judgingVisibility as typeof judgingVisibility.value) ?? 'judges-only';
   eligibleContentTypes.value = [...(c.eligibleContentTypes ?? [])];

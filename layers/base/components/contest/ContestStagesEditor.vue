@@ -30,11 +30,6 @@ function setField(i: number, patch: Partial<ContestStage>): void {
   commit(next);
 }
 
-function onDate(i: number, field: 'startsAt' | 'endsAt', e: Event): void {
-  const v = fromLocalInput((e.target as HTMLInputElement).value);
-  setField(i, { [field]: v } as Partial<ContestStage>);
-}
-
 // Per-round rubric (review stages). Immutable updates via setField.
 type StageCriterion = { label: string; weight?: number; description?: string };
 function addCriterion(i: number): void {
@@ -185,14 +180,18 @@ const missingSubmission = computed(() => stages.value.length > 0 && !stages.valu
           <p class="cpub-stage-kind-help"><i class="fa-solid fa-circle-info"></i> {{ STAGE_KIND_HELP[stage.kind] }}</p>
 
           <div class="cpub-form-row">
-            <div class="cpub-form-field">
-              <label :for="`stage-starts-${i}`" class="cpub-form-label">Starts</label>
-              <input :id="`stage-starts-${i}`" type="datetime-local" class="cpub-form-input" :value="toLocalInput(stage.startsAt)" @input="onDate(i, 'startsAt', $event)" />
-            </div>
-            <div class="cpub-form-field">
-              <label :for="`stage-ends-${i}`" class="cpub-form-label">Ends (countdown target)</label>
-              <input :id="`stage-ends-${i}`" type="datetime-local" class="cpub-form-input" :value="toLocalInput(stage.endsAt)" @input="onDate(i, 'endsAt', $event)" />
-            </div>
+            <CpubDateTimeField
+              label="Starts"
+              :model-value="stage.startsAt"
+              :max="stage.endsAt"
+              @update:model-value="setField(i, { startsAt: $event })"
+            />
+            <CpubDateTimeField
+              label="Ends (countdown target)"
+              :model-value="stage.endsAt"
+              :min="stage.startsAt"
+              @update:model-value="setField(i, { endsAt: $event })"
+            />
           </div>
 
           <div class="cpub-form-field">
