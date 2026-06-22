@@ -1,10 +1,13 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import type { DB } from '../types.js';
 import { createTestDB, createTestUser, closeTestDB } from './helpers/testdb.js';
+import { createRealTestDB, realPgReachable, type RealTestDb } from './helpers/realpgdb.js';
 import { createHub, getHubBySlug, listHubs, updateHub } from '../hub/hub.js';
 import { joinHub, leaveHub, listMembers } from '../hub/members.js';
 import { createPost, listPosts, likePost, unlikePost, hasLikedPost } from '../hub/posts.js';
 import { banUser, checkBan, unbanUser, listBans, createInvite, listInvites, revokeInvite } from '../hub/moderation.js';
+
+const reachable = await realPgReachable();
 
 describe('hub integration', () => {
   let db: DB;
@@ -247,40 +250,45 @@ describe('hub integration', () => {
     expect(ownerMember!.role).toBe('owner');
   });
 
-  // PGlite doesn't support ON CONFLICT ... DO NOTHING ... RETURNING — skip until real Postgres test DB
-  it.skip('likes and unlikes a hub post', async () => {
+});
+
+// Hub-post likes use INSERT ... ON CONFLICT DO NOTHING ... RETURNING to gate the
+// like row + counter, which PGlite can't execute (it returns no row, so likePost
+// reports failure). These need a real Postgres. Skips cleanly when none is reachable.
+describe.skipIf(!reachable)('hub posts (real Postgres — ON CONFLICT ... RETURNING)', () => {
+  let h: RealTestDb;
+  let db: DB;
+  let ownerId: string;
+  let memberId: string;
+
+  beforeAll(async () => {
+    h = await createRealTestDB();
+    db = h.db;
+    ownerId = (await createTestUser(db, { username: 'rpg-hubowner' })).id;
+    memberId = (await createTestUser(db, { username: 'rpg-hubmember' })).id;
+  }, 60_000);
+
+  afterAll(async () => { await h?.cleanup(); });
+
+  it('likes and unlikes a hub post', async () => {
     const hub = await createHub(db, ownerId, { name: 'Like Test Hub' });
     await joinHub(db, memberId, hub.id);
     const post = await createPost(db, ownerId, { hubId: hub.id, content: 'Test post for likes' });
 
-    // Like
-    const liked = await likePost(db, post.id, memberId);
-    expect(liked).toBe(true);
-
-    // Check liked status
-    const isLiked = await hasLikedPost(db, post.id, memberId);
-    expect(isLiked).toBe(true);
-
-    // Unlike
-    const unliked = await unlikePost(db, post.id, memberId);
-    expect(unliked).toBe(true);
-
-    // Confirm unliked
-    const isStillLiked = await hasLikedPost(db, post.id, memberId);
-    expect(isStillLiked).toBe(false);
+    expect(await likePost(db, memberId, post.id)).toBe(true);
+    expect(await hasLikedPost(db, memberId, post.id)).toBe(true);
+    expect(await unlikePost(db, memberId, post.id)).toBe(true);
+    expect(await hasLikedPost(db, memberId, post.id)).toBe(false);
   });
 
-  it.skip('liking a post twice is idempotent', async () => {
+  it('liking a post twice is idempotent', async () => {
     const hub = await createHub(db, ownerId, { name: 'Idempotent Like Hub' });
     await joinHub(db, memberId, hub.id);
     const post = await createPost(db, ownerId, { hubId: hub.id, content: 'Double like test' });
 
-    await likePost(db, post.id, memberId);
-    const secondLike = await likePost(db, post.id, memberId);
-    // onConflictDoNothing means second like returns false (no new row)
-    expect(secondLike).toBe(false);
-
-    // Still liked
-    expect(await hasLikedPost(db, post.id, memberId)).toBe(true);
+    await likePost(db, memberId, post.id);
+    // onConflictDoNothing → the second like inserts no row → returns false.
+    expect(await likePost(db, memberId, post.id)).toBe(false);
+    expect(await hasLikedPost(db, memberId, post.id)).toBe(true);
   });
 });
