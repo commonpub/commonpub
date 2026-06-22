@@ -189,6 +189,34 @@ describe('hub integration', () => {
     expect((await joinHub(db, second.id, hub.id, invite!.token)).joined).toBe(false);
   });
 
+  it('cannot revoke an invite belonging to a different hub (IDOR)', async () => {
+    const hubA = await createHub(db, ownerId, { name: 'IDOR Hub A' });
+    const otherOwner = await createTestUser(db, { username: 'idor-other-owner' });
+    const hubB = await createHub(db, otherOwner.id, { name: 'IDOR Hub B' });
+    const inviteB = await createInvite(db, otherOwner.id, hubB.id, 5);
+    expect(inviteB).toBeTruthy();
+
+    // ownerId manages hubA but NOT hubB. Revoking hubB's invite via hubA must fail
+    // and must NOT delete the invite.
+    const result = await revokeInvite(db, inviteB!.id, ownerId, hubA.id);
+    expect(result).toBe(false);
+    expect((await listInvites(db, hubB.id)).map((i) => i.id)).toContain(inviteB!.id);
+  });
+
+  it('a token submitted to the wrong hub does not consume a use', async () => {
+    const hubA = await createHub(db, ownerId, { name: 'Wrong Hub A' });
+    await updateHub(db, hubA.id, ownerId, { joinPolicy: 'invite' });
+    const hubB = await createHub(db, ownerId, { name: 'Wrong Hub B' });
+    await updateHub(db, hubB.id, ownerId, { joinPolicy: 'invite' });
+    const inviteA = await createInvite(db, ownerId, hubA.id, 1); // single use, hub A only
+    const joiner = await createTestUser(db, { username: 'wrong-hub-joiner' });
+
+    // Submitting hub A's token to hub B is rejected WITHOUT burning the use...
+    expect((await joinHub(db, joiner.id, hubB.id, inviteA!.token)).joined).toBe(false);
+    // ...so the single use is intact and still works for hub A.
+    expect((await joinHub(db, joiner.id, hubA.id, inviteA!.token)).joined).toBe(true);
+  });
+
   it('updates hub settings', async () => {
     const hub = await createHub(db, ownerId, { name: 'Updatable Hub' });
 

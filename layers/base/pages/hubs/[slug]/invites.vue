@@ -16,8 +16,9 @@ const { data: invitesData, refresh, error: invitesError } = useLazyFetch<Seriali
 const invites = computed(() => invitesData.value ?? []);
 
 const currentUserRole = computed(() => hub.value?.currentUserRole ?? null);
+// admin+ only — mirrors the server's manageMembers permission (createInvite/revokeInvite).
 const canManage = computed(() =>
-  ['owner', 'admin', 'moderator'].includes(currentUserRole.value ?? ''),
+  ['owner', 'admin'].includes(currentUserRole.value ?? ''),
 );
 
 useSeoMeta({ title: () => `Invites, ${hub.value?.name ?? 'Hub'}, ${useSiteName()}` });

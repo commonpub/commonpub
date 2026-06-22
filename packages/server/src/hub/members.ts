@@ -48,13 +48,11 @@ export async function joinHub(
     if (!inviteToken) {
       return { joined: false, error: 'Invite token required' };
     }
-    const tokenResult = await validateAndUseInvite(db, inviteToken);
+    // Scoped to this hub: a token for another hub matches no row, so it is rejected
+    // without consuming one of its uses (the hub-match is part of the atomic check).
+    const tokenResult = await validateAndUseInvite(db, inviteToken, hubId);
     if (!tokenResult.valid) {
       return { joined: false, error: 'Invalid or expired invite token' };
-    }
-    // Verify the invite belongs to this specific hub
-    if (tokenResult.hubId !== hubId) {
-      return { joined: false, error: 'Invite token is not valid for this hub' };
     }
   }
 

@@ -1,4 +1,4 @@
-import { listInvites, getHubBySlug, getMember } from '@commonpub/server';
+import { listInvites, getHubBySlug, getMember, hasPermission } from '@commonpub/server';
 import type { HubInviteItem } from '@commonpub/server';
 
 export default defineEventHandler(async (event): Promise<HubInviteItem[]> => {
@@ -10,9 +10,11 @@ export default defineEventHandler(async (event): Promise<HubInviteItem[]> => {
     throw createError({ statusCode: 404, statusMessage: 'Hub not found' });
   }
 
-  // Only moderators, admins, and owners can view invite lists
+  // Invite management is admin+ (matches createInvite/revokeInvite's manageMembers).
+  // Gating the list at the same level keeps moderators from seeing write controls
+  // they can't use.
   const member = await getMember(db, hub.id, user.id);
-  if (!member || !['moderator', 'admin', 'owner'].includes(member.role)) {
+  if (!member || !hasPermission(member.role, 'manageMembers')) {
     throw createError({ statusCode: 403, statusMessage: 'Insufficient permissions' });
   }
 
