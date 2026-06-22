@@ -33,6 +33,9 @@ function slugify(s: string): string {
 }
 const subheading = ref('');
 const description = ref('');
+// Block-editor body (BlockTuple[]); when set, the viewer renders it instead of the
+// legacy `description` text. Null until the contest loads (seeded by ContestBodyEditor).
+const descriptionBlocks = ref<unknown[] | null>(null);
 const rules = ref('');
 // Per-field render mode: Markdown (default) or raw HTML, independent per field.
 const descriptionFormat = ref<'markdown' | 'html'>('markdown');
@@ -94,6 +97,7 @@ watch(contest, (c) => {
   slugInput.value = c.slug ?? '';
   subheading.value = c.subheading ?? '';
   description.value = c.description ?? '';
+  descriptionBlocks.value = (c.descriptionBlocks as unknown[] | null) ?? null;
   rules.value = c.rules ?? '';
   descriptionFormat.value = (c.descriptionFormat as 'markdown' | 'html') ?? 'markdown';
   rulesFormat.value = (c.rulesFormat as 'markdown' | 'html') ?? 'markdown';
@@ -138,7 +142,7 @@ watch(contest, (c) => {
 // Mark the form dirty on any post-hydration edit (gives the save bar its
 // "unsaved changes" cue). Worst case (timing) is a harmless early "dirty".
 watch(
-  [title, slugInput, subheading, description, rules, descriptionFormat, rulesFormat, prizesDescriptionFormat, bannerUrl, coverImageUrl, startDate, endDate, judgingEndDate,
+  [title, slugInput, subheading, description, descriptionBlocks, rules, descriptionFormat, rulesFormat, prizesDescriptionFormat, bannerUrl, coverImageUrl, startDate, endDate, judgingEndDate,
     communityVotingEnabled, judgingVisibility, eligibleContentTypes, maxEntriesPerUser, visibility, visibleToRoles,
     showPrizes, stages, currentStageIdRef, prizesDescription, prizes, criteria],
   () => { if (!hydratingForm) formDirty.value = true; },
@@ -208,6 +212,7 @@ async function handleSave(): Promise<void> {
         slug: slugify(slugInput.value) || undefined,
         subheading: subheading.value || undefined,
         description: description.value || undefined,
+        descriptionBlocks: descriptionBlocks.value ?? undefined,
         rules: rules.value || undefined,
         descriptionFormat: descriptionFormat.value,
         rulesFormat: rulesFormat.value,
@@ -365,12 +370,14 @@ async function transitionStatus(newStatus: string): Promise<void> {
           <p class="cpub-form-hint">Short plain-text tagline shown under the title in the hero. The Description below is the full body.</p>
         </div>
         <div class="cpub-form-field">
-          <div class="cpub-field-head">
-            <label for="contest-desc" class="cpub-form-label">Description</label>
-            <FormatToggle v-model="descriptionFormat" />
-          </div>
-          <textarea id="contest-desc" v-model="description" class="cpub-form-textarea" rows="4" maxlength="50000" />
-          <p class="cpub-form-hint">{{ descriptionFormat === 'html' ? 'Rendered as your raw HTML, CSS, and SVG (scripts removed for safety).' : 'Supports Markdown (headings, lists, bold, links) and inline HTML.' }} Shown formatted on the contest page.</p>
+          <div class="cpub-form-label">Description</div>
+          <ContestBodyEditor
+            v-if="contest"
+            v-model="descriptionBlocks"
+            :legacy="description"
+            :legacy-format="descriptionFormat"
+          />
+          <p class="cpub-form-hint">The full contest overview, edited in blocks like the project and blog editors: headings, lists, images, callouts, and the <strong>Judges Showcase</strong> (avatar + bio cards). Legacy text is converted to blocks on first edit.</p>
         </div>
         <div class="cpub-form-field">
           <div class="cpub-field-head">
