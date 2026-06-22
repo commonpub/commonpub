@@ -166,6 +166,11 @@ export async function getPathBySlug(
     }
   }
 
+  // Per-lesson completion for the requester (empty set for anonymous viewers).
+  const completedLessonIds = requesterId
+    ? await getCompletedLessonIds(db, requesterId, path.id)
+    : new Set<string>();
+
   const modulesWithLessons = modules.map((mod) => ({
     id: mod.id,
     title: mod.title,
@@ -181,6 +186,7 @@ export async function getPathBySlug(
         duration: l.duration,
         sortOrder: l.sortOrder,
         contentItemId: l.contentItemId ?? null,
+        isCompleted: completedLessonIds.has(l.id),
       })),
   }));
 

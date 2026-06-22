@@ -423,6 +423,8 @@ export interface LearningPathDetail extends LearningPathListItem {
       type: LessonType;
       duration: number | null;
       sortOrder: number;
+      // True when the requester (if any) has completed this lesson.
+      isCompleted: boolean;
     }>;
   }>;
   isEnrolled: boolean;

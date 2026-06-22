@@ -34,13 +34,22 @@ useSeoMeta({
 const { isAuthenticated, user } = useAuth();
 const toast = useToast();
 const completing = ref(false);
-const completed = ref(false);
+
+// Completion is seeded from the server (the path fetch carries per-lesson
+// isCompleted for the viewer) and flipped locally once the viewer marks it,
+// so a reload no longer shows "Mark as Complete" on an already-done lesson.
+const serverCompleted = computed(() => {
+  const lessons = path.value?.modules?.flatMap((m) => m.lessons ?? []) ?? [];
+  return lessons.find((l) => l.slug === lessonSlug.value)?.isCompleted ?? false;
+});
+const justCompleted = ref(false);
+const completed = computed(() => justCompleted.value || serverCompleted.value);
 
 async function markComplete(): Promise<void> {
   completing.value = true;
   try {
     await $fetch(`/api/learn/${slug.value}/${lessonSlug.value}/complete`, { method: 'POST' });
-    completed.value = true;
+    justCompleted.value = true;
     toast.success('Lesson completed!');
   } catch {
     toast.error('Failed to mark as complete');
@@ -164,7 +173,7 @@ async function submitQuiz(): Promise<void> {
     if (res.quiz) {
       quizGrade.value = res.quiz;
       if (res.quiz.passed) {
-        completed.value = true;
+        justCompleted.value = true;
         toast.success(`Passed, ${res.quiz.score}%`);
       } else {
         toast.error(`Scored ${res.quiz.score}%, below passing. Try again.`);
