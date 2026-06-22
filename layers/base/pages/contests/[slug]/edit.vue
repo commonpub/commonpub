@@ -349,13 +349,21 @@ async function transitionStatus(newStatus: string): Promise<void> {
     <NuxtLink :to="`/contests/${slug}`" class="cpub-btn cpub-btn-sm">Back to Contest</NuxtLink>
   </div>
   <div v-else-if="contest" class="cpub-contest-edit">
-    <NuxtLink :to="`/contests/${slug}`" class="cpub-back-link"><i class="fa-solid fa-arrow-left"></i> Back to contest</NuxtLink>
-    <h1 class="cpub-edit-title">Edit Contest</h1>
-    <p class="cpub-edit-subtitle">
-      Status: <span class="cpub-status-badge" :class="`cpub-status-${contest.status}`">{{ contest.status }}</span>
-    </p>
-
     <form class="cpub-edit-form" @submit.prevent="handleSave">
+      <div class="cpub-edit-topbar">
+        <NuxtLink :to="`/contests/${slug}`" class="cpub-edit-topbar-back" aria-label="Back to contest"><i class="fa-solid fa-arrow-left"></i></NuxtLink>
+        <div class="cpub-edit-topbar-titles">
+          <span class="cpub-edit-topbar-title">Edit Contest</span>
+          <span class="cpub-status-badge" :class="`cpub-status-${contest.status}`">{{ contest.status }}</span>
+          <span v-if="formDirty" class="cpub-edit-dirty"><i class="fa-solid fa-circle"></i> Unsaved</span>
+        </div>
+        <div class="cpub-edit-topbar-btns">
+          <NuxtLink :to="`/contests/${slug}`" class="cpub-btn">View</NuxtLink>
+          <button type="submit" class="cpub-btn cpub-btn-primary" :disabled="saving || !title.trim() || !!dateError || !formDirty">
+            <i class="fa-solid fa-floppy-disk"></i> {{ saving ? 'Saving…' : formDirty ? 'Save Changes' : 'Saved' }}
+          </button>
+        </div>
+      </div>
       <!-- Body canvas — full width so the block editor has room (the cramped
            in-column embed was a stepping stone; this is the editor-shell canvas). -->
       <section class="cpub-form-section cpub-edit-body">
@@ -540,18 +548,6 @@ async function transitionStatus(newStatus: string): Promise<void> {
             </label>
           </div>
         </div>
-        <div v-if="isOwner" class="cpub-subhead">
-          <h3 class="cpub-form-subtitle">Collaborators</h3>
-        </div>
-        <p v-if="isOwner" class="cpub-form-hint">Grant per-contest access scoped to this contest only, with no system-wide access. Reviewers can view it (even while private or in draft) but can't edit or score. Editors can fully edit this contest.</p>
-        <ContestStakeholderManager v-if="isOwner" :contest-slug="slug" />
-      </section>
-
-      <!-- Judge panel (single source of truth: contest_judges table) -->
-      <section class="cpub-form-section">
-        <h2 class="cpub-form-section-title">Judges</h2>
-        <p class="cpub-form-hint">Invited judges receive a notification and must accept before they can score.</p>
-        <ContestJudgeManager :contest-slug="slug" :is-owner="isOwner" />
       </section>
       </div><!-- /cpub-edit-main -->
 
@@ -571,6 +567,16 @@ async function transitionStatus(newStatus: string): Promise<void> {
         <div class="cpub-form-field">
           <label for="contest-max-entries" class="cpub-form-label">Max entries per person</label>
           <input id="contest-max-entries" v-model.number="maxEntriesPerUser" type="number" min="1" class="cpub-form-input" placeholder="Unlimited" />
+        </div>
+      </section>
+
+      <section class="cpub-form-section">
+        <h2 class="cpub-form-section-title">People</h2>
+        <ContestJudgeManager :contest-slug="slug" :is-owner="isOwner" />
+        <div v-if="isOwner" class="cpub-people-collab">
+          <h3 class="cpub-form-subtitle">Collaborators</h3>
+          <p class="cpub-form-hint">Per-contest access only (no system-wide). Reviewers can view, even while private or draft; editors can edit.</p>
+          <ContestStakeholderManager :contest-slug="slug" />
         </div>
       </section>
 
@@ -620,19 +626,6 @@ async function transitionStatus(newStatus: string): Promise<void> {
       </aside><!-- /cpub-edit-side -->
       </div><!-- /cpub-edit-layout -->
 
-      <!-- Sticky save bar — always reachable without scrolling to the bottom. -->
-      <div class="cpub-edit-actionbar">
-        <span class="cpub-edit-actionbar-status">
-          Status <span class="cpub-status-badge" :class="`cpub-status-${contest.status}`">{{ contest.status }}</span>
-          <span v-if="formDirty" class="cpub-edit-dirty"><i class="fa-solid fa-circle"></i> Unsaved changes</span>
-        </span>
-        <div class="cpub-edit-actionbar-btns">
-          <NuxtLink :to="`/contests/${slug}`" class="cpub-btn cpub-edit-cancel">Cancel</NuxtLink>
-          <button type="submit" class="cpub-btn cpub-btn-primary" :disabled="saving || !title.trim() || !!dateError || !formDirty">
-            <i class="fa-solid fa-floppy-disk"></i> {{ saving ? 'Saving…' : formDirty ? 'Save Changes' : 'Saved' }}
-          </button>
-        </div>
-      </div>
     </form>
   </div>
   <div v-else-if="contestLoading" class="cpub-not-found"><p>Loading contest…</p></div>
@@ -641,10 +634,14 @@ async function transitionStatus(newStatus: string): Promise<void> {
 
 <style scoped>
 .cpub-contest-edit { max-width: 1080px; margin: 0 auto; padding: 32px; }
-.cpub-back-link { font-size: 11px; font-family: var(--font-mono); color: var(--text-faint); text-decoration: none; display: inline-flex; align-items: center; gap: 6px; margin-bottom: 16px; }
-.cpub-back-link:hover { color: var(--accent); }
-.cpub-edit-title { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
-.cpub-edit-subtitle { font-size: 13px; color: var(--text-dim); margin-bottom: 24px; display: flex; align-items: center; gap: 8px; }
+/* Editor topbar: back + title + status + actions, sticky to the top while editing. */
+.cpub-edit-topbar { position: sticky; top: 0; z-index: 30; display: flex; align-items: center; gap: 12px; padding: 12px 0; margin: -8px 0 4px; background: var(--bg); border-bottom: var(--border-width-default) solid var(--border); }
+.cpub-edit-topbar-back { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border: var(--border-width-default) solid var(--border); background: var(--surface); color: var(--text-dim); text-decoration: none; flex-shrink: 0; }
+.cpub-edit-topbar-back:hover { border-color: var(--accent); color: var(--accent); }
+.cpub-edit-topbar-titles { display: flex; align-items: center; gap: 10px; min-width: 0; flex-wrap: wrap; }
+.cpub-edit-topbar-title { font-size: 16px; font-weight: 700; }
+.cpub-edit-topbar-btns { margin-left: auto; display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.cpub-people-collab { margin-top: 16px; padding-top: 12px; border-top: var(--border-width-default) solid var(--border2); }
 
 .cpub-status-badge { font-size: 10px; font-family: var(--font-mono); text-transform: uppercase; padding: 2px 8px; border: var(--border-width-default) solid; }
 .cpub-status-draft { color: var(--text-faint); border-color: var(--border2); background: var(--surface2); border-style: dashed; }
@@ -675,7 +672,6 @@ async function transitionStatus(newStatus: string): Promise<void> {
 .cpub-form-check { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-dim); cursor: pointer; }
 .cpub-form-check input { width: 14px; height: 14px; }
 .cpub-type-options { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 6px; }
-.cpub-subhead { display: flex; align-items: center; justify-content: space-between; margin: 18px 0 10px; }
 .cpub-form-subtitle { font-size: 12px; font-weight: 700; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: .06em; color: var(--text-dim); display: flex; align-items: center; gap: 8px; }
 .cpub-form-hint { font-size: 11px; color: var(--text-faint); margin: 0 0 12px; line-height: 1.5; }
 
@@ -704,21 +700,6 @@ async function transitionStatus(newStatus: string): Promise<void> {
 
 .cpub-not-found { text-align: center; padding: 64px; color: var(--text-dim); display: flex; flex-direction: column; align-items: center; gap: 12px; }
 
-/* Sticky save bar — pinned to the viewport bottom while editing the long form. */
-.cpub-edit-actionbar {
-  position: sticky;
-  bottom: 0;
-  z-index: 20;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin: 4px -32px -32px;
-  padding: 14px 32px;
-  background: var(--surface);
-  border-top: 2px solid var(--border);
-  box-shadow: var(--shadow-lg);
-}
 .cpub-advance-block { padding: 12px 0; border-top: var(--border-width-default) solid var(--border); }
 .cpub-advance-block:first-of-type { border-top: 0; }
 .cpub-advance-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
@@ -733,10 +714,8 @@ async function transitionStatus(newStatus: string): Promise<void> {
 .cpub-advance-pick-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cpub-advance-pick-score { font-family: var(--font-mono); font-size: 11px; color: var(--accent); flex-shrink: 0; }
 .cpub-advance-manual .cpub-btn { align-self: flex-start; margin-top: 6px; }
-.cpub-edit-actionbar-status { font-size: 11px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: .06em; color: var(--text-faint); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .cpub-edit-dirty { color: var(--accent); display: inline-flex; align-items: center; gap: 5px; }
 .cpub-edit-dirty i { font-size: 6px; }
-.cpub-edit-actionbar-btns { display: flex; align-items: center; gap: 8px; }
 
 /* Collapse the meta rail under the main column on narrower viewports. */
 @media (max-width: 900px) {
@@ -746,6 +725,5 @@ async function transitionStatus(newStatus: string): Promise<void> {
 @media (max-width: 768px) {
   .cpub-contest-edit { padding: 16px; }
   .cpub-form-row { grid-template-columns: 1fr; }
-  .cpub-edit-actionbar { margin: 4px -16px -16px; padding: 12px 16px; }
 }
 </style>
