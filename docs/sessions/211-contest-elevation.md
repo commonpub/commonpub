@@ -12,8 +12,31 @@ and **Phase 2a–2d + 2e-1 + 2e-2a/b.1/b.2/b.3/b.4 + 2e-2d** are done, tested, a
 locally-run app. The contest editor is now ONE shell-style component (`ContestEditor.vue`, mode-aware)
 used by BOTH create and edit as thin route shells: a sticky topbar + full-width body canvas with tabs
 **Overview · Rules · Prizes · Stages · Judging** + a settings rail. **create ≡ edit (divergence fixed).** Phase **2e-2c** (cover/banner placeholders, Write/Preview/Code,
-draft autosave) now done too.
-**Gates: schema 470, server 1469, layer 1200 (+13 this session), reference vue-tsc 0.** Nothing outward-facing.
+draft autosave) **and Phase 3** (slim hero + cover-on-detail + hydration-mismatch fixes + one date formatter) now done too.
+**Gates: schema 470, server 1469, layer 1204, reference vue-tsc 0.** Nothing outward-facing.
+
+**Session 214 cont. — Phase 3 (display redesign + the hydration bug):**
+- `32c0aa29` (audit follow-up) dedupe repeated autosave-error toasts (a persistent error retried every
+  ~3s spammed the same toast).
+- `6a332c14` **Editor hydration mismatch FIXED.** Diagnosed by capturing the FULL Vue warning (the public
+  VIEW page was clean; the mismatch was on the EDIT page, contra the earlier note). Two causes: (1)
+  `CpubDateTimeField` rendered TZ-dependent value/min/max (`toLocalInput` uses the runtime TZ) — a
+  prod-SERIOUS bug since Vue does NOT rectify attribute mismatches in prod (viewer would see the SERVER
+  timezone); fixed by deferring the local conversion to `onMounted` (render empty until mounted). (2) The
+  whole editor SSR-rendered with an unhydrated model (data loads via a client lazy fetch) → e.g. the
+  slug-preview text mismatched; fixed by wrapping the (authed, no-SEO) editor in `<ClientOnly>`.
+- `e476b339` **Hero slimmed + cover surfaced** (operator chose "compact bar under slim banner" + "cover as
+  lead image in Overview"). `ContestHero` rewritten: slim banner (≤220px) + ONE clean compact bar (badge,
+  status pill, stage chip, right-aligned inline countdown chip, title, tagline, dates + entries, Submit/
+  Share, admin transitions). `coverImageUrl` now renders as a framed lead image atop the Overview/About
+  tab. Folded in the LATENT view-side TZ mismatch fix: `ContestHero` dates + `ContestSidebar` timeline
+  dates are `mounted`-gated (they'd mismatch in prod UTC-vs-local).
+- `ecd0da06` **One date formatter** (plan's typography goal): `formatLocalDate(iso, { year })` in
+  `utils/datetime`, used by Hero/Sidebar/Entries (killed 3 inline `toLocaleDateString` copies).
+- Verified live: editor + view pages log ZERO hydration messages; hero compact with/without banner; cover
+  lead image; sidebar timeline dates; axe 0 on the hero; create-via-button still 200+navigates.
+- **Phase 3 judges-in-overview:** already satisfied by the `judgesShowcase` block (2c) — organizer-opt-in,
+  renders in the Overview when added; Judges tab stays canonical otherwise. No new work needed.
 
 **Session 214 (2026-06-22) — Phase 2e-2c (editor polish, 3 slices):**
 - `eb1adbbd` **2e-2c.1** `ContestMediaStrip.vue` (banner 4:1 + cover, reusing the themed `ImageUpload`
@@ -131,7 +154,9 @@ save) + the settings sections.
    switch + draft autosave (silent save + rename-in-place + hydrate guard).
 8. **B5a** — `judge.post.ts` ignores its `:slug` (misleading contract; not an escalation) — NOT fixed.
 9. **B3** — `judgeContestEntry` doesn't validate `criteriaScores` against the rubric — deferred to Phase 5.
-10. **Phase 3** layout/cover redesign (slim hero, surface coverImageUrl) · **Phase 4** submission paths
+10. ~~**Phase 3** layout/cover redesign (slim hero, surface coverImageUrl).~~ **DONE (session 214).** Slim
+    compact-bar hero, cover lead image in Overview, editor + view hydration mismatches fixed, one date
+    formatter. · **Phase 4** submission paths
     (agreements/PII/proposal flow + placeholder project + PII table/permission + export-collection) ·
     **Phase 5** judging UX + Excel/CSV export · **Phase 6** cleanup (drop dead `judges`/`content_format`
     cols) + release.
