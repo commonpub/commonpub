@@ -31,6 +31,8 @@ import BlockCriteriaBarView from './BlockCriteriaBarView.vue';
 import BlockTableView from './BlockTableView.vue';
 import BlockTabsView from './BlockTabsView.vue';
 import BlockJudgesShowcaseView from './BlockJudgesShowcaseView.vue';
+import BlockSponsorsView from './BlockSponsorsView.vue';
+import BlockCompareColumnsView from './BlockCompareColumnsView.vue';
 import type { BlockTuple } from '@commonpub/editor';
 
 const props = defineProps<{
@@ -78,6 +80,8 @@ const componentMap: Record<string, unknown> = {
   table: BlockTableView,
   tabs: BlockTabsView,
   judgesShowcase: BlockJudgesShowcaseView,
+  sponsors: BlockSponsorsView,
+  compareColumns: BlockCompareColumnsView,
 };
 
 const visibleBlocks = computed(() => {

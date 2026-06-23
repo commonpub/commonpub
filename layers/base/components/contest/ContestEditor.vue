@@ -21,6 +21,8 @@ import HtmlBlock from './blocks/HtmlBlock.vue';
 import CriteriaBarBlock from './blocks/CriteriaBarBlock.vue';
 import TableBlock from './blocks/TableBlock.vue';
 import TabsBlock from './blocks/TabsBlock.vue';
+import SponsorsBlock from './blocks/SponsorsBlock.vue';
+import CompareColumnsBlock from './blocks/CompareColumnsBlock.vue';
 
 const props = defineProps<{ mode: 'create' | 'edit' }>();
 
@@ -69,7 +71,7 @@ const {
 // --- Hoisted body block editors (the one refactor: a single left palette inserts
 // into the CURRENTLY-active body, so the three useBlockEditor instances live here
 // where the palette lives, not inside per-body components). ---
-const blockDefaults = { blockDefaults: { judgesShowcase: () => ({ judges: [] }), html: () => ({ html: '' }), criteriaBar: () => ({ items: [], showLegend: true }), table: () => ({ header: ['Column 1', 'Column 2'], rows: [['', ''], ['', '']] }), tabs: () => ({ tabs: [{ label: 'Tab 1', blocks: [] }, { label: 'Tab 2', blocks: [] }] }) } };
+const blockDefaults = { blockDefaults: { judgesShowcase: () => ({ judges: [] }), html: () => ({ html: '' }), criteriaBar: () => ({ items: [], showLegend: true }), table: () => ({ header: ['Column 1', 'Column 2'], rows: [['', ''], ['', '']] }), tabs: () => ({ tabs: [{ label: 'Tab 1', blocks: [] }, { label: 'Tab 2', blocks: [] }] }), sponsors: () => ({ logos: [] }), compareColumns: () => ({ columns: [{ tone: 'positive', title: 'Encouraged', items: [''] }, { tone: 'negative', title: 'Out of scope', items: [''] }] }) } };
 const overviewEditor = useBlockEditor(seedBodyBlocks(descriptionBlocks.value, description.value, descriptionFormat.value), blockDefaults);
 const rulesEditor = useBlockEditor(seedBodyBlocks(rulesBlocks.value, rules.value, rulesFormat.value), blockDefaults);
 const prizesEditor = useBlockEditor(seedBodyBlocks(prizesBlocks.value, prizesDescription.value, prizesDescriptionFormat.value), blockDefaults);
@@ -80,7 +82,7 @@ const bodyMode = ref<'write' | 'preview' | 'code'>('write');
 const activeBodyEditor = computed(() => ({ overview: overviewEditor, rules: rulesEditor, prizes: prizesEditor })[activeTab.value] ?? overviewEditor);
 
 // Contest-specific edit block + image upload, provided once for all three bodies.
-provide(BLOCK_COMPONENTS_KEY, { judgesShowcase: JudgesShowcaseBlock, html: HtmlBlock, criteriaBar: CriteriaBarBlock, table: TableBlock, tabs: TabsBlock });
+provide(BLOCK_COMPONENTS_KEY, { judgesShowcase: JudgesShowcaseBlock, html: HtmlBlock, criteriaBar: CriteriaBarBlock, table: TableBlock, tabs: TabsBlock, sponsors: SponsorsBlock, compareColumns: CompareColumnsBlock });
 // Feed the criteria-bar block this contest's live rubric (for its auto-fill).
 provide(CONTEST_RUBRIC_KEY, criteria);
 const { uploadFile } = useFileUpload();
@@ -129,6 +131,8 @@ const contestBlockGroups: BlockTypeGroup[] = [
     blocks: [
       { type: 'judgesShowcase', label: 'Judges Showcase', icon: 'fa-user-group', description: 'Avatar + bio cards for the overview' },
       { type: 'criteriaBar', label: 'Criteria Bar', icon: 'fa-chart-simple', description: 'Weighted judging criteria as one stacked bar' },
+      { type: 'sponsors', label: 'Sponsors', icon: 'fa-handshake-angle', description: 'Logo wall with optional tiers + links' },
+      { type: 'compareColumns', label: 'In / Out of Scope', icon: 'fa-table-columns', description: 'Side-by-side columns, e.g. Encouraged vs Out of scope' },
     ],
   },
   {
