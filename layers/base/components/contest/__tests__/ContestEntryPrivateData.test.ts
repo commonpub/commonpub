@@ -15,7 +15,7 @@ const baseProps = {
     phone: '555-0100',
   },
   agreements: [
-    { fieldKey: 'terms_general', stageId: 's-proposal', termsHash: 'abcdef0123456789abcdef', termsSnapshot: 'You agree to the rules.', acceptedAt: '2026-06-23T12:00:00.000Z' },
+    { fieldKey: 'terms_general', stageId: 's-proposal', termsHash: 'abcdef0123456789abcdef', termsSnapshot: 'You agree to the rules.', acceptedAt: '2026-06-23T12:00:00.000Z', ip: '203.0.113.5' },
   ],
   updatedAt: '2026-06-23T12:00:00.000Z',
 };
@@ -45,9 +45,14 @@ describe('ContestEntryPrivateData', () => {
     expect(container.querySelector('.cpub-epd-hash')?.textContent).toContain('sha256:');
   });
 
+  it('shows the consent IP when present (audit transparency)', () => {
+    const { container } = render(ContestEntryPrivateData, { props: baseProps });
+    expect(container.textContent).toContain('from 203.0.113.5');
+  });
+
   it('shows the privacy notice', () => {
     const { container } = render(ContestEntryPrivateData, { props: baseProps });
-    expect(container.textContent).toMatch(/Visible only to you and contest organizers/);
+    expect(container.textContent).toMatch(/Visible only to you and authorized contest organizers/);
   });
 
   it('renders nothing when there is no PII and no agreements', () => {

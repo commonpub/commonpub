@@ -14,7 +14,7 @@
 import { ADDRESS_SUBFIELDS, parseAddress } from '../../utils/contestSubmission';
 
 interface TemplateField { key: string; label: string; type: string }
-interface Agreement { fieldKey: string; stageId: string; termsHash: string; termsSnapshot: string; acceptedAt: string | Date }
+interface Agreement { fieldKey: string; stageId: string; termsHash: string; termsSnapshot: string; acceptedAt: string | Date; ip?: string | null }
 
 const props = defineProps<{
   fields: Record<string, string>;
@@ -56,7 +56,7 @@ const hasData = computed(() => fieldRows.value.length > 0 || props.agreements.le
   <section v-if="hasData" class="cpub-epd" aria-labelledby="cpub-epd-head">
     <div class="cpub-epd-bar">
       <h2 id="cpub-epd-head" class="cpub-epd-head"><i class="fa-solid fa-user-shield"></i> Personal information</h2>
-      <span class="cpub-epd-note"><i class="fa-solid fa-lock"></i> Visible only to you and contest organizers — never public or to judges.</span>
+      <span class="cpub-epd-note"><i class="fa-solid fa-lock"></i> Visible only to you and authorized contest organizers — never shown publicly or to judges.</span>
     </div>
 
     <dl v-if="fieldRows.length" class="cpub-epd-fields">
@@ -77,7 +77,7 @@ const hasData = computed(() => fieldRows.value.length > 0 || props.agreements.le
         <li v-for="(a, i) in agreements" :key="`${a.fieldKey}-${a.stageId}-${i}`" class="cpub-epd-agree">
           <div class="cpub-epd-agree-top">
             <span class="cpub-epd-agree-label"><i class="fa-solid fa-circle-check"></i> {{ agreementLabel(a.fieldKey) }}</span>
-            <span class="cpub-epd-agree-when">Accepted {{ fmtDate(a.acceptedAt) }}</span>
+            <span class="cpub-epd-agree-when">Accepted {{ fmtDate(a.acceptedAt) }}<template v-if="a.ip"> · from {{ a.ip }}</template></span>
           </div>
           <details v-if="a.termsSnapshot" class="cpub-epd-terms">
             <summary>View the terms accepted</summary>

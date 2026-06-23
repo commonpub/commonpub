@@ -313,6 +313,9 @@ export interface EntryPrivateData {
     termsHash: string;
     termsSnapshot: string;
     acceptedAt: Date;
+    /** Consent-audit IP captured at acceptance. Surfaced so the subject can see
+     *  the data held about them (transparency) and organizers have the audit trail. */
+    ip: string | null;
   }>;
 }
 
@@ -336,6 +339,7 @@ export async function getEntryPrivateData(db: DB, entryId: string): Promise<Entr
       termsHash: contestAgreementAcceptances.termsHash,
       termsSnapshot: contestAgreementAcceptances.termsSnapshot,
       acceptedAt: contestAgreementAcceptances.acceptedAt,
+      ip: contestAgreementAcceptances.ip,
     })
     .from(contestAgreementAcceptances)
     .where(eq(contestAgreementAcceptances.entryId, entryId));
