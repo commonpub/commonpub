@@ -339,6 +339,7 @@ async function withdrawEntry(entryId: string): Promise<void> {
           <div v-show="activeTab === 'overview'" id="cpub-panel-overview" role="tabpanel" aria-labelledby="cpub-tab-overview" tabindex="0">
             <div class="cpub-about-section">
               <div class="cpub-sec-head"><h2><i class="fa fa-circle-info" style="color: var(--accent);"></i> About This Contest</h2></div>
+              <img v-if="c?.coverImageUrl" :src="c.coverImageUrl" :alt="`${c?.title || 'Contest'} cover`" class="cpub-about-cover" />
               <div class="cpub-about-card">
                 <BlocksBlockContentRenderer
                   v-if="c?.descriptionBlocks?.length"
@@ -500,6 +501,7 @@ async function withdrawEntry(entryId: string): Promise<void> {
 
 /* ABOUT */
 .cpub-about-section { margin-bottom: 20px; }
+.cpub-about-cover { width: 100%; max-height: 380px; object-fit: cover; display: block; border: var(--border-width-default) solid var(--border); box-shadow: var(--shadow-md); margin-bottom: 16px; }
 .cpub-about-card { background: var(--surface); border: var(--border-width-default) solid var(--border); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow-md); font-size: 12px; color: var(--text-dim); line-height: 1.7; }
 .cpub-about-card p { margin: 0; white-space: pre-line; }
 
