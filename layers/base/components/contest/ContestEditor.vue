@@ -274,12 +274,34 @@ async function transitionStatus(newStatus: string): Promise<void> {
 // not the rail). Edit-only. Closes on select, Escape, or an outside pointer. ---
 const statusMenuOpen = ref(false);
 const statusMenuRef = ref<HTMLElement | null>(null);
-function closeStatusMenu(): void { statusMenuOpen.value = false; }
+const statusToggleRef = ref<HTMLButtonElement | null>(null);
+function statusItems(): HTMLElement[] {
+  return Array.from(statusMenuRef.value?.querySelectorAll<HTMLElement>('.cpub-ce-status-item') ?? []);
+}
+function closeStatusMenu(focusToggle = false): void {
+  statusMenuOpen.value = false;
+  if (focusToggle) void nextTick(() => statusToggleRef.value?.focus());
+}
+// Menu-button keyboard pattern: opening focuses the first action; arrows rove;
+// Escape closes and returns focus to the toggle.
+function toggleStatusMenu(): void {
+  statusMenuOpen.value = !statusMenuOpen.value;
+  if (statusMenuOpen.value) void nextTick(() => statusItems()[0]?.focus());
+}
+function onStatusItemKey(e: KeyboardEvent): void {
+  const items = statusItems();
+  if (!items.length) return;
+  const cur = items.indexOf(document.activeElement as HTMLElement);
+  if (e.key === 'ArrowDown') { e.preventDefault(); items[(cur + 1) % items.length]?.focus(); }
+  else if (e.key === 'ArrowUp') { e.preventDefault(); items[(cur - 1 + items.length) % items.length]?.focus(); }
+  else if (e.key === 'Home') { e.preventDefault(); items[0]?.focus(); }
+  else if (e.key === 'End') { e.preventDefault(); items[items.length - 1]?.focus(); }
+}
 async function selectTransition(t: string): Promise<void> { closeStatusMenu(); await transitionStatus(t); }
 function onStatusDocPointer(e: PointerEvent): void {
   if (statusMenuOpen.value && statusMenuRef.value && !statusMenuRef.value.contains(e.target as Node)) closeStatusMenu();
 }
-function onStatusDocKey(e: KeyboardEvent): void { if (e.key === 'Escape') closeStatusMenu(); }
+function onStatusDocKey(e: KeyboardEvent): void { if (e.key === 'Escape' && statusMenuOpen.value) closeStatusMenu(true); }
 onMounted(() => {
   document.addEventListener('pointerdown', onStatusDocPointer);
   document.addEventListener('keydown', onStatusDocKey);
@@ -391,15 +413,18 @@ async function advanceStage(stageId: string): Promise<void> {
         <!-- Lifecycle transitions (edit-only) live in this Status menu, not the rail. -->
         <div v-if="mode === 'edit' && contest" ref="statusMenuRef" class="cpub-ce-status-menu">
           <button
+            ref="statusToggleRef"
             type="button"
             class="cpub-ce-topbar-btn"
+            id="cpub-ce-status-toggle"
             aria-haspopup="menu"
+            aria-controls="cpub-ce-status-dropdown"
             :aria-expanded="statusMenuOpen"
-            @click="statusMenuOpen = !statusMenuOpen"
+            @click="toggleStatusMenu"
           >
             <i class="fa-solid fa-flag"></i> Status <i class="fa-solid fa-chevron-down cpub-ce-status-caret" :class="{ open: statusMenuOpen }"></i>
           </button>
-          <div v-if="statusMenuOpen" class="cpub-ce-status-dropdown" role="menu" aria-label="Change contest status">
+          <div v-if="statusMenuOpen" id="cpub-ce-status-dropdown" class="cpub-ce-status-dropdown" role="menu" aria-label="Change contest status" @keydown="onStatusItemKey">
             <p class="cpub-ce-status-current">
               Current: <span class="cpub-status-badge" :class="`cpub-status-${contest.status}`">{{ contest.status }}</span>
             </p>
@@ -408,6 +433,7 @@ async function advanceStage(stageId: string): Promise<void> {
               :key="t"
               type="button"
               role="menuitem"
+              tabindex="-1"
               class="cpub-ce-status-item"
               :class="{
                 'cpub-ce-status-go': statusAction(t).tone === 'go',

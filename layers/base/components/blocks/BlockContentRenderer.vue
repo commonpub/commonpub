@@ -54,6 +54,7 @@ const componentMap: Record<string, unknown> = {
   callout: BlockCalloutView,
   divider: BlockDividerView,
   horizontalRule: BlockDividerView,
+  horizontal_rule: BlockDividerView,
   video: BlockVideoView,
   embed: BlockEmbedView,
   partsList: BlockPartsListView,

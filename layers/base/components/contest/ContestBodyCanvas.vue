@@ -46,14 +46,23 @@ const previewBlocks = computed<[string, Record<string, unknown>][]>(
 );
 const codeJson = computed<string>(() => JSON.stringify(previewBlocks.value, null, 2));
 
-// Roving-arrow keyboard nav for the tablist (WCAG).
+// Roving-arrow keyboard nav for the tablist (WCAG): move selection AND DOM focus
+// together, else focus desyncs from the active tab.
+function focusTab(key: BodyTab): void {
+  void nextTick(() => document.getElementById(`cpub-cbc-tab-${key}`)?.focus());
+}
 function onTabKey(e: KeyboardEvent, key: BodyTab): void {
   const i = TABS.findIndex((t) => t.key === key);
   if (i < 0) return;
-  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); emit('update:activeTab', TABS[(i + 1) % TABS.length]!.key); }
-  else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); emit('update:activeTab', TABS[(i - 1 + TABS.length) % TABS.length]!.key); }
-  else if (e.key === 'Home') { e.preventDefault(); emit('update:activeTab', TABS[0]!.key); }
-  else if (e.key === 'End') { e.preventDefault(); emit('update:activeTab', TABS[TABS.length - 1]!.key); }
+  let next: BodyTab | null = null;
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') next = TABS[(i + 1) % TABS.length]!.key;
+  else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') next = TABS[(i - 1 + TABS.length) % TABS.length]!.key;
+  else if (e.key === 'Home') next = TABS[0]!.key;
+  else if (e.key === 'End') next = TABS[TABS.length - 1]!.key;
+  if (!next) return;
+  e.preventDefault();
+  emit('update:activeTab', next);
+  focusTab(next);
 }
 </script>
 
@@ -92,7 +101,7 @@ function onTabKey(e: KeyboardEvent, key: BodyTab): void {
       </div>
     </div>
 
-    <div class="cpub-cbc-panel" role="tabpanel" :aria-labelledby="`cpub-cbc-tab-${activeTab}`">
+    <div class="cpub-cbc-panel" role="tabpanel" tabindex="0" :aria-labelledby="`cpub-cbc-tab-${activeTab}`">
       <!-- Overview-only lead (inline banner + cover); the parent fills the slot. -->
       <div v-if="activeTab === 'overview' && mode === 'write'" class="cpub-cbc-lead">
         <slot name="overview-lead" />
