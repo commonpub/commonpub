@@ -26,3 +26,20 @@ export function fromLocalInput(local?: string | null): string | undefined {
   const d = new Date(local);
   return Number.isNaN(d.getTime()) ? undefined : d.toISOString();
 }
+
+/**
+ * An ISO instant as a short human date in the VIEWER's local zone, e.g.
+ * "Aug 1, 2026" (or "Aug 1" with `{ year: false }`). One formatter for every
+ * contest date surface (hero, sidebar timeline, entry rows).
+ *
+ * It is timezone-dependent (the local calendar day differs by zone), so any caller
+ * that renders server-side MUST gate it behind a client `mounted` flag — otherwise
+ * the server's TZ and the viewer's disagree on hydration and Vue won't rectify it.
+ * Empty / invalid input -> ''.
+ */
+export function formatLocalDate(iso?: string | null, opts?: { year?: boolean }): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', ...(opts?.year === false ? {} : { year: 'numeric' }) });
+}

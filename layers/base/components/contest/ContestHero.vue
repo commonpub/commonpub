@@ -93,8 +93,7 @@ const isDraft = computed(() => c.value?.status === 'draft');
 const showCountdown = computed(() => mounted.value && !isEnded.value && !isPaused.value && !isDraft.value && !!countdownTargetStr.value && !targetPassed.value);
 
 function fmtDate(s: string | null | undefined): string {
-  if (!s || !mounted.value) return '';
-  return new Date(s).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  return mounted.value ? formatLocalDate(s) : '';
 }
 // Static date shown when the relevant target is in the past but the contest hasn't
 // been advanced yet (e.g. an upcoming contest whose open date arrived).
@@ -130,10 +129,8 @@ const currentStageName = computed<string | null>(() => {
 
 const dateRange = computed<string>(() => {
   if (!mounted.value) return '';
-  const fmt = (d: string, withYear = false) =>
-    new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', ...(withYear ? { year: 'numeric' } : {}) });
-  const start = c.value?.startDate ? fmt(c.value.startDate) : '';
-  const end = c.value?.endDate ? fmt(c.value.endDate, true) : '';
+  const start = c.value?.startDate ? formatLocalDate(c.value.startDate, { year: false }) : '';
+  const end = c.value?.endDate ? formatLocalDate(c.value.endDate) : '';
   if (start && end) return `${start} to ${end}`;
   return start || end;
 });

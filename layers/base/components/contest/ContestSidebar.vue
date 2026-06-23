@@ -25,7 +25,7 @@ onMounted(() => { mounted.value = true; });
 
 function fmt(d: string | null | undefined): string | null {
   if (!d || !mounted.value) return null;
-  return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  return formatLocalDate(d);
 }
 
 // Phase B1 — the timeline renders the contest's stages (its explicit `stages`, or

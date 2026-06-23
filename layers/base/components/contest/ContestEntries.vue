@@ -119,7 +119,7 @@ function entryLink(entry: Serialized<ContestEntryItem>): string {
               <span v-else>{{ (entry.authorName || entry.authorUsername || '?').charAt(0).toUpperCase() }}</span>
             </div>
             <NuxtLink v-if="entry.authorUsername" :to="`/u/${entry.authorUsername}`" class="cpub-entry-author-link">{{ entry.authorName }}</NuxtLink>
-            <span class="cpub-entry-meta">{{ new Date(entry.submittedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) }}</span>
+            <span class="cpub-entry-meta">{{ formatLocalDate(entry.submittedAt, { year: false }) }}</span>
           </div>
           <div class="cpub-entry-footer">
             <span v-if="entry.score != null" class="cpub-entry-score">Score: {{ entry.score }}</span>

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { toLocalInput, fromLocalInput } from '../datetime';
+import { toLocalInput, fromLocalInput, formatLocalDate } from '../datetime';
 
 // These assertions are timezone-independent for the CORRECT implementation: they
 // build an instant from LOCAL components and read it back as local, so they hold
@@ -27,5 +27,23 @@ describe('datetime local-input conversion', () => {
     expect(fromLocalInput('')).toBeUndefined();
     expect(fromLocalInput(null)).toBeUndefined();
     expect(fromLocalInput('garbage')).toBeUndefined();
+  });
+});
+
+describe('formatLocalDate', () => {
+  it('formats an instant as a short local date with the year by default', () => {
+    const iso = new Date(2026, 7, 1, 12, 0).toISOString(); // 2026-08-01 local noon
+    expect(formatLocalDate(iso)).toBe('Aug 1, 2026');
+  });
+
+  it('omits the year with { year: false }', () => {
+    const iso = new Date(2026, 7, 1, 12, 0).toISOString();
+    expect(formatLocalDate(iso, { year: false })).toBe('Aug 1');
+  });
+
+  it('returns an empty string for empty / null / invalid input', () => {
+    expect(formatLocalDate('')).toBe('');
+    expect(formatLocalDate(null)).toBe('');
+    expect(formatLocalDate('not-a-date')).toBe('');
   });
 });
