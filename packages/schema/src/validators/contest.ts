@@ -289,8 +289,9 @@ export const judgeEntrySchema = z
   .object({
     entryId: z.string().uuid(),
     // Either an overall 0–100 score, or a per-criterion breakdown (the overall is
-    // then derived server-side as a normalized weighted sum).
-    score: z.number().int().min(1).max(100).optional(),
+    // then derived server-side as a normalized weighted sum). 0 is allowed so the
+    // holistic floor matches the per-criterion 0 floor (one 0–100 scale).
+    score: z.number().int().min(0).max(100).optional(),
     criteriaScores: z.array(criterionScoreSchema).min(1).max(20).optional(),
     feedback: z.string().max(2000).optional(),
   })

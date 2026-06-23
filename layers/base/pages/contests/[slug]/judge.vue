@@ -135,8 +135,9 @@ const scoring = ref<Record<string, number>>({});
 const critScoring = ref<Record<string, number[]>>({}); // per entry → [criterionScore...]
 const feedback = ref<Record<string, string>>({});
 const submitting = ref<string | null>(null);
-const error = ref('');
-const success = ref('');
+// Per-card save status (announced via aria-live) so a judge sees the result next
+// to the entry they just scored, not in one banner far up the page (G8).
+const saveStatus = ref<Record<string, { ok: boolean; msg: string }>>({});
 
 // Pre-fill from existing scores
 watch(entryList, (list) => {
@@ -165,9 +166,13 @@ function critTotal(entryId: string): number {
   return Math.round((sum / totalMax) * 100);
 }
 
+function setStatus(entryId: string, ok: boolean, msg: string): void {
+  saveStatus.value[entryId] = { ok, msg };
+}
+
 async function submitScore(entryId: string): Promise<void> {
   if (!inJudgingPhase.value) {
-    error.value = 'Scoring is only open during the judging phase.';
+    setStatus(entryId, false, 'Scoring is only open during the judging phase.');
     return;
   }
 
@@ -180,31 +185,26 @@ async function submitScore(entryId: string): Promise<void> {
       max: critMax(i),
     }));
     if (criteriaScores.some((c) => c.score < 0 || c.score > c.max)) {
-      error.value = 'Each criterion score must be between 0 and its maximum.';
+      setStatus(entryId, false, 'Each criterion score must be between 0 and its maximum.');
       return;
     }
     body = { entryId, criteriaScores, feedback: feedback.value[entryId] || undefined };
   } else {
     const score = scoring.value[entryId];
-    if (score === undefined || score < 1 || score > 100) {
-      error.value = 'Score must be between 1 and 100.';
+    if (score === undefined || score < 0 || score > 100) {
+      setStatus(entryId, false, 'Score must be between 0 and 100.');
       return;
     }
     body = { entryId, score, feedback: feedback.value[entryId] || undefined };
   }
 
-  error.value = '';
-  success.value = '';
   submitting.value = entryId;
-
   try {
     await $fetch(`/api/contests/${slug}/judge`, { method: 'POST', body });
-    success.value = 'Score submitted for entry.';
-    await refreshEntries().catch(() => {
-      success.value = 'Score saved, refresh to see the updated totals.';
-    });
+    setStatus(entryId, true, 'Score saved.');
+    await refreshEntries().catch(() => setStatus(entryId, true, 'Score saved, refresh to see the updated totals.'));
   } catch (err: unknown) {
-    error.value = (err as { data?: { message?: string } })?.data?.message || 'Failed to submit score.';
+    setStatus(entryId, false, (err as { data?: { message?: string } })?.data?.message || 'Failed to submit score.');
   } finally {
     submitting.value = null;
   }
@@ -212,6 +212,9 @@ async function submitScore(entryId: string): Promise<void> {
 </script>
 
 <template>
+  <!-- Auth-gated tool page (no SEO); ClientOnly avoids the lazy-fetch SSR/CSR
+       hydration race on the scoring controls (same rationale as the editor). -->
+  <ClientOnly>
   <div class="cpub-judge-page">
     <header class="cpub-judge-header">
       <NuxtLink :to="`/contests/${slug}`" class="cpub-judge-back">
@@ -223,7 +226,7 @@ async function submitScore(entryId: string): Promise<void> {
         <span v-if="currentReviewStage" class="cpub-judge-round">{{ currentReviewStage.name }}</span>
       </h1>
       <p class="cpub-judge-desc">
-        Score each entry from 1 to 100. Add optional feedback. Scores are saved immediately.
+        Score each entry from 0 to 100. Add optional feedback. Scores are saved immediately.
         <template v-if="currentReviewStage"> You're judging the <strong>{{ entryList.length }}</strong> {{ entryList.length === 1 ? 'entry' : 'entries' }} still in this round.</template>
       </p>
     </header>
@@ -278,9 +281,6 @@ async function submitScore(entryId: string): Promise<void> {
         </div>
       </div>
 
-      <div v-if="error" class="cpub-judge-alert cpub-judge-alert--error" role="alert">{{ error }}</div>
-      <div v-if="success" class="cpub-judge-alert cpub-judge-alert--success">{{ success }}</div>
-
       <div v-if="entryList.length === 0" class="cpub-judge-empty">
         <i class="fa-solid fa-inbox"></i>
         <p>No entries to judge yet.</p>
@@ -320,11 +320,13 @@ async function submitScore(entryId: string): Promise<void> {
             </div>
             <div class="cpub-judge-score-controls">
               <!-- Per-criterion scoring (when the contest defines a rubric) -->
-              <div v-if="hasCriteria && critScoring[entry.id]" class="cpub-judge-criteria-inputs">
+              <fieldset v-if="hasCriteria && critScoring[entry.id]" class="cpub-judge-criteria-inputs">
+                <legend class="cpub-sr-only">Scores by criterion for {{ entry.contentTitle }}</legend>
                 <div v-for="(crit, i) in criteria" :key="i" class="cpub-judge-crit-row">
-                  <label class="cpub-judge-crit-label">{{ crit.label }}</label>
+                  <label :for="`crit-${entry.id}-${i}`" class="cpub-judge-crit-label">{{ crit.label }}</label>
                   <div class="cpub-judge-crit-input-wrap">
                     <input
+                      :id="`crit-${entry.id}-${i}`"
                       v-model.number="critScoring[entry.id][i]"
                       type="number"
                       class="cpub-judge-crit-input"
@@ -336,7 +338,7 @@ async function submitScore(entryId: string): Promise<void> {
                   </div>
                 </div>
                 <div class="cpub-judge-crit-total">Overall <strong>{{ critTotal(entry.id) }}</strong> / 100</div>
-              </div>
+              </fieldset>
 
               <div class="cpub-judge-score-input-wrap">
                 <input
@@ -344,10 +346,10 @@ async function submitScore(entryId: string): Promise<void> {
                   v-model.number="scoring[entry.id]"
                   type="number"
                   class="cpub-judge-score-input"
-                  min="1"
+                  min="0"
                   max="100"
-                  placeholder="1-100"
-                  aria-label="Overall score, 1 to 100"
+                  placeholder="0-100"
+                  :aria-label="`Overall score for ${entry.contentTitle}, 0 to 100`"
                 />
                 <button
                   class="cpub-judge-score-btn"
@@ -357,19 +359,35 @@ async function submitScore(entryId: string): Promise<void> {
                   {{ submitting === entry.id ? '...' : entry.myScore !== null ? 'Update' : 'Score' }}
                 </button>
               </div>
+              <label :for="`fb-${entry.id}`" class="cpub-sr-only">Feedback for {{ entry.contentTitle }}</label>
               <textarea
+                :id="`fb-${entry.id}`"
                 v-model="feedback[entry.id]"
                 class="cpub-judge-feedback"
                 placeholder="Optional feedback (max 2000 chars)"
                 maxlength="2000"
                 rows="2"
               ></textarea>
+              <p
+                v-if="saveStatus[entry.id]"
+                class="cpub-judge-save-status"
+                :class="saveStatus[entry.id]!.ok ? 'is-ok' : 'is-err'"
+                role="status"
+                aria-live="polite"
+              >
+                <i :class="saveStatus[entry.id]!.ok ? 'fa-solid fa-circle-check' : 'fa-solid fa-circle-exclamation'"></i>
+                {{ saveStatus[entry.id]!.msg }}
+              </p>
+              <p v-else-if="!inJudgingPhase" class="cpub-judge-save-status is-muted">
+                Scoring opens in the judging phase.
+              </p>
             </div>
           </div>
         </div>
       </div>
     </template>
   </div>
+  </ClientOnly>
 </template>
 
 <style scoped>
@@ -426,13 +444,13 @@ async function submitScore(entryId: string): Promise<void> {
 .cpub-judge-score-label { display: block; font-family: var(--font-mono); font-size: 9px; color: var(--text-faint); text-transform: uppercase; }
 .cpub-judge-score-value { font-size: 20px; font-weight: 700; color: var(--accent); font-family: var(--font-mono); }
 .cpub-judge-score-controls { display: flex; flex-direction: column; gap: 6px; }
-.cpub-judge-criteria-inputs { display: flex; flex-direction: column; gap: 6px; padding: 8px; border: var(--border-width-default) dashed var(--border); background: var(--surface2); margin-bottom: 2px; }
+.cpub-judge-criteria-inputs { display: flex; flex-direction: column; gap: 6px; padding: 8px; border: var(--border-width-default) dashed var(--border); background: var(--surface2); margin: 0 0 2px; min-inline-size: 0; }
 .cpub-judge-crit-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .cpub-judge-crit-label { font-size: 11px; color: var(--text-dim); flex: 1; min-width: 0; }
 .cpub-judge-crit-input-wrap { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
 .cpub-judge-crit-input { width: 52px; padding: 4px 6px; border: var(--border-width-default) solid var(--border); background: var(--surface); color: var(--text); font-size: 12px; font-family: var(--font-mono); text-align: center; outline: none; }
 .cpub-judge-crit-input:focus { border-color: var(--accent); }
-.cpub-judge-crit-max { font-size: 10px; color: var(--text-faint); font-family: var(--font-mono); }
+.cpub-judge-crit-max { font-size: 10px; color: var(--text-dim); font-family: var(--font-mono); }
 .cpub-judge-crit-total { font-size: 11px; font-family: var(--font-mono); color: var(--text-dim); text-align: right; padding-top: 4px; border-top: var(--border-width-default) solid var(--border); }
 .cpub-judge-crit-total strong { color: var(--accent); font-size: 13px; }
 .cpub-judge-score-input-wrap { display: flex; gap: 0; }
@@ -452,6 +470,11 @@ async function submitScore(entryId: string): Promise<void> {
   color: var(--text); font-size: 11px; font-family: inherit; resize: vertical; outline: none;
 }
 .cpub-judge-feedback:focus { border-color: var(--accent); }
+.cpub-judge-save-status { display: flex; align-items: center; gap: 5px; margin: 2px 0 0; font-size: 11px; font-family: var(--font-mono); }
+.cpub-judge-save-status.is-ok { color: var(--green); }
+.cpub-judge-save-status.is-err { color: var(--red); }
+.cpub-judge-save-status.is-muted { color: var(--text-faint); }
+.cpub-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 
 @media (max-width: 768px) {
   .cpub-judge-entry { flex-direction: column; }

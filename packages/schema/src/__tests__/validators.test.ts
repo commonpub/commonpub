@@ -849,12 +849,12 @@ describe('createProductSchema — boundary tests', () => {
 describe('judgeEntrySchema — boundary tests', () => {
   const uuid = crypto.randomUUID();
 
-  it('rejects score below 1', () => {
+  it('rejects a negative score', () => {
     expect(() => judgeEntrySchema.parse({ entryId: uuid, score: -1 })).toThrow();
   });
 
-  it('rejects score of exactly 0 (scores are 1–100)', () => {
-    expect(() => judgeEntrySchema.parse({ entryId: uuid, score: 0 })).toThrow();
+  it('accepts score of exactly 0 (scale standardized to 0–100)', () => {
+    expect(judgeEntrySchema.parse({ entryId: uuid, score: 0 }).score).toBe(0);
   });
 
   it('accepts score of exactly 1', () => {
