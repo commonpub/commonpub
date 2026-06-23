@@ -18,6 +18,9 @@ import type { Serialized, ContestEntryItem } from '@commonpub/server';
 import type { ContestEditorSource } from '../../composables/useContestEditor';
 import JudgesShowcaseBlock from './blocks/JudgesShowcaseBlock.vue';
 import HtmlBlock from './blocks/HtmlBlock.vue';
+import CriteriaBarBlock from './blocks/CriteriaBarBlock.vue';
+import TableBlock from './blocks/TableBlock.vue';
+import TabsBlock from './blocks/TabsBlock.vue';
 
 const props = defineProps<{ mode: 'create' | 'edit' }>();
 
@@ -66,7 +69,7 @@ const {
 // --- Hoisted body block editors (the one refactor: a single left palette inserts
 // into the CURRENTLY-active body, so the three useBlockEditor instances live here
 // where the palette lives, not inside per-body components). ---
-const blockDefaults = { blockDefaults: { judgesShowcase: () => ({ judges: [] }), html: () => ({ html: '' }) } };
+const blockDefaults = { blockDefaults: { judgesShowcase: () => ({ judges: [] }), html: () => ({ html: '' }), criteriaBar: () => ({ items: [], showLegend: true }), table: () => ({ header: ['Column 1', 'Column 2'], rows: [['', ''], ['', '']] }), tabs: () => ({ tabs: [{ label: 'Tab 1', blocks: [] }, { label: 'Tab 2', blocks: [] }] }) } };
 const overviewEditor = useBlockEditor(seedBodyBlocks(descriptionBlocks.value, description.value, descriptionFormat.value), blockDefaults);
 const rulesEditor = useBlockEditor(seedBodyBlocks(rulesBlocks.value, rules.value, rulesFormat.value), blockDefaults);
 const prizesEditor = useBlockEditor(seedBodyBlocks(prizesBlocks.value, prizesDescription.value, prizesDescriptionFormat.value), blockDefaults);
@@ -77,7 +80,7 @@ const bodyMode = ref<'write' | 'preview' | 'code'>('write');
 const activeBodyEditor = computed(() => ({ overview: overviewEditor, rules: rulesEditor, prizes: prizesEditor })[activeTab.value] ?? overviewEditor);
 
 // Contest-specific edit block + image upload, provided once for all three bodies.
-provide(BLOCK_COMPONENTS_KEY, { judgesShowcase: JudgesShowcaseBlock, html: HtmlBlock });
+provide(BLOCK_COMPONENTS_KEY, { judgesShowcase: JudgesShowcaseBlock, html: HtmlBlock, criteriaBar: CriteriaBarBlock, table: TableBlock, tabs: TabsBlock });
 const { uploadFile } = useFileUpload();
 provide(UPLOAD_HANDLER_KEY, (file: File) => uploadFile<{ url: string; width?: number | null; height?: number | null }>(file, 'content'));
 
@@ -123,6 +126,7 @@ const contestBlockGroups: BlockTypeGroup[] = [
     name: 'Contest',
     blocks: [
       { type: 'judgesShowcase', label: 'Judges Showcase', icon: 'fa-user-group', description: 'Avatar + bio cards for the overview' },
+      { type: 'criteriaBar', label: 'Criteria Bar', icon: 'fa-chart-simple', description: 'Weighted judging criteria as one stacked bar' },
     ],
   },
   {
@@ -141,6 +145,13 @@ const contestBlockGroups: BlockTypeGroup[] = [
       { type: 'horizontal_rule', label: 'Divider', icon: 'fa-minus', description: 'Visual separator' },
       { type: 'markdown', label: 'Markdown', icon: 'fa-brands fa-markdown', description: 'Raw markdown block' },
       { type: 'html', label: 'HTML', icon: 'fa-code', description: 'Raw HTML snippet (sanitized on render)' },
+      { type: 'table', label: 'Table', icon: 'fa-table', description: 'Responsive data table' },
+    ],
+  },
+  {
+    name: 'Layout',
+    blocks: [
+      { type: 'tabs', label: 'Tabs', icon: 'fa-folder-tree', description: 'Tabbed panels, e.g. multiple rule sets (Track A / Track B)' },
     ],
   },
 ];

@@ -27,6 +27,9 @@ import BlockGalleryView from './BlockGalleryView.vue';
 import BlockSectionHeaderView from './BlockSectionHeaderView.vue';
 import BlockMarkdownView from './BlockMarkdownView.vue';
 import BlockHtmlView from './BlockHtmlView.vue';
+import BlockCriteriaBarView from './BlockCriteriaBarView.vue';
+import BlockTableView from './BlockTableView.vue';
+import BlockTabsView from './BlockTabsView.vue';
 import BlockJudgesShowcaseView from './BlockJudgesShowcaseView.vue';
 import type { BlockTuple } from '@commonpub/editor';
 
@@ -71,6 +74,9 @@ const componentMap: Record<string, unknown> = {
   sectionHeader: BlockSectionHeaderView,
   markdown: BlockMarkdownView,
   html: BlockHtmlView,
+  criteriaBar: BlockCriteriaBarView,
+  table: BlockTableView,
+  tabs: BlockTabsView,
   judgesShowcase: BlockJudgesShowcaseView,
 };
 
