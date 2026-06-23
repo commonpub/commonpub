@@ -575,24 +575,44 @@ default **false**.
 
 ---
 
-## Active feature branch: `contests` (session 211 — NOT merged / published / deployed)
+## Active feature branch: `contests` (session 211-215 — NOT merged / published / deployed)
 
 Forked from `monolith-splits` (itself unreleased). The **contest elevation** initiative
-(`docs/plans/contest-elevation.md`, 6 phases). Phase 1 + Phase 2a/2b landed; gates green
-(server 1467, layer 1150, reference `vue-tsc` 0). Nothing is live — these notes describe BRANCH state.
+(`docs/plans/contest-elevation.md`, 6 phases). **Phases 1-5 DONE + Phase 6 non-release work DONE**
+(drop dead cols, B5a, denormalization note). Gates green: schema **475**, server **1490**, layer
+**1223**, both app typechecks 0. Nothing is live — these notes describe BRANCH state. Rolling handoff:
+`docs/sessions/211-contest-elevation.md`. ADR: `docs/adr/029-contest-proposal-pii-model.md`.
 
-**Landed so far (all atomic, tested, RED-on-revert proven):**
-- Bug fixes: transactional `createContest`/`withdrawContestEntry`, race-safe `addContestJudge`, emoji
-  removed; contest enum validators derived from pgEnums; `contestCreation` route default → `admin`.
-- `utils/datetime` + `CpubDateTimeField` (fixes the UTC datetime-local display bug; themed pickers);
-  `color-scheme` declared on `:root` + all 3 dark themes (stoa-dark gap fixed).
-- Dark-mode-safe contest Full-HTML (`sanitizeRichHtml` `neutralizeColors` + `.cpub-md-html` baseline).
-- `?tab=` deep-linkable contest tabs.
-- `searchUsers` + contest-scoped `/api/contests/[slug]/user-search` (fixes the non-admin judge/reviewer
-  picker 403).
+**Landed (all atomic, tested):**
+- **Phase 1** bug fixes + primitives: transactional `createContest`/`withdrawContestEntry`, race-safe
+  `addContestJudge`, emoji removed; enum-derived validators; `utils/datetime` + `CpubDateTimeField`
+  (UTC datetime-local fix); `color-scheme` on `:root` + dark themes; dark-mode-safe Full-HTML
+  (`neutralizeColors`); `?tab=` deep links; `searchUsers` + contest-scoped user-search.
+- **Phase 2** unified block editor: ONE `ContestEditor.vue` (create ≡ edit thin shells); BlockTuple[]
+  body in `descriptionBlocks`/`rulesBlocks`/`prizesBlocks` (migrations 0028/0029); `judgesShowcase`
+  block; canvas tabs (Overview/Rules/Prizes/Stages/Judging); media strip; Write/Preview/Code + autosave.
+- **Phase 3** display redesign: slim compact-bar hero, cover lead image, hydration-mismatch fixes,
+  one date formatter.
+- **Phase 4** submission paths: flags `contestProposals` + `contestPii` (default OFF); field types
+  email/number/select/checkbox/date/agreement/address; `submissionMode: attach|proposal`; PII partition
+  (`contest_entry_private_fields` + `contest_agreement_acceptances`, migration 0030) + `contest.pii`
+  permission; `submitContestProposal` (draft placeholder); proposal form UI. Server monolith decomposed
+  into the `contest/` module DAG.
+- **Phase 5** judging + export: B3 (judge criteriaScores validated vs the rubric, rubric max
+  authoritative); holistic scale standardized 0-100; per-card aria-live judge UX; CSV export
+  (`contest/export.ts`, formula-injection-safe `toCsv`, PII columns gated on `contest.pii`).
+- **Phase 6 (non-release)**: dropped dead `contests.judges` + `content_format` (migration **0031**);
+  B5a (judge route asserts entry belongs to its `:slug`); score/rank denormalization documented + sync
+  test.
 
-**Release note when this ships (no migration yet on this branch):** changed publishable set so far is
-`@commonpub/schema` (validator derivation — additive), `@commonpub/server` (searchUsers + contest tx),
-`@commonpub/ui` (theme CSS), `@commonpub/layer` (components/routes). **Behavior change to flag:** contest
-Full-HTML color neutralization is on by default — existing contests with hardcoded HTML colors will
-render the theme baseline. Phase 2d will add the first migration (`contests.descriptionBlocks`/`rulesBlocks`).
+**Release (when you give the go-ahead)** — per the runbook above, dependency order:
+- **Changed publishable set:** `@commonpub/schema` (cols/validators/PII tables), `@commonpub/config`
+  (the two new flags), `@commonpub/server` (contest threading + decomposition + export + B3 + B5a),
+  `@commonpub/ui` (theme CSS), `@commonpub/layer` (components/routes). Bump schema → config → server →
+  ui → layer (`pnpm run publish:layer`), then deveco/heatsync pins + BOTH lockfiles + CLI.
+- **Migrations to commit + deploy:** 0028, 0029, 0030, 0031 (all apply via the deploy `db-migrate`
+  path; never `db:push` to prod).
+- **The new flags ship default OFF** — no behavior change until an operator enables them. The one
+  Phase-1 behavior change to flag in release notes: contest Full-HTML `neutralizeColors` is ON by
+  default (existing hardcoded-color HTML renders the theme baseline).
+- This roll also clears the still-pending 203/204 + 209/210 work to deveco/heatsync.

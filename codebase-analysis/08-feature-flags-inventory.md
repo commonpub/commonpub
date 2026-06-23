@@ -27,6 +27,8 @@ site), layer pages (`feature-gate.global.ts` middleware), layer components
 | `contentImport` | ON (added config 0.13.0) | `/api/content/import` (URL → content) | admin |
 | `contests` | **OFF** | `/contests/**`, contest API, judges, voting | admin |
 | `contestStageSubmissions` | **ON** (added config 0.21.0, session 194) | Per-stage entry artifacts (proposal/prototype submission templates filled by entrants). Inert until a contest stage defines a `submissionTemplate`. | admin |
+| `contestProposals` | **OFF default** (added branch `contests`, Phase 4) | Form-first proposal submission path — `POST /contests/:slug/proposal` creates a DRAFT placeholder project from a stage's `submissionMode:'proposal'` template, returning its actual contentType so the client routes to the editor. Inert until a stage opts into proposal mode. | admin |
+| `contestPii` | **OFF default** (added branch `contests`, Phase 4) | Whether PII field types (address + `pii`-flagged fields) are *offered* in the stage-template builder. Access to stored PII is always gated by the `contest.pii` permission (admin/staff) regardless of this flag; PII lives in `contestEntryPrivateFields`, never in the public `stageSubmissions`. | admin |
 | `events` | **OFF** | `/events/**`, events API, RSVP | admin |
 | `federation` | **OFF default** (live `true` on commonpub.io + deveco.io as of session 137-ish; verify with `curl /api/features` before any "dormant" claim) | AP `.well-known/*`, `/api/federation/**`, inbox, outbox | admin |
 | `federateHubs` | **OFF default** (live `true` on commonpub.io + deveco.io) | Hub Group actor + FEP-1b12 hub federation | admin |

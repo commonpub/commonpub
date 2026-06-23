@@ -922,6 +922,45 @@ via `currentStage`; the judge page mirrors this (its `currentRoundId` uses `norm
 like the server) to pre-fill only the current round's score. If you add another scoring surface,
 tag + aggregate by `roundId` the same way.
 
+**Score/rank denormalization chain (Phase 6):** `contest_entries.judgeScores` is the SOURCE OF
+TRUTH (per-judge inputs). `score` is the mean of the CURRENT round's `judgeScores`, re-derived by
+`judgeContestEntry` on every write; `rank` is RANK() over `score` DESC across the surviving cohort,
+re-derived by `calculateContestRanks` on completion; `stageState[].{score,rank}` is the IMMUTABLE
+per-round snapshot taken at each advancement cut (never recomputed). Flow: judgeScores → score →
+rank → stageState. Asserted by the "keeps score in sync with judgeScores" integration test. Don't
+write `score`/`rank` from anywhere but these two functions.
+
+**Contest PII partition (Phase 4 — security invariant):** PII NEVER lives in the public
+`contest_entries.stageSubmissions` jsonb. `validateSubmissionFields` splits each submission into
+{ artifact, pii, agreements }; only the non-PII artifact reaches `stageSubmissions`. PII goes to
+`contestEntryPrivateFields` (unique per entry), consent to `contestAgreementAcceptances`
+(append-only, with `termsHash`/`termsSnapshot`/`ip`). The only readers of those two tables live in
+`submissions.ts` (the upsert + the gated `getEntryPrivateData`). The `/entries` list + detail + judge
+page + CSV export's non-PII columns read ONLY `stageSubmissions`. PII surfaces ONLY via the gated
+`GET /entries/:entryId/private` (`contest.pii` OR own entry) and the export's PII columns
+(`contest.pii`). If you add an entries reader, do NOT join the PII/agreement tables. Contests don't
+federate, so there's no AP serialization leak path either.
+
+**`contest.pii` is single-dot (Phase 4):** unlike most permissions, the contest PII grant is
+`contest.pii` (not `contest.pii.read`) to satisfy the catalog test's `^[a-z]+\.[a-z]+$` shape.
+Seeded to admin (`*`) + staff (migration 0030 + STAFF_PERMISSION_SET).
+
+**CSV export is formula-injection-safe (Phase 5):** `contest/export.ts`'s `toCsv` prefixes any cell
+starting with `= + - @` TAB or CR with a `'` before RFC-4180 quoting, so entrant-controlled text
+(project title, proposal summary, author name) can't execute as a spreadsheet formula. Any new
+user-controlled CSV MUST route through `toCsv`.
+
+**Judge route slug-scoping (B5a, Phase 6):** `POST /contests/:slug/judge` resolves the contest by
+`:slug` and threads its id into `judgeContestEntry`, which rejects an entry that doesn't belong to
+that contest. Previously the route judged purely by entryId (a misleading contract, not an
+escalation — the judge-auth gate is contest-scoped).
+
+**Contest server is decomposed (Phase 4) — don't regrow the monolith:** the former 1666-line
+`contest/contest.ts` is split into an acyclic module DAG under `packages/server/src/contest/`:
+`types` ← `stages`/`validation` ← `read`/`entries`/`submissions` ← `judging`; `contest` (CRUD) ←
+`read`+`entries`; `export` is a leaf. `contest/index.ts` is the public barrel. New contest server
+logic goes in the right module.
+
 **Advancement-cull tests must defeat the insertion-order coincidence (session 189):** a Top-N cut
 test where the entries are scored in submission order can't tell a score-based cut from a buggy
 `slice(0, N)` (insertion-order) cut — both pass. The contest advancement + e2e tests deliberately
