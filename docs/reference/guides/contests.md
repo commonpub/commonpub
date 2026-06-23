@@ -99,7 +99,7 @@ under ~350 lines. `index.ts` is the public barrel re-exporting the unchanged API
 | `entries.ts` | Entry lifecycle: `listContestEntries`, `getContestEntry`, `submitContestEntry`, `withdrawContestEntry`, `calculateContestRanks`. |
 | `submissions.ts` | DB writers for artifacts/PII/agreements/proposals: `recordPrivateAndAgreements`, `submitStageArtifact`, `submitContestProposal`, `getEntryPrivateData`. |
 | `judging.ts` | `judgeContestEntry` (+ `scoreAgainstRubric`), `advanceContestStage`. |
-| `export.ts` | CSV submissions export: pure `toCsv` + `buildContestExport` (PII columns gated). |
+| `export.ts` | CSV submissions export: pure `toCsv` (RFC 4180 + formula-injection neutralization) + `buildContestExport` (PII columns gated). |
 | `contest.ts` | CRUD core: `createContest`, `updateContest`, `deleteContest`, `transitionContestStatus`, `canCreateContest`. |
 | `judges.ts` / `stakeholders.ts` | Judge panel + per-contest collaborator management. |
 

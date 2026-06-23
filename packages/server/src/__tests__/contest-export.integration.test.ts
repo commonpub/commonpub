@@ -14,6 +14,15 @@ describe('toCsv (RFC 4180)', () => {
     ]);
     expect(csv).toBe('a,"b,c","d""e","f\ng"\r\n1,2,3,4');
   });
+
+  it('neutralizes formula-injection leading chars (= + - @ TAB CR)', () => {
+    // Each dangerous leading char gets a `'` prefix so Excel/Sheets does not
+    // evaluate it; a plain value is untouched.
+    const csv = toCsv([['=SUM(A1)', '+1', '-2', '@x', 'plain', '85']]);
+    expect(csv).toBe(`'=SUM(A1),'+1,'-2,'@x,plain,85`);
+    // A formula that ALSO needs quoting (contains a comma) is prefixed then quoted.
+    expect(toCsv([['=cmd|x,y']])).toBe(`"'=cmd|x,y"`);
+  });
 });
 
 describe('buildContestExport', () => {
@@ -79,6 +88,32 @@ describe('buildContestExport', () => {
     const withPii = (await buildContestExport(db, contest.id, true))!;
     expect(withPii.csv.split('\r\n')[0]).toContain('PII: email');
     expect(withPii.csv).toContain('me@example.com');
+  });
+
+  it('neutralizes a formula-injection title end to end', async () => {
+    const contest = await createContest(db, {
+      title: 'Inject Contest',
+      slug: `inject-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      startDate: new Date('2026-04-01').toISOString(),
+      endDate: new Date('2026-08-01').toISOString(),
+      createdBy: organizerId,
+      stages: [
+        { id: 'prop', name: 'Proposals', kind: 'submission' as const, submissionMode: 'proposal' as const,
+          submissionTemplate: [{ key: 'title', label: 'Title', type: 'text', required: true }, ...FORM.slice(1)] },
+      ],
+      currentStageId: 'prop',
+    });
+    await transitionContestStatus(db, contest.id, organizerId, 'active');
+    const entrant = await createTestUser(db, { username: `inject-ent-${Date.now()}` });
+    await submitContestProposal(db, {
+      contestId: contest.id,
+      stageId: 'prop',
+      fields: { title: '=HYPERLINK("http://evil","x")', summary: 'ok', email: 'me@example.com', tos: 'true' },
+      userId: entrant.id,
+    });
+    const { csv } = (await buildContestExport(db, contest.id, false))!;
+    expect(csv).not.toMatch(/(^|,|")=HYPERLINK/m); // never a bare formula at a cell start
+    expect(csv).toContain(`'=HYPERLINK`); // neutralized
   });
 
   it('returns null for a missing contest', async () => {

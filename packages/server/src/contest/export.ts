@@ -10,9 +10,18 @@ import type { ContestJudgingCriterion } from './types.js';
 // one row per entry, one EMPTY column per rubric criterion for manual scoring,
 // and PII columns ONLY when the requester holds `contest.pii`.
 
-/** RFC 4180 CSV: quote fields with `"`, `,`, CR or LF; double embedded quotes; CRLF rows. */
+/**
+ * RFC 4180 CSV with formula-injection neutralization. Cells are entrant-controlled
+ * (titles, proposal text, author names), so a value starting with `= + - @` or a
+ * control char (TAB/CR) is prefixed with a `'` before quoting — otherwise Excel /
+ * Sheets would evaluate it as a formula when an organizer opens the export. Then
+ * standard quoting: wrap fields containing `"`, `,`, CR or LF; double embedded quotes.
+ */
 export function toCsv(rows: string[][]): string {
-  const cell = (v: string): string => (/[",\r\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
+  const cell = (v: string): string => {
+    const safe = /^[=+\-@\t\r]/.test(v) ? `'${v}` : v;
+    return /[",\r\n]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe;
+  };
   return rows.map((r) => r.map(cell).join(',')).join('\r\n');
 }
 
