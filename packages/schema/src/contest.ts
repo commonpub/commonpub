@@ -220,6 +220,15 @@ export const contestEntries = pgTable('contest_entries', {
   userId: uuid('user_id')
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
+  /**
+   * DENORMALIZED. The source of truth is `judgeScores` (the per-judge inputs).
+   * `score` is the mean of the CURRENT round's `judgeScores` entries, re-derived
+   * by `judgeContestEntry` on every score write. `rank` is RANK() over `score`
+   * DESC across the surviving (non-eliminated) cohort, re-derived by
+   * `calculateContestRanks` when the contest completes. `stageState[].{score,rank}`
+   * is the IMMUTABLE per-round snapshot of these two, taken at each advancement
+   * cut and never recomputed. Flow: judgeScores → score → rank → stageState.
+   */
   score: integer('score'),
   rank: integer('rank'),
   judgeScores: jsonb('judge_scores').$type<

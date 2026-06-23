@@ -1292,6 +1292,48 @@ describe('contest integration', () => {
     expect(right.judged).toBe(true);
   });
 
+  // --- Score/rank denormalization invariant (Phase 6) ---
+  // judgeScores is the source of truth; `score` is the mean of the current round's
+  // judgeScores; `rank` is RANK() over `score` DESC. This guards that chain.
+  it('keeps score in sync with judgeScores and rank in score order', async () => {
+    const j1 = await createTestUser(db, { username: `den-j1-${Date.now()}` });
+    const j2 = await createTestUser(db, { username: `den-j2-${Date.now()}` });
+    const p1 = await createTestUser(db, { username: `den-p1-${Date.now()}` });
+    const p2 = await createTestUser(db, { username: `den-p2-${Date.now()}` });
+    const contest = await createContest(db, { ...makeContestInput({ title: 'Denorm Sync' }), judges: [j1.id, j2.id] });
+    await acceptJudgeInvite(db, contest.id, j1.id);
+    await acceptJudgeInvite(db, contest.id, j2.id);
+    await transitionContestStatus(db, contest.id, organizerId, 'active');
+
+    const c1 = await createContent(db, p1.id, { type: 'project', title: 'Denorm A' });
+    await publishContent(db, c1.id, p1.id);
+    const e1 = await submitContestEntry(db, contest.id, c1.id, p1.id);
+    const c2 = await createContent(db, p2.id, { type: 'project', title: 'Denorm B' });
+    await publishContent(db, c2.id, p2.id);
+    const e2 = await submitContestEntry(db, contest.id, c2.id, p2.id);
+
+    await transitionContestStatus(db, contest.id, organizerId, 'judging');
+    // entry 1: mean(90, 80) = 85 ; entry 2: mean(60, 50) = 55
+    await judgeContestEntry(db, e1!.id, 90, j1.id);
+    await judgeContestEntry(db, e1!.id, 80, j2.id);
+    await judgeContestEntry(db, e2!.id, 60, j1.id);
+    await judgeContestEntry(db, e2!.id, 50, j2.id);
+    // Completion re-derives rank from the denormalized score.
+    await transitionContestStatus(db, contest.id, organizerId, 'completed');
+
+    const { items } = await listContestEntries(db, contest.id, { includeJudgeScores: true });
+    for (const item of items) {
+      const mean = Math.round(item.judgeScores!.reduce((s, j) => s + j.score, 0) / item.judgeScores!.length);
+      expect(item.score).toBe(mean); // score stays the mean of judgeScores
+    }
+    const a = items.find((i) => i.id === e1!.id)!;
+    const b = items.find((i) => i.id === e2!.id)!;
+    expect(a.score).toBe(85);
+    expect(b.score).toBe(55);
+    expect(a.rank).toBe(1); // higher score → rank 1
+    expect(b.rank).toBe(2);
+  });
+
   // --- Access control: visibility + role gate + stakeholders (session 174) ---
 
   it('canViewContest: public/unlisted are open; private is gated', async () => {
