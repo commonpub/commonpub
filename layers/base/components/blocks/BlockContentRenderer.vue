@@ -26,6 +26,7 @@ import BlockMathView from './BlockMathView.vue';
 import BlockGalleryView from './BlockGalleryView.vue';
 import BlockSectionHeaderView from './BlockSectionHeaderView.vue';
 import BlockMarkdownView from './BlockMarkdownView.vue';
+import BlockHtmlView from './BlockHtmlView.vue';
 import BlockJudgesShowcaseView from './BlockJudgesShowcaseView.vue';
 import type { BlockTuple } from '@commonpub/editor';
 
@@ -68,6 +69,7 @@ const componentMap: Record<string, unknown> = {
   gallery: BlockGalleryView,
   sectionHeader: BlockSectionHeaderView,
   markdown: BlockMarkdownView,
+  html: BlockHtmlView,
   judgesShowcase: BlockJudgesShowcaseView,
 };
 
