@@ -93,6 +93,10 @@ function onTabKey(e: KeyboardEvent, key: BodyTab): void {
     </div>
 
     <div class="cpub-cbc-panel" role="tabpanel" :aria-labelledby="`cpub-cbc-tab-${activeTab}`">
+      <!-- Overview-only lead (inline banner + cover); the parent fills the slot. -->
+      <div v-if="activeTab === 'overview' && mode === 'write'" class="cpub-cbc-lead">
+        <slot name="overview-lead" />
+      </div>
       <!-- One canvas, keyed by tab so each body gets a clean canvas instance; the
            underlying block state persists in the parent's hoisted editors. -->
       <BlockCanvas v-show="mode === 'write'" :key="activeTab" :block-editor="editor" :block-types="groups" />
@@ -130,6 +134,7 @@ function onTabKey(e: KeyboardEvent, key: BodyTab): void {
 .cpub-cbc-mode-active { background: var(--accent-bg); color: var(--accent); }
 
 .cpub-cbc-panel { border: var(--border-width-default) solid var(--border); background: var(--surface); padding: var(--space-2); }
+.cpub-cbc-lead { margin-bottom: var(--space-3); }
 .cpub-cbc-preview { padding: var(--space-3); }
 .cpub-cbc-empty { font-size: var(--text-sm); color: var(--text-faint); margin: 0; padding: var(--space-4) 0; text-align: center; }
 .cpub-cbc-code {

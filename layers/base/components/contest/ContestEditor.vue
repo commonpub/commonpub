@@ -191,6 +191,20 @@ useSeoMeta({
 const { enabledTypeMeta } = useContentTypes();
 const ROLE_OPTIONS = ['member', 'pro', 'verified', 'staff', 'admin'];
 
+// --- Inline media (banner + cover) shown at the top of the Overview body ---
+function uploadMedia(event: Event, target: Ref<string>, purpose: string): void {
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0];
+  if (!file) return;
+  uploadFile<{ url: string }>(file, purpose)
+    .then((res) => { target.value = res.url; })
+    .catch((err: unknown) => { toast.error(extractError(err) || 'Image upload failed'); });
+  input.value = '';
+}
+function onBannerUpload(e: Event): void { uploadMedia(e, bannerUrl, 'banner'); }
+function onCoverUpload(e: Event): void { uploadMedia(e, coverImageUrl, 'cover'); }
+function onBannerUrl(): void { const url = window.prompt('Enter banner image URL:'); if (url) bannerUrl.value = url; }
+
 // --- Right-rail collapsible sections ---
 const openSections = ref<Record<string, boolean>>({
   details: true, schedule: true, stages: false, entries: true,
@@ -363,10 +377,6 @@ async function advanceStage(stageId: string): Promise<void> {
 
       <!-- CENTER: contest body (Overview / Rules / Prizes). -->
       <div class="cpub-ce-center">
-        <ContestMediaStrip
-          v-model:banner-url="bannerUrl"
-          v-model:cover-image-url="coverImageUrl"
-        />
         <ContestBodyCanvas
           :editor="activeBodyEditor"
           :groups="contestBlockGroups"
@@ -374,7 +384,45 @@ async function advanceStage(stageId: string): Promise<void> {
           :mode="bodyMode"
           @update:active-tab="activeTab = $event"
           @update:mode="bodyMode = $event"
-        />
+        >
+          <!-- Banner + cover render inline at the top of the Overview body only. -->
+          <template #overview-lead>
+            <div class="cpub-ce-media">
+              <div class="cpub-ce-banner" :class="{ 'has-image': !!bannerUrl }">
+                <img v-if="bannerUrl" :src="bannerUrl" alt="Contest banner" class="cpub-ce-banner-img" />
+                <div v-else class="cpub-ce-media-placeholder">
+                  <i class="fa-regular fa-image"></i>
+                  <span>Banner image</span>
+                </div>
+                <div class="cpub-ce-media-overlay">
+                  <label class="cpub-ce-media-btn primary">
+                    <i class="fa-solid fa-arrow-up-from-bracket"></i> {{ bannerUrl ? 'Replace' : 'Upload' }}
+                    <input type="file" accept="image/*" class="cpub-sr-only" aria-label="Upload banner image" @change="onBannerUpload">
+                  </label>
+                  <button type="button" class="cpub-ce-media-btn" @click="onBannerUrl"><i class="fa-solid fa-link"></i> URL</button>
+                  <button v-if="bannerUrl" type="button" class="cpub-ce-media-btn" @click="bannerUrl = ''"><i class="fa-solid fa-trash"></i> Remove</button>
+                </div>
+
+                <!-- Cover thumbnail, inset over the banner's lower-left (mirrors the public hero). -->
+                <div class="cpub-ce-cover" :class="{ 'has-image': !!coverImageUrl }">
+                  <img v-if="coverImageUrl" :src="coverImageUrl" alt="Contest cover" class="cpub-ce-cover-img" />
+                  <div v-else class="cpub-ce-media-placeholder cpub-ce-media-placeholder-sm">
+                    <i class="fa-regular fa-image"></i>
+                    <span>Cover</span>
+                  </div>
+                  <div class="cpub-ce-media-overlay">
+                    <label class="cpub-ce-media-btn primary cpub-ce-media-btn-icon" title="Upload cover image">
+                      <i class="fa-solid fa-arrow-up-from-bracket"></i>
+                      <input type="file" accept="image/*" class="cpub-sr-only" aria-label="Upload cover image" @change="onCoverUpload">
+                    </label>
+                    <button v-if="coverImageUrl" type="button" class="cpub-ce-media-btn cpub-ce-media-btn-icon" title="Remove cover" @click="coverImageUrl = ''"><i class="fa-solid fa-trash"></i></button>
+                  </div>
+                </div>
+              </div>
+              <p class="cpub-form-hint cpub-ce-media-hint">Banner is the wide hero (~4:1). Cover is the card thumbnail in listings (~4:3); it falls back to the banner if unset.</p>
+            </div>
+          </template>
+        </ContestBodyCanvas>
         <p class="cpub-form-hint cpub-ce-body-hint">
           The <strong>Overview</strong>, <strong>Rules</strong>, and <strong>Prizes</strong> bodies are blocks
           (headings, lists, images, callouts, and the <strong>Judges Showcase</strong>), like the project and blog
@@ -708,6 +756,49 @@ async function advanceStage(stageId: string): Promise<void> {
 .cpub-danger-btn:hover:not(:disabled) { background: var(--red-bg); }
 
 .cpub-not-found { text-align: center; padding: 64px; color: var(--text-dim); display: flex; flex-direction: column; align-items: center; gap: 12px; }
+
+/* --- Inline media (banner + cover) in the Overview body --- */
+.cpub-ce-media { display: flex; flex-direction: column; gap: 6px; }
+.cpub-ce-banner {
+  position: relative; width: 100%; aspect-ratio: 4 / 1; background: var(--surface2);
+  border: var(--border-width-default) solid var(--border); overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+}
+.cpub-ce-banner-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.cpub-ce-cover {
+  position: absolute; left: 16px; bottom: 12px; width: 120px; aspect-ratio: 4 / 3;
+  background: var(--surface); border: var(--border-width-default) solid var(--border);
+  box-shadow: var(--shadow-md); overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+}
+.cpub-ce-cover-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.cpub-ce-media-placeholder { display: flex; flex-direction: column; align-items: center; gap: 6px; color: var(--text-faint); }
+.cpub-ce-media-placeholder > i { font-size: 24px; }
+.cpub-ce-media-placeholder > span { font-size: 11px; font-family: var(--font-mono); }
+.cpub-ce-media-placeholder-sm > i { font-size: 16px; }
+.cpub-ce-media-placeholder-sm > span { font-size: 9px; }
+.cpub-ce-media-overlay {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap;
+  background: var(--color-surface-scrim); opacity: 0; transition: opacity 0.15s;
+}
+.cpub-ce-banner:hover > .cpub-ce-media-overlay,
+.cpub-ce-banner:focus-within > .cpub-ce-media-overlay,
+.cpub-ce-cover:hover .cpub-ce-media-overlay,
+.cpub-ce-cover:focus-within .cpub-ce-media-overlay { opacity: 1; }
+@media (hover: none) {
+  .cpub-ce-banner > .cpub-ce-media-overlay, .cpub-ce-cover .cpub-ce-media-overlay { opacity: 1; }
+}
+.cpub-ce-media-btn {
+  font-size: 10px; padding: 5px 10px; background: var(--surface); border: var(--border-width-default) solid var(--border);
+  color: var(--text-dim); cursor: pointer; display: inline-flex; align-items: center; gap: 4px;
+  font-family: var(--font-mono); box-shadow: var(--shadow-sm);
+}
+.cpub-ce-media-btn.primary { background: var(--accent); color: var(--color-text-inverse); border-color: var(--accent); }
+.cpub-ce-media-btn:hover { background: var(--surface2); }
+.cpub-ce-media-btn.primary:hover { opacity: 0.9; background: var(--accent); }
+.cpub-ce-media-btn-icon { padding: 5px 7px; }
+.cpub-ce-media-hint { margin: 0; }
+.cpub-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0; }
 
 /* --- Responsive: stack the rail under the body on narrow viewports --- */
 @media (max-width: 1024px) {
