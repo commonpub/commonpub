@@ -68,6 +68,23 @@ reference doc, and VISUALLY VERIFIED the whole flow in the running app. **Not me
   vs rubric); Phase 6 (drop dead `judges`/`content_format` cols, B5a, release). The Phase 4 flags ship
   default OFF; reference config left at defaults (the local-verify flag flip was reverted).
 
+**Adversarial audit (session 215, post-Phase-4, all PASS except one real edge-case bug, now fixed):**
+- **PII isolation holds** — traced every reader: `contest_entry_private_fields` + `contest_agreement_acceptances`
+  are read ONLY inside `submissions.ts` (the PII upsert-lock + the gated `getEntryPrivateData`). The
+  `/entries` list + `/entries/[entryId]` detail + judge page read only `stageSubmissions` (partitioned, no
+  PII). No leak path; contests don't federate.
+- **`255b5ced` FIXED (real bug)** — the proposal-submit redirect guessed the project type client-side
+  (`eligibleContentTypes[0] ?? 'project'`) while the server derives `placeholderType` differently (skips
+  non-creatable types, then `createContent` normalizes `article→blog`). When `eligibleContentTypes[0]` isn't
+  creatable (e.g. the `article` alias), the server made a `project` but the client navigated to
+  `/u/<un>/article/<slug>/edit` → 404. Fix: `submitContestProposal` returns `contentType` (the ACTUAL created
+  type); route + ContestProposalForm + index.vue navigate with it. Regression test (eligible `['article']` →
+  `contentType: 'project'`, RED on revert). Also anchored the `/private` route's contestId/userId to the
+  validated context (getEntryPrivateData can't fill them for an agreements-only entry).
+- Decomposition spot-checked: `submissions.ts` correctly imports from `./stages`, `./validation`, `./types`;
+  build clean; full suite green. No dropped exports (the server top-level re-export-by-name would fail build).
+- Gates after audit fix: schema 475, server **1480**, layer 1223, reference vue-tsc 0.
+
 **Session 214 cont. — Phase 3 (display redesign + the hydration bug):**
 - `32c0aa29` (audit follow-up) dedupe repeated autosave-error toasts (a persistent error retried every
   ~3s spammed the same toast).
