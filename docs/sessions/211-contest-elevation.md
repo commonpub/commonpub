@@ -68,6 +68,36 @@ reference doc, and VISUALLY VERIFIED the whole flow in the running app. **Not me
   vs rubric); Phase 6 (drop dead `judges`/`content_format` cols, B5a, release). The Phase 4 flags ship
   default OFF; reference config left at defaults (the local-verify flag flip was reverted).
 
+**Session 215 cont. — Phase 5 (judging UX + CSV export + B3), all visually verified:**
+- `46b671c4` **5a (B3)** — `judgeContestEntry` no longer trusts the client criterion `max`. New pure
+  `scoreAgainstRubric` resolves the rubric (round `criteria` else `judgingCriteria`), rejects unknown/
+  missing criteria + OOB scores, computes overall + stores criteriaScores using the RUBRIC max
+  (`rubricCriterionMax` = weight>0 ? weight : 100). Per-criterion with no rubric → rejected. +3 tests
+  (tampered max → 100 not 2.5; unknown/missing; no-rubric), RED on revert.
+- `6857f0da` **5b (G9 CSV export)** — new `contest/export.ts`: pure `toCsv` (RFC 4180) + `buildContestExport`
+  (ALL entries, not the 100 cap; one EMPTY column per rubric criterion for manual tallying; PII columns
+  ONLY when `includePii`). Route `GET /api/contests/:slug/export` (contest-level, sibling of advance/
+  transition to dodge the `entries/[entryId]` typed-route collision) — owner/`contest.manage`/editor/
+  accepted-judge; PII gated on `contest.pii`; UTF-8 BOM. Organizer "Export entries (CSV)" link on the
+  Entries tab (canManage). Tests: toCsv quoting, PII omit/include, missing-contest null.
+- `bd0ca71f` **5c (judge UX + scale)** — operator decided **standardize holistic to 0–100** (min 1→0; CSV
+  only, no xlsx). judge.vue: per-card `role=status aria-live` save status (replaces the page-level banner);
+  per-criterion inputs in a `<fieldset>` + sr-only `<legend>`; sr-only `<label>` on the feedback textarea;
+  inline disabled reason; wrapped the auth-gated no-SEO page in `<ClientOnly>` (kills the lazy-fetch
+  hydration race, same as the editor); crit-max `text-faint→text-dim` for AA. Validator score `min(0)`;
+  boundary test flipped.
+- `f4f4fbf7` **docs** — contests.md updated (B3, 0–100, judge UX, export route + module).
+- **VISUAL VERIFICATION (local run + Playwright + curl, all PASS):** judge page renders "Score 0 to 100",
+  grouped criteria, per-card "✓ Score saved.", **Your Score 85** (30/40 + 55/60 via rubric maxes — B3 live),
+  **ZERO hydration warnings** (after ClientOnly), judge-page axe clean (only global `.cpub-kbd` + footer h4
+  + dev devtools remain — all pre-existing/dev-only). CSV export: 200 + `text/csv` + attachment headers +
+  rubric columns `Feasibility,Impact` (empty tally) + score 85; entrant (non-judge/non-manager) → **403**.
+- **Gates after Phase 5:** schema 475, server **1486**, layer 1223, reference vue-tsc 0.
+- **NEXT: Phase 6** — drop dead `contests.judges` + `contests.content_format` cols (interactive drizzle
+  generate); B5a (judge.post.ts ignores its `:slug` — load contest by slug + assert entry belongs);
+  score/rank denormalization note; docs/STATUS refresh; then the RELEASE (publish chain + deploy) on
+  explicit go-ahead. Phase 4+5 flags ship default OFF.
+
 **Adversarial audit (session 215, post-Phase-4, all PASS except one real edge-case bug, now fixed):**
 - **PII isolation holds** — traced every reader: `contest_entry_private_fields` + `contest_agreement_acceptances`
   are read ONLY inside `submissions.ts` (the PII upsert-lock + the gated `getEntryPrivateData`). The
