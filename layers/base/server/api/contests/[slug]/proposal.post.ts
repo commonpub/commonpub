@@ -8,7 +8,7 @@ import { stageSubmissionSchema } from '@commonpub/schema';
  * acceptances + PII separately. Gated by features.contestProposals; the server
  * enforces that the target stage is the current, proposal-mode submission stage.
  */
-export default defineEventHandler(async (event): Promise<{ entryId: string; projectSlug: string }> => {
+export default defineEventHandler(async (event): Promise<{ entryId: string; projectSlug: string; contentType: string }> => {
   requireFeature('contests');
   requireFeature('contestProposals');
   const user = requireAuth(event);
@@ -32,5 +32,5 @@ export default defineEventHandler(async (event): Promise<{ entryId: string; proj
   if (!result.ok) {
     throw createError({ statusCode: 400, statusMessage: result.error });
   }
-  return { entryId: result.entryId, projectSlug: result.projectSlug };
+  return { entryId: result.entryId, projectSlug: result.projectSlug, contentType: result.contentType };
 });

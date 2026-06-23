@@ -149,6 +149,26 @@ describe('contest proposals (form-first)', () => {
     // entryCount bumped.
     const [c] = await db.select({ n: contests.entryCount }).from(contests).where(eq(contests.id, contest.id));
     expect(c!.n).toBe(1);
+
+    // Returns the ACTUAL created type so the client routes to the right editor.
+    expect(res.contentType).toBe('project');
+  });
+
+  it('returns the actual created type, not a guess from eligibleContentTypes', async () => {
+    // Regression: the client must route by the RETURNED type, not eligibleTypes[0].
+    // 'article' is a deprecated alias not in PLACEHOLDER_TYPES, so the placeholder
+    // falls back to 'project'. The old client guess ('article') would 404; the
+    // response must carry the real type ('project') so the redirect resolves.
+    const input = { ...proposalContestInput('article-type'), eligibleContentTypes: ['article'] };
+    const contest = await createContest(db, input);
+    await transitionContestStatus(db, contest.id, organizerId, 'active');
+    const entrant = await createTestUser(db, { username: `prop-article-${Date.now()}` });
+    const res = await submitContestProposal(db, { contestId: contest.id, stageId: 'prop', fields: goodForm(), userId: entrant.id });
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    expect(res.contentType).toBe('project'); // NOT 'article' (the eligibleTypes[0] guess)
+    const [content] = await db.select().from(contentItems).where(eq(contentItems.id, res.contentId));
+    expect(content!.type).toBe(res.contentType); // the URL the client builds must match this
   });
 
   it('the normal entries listing never leaks PII (privileged view shows artifact only)', async () => {

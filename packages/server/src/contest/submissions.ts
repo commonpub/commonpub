@@ -183,7 +183,10 @@ export interface SubmitProposalArgs {
 }
 
 export type SubmitProposalResult =
-  | { ok: true; entryId: string; projectSlug: string; contentId: string }
+  // `contentType` is the ACTUAL created type (after PLACEHOLDER_TYPES fallback +
+  // createContent's article→blog normalization) so the client routes to the
+  // right editor URL instead of guessing from eligibleContentTypes.
+  | { ok: true; entryId: string; projectSlug: string; contentId: string; contentType: string }
   | { ok: false; error: string };
 
 /**
@@ -288,7 +291,7 @@ export async function submitContestProposal(db: DB, args: SubmitProposalArgs): P
       return inserted.id;
     });
 
-    return { ok: true, entryId, projectSlug: placeholder.slug, contentId: placeholder.id };
+    return { ok: true, entryId, projectSlug: placeholder.slug, contentId: placeholder.id, contentType: placeholder.type };
   } catch (err) {
     await deleteContent(db, placeholder.id, userId).catch(() => {});
     if (err instanceof Error && err.message === 'entry-conflict') {

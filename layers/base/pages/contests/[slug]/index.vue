@@ -195,11 +195,12 @@ const currentProposalStage = computed(() => {
   return stage && stage.kind === 'submission' && stage.submissionMode === 'proposal' && stage.submissionTemplate?.length ? stage : null;
 });
 
-function onProposalSubmitted(projectSlug: string): void {
+function onProposalSubmitted(projectSlug: string, contentType: string): void {
   refreshNuxtData();
   // Route the entrant into their new draft project to develop it for later rounds.
+  // Use the server's ACTUAL created type (not a client guess) so the URL resolves.
   if (user.value?.username) {
-    navigateTo(`/u/${user.value.username}/${newProjectType.value}/${projectSlug}/edit`);
+    navigateTo(`/u/${user.value.username}/${contentType}/${projectSlug}/edit`);
   }
 }
 

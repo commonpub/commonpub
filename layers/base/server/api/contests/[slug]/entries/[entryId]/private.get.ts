@@ -32,14 +32,14 @@ export default defineEventHandler(async (event): Promise<EntryPrivateData> => {
   }
 
   const data = await getEntryPrivateData(db, entryId);
-  return (
-    data ?? {
-      contestId: contest.id,
-      entryId,
-      userId: entry.userId,
-      fields: {},
-      updatedAt: new Date(0),
-      agreements: [],
-    }
-  );
+  // Always anchor contestId/userId to the validated context (getEntryPrivateData
+  // can't fill them when an entry has agreements but no stored PII row).
+  return {
+    contestId: contest.id,
+    entryId,
+    userId: entry.userId,
+    fields: data?.fields ?? {},
+    updatedAt: data?.updatedAt ?? new Date(0),
+    agreements: data?.agreements ?? [],
+  };
 });

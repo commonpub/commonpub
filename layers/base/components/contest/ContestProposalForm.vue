@@ -14,7 +14,7 @@ const props = defineProps<{
   stage: ContestStage;
 }>();
 
-const emit = defineEmits<{ (e: 'submitted', projectSlug: string): void }>();
+const emit = defineEmits<{ (e: 'submitted', projectSlug: string, contentType: string): void }>();
 
 const toast = useToast();
 const { extract: extractError } = useApiError();
@@ -39,12 +39,12 @@ async function submit(): Promise<void> {
   submitting.value = true;
   try {
     const fields = buildSubmissionPayload(template.value, values.value);
-    const res = await $fetch<{ entryId: string; projectSlug: string }>(
+    const res = await $fetch<{ entryId: string; projectSlug: string; contentType: string }>(
       `/api/contests/${props.contestSlug}/proposal`,
       { method: 'POST', body: { stageId: props.stage.id, fields } },
     );
     toast.success('Proposal submitted. Continue building your project for the next round.');
-    emit('submitted', res.projectSlug);
+    emit('submitted', res.projectSlug, res.contentType);
   } catch (err: unknown) {
     toast.error(extractError(err));
   } finally {
