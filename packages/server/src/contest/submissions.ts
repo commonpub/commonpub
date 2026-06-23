@@ -5,17 +5,169 @@ import {
   contestAgreementAcceptances,
   contestEntryPrivateFields,
 } from '@commonpub/schema';
-import type { ContentType } from '@commonpub/schema';
+import type { ContentType, ContestStageSubmission } from '@commonpub/schema';
 import type { DB } from '../types.js';
 import { countRows } from '../query.js';
 import { createContent, deleteContent } from '../content/content.js';
-import {
-  normalizeStages,
-  currentStage,
-  validateSubmissionFields,
-  recordPrivateAndAgreements,
-  type StageSource,
-} from './contest.js';
+import { normalizeStages, currentStage, isEliminated } from './stages.js';
+import { validateSubmissionFields, hashTerms } from './validation.js';
+import type { StageSource, AgreementAcceptanceInput, ContestTx } from './types.js';
+
+// DB-backed submission writers. Pure validation/partition lives in validation.ts.
+
+/**
+ * Persist the PII + agreement halves of a partitioned submission within an open
+ * transaction. PII is upserted (one row per entry, merged with any prior PII so
+ * a later stage's PII doesn't wipe an earlier stage's); agreements are appended
+ * as immutable acceptance rows (terms hash + snapshot). No-op when both empty.
+ */
+export async function recordPrivateAndAgreements(
+  tx: ContestTx,
+  args: {
+    contestId: string;
+    entryId: string;
+    userId: string;
+    stageId: string;
+    pii: Record<string, string>;
+    agreements: AgreementAcceptanceInput[];
+    ip?: string | null;
+  },
+): Promise<void> {
+  const { contestId, entryId, userId, stageId, pii, agreements, ip } = args;
+
+  if (Object.keys(pii).length > 0) {
+    const [existing] = await tx
+      .select({ fields: contestEntryPrivateFields.fields })
+      .from(contestEntryPrivateFields)
+      .where(eq(contestEntryPrivateFields.entryId, entryId))
+      .for('update');
+    const merged = { ...(existing?.fields ?? {}), ...pii };
+    await tx
+      .insert(contestEntryPrivateFields)
+      .values({ contestId, entryId, userId, fields: merged })
+      .onConflictDoUpdate({
+        target: contestEntryPrivateFields.entryId,
+        set: { fields: merged, updatedAt: new Date() },
+      });
+  }
+
+  if (agreements.length > 0) {
+    await tx.insert(contestAgreementAcceptances).values(
+      agreements.map((a) => ({
+        contestId,
+        entryId,
+        userId,
+        stageId,
+        fieldKey: a.fieldKey,
+        termsHash: hashTerms(a.terms),
+        termsSnapshot: a.terms,
+        ip: ip ?? null,
+      })),
+    );
+  }
+}
+
+/**
+ * Submit (or update) an entrant's per-stage artifact: the filled template
+ * values for one `submission` stage, snapshotted onto the entry's
+ * `stageSubmissions`. Owner-only. The stage must be the contest's CURRENT
+ * stage while the contest is `active` (status stays the gating truth — the
+ * organizer maps a later submission round back to `active` when advancing).
+ * Re-submitting while the stage is open replaces that stage's artifact.
+ * Cohort gate: an entry culled at a prior review stage can no longer submit.
+ */
+export async function submitStageArtifact(
+  db: DB,
+  entryId: string,
+  stageId: string,
+  fields: Record<string, string>,
+  userId: string,
+  ip?: string | null,
+): Promise<{ submitted: boolean; stageSubmissions?: ContestStageSubmission[]; error?: string }> {
+  const fail = (error: string) => ({ submitted: false, error });
+
+  const existing = await db
+    .select({
+      contestId: contestEntries.contestId,
+      entrantId: contestEntries.userId,
+      stageState: contestEntries.stageState,
+      contestStatus: contests.status,
+      stages: contests.stages,
+      currentStageId: contests.currentStageId,
+      startDate: contests.startDate,
+      endDate: contests.endDate,
+      judgingEndDate: contests.judgingEndDate,
+    })
+    .from(contestEntries)
+    .innerJoin(contests, eq(contestEntries.contestId, contests.id))
+    .where(eq(contestEntries.id, entryId))
+    .limit(1);
+
+  if (existing.length === 0) return fail('Entry not found');
+  const row = existing[0]!;
+  if (row.entrantId !== userId) return fail('Not the entry owner');
+
+  if (row.contestStatus !== 'active') {
+    return fail('Stage submissions are only open while the contest is active');
+  }
+
+  const source: StageSource = {
+    status: row.contestStatus,
+    startDate: row.startDate,
+    endDate: row.endDate,
+    judgingEndDate: row.judgingEndDate,
+    stages: row.stages,
+    currentStageId: row.currentStageId,
+  };
+  const stages = normalizeStages(source);
+  const stage = stages.find((s) => s.id === stageId);
+  if (!stage) return fail('Unknown stage');
+  if (stage.kind !== 'submission') return fail('This stage does not accept submissions');
+  const template = stage.submissionTemplate ?? [];
+  if (template.length === 0) return fail('This stage has no submission template');
+
+  const current = currentStage(source);
+  if (current?.id !== stageId) return fail('This stage is not currently open');
+
+  // Cohort gate: once a review cut culled the field, eliminated entries are
+  // out of every later round (mirrors judgeContestEntry's gate).
+  if (isEliminated({ stageState: row.stageState })) {
+    return fail('This entry was not advanced and can no longer submit');
+  }
+
+  const validated = validateSubmissionFields(template, fields);
+  if (!validated.ok) return fail(validated.error);
+  const { artifact, pii, agreements } = validated.result;
+
+  // Atomic read-modify-write: lock the entry row so two concurrent saves of
+  // the same artifact can't clobber each other (same pattern as judgeScores).
+  // PII + agreements (if the template has any) are persisted in the SAME tx so
+  // they can never land in the public stageSubmissions jsonb.
+  return db.transaction(async (tx) => {
+    const [locked] = await tx
+      .select({ stageSubmissions: contestEntries.stageSubmissions })
+      .from(contestEntries)
+      .where(eq(contestEntries.id, entryId))
+      .for('update');
+
+    const submissions = (locked?.stageSubmissions ?? []) as ContestStageSubmission[];
+    const record: ContestStageSubmission = { stageId, fields: artifact, submittedAt: new Date().toISOString() };
+    const idx = submissions.findIndex((s) => s.stageId === stageId);
+    if (idx >= 0) submissions[idx] = record;
+    else submissions.push(record);
+
+    await tx
+      .update(contestEntries)
+      .set({ stageSubmissions: submissions })
+      .where(eq(contestEntries.id, entryId));
+
+    await recordPrivateAndAgreements(tx, { contestId: row.contestId, entryId, userId, stageId, pii, agreements, ip });
+
+    return { submitted: true, stageSubmissions: submissions };
+  });
+}
+
+// --- Form-first proposal submissions (Phase 4) ---
 
 /** Content types a placeholder proposal project may be created as. */
 const PLACEHOLDER_TYPES: readonly ContentType[] = ['project', 'blog', 'explainer'];
@@ -129,7 +281,7 @@ export async function submitContestProposal(db: DB, args: SubmitProposalArgs): P
 
       await tx
         .update(contests)
-        .set({ entryCount: sqlInc() })
+        .set({ entryCount: sql`${contests.entryCount} + 1` })
         .where(eq(contests.id, contestId));
 
       await recordPrivateAndAgreements(tx, { contestId, entryId: inserted.id, userId, stageId, pii, agreements, ip });
@@ -144,12 +296,6 @@ export async function submitContestProposal(db: DB, args: SubmitProposalArgs): P
     }
     throw err;
   }
-}
-
-// `entryCount + 1` as a SQL expression (kept local so the import surface of this
-// file stays small; mirrors submitContestEntry's increment).
-function sqlInc() {
-  return sql`${contests.entryCount} + 1`;
 }
 
 export interface EntryPrivateData {

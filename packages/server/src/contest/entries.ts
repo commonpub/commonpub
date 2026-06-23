@@ -1,0 +1,344 @@
+import { eq, and, desc, sql } from 'drizzle-orm';
+import { contests, contestEntries, users, contentItems } from '@commonpub/schema';
+import type { DB } from '../types.js';
+import { normalizePagination, countRows } from '../query.js';
+import { isEliminated } from './stages.js';
+import type { ContestEntryItem, JudgeScoreEntry } from './types.js';
+
+// Contest entry lifecycle: list / fetch / submit (attach published content) /
+// withdraw, plus the final rank computation. The form-first proposal path lives
+// in submissions.ts; contest reads/visibility live in read.ts.
+
+export async function listContestEntries(
+  db: DB,
+  contestId: string,
+  opts: {
+    limit?: number;
+    offset?: number;
+    /** Include per-judge scores + written feedback. Privileged viewers only. */
+    includeJudgeScores?: boolean;
+    /**
+     * Whether the aggregate `score` is exposed. When false, `score` is nulled
+     * out for every entry so running averages don't leak during judging.
+     * Defaults to true (server-internal callers see everything).
+     */
+    revealScores?: boolean;
+    /**
+     * Result ordering. `recent` (default) = newest submission first (the entries
+     * grid). `rank` = final standings (rank asc, then score desc) — used by the
+     * results leaderboard so the top finalists surface regardless of submit time.
+     */
+    orderBy?: 'recent' | 'rank';
+    /** Include per-stage artifacts on EVERY entry. Privileged viewers only. */
+    includeStageSubmissions?: boolean;
+    /** Additionally include per-stage artifacts on this user's OWN entries
+     *  (the entrant always sees what they submitted). */
+    stageSubmissionsViewerId?: string;
+  } = {},
+): Promise<{ items: ContestEntryItem[]; total: number }> {
+  const revealScores = opts.revealScores ?? true;
+  const { limit, offset } = normalizePagination(opts);
+  const where = eq(contestEntries.contestId, contestId);
+  // `rank`: ranked entries first (1,2,3…), unranked last; ties broken by score
+  // then recency. `recent`: submission order (default).
+  const order =
+    opts.orderBy === 'rank'
+      ? [
+          sql`${contestEntries.rank} asc nulls last`,
+          sql`${contestEntries.score} desc nulls last`,
+          desc(contestEntries.submittedAt),
+          desc(contestEntries.id),
+        ]
+      : [desc(contestEntries.submittedAt), desc(contestEntries.id)];
+
+  const [rows, total] = await Promise.all([
+    db
+      .select({
+        entry: contestEntries,
+        content: {
+          title: contentItems.title,
+          slug: contentItems.slug,
+          type: contentItems.type,
+          coverImageUrl: contentItems.coverImageUrl,
+        },
+        author: {
+          displayName: users.displayName,
+          username: users.username,
+          avatarUrl: users.avatarUrl,
+        },
+      })
+      .from(contestEntries)
+      .innerJoin(contentItems, eq(contestEntries.contentId, contentItems.id))
+      .innerJoin(users, eq(contestEntries.userId, users.id))
+      .where(where)
+      .orderBy(...order)
+      .limit(limit)
+      .offset(offset),
+    countRows(db, contestEntries, where),
+  ]);
+
+  const items = rows.map((row) => {
+    const item: ContestEntryItem = {
+      id: row.entry.id,
+      contestId: row.entry.contestId,
+      contentId: row.entry.contentId,
+      userId: row.entry.userId,
+      score: revealScores ? row.entry.score : null,
+      rank: row.entry.rank,
+      // The cohort outcome (advanced/eliminated) is public, but the per-round
+      // snapshot SCORE honours revealScores like the live aggregate — otherwise
+      // a judges-only/private contest leaks round scores through the snapshots.
+      // Rank stays (mirrors the always-exposed top-level rank, so winners can
+      // be announced).
+      stageState: revealScores
+        ? row.entry.stageState ?? []
+        : (row.entry.stageState ?? []).map((s) => ({ ...s, score: null })),
+      eliminated: isEliminated(row.entry),
+      submittedAt: row.entry.submittedAt,
+      contentTitle: row.content.title,
+      contentSlug: row.content.slug,
+      contentType: row.content.type,
+      contentCoverImageUrl: row.content.coverImageUrl,
+      authorName: row.author.displayName ?? row.author.username,
+      authorUsername: row.author.username,
+      authorAvatarUrl: row.author.avatarUrl,
+    };
+    if (opts.includeJudgeScores) {
+      item.judgeScores = (row.entry.judgeScores ?? []) as JudgeScoreEntry[];
+    }
+    if (opts.includeStageSubmissions || (opts.stageSubmissionsViewerId && row.entry.userId === opts.stageSubmissionsViewerId)) {
+      item.stageSubmissions = row.entry.stageSubmissions ?? [];
+    }
+    return item;
+  });
+
+  return { items, total };
+}
+
+/**
+ * One enriched entry by id — content + author info, per-stage artifacts, and
+ * per-judge scores. Server-internal: the route layer gates who may see the
+ * artifacts/scores (judges/owner/admin + the entrant themselves).
+ */
+export async function getContestEntry(db: DB, entryId: string): Promise<ContestEntryItem | null> {
+  const rows = await db
+    .select({
+      entry: contestEntries,
+      content: {
+        title: contentItems.title,
+        slug: contentItems.slug,
+        type: contentItems.type,
+        coverImageUrl: contentItems.coverImageUrl,
+      },
+      author: {
+        displayName: users.displayName,
+        username: users.username,
+        avatarUrl: users.avatarUrl,
+      },
+    })
+    .from(contestEntries)
+    .innerJoin(contentItems, eq(contestEntries.contentId, contentItems.id))
+    .innerJoin(users, eq(contestEntries.userId, users.id))
+    .where(eq(contestEntries.id, entryId))
+    .limit(1);
+
+  const row = rows[0];
+  if (!row) return null;
+  return {
+    id: row.entry.id,
+    contestId: row.entry.contestId,
+    contentId: row.entry.contentId,
+    userId: row.entry.userId,
+    score: row.entry.score,
+    rank: row.entry.rank,
+    stageState: row.entry.stageState ?? [],
+    eliminated: isEliminated(row.entry),
+    stageSubmissions: row.entry.stageSubmissions ?? [],
+    submittedAt: row.entry.submittedAt,
+    contentTitle: row.content.title,
+    contentSlug: row.content.slug,
+    contentType: row.content.type,
+    contentCoverImageUrl: row.content.coverImageUrl,
+    authorName: row.author.displayName ?? row.author.username,
+    authorUsername: row.author.username,
+    authorAvatarUrl: row.author.avatarUrl,
+    judgeScores: (row.entry.judgeScores ?? []) as JudgeScoreEntry[],
+  };
+}
+
+export async function submitContestEntry(
+  db: DB,
+  contestId: string,
+  contentId: string,
+  userId: string,
+): Promise<ContestEntryItem | null> {
+  // Validate contest exists and is active
+  const contest = await db
+    .select({
+      id: contests.id,
+      status: contests.status,
+      eligibleContentTypes: contests.eligibleContentTypes,
+      maxEntriesPerUser: contests.maxEntriesPerUser,
+    })
+    .from(contests)
+    .where(eq(contests.id, contestId))
+    .limit(1);
+
+  if (contest.length === 0) return null;
+  const c = contest[0]!;
+  if (c.status !== 'active') return null;
+
+  // Validate content exists, is published, and user owns it
+  const content = await db
+    .select({ id: contentItems.id, authorId: contentItems.authorId, status: contentItems.status, type: contentItems.type })
+    .from(contentItems)
+    .where(eq(contentItems.id, contentId))
+    .limit(1);
+
+  if (content.length === 0) return null;
+  if (content[0]!.status !== 'published') return null;
+  if (content[0]!.authorId !== userId) return null;
+
+  // Per-contest entry eligibility: content type must be allowed (if restricted).
+  const eligible = c.eligibleContentTypes ?? null;
+  if (eligible && eligible.length > 0 && !eligible.includes(content[0]!.type)) return null;
+
+  // Per-user entry cap (if set).
+  if (c.maxEntriesPerUser != null) {
+    const existingCount = await countRows(
+      db,
+      contestEntries,
+      and(eq(contestEntries.contestId, contestId), eq(contestEntries.userId, userId)),
+    );
+    if (existingCount >= c.maxEntriesPerUser) return null;
+  }
+
+  // Atomic: insert the entry and bump the denormalized entryCount together, so a
+  // duplicate (onConflictDoNothing → no row) never increments and a mid-operation
+  // failure can't leave entryCount overcounting.
+  const row = await db.transaction(async (tx) => {
+    const [inserted] = await tx
+      .insert(contestEntries)
+      .values({ contestId, contentId, userId })
+      .onConflictDoNothing()
+      .returning();
+
+    if (!inserted) return null;
+
+    await tx
+      .update(contests)
+      .set({ entryCount: sql`${contests.entryCount} + 1` })
+      .where(eq(contests.id, contestId));
+
+    return inserted;
+  });
+
+  if (!row) return null;
+
+  // Fetch enriched content + author info
+  const enriched = await db
+    .select({
+      content: {
+        title: contentItems.title,
+        slug: contentItems.slug,
+        type: contentItems.type,
+        coverImageUrl: contentItems.coverImageUrl,
+      },
+      author: {
+        displayName: users.displayName,
+        username: users.username,
+        avatarUrl: users.avatarUrl,
+      },
+    })
+    .from(contentItems)
+    .innerJoin(users, eq(contentItems.authorId, users.id))
+    .where(eq(contentItems.id, contentId))
+    .limit(1);
+
+  const info = enriched[0];
+
+  return {
+    id: row.id,
+    contestId: row.contestId,
+    contentId: row.contentId,
+    userId: row.userId,
+    score: row.score,
+    rank: row.rank,
+    stageState: [], // a freshly submitted entry is in the active cohort
+    eliminated: false,
+    submittedAt: row.submittedAt,
+    contentTitle: info?.content.title ?? 'Untitled',
+    contentSlug: info?.content.slug ?? '',
+    contentType: info?.content.type ?? 'project',
+    contentCoverImageUrl: info?.content.coverImageUrl ?? null,
+    authorName: info?.author.displayName ?? info?.author.username ?? 'Unknown',
+    authorUsername: info?.author.username ?? '',
+    authorAvatarUrl: info?.author.avatarUrl ?? null,
+  };
+}
+
+export async function withdrawContestEntry(
+  db: DB,
+  entryId: string,
+  userId: string,
+): Promise<{ withdrawn: boolean; error?: string }> {
+  const existing = await db
+    .select({
+      entry: contestEntries,
+      contestStatus: contests.status,
+    })
+    .from(contestEntries)
+    .innerJoin(contests, eq(contestEntries.contestId, contests.id))
+    .where(eq(contestEntries.id, entryId))
+    .limit(1);
+
+  if (existing.length === 0) return { withdrawn: false, error: 'Entry not found' };
+
+  const row = existing[0]!;
+  if (row.entry.userId !== userId) return { withdrawn: false, error: 'Not the entry owner' };
+  if (row.contestStatus !== 'active') {
+    return { withdrawn: false, error: 'Can only withdraw from active contests' };
+  }
+
+  // Atomic: delete + the denormalized entryCount decrement commit together, so
+  // a mid-operation failure can't leave entryCount overcounting (mirrors the
+  // transactional insert in submitContestEntry).
+  await db.transaction(async (tx) => {
+    await tx.delete(contestEntries).where(eq(contestEntries.id, entryId));
+    await tx
+      .update(contests)
+      .set({ entryCount: sql`GREATEST(${contests.entryCount} - 1, 0)` })
+      .where(eq(contests.id, row.entry.contestId));
+  });
+
+  return { withdrawn: true };
+}
+
+export async function calculateContestRanks(
+  db: DB,
+  contestId: string,
+): Promise<void> {
+  // Assign ranks by score with RANK() so tied scores share a rank (1, 1, 3…).
+  // Only scored entries are ranked; entries that were never judged keep a null
+  // rank rather than being handed an arbitrary trailing position.
+  // Eliminated entries (culled at a prior review stage, Phase B2) are excluded
+  // from ranking — only the surviving cohort competes for the final placements.
+  await db.execute(sql`
+    UPDATE ${contestEntries}
+    SET rank = ranked.rn
+    FROM (
+      SELECT id, RANK() OVER (ORDER BY score DESC) AS rn
+      FROM ${contestEntries}
+      WHERE contest_id = ${contestId} AND score IS NOT NULL
+        AND NOT (stage_state @> '[{"status":"eliminated"}]'::jsonb)
+    ) AS ranked
+    WHERE ${contestEntries}.id = ranked.id
+  `);
+  // Clear ranks for entries with no score (unjudged) or that were eliminated.
+  await db.execute(sql`
+    UPDATE ${contestEntries}
+    SET rank = NULL
+    WHERE contest_id = ${contestId}
+      AND (score IS NULL OR stage_state @> '[{"status":"eliminated"}]'::jsonb)
+  `);
+}

@@ -11,7 +11,7 @@ import {
   getContestEntry,
   submitStageArtifact,
   validateStageArtifactFields,
-} from '../contest/contest.js';
+} from '../contest/index.js';
 import { addContestJudge, acceptJudgeInvite } from '../contest/judges.js';
 import { createContent, publishContent } from '../content/content.js';
 import type { ContestSubmissionTemplateField } from '@commonpub/schema';

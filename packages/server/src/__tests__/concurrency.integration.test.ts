@@ -29,7 +29,7 @@ import { createContentVersion } from '../content/content.js';
 import { enroll } from '../learning/learning.js';
 import { toggleFederatedHubPostLike } from '../federation/hubMirroring.js';
 import { likeRemoteContent, boostRemoteContent } from '../federation/timeline.js';
-import { createContest } from '../contest/contest.js';
+import { createContest } from '../contest/index.js';
 import { addContestJudge } from '../contest/judges.js';
 
 const reachable = await realPgReachable();

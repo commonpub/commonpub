@@ -1,30 +1,51 @@
 export {
-  listContests,
-  getContestBySlug,
   createContest,
   canCreateContest,
   updateContest,
-  listContestEntries,
-  submitContestEntry,
-  judgeContestEntry,
   deleteContest,
   transitionContestStatus,
-  calculateContestRanks,
-  withdrawContestEntry,
-  shouldRevealScores,
+} from './contest.js';
+
+export {
+  listContests,
+  getContestBySlug,
   canViewContest,
+  shouldRevealScores,
+} from './read.js';
+
+export {
+  listContestEntries,
+  getContestEntry,
+  submitContestEntry,
+  withdrawContestEntry,
+  calculateContestRanks,
+} from './entries.js';
+
+export {
   synthesizeStages,
   normalizeStages,
   currentStage,
   isEliminated,
+} from './stages.js';
+
+export {
+  judgeContestEntry,
   advanceContestStage,
-  getContestEntry,
-  submitStageArtifact,
+} from './judging.js';
+
+export {
   validateStageArtifactFields,
   validateSubmissionFields,
-  recordPrivateAndAgreements,
   hashTerms,
-} from './contest.js';
+} from './validation.js';
+
+export {
+  submitStageArtifact,
+  recordPrivateAndAgreements,
+  submitContestProposal,
+  getEntryPrivateData,
+} from './submissions.js';
+
 export type {
   ContestListItem,
   ContestDetail,
@@ -42,12 +63,8 @@ export type {
   AgreementAcceptanceInput,
   StageSource,
   ContestTx,
-} from './contest.js';
+} from './types.js';
 
-export {
-  submitContestProposal,
-  getEntryPrivateData,
-} from './submissions.js';
 export type {
   SubmitProposalArgs,
   SubmitProposalResult,

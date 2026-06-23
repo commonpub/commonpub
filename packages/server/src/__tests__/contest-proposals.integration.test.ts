@@ -10,7 +10,7 @@ import {
   submitStageArtifact,
   validateSubmissionFields,
   hashTerms,
-} from '../contest/contest.js';
+} from '../contest/index.js';
 import { submitContestProposal, getEntryPrivateData } from '../contest/submissions.js';
 import { createContent, publishContent } from '../content/content.js';
 import {

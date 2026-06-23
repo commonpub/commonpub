@@ -18,7 +18,7 @@ import {
   canViewContest,
   advanceContestStage,
   isEliminated,
-} from '../contest/contest.js';
+} from '../contest/index.js';
 import {
   addContestStakeholder,
   removeContestStakeholder,

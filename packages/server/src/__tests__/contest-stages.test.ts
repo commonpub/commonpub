@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { synthesizeStages, normalizeStages, currentStage } from '../contest/contest.js';
+import { synthesizeStages, normalizeStages, currentStage } from '../contest/index.js';
 import type { ContestStage } from '@commonpub/schema';
 
 // Pure helpers — no DB. Phase B1 stage-timeline derivation + back-compat.
