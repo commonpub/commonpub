@@ -12,9 +12,11 @@
  * useContestEditor (tested in isolation). Edit-only rails (People, lifecycle
  * transitions, advancement, danger zone) are gated on `mode === 'edit'`.
  */
-import { EditorSection } from '@commonpub/editor/vue';
+import type { Ref } from 'vue';
+import { EditorBlocks, EditorSection, useBlockEditor, BLOCK_COMPONENTS_KEY, UPLOAD_HANDLER_KEY, type BlockTypeGroup } from '@commonpub/editor/vue';
 import type { Serialized, ContestEntryItem } from '@commonpub/server';
 import type { ContestEditorSource } from '../../composables/useContestEditor';
+import JudgesShowcaseBlock from './blocks/JudgesShowcaseBlock.vue';
 
 const props = defineProps<{ mode: 'create' | 'edit' }>();
 
@@ -59,6 +61,87 @@ const {
   showPrizes, prizes, criteria, stages, currentStageId,
   saving, formDirty, dateError, canSubmit, slugify, toggleType, toggleRole, addPrize, removePrize, prizeLabel, save,
 } = editor;
+
+// --- Hoisted body block editors (the one refactor: a single left palette inserts
+// into the CURRENTLY-active body, so the three useBlockEditor instances live here
+// where the palette lives, not inside per-body components). ---
+const blockDefaults = { blockDefaults: { judgesShowcase: () => ({ judges: [] }) } };
+const overviewEditor = useBlockEditor(seedBodyBlocks(descriptionBlocks.value, description.value, descriptionFormat.value), blockDefaults);
+const rulesEditor = useBlockEditor(seedBodyBlocks(rulesBlocks.value, rules.value, rulesFormat.value), blockDefaults);
+const prizesEditor = useBlockEditor(seedBodyBlocks(prizesBlocks.value, prizesDescription.value, prizesDescriptionFormat.value), blockDefaults);
+
+type BodyTab = 'overview' | 'rules' | 'prizes';
+const activeTab = ref<BodyTab>('overview');
+const bodyMode = ref<'write' | 'preview' | 'code'>('write');
+const activeBodyEditor = computed(() => ({ overview: overviewEditor, rules: rulesEditor, prizes: prizesEditor })[activeTab.value] ?? overviewEditor);
+
+// Contest-specific edit block + image upload, provided once for all three bodies.
+provide(BLOCK_COMPONENTS_KEY, { judgesShowcase: JudgesShowcaseBlock });
+const { uploadFile } = useFileUpload();
+provide(UPLOAD_HANDLER_KEY, (file: File) => uploadFile<{ url: string; width?: number | null; height?: number | null }>(file, 'content'));
+
+// Editor -> model write-back: each body's blocks flow into the composable's
+// descriptionBlocks/rulesBlocks/prizesBlocks refs (read by buildPayload).
+// `syncingBodies` suppresses the write-back while reseeding from a load so hydration
+// doesn't mark the form dirty (legacy contests keep their markdown until the
+// organizer actually edits). We mark dirty explicitly here rather than leaning on
+// the composable's deep watch, which doesn't reliably observe a whole-array
+// reassignment from a structural block insert (an empty/content-less block — image,
+// divider, judges-showcase — would otherwise leave Save disabled).
+let syncingBodies = false;
+function reseedBodies(): void {
+  syncingBodies = true;
+  overviewEditor.fromBlockTuples(seedBodyBlocks(descriptionBlocks.value, description.value, descriptionFormat.value));
+  rulesEditor.fromBlockTuples(seedBodyBlocks(rulesBlocks.value, rules.value, rulesFormat.value));
+  prizesEditor.fromBlockTuples(seedBodyBlocks(prizesBlocks.value, prizesDescription.value, prizesDescriptionFormat.value));
+  void nextTick(() => { syncingBodies = false; });
+}
+function syncBody(target: Ref<unknown[] | null>, ed: typeof overviewEditor): void {
+  if (syncingBodies) return;
+  target.value = ed.toBlockTuples();
+  formDirty.value = true;
+}
+// Watch a GETTER of `.value` (not the readonly ref directly) — the proven pattern
+// (pages/.../edit.vue): the getter form fires on structural inserts/removals, the
+// bare-readonly-ref form only caught nested content edits.
+watch(() => overviewEditor.blocks.value, () => syncBody(descriptionBlocks, overviewEditor), { deep: true });
+watch(() => rulesEditor.blocks.value, () => syncBody(rulesBlocks, rulesEditor), { deep: true });
+watch(() => prizesEditor.blocks.value, () => syncBody(prizesBlocks, prizesEditor), { deep: true });
+
+const contestBlockGroups: BlockTypeGroup[] = [
+  {
+    name: 'Basic',
+    blocks: [
+      { type: 'paragraph', label: 'Text', icon: 'fa-align-left', description: 'Body text' },
+      { type: 'heading', label: 'Heading', icon: 'fa-heading', description: 'Section header' },
+      { type: 'image', label: 'Image', icon: 'fa-image', description: 'Upload or embed' },
+      { type: 'code_block', label: 'Code', icon: 'fa-code', description: 'Syntax-highlighted code' },
+    ],
+  },
+  {
+    name: 'Contest',
+    blocks: [
+      { type: 'judgesShowcase', label: 'Judges Showcase', icon: 'fa-user-group', description: 'Avatar + bio cards for the overview' },
+    ],
+  },
+  {
+    name: 'Media',
+    blocks: [
+      { type: 'video', label: 'Video', icon: 'fa-film', description: 'YouTube, Vimeo embed' },
+      { type: 'embed', label: 'Embed', icon: 'fa-globe', description: 'External embed (translates YouTube/Vimeo URLs)' },
+    ],
+  },
+  {
+    name: 'Rich',
+    blocks: [
+      { type: 'callout', label: 'Tip', icon: 'fa-lightbulb', description: 'Tip callout', attrs: { variant: 'tip' } },
+      { type: 'callout', label: 'Warning', icon: 'fa-triangle-exclamation', description: 'Warning callout', attrs: { variant: 'warning' } },
+      { type: 'blockquote', label: 'Quote', icon: 'fa-quote-left', description: 'Blockquote' },
+      { type: 'horizontal_rule', label: 'Divider', icon: 'fa-minus', description: 'Visual separator' },
+      { type: 'markdown', label: 'Markdown', icon: 'fa-brands fa-markdown', description: 'Raw markdown block' },
+    ],
+  },
+];
 
 // Draft contests autosave (background PUT once edits settle); published contests
 // save on an explicit action. Create has no slug yet, so it never autosaves.
@@ -132,6 +215,7 @@ watch(contest, (c) => {
   // URL and re-fetches the renamed contest while the organizer keeps typing).
   if (formDirty.value) return;
   editor.hydrate(c as ContestEditorSource);
+  reseedBodies();
   advanceN.value = {};
   for (const s of stages.value) {
     if (s.kind === 'review' && typeof s.advanceCount === 'number') advanceN.value[s.id] = s.advanceCount;
@@ -230,7 +314,10 @@ async function advanceStage(stageId: string): Promise<void> {
     <p>You don't have permission to edit this contest.</p>
     <NuxtLink :to="`/contests/${slug}`" class="cpub-btn cpub-btn-sm">Back to Contest</NuxtLink>
   </div>
-  <form v-else-if="mode === 'create' || contest" class="cpub-ce-layout" @submit.prevent="onSave">
+  <!-- Not a <form>: the 3-panel shell embeds many third-party buttons (palette,
+       section headers, canvas controls) that default to type="submit"; a form would
+       let any of them trigger a save. We drive Save explicitly via @click. -->
+  <div v-else-if="mode === 'create' || contest" class="cpub-ce-layout">
     <!-- Topbar: back · title · status · autosave · View · Save -->
     <header class="cpub-ce-topbar">
       <NuxtLink :to="mode === 'edit' ? `/contests/${slug}` : '/contests'" class="cpub-ce-back" aria-label="Back">
@@ -261,7 +348,7 @@ async function advanceStage(stageId: string): Promise<void> {
         <NuxtLink v-if="mode === 'edit'" :to="`/contests/${slug}`" class="cpub-ce-topbar-btn">
           <i class="fa-solid fa-arrow-up-right-from-square"></i> View
         </NuxtLink>
-        <button type="submit" class="cpub-ce-topbar-btn cpub-ce-topbar-btn-primary" :disabled="busy || !canSubmit">
+        <button type="button" class="cpub-ce-topbar-btn cpub-ce-topbar-btn-primary" :disabled="busy || !canSubmit" @click="onSave">
           <i class="fa-solid" :class="mode === 'create' ? 'fa-trophy' : 'fa-floppy-disk'"></i>
           {{ busy ? (mode === 'create' ? 'Creating…' : 'Saving…') : (mode === 'create' ? 'Create Contest' : (formDirty ? 'Save Changes' : 'Saved')) }}
         </button>
@@ -269,13 +356,9 @@ async function advanceStage(stageId: string): Promise<void> {
     </header>
 
     <div class="cpub-ce-shell">
-      <!-- LEFT: block palette (wired in slice 2). -->
+      <!-- LEFT: block palette — inserts into the currently-active body. -->
       <aside class="cpub-ce-library" aria-label="Block palette">
-        <div class="cpub-ce-library-placeholder">
-          <i class="fa-solid fa-layer-group"></i>
-          <span class="cpub-ce-library-title">Blocks</span>
-          <p class="cpub-ce-library-hint">The block palette activates here. For now, insert blocks from inside the body canvas.</p>
-        </div>
+        <EditorBlocks :groups="contestBlockGroups" :block-editor="activeBodyEditor" />
       </aside>
 
       <!-- CENTER: contest body (Overview / Rules / Prizes). -->
@@ -284,22 +367,19 @@ async function advanceStage(stageId: string): Promise<void> {
           v-model:banner-url="bannerUrl"
           v-model:cover-image-url="coverImageUrl"
         />
-        <ContestBodyTabs
-          v-if="mode === 'create' || contest"
-          v-model:description="descriptionBlocks"
-          v-model:rules="rulesBlocks"
-          v-model:prizes="prizesBlocks"
-          :legacy-description="description"
-          :legacy-description-format="descriptionFormat"
-          :legacy-rules="rules"
-          :legacy-rules-format="rulesFormat"
-          :legacy-prizes="prizesDescription"
-          :legacy-prizes-format="prizesDescriptionFormat"
+        <ContestBodyCanvas
+          :editor="activeBodyEditor"
+          :groups="contestBlockGroups"
+          :active-tab="activeTab"
+          :mode="bodyMode"
+          @update:active-tab="activeTab = $event"
+          @update:mode="bodyMode = $event"
         />
         <p class="cpub-form-hint cpub-ce-body-hint">
           The <strong>Overview</strong>, <strong>Rules</strong>, and <strong>Prizes</strong> bodies are blocks
           (headings, lists, images, callouts, and the <strong>Judges Showcase</strong>), like the project and blog
-          editors. Stages, judging, and the rest live in the settings rail. Legacy text converts to blocks on first edit.
+          editors. Add blocks from the palette on the left. Stages, judging, and the rest live in the settings rail.
+          Legacy text converts to blocks on first edit.
         </p>
       </div>
 
@@ -488,7 +568,7 @@ async function advanceStage(stageId: string): Promise<void> {
         </div>
       </aside>
     </div>
-  </form>
+  </div>
   <div v-else-if="contestLoading" class="cpub-not-found"><p>Loading contest…</p></div>
   <div v-else class="cpub-not-found"><p>Contest not found</p></div>
     <template #fallback>
@@ -565,10 +645,6 @@ async function advanceStage(stageId: string): Promise<void> {
 /* 3-panel shell */
 .cpub-ce-shell { display: flex; flex: 1; overflow: hidden; }
 .cpub-ce-library { width: 220px; flex-shrink: 0; background: var(--surface); border-right: var(--border-width-default) solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
-.cpub-ce-library-placeholder { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 28px 18px; text-align: center; color: var(--text-faint); }
-.cpub-ce-library-placeholder > i { font-size: 22px; }
-.cpub-ce-library-title { font-family: var(--font-mono); font-size: 10px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-dim); }
-.cpub-ce-library-hint { font-size: 11px; line-height: 1.5; margin: 0; }
 
 .cpub-ce-center { flex: 1; overflow-y: auto; background: var(--bg); padding: 24px; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 .cpub-ce-body-hint { margin: 0; }
