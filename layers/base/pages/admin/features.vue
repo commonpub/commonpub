@@ -25,6 +25,8 @@ const flagMeta: Record<string, { label: string; description: string; icon: strin
   video: { label: 'Video', description: 'Video content and categories', icon: 'fa-solid fa-video' },
   contests: { label: 'Contests', description: 'Contest system with judging', icon: 'fa-solid fa-trophy' },
   contestStageSubmissions: { label: 'Contest Stage Submissions', description: 'Per-stage submission forms for multi-round contests', icon: 'fa-solid fa-file-pen' },
+  contestProposals: { label: 'Contest Proposals', description: 'Form-first proposal entries with a draft placeholder project', icon: 'fa-solid fa-clipboard-list' },
+  contestPii: { label: 'Contest PII Fields', description: 'Offer personal-data fields (email, address) in submission forms', icon: 'fa-solid fa-user-shield' },
   learning: { label: 'Learning', description: 'Learning paths and courses', icon: 'fa-solid fa-graduation-cap' },
   explainers: { label: 'Explainers', description: 'Interactive explainer modules', icon: 'fa-solid fa-lightbulb' },
   editorial: { label: 'Editorial', description: 'Staff picks and content categories', icon: 'fa-solid fa-pen-fancy' },

@@ -49,15 +49,65 @@ export const contestJudgingCriterionSchema = z.object({
 });
 export type ContestJudgingCriterion = z.infer<typeof contestJudgingCriterionSchema>;
 
+// Per-stage submission-template field types (Phase 4 extends the original
+// text/textarea/url trio). `agreement` + `address` and any field flagged `pii`
+// are partitioned OUT of the public `stageSubmissions.fields` artifact at submit
+// time (see partitionTemplateFields in @commonpub/server): agreements record an
+// immutable acceptance row, PII lands in `contest_entry_private_fields`.
+export const SUBMISSION_TEMPLATE_FIELD_TYPES = [
+  'text',
+  'textarea',
+  'url',
+  'email',
+  'number',
+  'select',
+  'checkbox',
+  'date',
+  'agreement',
+  'address',
+] as const;
+export const submissionTemplateFieldTypeSchema = z.enum(SUBMISSION_TEMPLATE_FIELD_TYPES);
+export type SubmissionTemplateFieldType = (typeof SUBMISSION_TEMPLATE_FIELD_TYPES)[number];
+
+/** One choice of a `select` template field. */
+export const submissionTemplateOptionSchema = z.object({
+  value: z.string().min(1).max(120),
+  label: z.string().min(1).max(120),
+});
+
 // One field of a `submission` stage's artifact template (per-stage submissions).
 // `key` is the stable machine key in `stageSubmissions.fields`.
-export const submissionTemplateFieldSchema = z.object({
-  key: z.string().min(1).max(40).regex(/^[a-z0-9_]+$/, 'Lowercase letters, numbers and underscores only'),
-  label: z.string().min(1).max(120),
-  type: z.enum(['text', 'textarea', 'url']),
-  required: z.boolean(),
-  help: z.string().max(300).optional(),
-});
+export const submissionTemplateFieldSchema = z
+  .object({
+    key: z.string().min(1).max(40).regex(/^[a-z0-9_]+$/, 'Lowercase letters, numbers and underscores only'),
+    label: z.string().min(1).max(120),
+    type: submissionTemplateFieldTypeSchema,
+    required: z.boolean(),
+    help: z.string().max(300).optional(),
+    /** `select`-only: the allowed options. Required (non-empty) for `select`. */
+    options: z.array(submissionTemplateOptionSchema).max(50).optional(),
+    /**
+     * Personal data flag. When true the field's value is stored in
+     * `contest_entry_private_fields` (never the public `stageSubmissions`
+     * artifact) and is readable only with `contest.pii.read` or by the entrant.
+     * Forced true for `address`.
+     */
+    pii: z.boolean().optional(),
+    /** `agreement`-only: the terms text the entrant must accept (snapshotted on accept). */
+    terms: z.string().max(20_000).optional(),
+    /** `agreement`-only: how `terms` is rendered. */
+    termsFormat: contentFormatSchema.optional(),
+    /** `agreement`-only: require an explicit accept to submit (default true). */
+    mustAccept: z.boolean().optional(),
+  })
+  .refine((f) => f.type !== 'select' || (Array.isArray(f.options) && f.options.length > 0), {
+    message: 'A select field needs at least one option',
+    path: ['options'],
+  })
+  .refine((f) => f.type !== 'agreement' || !!f.terms?.trim(), {
+    message: 'An agreement field needs terms text',
+    path: ['terms'],
+  });
 export type SubmissionTemplateFieldInput = z.infer<typeof submissionTemplateFieldSchema>;
 
 // Phase B1 — a single ordered stage of a contest's timeline (stored as a jsonb

@@ -20,6 +20,11 @@ export interface FeatureFlags {
   /** Per-stage submission artifacts for multi-round contests. Default ON;
    *  inert until a stage defines a submissionTemplate. */
   contestStageSubmissions: boolean;
+  /** Form-first proposal submissions + draft placeholder project (Phase 4). Default OFF. */
+  contestProposals: boolean;
+  /** Offer PII field types in the submission-form builder (Phase 4). Default OFF.
+   *  PII access is always gated server-side by `contest.pii.read`. */
+  contestPii: boolean;
   events: boolean;
   learning: boolean;
   explainers: boolean;
@@ -68,7 +73,8 @@ let hydrated = false;
 // `flags.value.X` access would crash at runtime.
 export const DEFAULT_FLAGS: FeatureFlags = {
   content: true, social: true, hubs: true, docs: true, video: true,
-  contests: false, contestStageSubmissions: true, events: false, learning: true, explainers: true,
+  contests: false, contestStageSubmissions: true, contestProposals: false, contestPii: false,
+  events: false, learning: true, explainers: true,
   editorial: true, federation: false, admin: false, themeStudio: true, emailNotifications: false,
   publicApi: false, contentImport: true,
   layoutEngine: false,
@@ -169,6 +175,8 @@ export function useFeatures() {
     video: computed(() => flags.value.video),
     contests: computed(() => flags.value.contests),
     contestStageSubmissions: computed(() => flags.value.contestStageSubmissions),
+    contestProposals: computed(() => flags.value.contestProposals),
+    contestPii: computed(() => flags.value.contestPii),
     events: computed(() => flags.value.events),
     learning: computed(() => flags.value.learning),
     explainers: computed(() => flags.value.explainers),

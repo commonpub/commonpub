@@ -41,6 +41,10 @@ export const PERMISSIONS = [
   // Contests + events
   'contest.create',
   'contest.manage',
+  // Read entrant PII (email/address/etc.) captured by contest submission forms.
+  // Seeded to admin (via `*`) + staff; the entrant always reads their own. Named
+  // `contest.pii` (one capability) to keep the catalog's single-dot convention.
+  'contest.pii',
   'event.create',
   'event.manage',
   // Instance administration

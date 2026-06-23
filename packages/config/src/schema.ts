@@ -31,6 +31,12 @@ export const featureFlagsSchema = z.object({
   // inert until an organizer defines a stage `submissionTemplate`; no effect
   // unless `contests` is also on.
   contestStageSubmissions: z.boolean().default(true),
+  // Form-first proposal submissions + draft placeholder project (Phase 4).
+  // Default OFF; no effect unless `contests` is also on.
+  contestProposals: z.boolean().default(false),
+  // Offer PII field types in the submission-form builder (Phase 4). Default OFF.
+  // Access to stored PII is always gated by `contest.pii` regardless.
+  contestPii: z.boolean().default(false),
   events: z.boolean().default(false),
   learning: z.boolean().default(true),
   explainers: z.boolean().default(true),

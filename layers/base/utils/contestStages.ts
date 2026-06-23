@@ -159,6 +159,13 @@ export const TEMPLATE_FIELD_TYPE_LABEL: Record<ContestSubmissionTemplateField['t
   text: 'Short text',
   textarea: 'Long text',
   url: 'Link (URL)',
+  email: 'Email address',
+  number: 'Number',
+  select: 'Dropdown (select)',
+  checkbox: 'Checkbox',
+  date: 'Date',
+  agreement: 'Agreement (terms to accept)',
+  address: 'Mailing address',
 };
 
 /** FontAwesome icon (no `fa-solid` prefix) for each stage kind. */

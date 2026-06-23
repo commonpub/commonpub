@@ -103,24 +103,40 @@ describe('seedRbac (PGlite)', () => {
     expect(hasPermissionPure(off.permissions, 'admin.access', off.primaryRole)).toBe(false);
   });
 
-  it('the migration 0025 staff seed SQL stays in sync with STAFF_PERMISSION_SET', () => {
+  it('the migration staff seed SQL stays in sync with STAFF_PERMISSION_SET', () => {
     // Drift guard: staff permissions are seeded twice — by seedRbac() (this file,
-    // fresh-install/test path) AND by hand-written SQL in migration 0025 (the
+    // fresh-install/test path) AND by hand-written SQL in the migrations (the
     // deploy path). They MUST match or staff gets different powers on an existing
-    // instance vs a fresh one. Parse the SQL's staff CROSS JOIN values list.
-    const sqlPath = fileURLToPath(new URL('../../../../schema/migrations/0025_round_malice.sql', import.meta.url));
-    const sql = readFileSync(sqlPath, 'utf8');
-    // The staff grants are the only `CROSS JOIN (VALUES ...) AS p` block.
-    const block = sql.match(/CROSS JOIN \(VALUES([\s\S]*?)\) AS p/);
-    const staffValues = block?.[1] ?? '';
+    // instance vs a fresh one. Staff grants are spread across migrations:
+    //   - 0025 seeds the initial set via a `CROSS JOIN (VALUES ...) AS p` block;
+    //   - 0030 (Phase 4) adds `contest.pii` via a single staff-targeted INSERT.
+    // The UNION of staff grants across all migrations must equal STAFF_PERMISSION_SET.
+    const sql0025 = readFileSync(
+      fileURLToPath(new URL('../../../../schema/migrations/0025_round_malice.sql', import.meta.url)),
+      'utf8',
+    );
+    const sql0030 = readFileSync(
+      fileURLToPath(new URL('../../../../schema/migrations/0030_contest_phase4_pii_agreements.sql', import.meta.url)),
+      'utf8',
+    );
+
+    // 0025: the only `CROSS JOIN (VALUES ...) AS p` block holds the initial grants.
+    const crossJoin = sql0025.match(/CROSS JOIN \(VALUES([\s\S]*?)\) AS p/);
+    const staffValues = crossJoin?.[1] ?? '';
     expect(staffValues, 'staff CROSS JOIN block not found in migration 0025').toBeTruthy();
-    const keysInSql = [...staffValues.matchAll(/'([a-z][a-z.]+)'/g)].map((m) => m[1]).sort();
-    expect(keysInSql).toEqual([...STAFF_PERMISSION_SET].sort());
+    const grants = new Set([...staffValues.matchAll(/'([a-z][a-z.]+)'/g)].map((m) => m[1]));
+
+    // 0030: single-key staff INSERTs of the form `SELECT r."id", '<key>' ... 'staff'`.
+    for (const m of sql0030.matchAll(/SELECT r\."id", '([a-z][a-z.]+)' FROM "roles" r WHERE r\."key" = 'staff'/g)) {
+      grants.add(m[1]);
+    }
+
+    expect([...grants].sort()).toEqual([...STAFF_PERMISSION_SET].sort());
 
     // The role list (keys) and admin's `*` grant must also match the TS seed.
-    const rolesBlock = sql.slice(sql.indexOf('INSERT INTO "roles"'), sql.indexOf('ON CONFLICT ("key")'));
+    const rolesBlock = sql0025.slice(sql0025.indexOf('INSERT INTO "roles"'), sql0025.indexOf('ON CONFLICT ("key")'));
     const roleKeysInSql = [...rolesBlock.matchAll(/\('([a-z]+)',/g)].map((m) => m[1]).sort();
     expect(roleKeysInSql).toEqual(SYSTEM_ROLE_SEEDS.map((s) => s.key).sort());
-    expect(sql).toMatch(/SELECT r\."id", '\*' FROM "roles" r WHERE r\."key" = 'admin'/);
+    expect(sql0025).toMatch(/SELECT r\."id", '\*' FROM "roles" r WHERE r\."key" = 'admin'/);
   });
 });

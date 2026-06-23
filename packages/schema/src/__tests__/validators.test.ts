@@ -1107,6 +1107,36 @@ describe('submissionTemplateFieldSchema + stage submissionTemplate', () => {
     const dup = { ...stage, submissionTemplate: [field, { ...field, label: 'Again' }] };
     expect(contestStageSchema.safeParse(dup).success).toBe(false);
   });
+
+  // --- Phase 4 field types ---
+  it('accepts the new scalar field types (email/number/checkbox/date)', () => {
+    for (const type of ['email', 'number', 'checkbox', 'date']) {
+      expect(submissionTemplateFieldSchema.safeParse({ ...field, type }).success, type).toBe(true);
+    }
+  });
+
+  it('accepts a select field WITH options and rejects one without', () => {
+    const sel = { key: 'track', label: 'Track', type: 'select', required: true };
+    expect(submissionTemplateFieldSchema.safeParse(sel).success).toBe(false);
+    expect(submissionTemplateFieldSchema.safeParse({ ...sel, options: [] }).success).toBe(false);
+    expect(
+      submissionTemplateFieldSchema.safeParse({ ...sel, options: [{ value: 'a', label: 'Alpha' }] }).success,
+    ).toBe(true);
+  });
+
+  it('accepts an agreement field WITH terms and rejects one without', () => {
+    const agr = { key: 'tos', label: 'Terms', type: 'agreement', required: true, mustAccept: true };
+    expect(submissionTemplateFieldSchema.safeParse(agr).success).toBe(false);
+    expect(submissionTemplateFieldSchema.safeParse({ ...agr, terms: '   ' }).success).toBe(false);
+    expect(
+      submissionTemplateFieldSchema.safeParse({ ...agr, terms: 'You agree to ship the hardware.' }).success,
+    ).toBe(true);
+  });
+
+  it('accepts a pii flag and an address field', () => {
+    expect(submissionTemplateFieldSchema.safeParse({ key: 'addr', label: 'Mailing address', type: 'address', required: true, pii: true }).success).toBe(true);
+    expect(submissionTemplateFieldSchema.safeParse({ ...field, type: 'email', pii: true }).success).toBe(true);
+  });
 });
 
 describe('stageSubmissionSchema', () => {
