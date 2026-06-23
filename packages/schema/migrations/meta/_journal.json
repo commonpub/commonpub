@@ -218,6 +218,13 @@
       "when": 1782192976732,
       "tag": "0030_contest_phase4_pii_agreements",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1782203304301,
+      "tag": "0031_contest_phase6_drop_dead_cols",
+      "breakpoints": true
     }
   ]
 }

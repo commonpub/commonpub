@@ -123,17 +123,11 @@ export const contests = pgTable('contests', {
   slug: varchar('slug', { length: 255 }).notNull().unique(),
   /** Short one-line tagline shown in the contest hero (plain text). */
   subheading: varchar('subheading', { length: 300 }),
-  /** Long-form body, rendered per `contentFormat` (Markdown or raw HTML). */
+  /** Long-form body, rendered per `descriptionFormat` (Markdown or raw HTML). */
   description: text('description'),
   rules: text('rules'),
   /** Intro shown on the Prizes tab, above the individual prize cards. */
   prizesDescription: text('prizes_description'),
-  /**
-   * @deprecated Superseded by the per-field `*Format` columns below (session 197).
-   * Kept as an inert column to avoid a rename-ambiguous migration; safe to drop
-   * in a later interactive `db:generate`. No code reads it.
-   */
-  contentFormat: contestContentFormatEnum('content_format').default('markdown').notNull(),
   /** Per-field render mode: `markdown` (default, Markdown + safe inline-HTML) or
    *  `html` (author's raw presentational HTML). Each long-form field is independent. */
   descriptionFormat: contestContentFormatEnum('description_format').default('markdown').notNull(),
@@ -191,13 +185,6 @@ export const contests = pgTable('contests', {
     }>
   >(),
   judgingVisibility: judgingVisibilityEnum('judging_visibility').default('judges-only').notNull(),
-  /**
-   * @deprecated Vestigial. Judges are stored in the `contest_judges` table (the
-   * single source of truth); `createContest` seeds that table from create input.
-   * This column is no longer read or written — retained only to avoid a
-   * destructive DROP migration. Do not use.
-   */
-  judges: jsonb('judges').$type<string[]>(),
   /**
    * Content types eligible for entry (subset of the instance content types).
    * Null/empty = any published content the entrant owns. e.g. ['project'].
