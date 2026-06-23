@@ -15,6 +15,45 @@ used by BOTH create and edit as thin route shells: a sticky topbar + full-width 
 draft autosave) **and Phase 3** (slim hero + cover-on-detail + hydration-mismatch fixes + one date formatter) now done too.
 **Gates: schema 470, server 1469, layer 1204, reference vue-tsc 0.** Nothing outward-facing.
 
+**Session 216 (2026-06-23) — Phase 6 (the non-release subset): cleanup + B5a + denorm note + docs.**
+Five atomic commits on `contests`; STOPPED before publish/deploy (awaiting explicit go-ahead). Gates
+green throughout: schema **475**, server **1490**, layer **1223**, schema+server+reference+shell
+typechecks all 0. Phase 0 re-verified first (counts matched the handoff exactly, tree clean, origin in sync).
+- `3730d9b4` **B5a** — `POST /contests/:slug/judge` ignored its `:slug` (judged purely by entryId — a
+  misleading contract, not an escalation). The route now `getContestBySlug` (404 if missing) and threads
+  `contest.id` into `judgeContestEntry`, which rejects an entry that doesn't belong to that contest (new
+  optional trailing `expectedContestId` param — keeps all 40+ positional test calls valid). +1 test
+  (entry in A judged through B's id → rejected; correct id proceeds), RED on revert of the guard.
+- `116e2cda` **drop dead cols** — removed `contests.judges` + `contests.content_format` (both long
+  `@deprecated`/inert). Grep-verified ZERO readers/writers across packages + layer + BOTH apps first; the
+  `contest_content_format` pg enum is KEPT (the per-field `descriptionFormat`/`rulesFormat`/
+  `prizesDescriptionFormat` columns still use it), and the create-input `judges` field (seeds the
+  `contest_judges` table) is untouched. The reference seed wrote the dead `judges` column and never seeded
+  the real table, so its demo contest had no functional judges; it now seeds two accepted `contestJudges`.
+  Interactive `drizzle-kit generate` → **migration 0031** = two clean `DROP COLUMN`; applied to the local
+  dev DB (verified cols gone, enum present).
+- `95f51282` **score/rank denormalization** — documented the authoritative chain on the
+  `contest_entries.score`/`rank` columns (judgeScores → score → rank → stageState snapshots; score = mean
+  of the current round's judgeScores; rank = RANK() over score across the surviving cohort) + a regression
+  test asserting the sync (two judges, two entries, complete → score==mean, rank in score order).
+- `d8094209` **docs** — refreshed `codebase-analysis/` (02 migrations 0026-0031 + contests/judges/PII
+  tables; 08 the two new flags; 09 the PII-partition / denormalization / contest.pii-single-dot / CSV-
+  injection / B5a / module-DAG invariants), wrote **ADR 029** (contest proposal + PII model), rewrote the
+  stale `docs/STATUS.md` contests-branch section (was stuck at Phase 2b) to cover Phases 1-6 + the release
+  runbook + the four migrations (0028-0031).
+- **Adversarial audit (this session, all PASS):** whole-repo grep confirmed the only remaining `judges:`
+  refs are the create-input seed (→ contest_judges table) + the `judgesShowcase` block content + tests;
+  the only `contentFormat`/`content_format` refs are the preserved enum + the per-field validators. The
+  B5a membership guard sits before the status check (no cross-contest state leak). server+schema package
+  typechecks (which include test files, unlike vitest's esbuild) both 0. **Live smoke (real Postgres, cols
+  dropped):** `/api/features` shows contestProposals+contestPii present + **OFF**; `/api/contests` 200
+  (20 items); detail 200; SSR `/contests/<slug>` + `/contests` render 200 with zero error markers — the
+  destructive drop didn't break the read path. Dev server stopped.
+- **NEXT: the RELEASE step only** (explicit go-ahead required) — publish chain schema → config → server →
+  ui → layer, commit migrations 0028/0029/0030/0031, deploy commonpub.io then deveco/heatsync with
+  curl-verify, bump CLI pins + both lockfiles. Flags ship default OFF; the one Phase-1 behavior change to
+  note is contest Full-HTML `neutralizeColors` (ON by default).
+
 **Session 215 (2026-06-23) — Phase 4 (submission paths) + contest.ts decomposition + comprehensive docs:**
 Built Phase 4 end-to-end across 5 atomic commits, decomposed the server monolith, wrote the hyper-detailed
 reference doc, and VISUALLY VERIFIED the whole flow in the running app. **Not merged/published/deployed.**
