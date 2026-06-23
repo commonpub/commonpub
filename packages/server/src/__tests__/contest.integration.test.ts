@@ -1267,6 +1267,31 @@ describe('contest integration', () => {
     expect(res.error).toMatch(/your own entry/i);
   });
 
+  // --- B5a: the route `:slug` must scope the judged entry ---
+
+  it('B5a: rejects judging an entry through a non-owning contest id', async () => {
+    const judge = await createTestUser(db, { username: `b5a-j-${Date.now()}` });
+    // contest A owns the entry; contest B is an unrelated contest the judge also sits on.
+    const contestA = await createContest(db, { ...makeContestInput({ title: 'B5a Owner' }), judges: [judge.id] });
+    const contestB = await createContest(db, { ...makeContestInput({ title: 'B5a Other' }), judges: [judge.id] });
+    await acceptJudgeInvite(db, contestA.id, judge.id);
+    await transitionContestStatus(db, contestA.id, organizerId, 'active');
+    const content = await createContent(db, participantId, { type: 'project', title: 'B5a entry' });
+    await publishContent(db, content.id, participantId);
+    const entry = await submitContestEntry(db, contestA.id, content.id, participantId);
+    await transitionContestStatus(db, contestA.id, organizerId, 'judging');
+
+    // What the route does for `/contests/<B-slug>/judge` with A's entryId: the
+    // entry belongs to A, so the membership guard rejects it (B5a).
+    const wrong = await judgeContestEntry(db, entry!.id, 80, judge.id, undefined, undefined, contestB.id);
+    expect(wrong.judged).toBe(false);
+    expect(wrong.error).toMatch(/does not belong to this contest/i);
+
+    // The correct slug (contest A) scopes to the entry and the score persists.
+    const right = await judgeContestEntry(db, entry!.id, 80, judge.id, undefined, undefined, contestA.id);
+    expect(right.judged).toBe(true);
+  });
+
   // --- Access control: visibility + role gate + stakeholders (session 174) ---
 
   it('canViewContest: public/unlisted are open; private is gated', async () => {

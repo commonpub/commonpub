@@ -52,6 +52,7 @@ export async function judgeContestEntry(
   judgeId: string,
   feedback?: string,
   criteriaScores?: CriterionScore[],
+  expectedContestId?: string,
 ): Promise<{ judged: boolean; error?: string }> {
   // Get the entry and its contest (read-only validation, no lock needed).
   const existing = await db
@@ -75,6 +76,15 @@ export async function judgeContestEntry(
   if (existing.length === 0) return { judged: false, error: 'Entry not found' };
 
   const row = existing[0]!;
+
+  // B5a — when the caller resolved the contest from the route `:slug`, the entry
+  // must belong to THAT contest. The route `/contests/:slug/judge` otherwise
+  // ignored its slug and judged purely by entryId, a misleading contract (not an
+  // escalation, since the judge-authorization gate below is contest-scoped, but
+  // the route claims slug-scoping it never enforced).
+  if (expectedContestId && row.contestId !== expectedContestId) {
+    return { judged: false, error: 'Entry does not belong to this contest' };
+  }
 
   // Check contest is in judging phase
   if (row.contestStatus !== 'judging') {
