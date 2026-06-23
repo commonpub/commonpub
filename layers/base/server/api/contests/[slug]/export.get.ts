@@ -28,13 +28,16 @@ export default defineEventHandler(async (event): Promise<string> => {
     throw createError({ statusCode: 403, statusMessage: 'You cannot export this contest' });
   }
 
-  // PII columns only for `contest.pii` holders (admin/staff), never plain judges.
+  // PII columns only for `contest.pii` holders (admin, or an assigned grant when
+  // RBAC is enabled), never plain judges or non-admin owners.
   const includePii = hasPermission(event, 'contest.pii');
   const result = await buildContestExport(db, contest.id, includePii);
   if (!result) throw createError({ statusCode: 404, statusMessage: 'Contest not found' });
 
   setHeader(event, 'Content-Type', 'text/csv; charset=utf-8');
   setHeader(event, 'Content-Disposition', `attachment; filename="${result.filename}"`);
+  // The export can carry PII columns — never cache it anywhere.
+  setHeader(event, 'Cache-Control', 'no-store');
   // UTF-8 BOM so Excel detects the encoding.
   return `﻿${result.csv}`;
 });

@@ -30,7 +30,11 @@ const NuxtLink = defineComponent({
     return () => h('a', { href: props.to }, slots.default?.());
   },
 });
-const stubs = { NuxtLink };
+// The PII viewer is a Nuxt auto-import the page renders behind `v-if="privateData"`
+// (only when contestPii is on + the /private fetch returns data) — stub it so it
+// resolves in the bare VTU render.
+const ContestEntryPrivateData = defineComponent({ name: 'ContestEntryPrivateData', setup: () => () => h('div') });
+const stubs = { NuxtLink, ContestEntryPrivateData };
 
 const STAGES = [
   { id: 'prop', name: 'Proposals', kind: 'submission', submissionTemplate: [
@@ -92,6 +96,9 @@ Object.assign(globalThis, {
   })),
   useSeoMeta: () => {},
   useSiteName: () => 'Test',
+  // PII viewer gate: default OFF so the client-only /private fetch never fires in
+  // these tests (the viewer has its own dedicated test).
+  useFeatures: () => ({ contestPii: ref(false) }),
   normalizeStages,
   currentStageId,
 });

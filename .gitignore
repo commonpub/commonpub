@@ -67,3 +67,11 @@ secrets/
 # + per-user worktrees). Distinct from team-shared .claude/agents/ +
 # .claude/commands/ which would be opt-in if/when we adopt them.
 .claude/
+
+# Local contest verification artifacts — Playwright screenshot galleries +
+# the throwaway capture scripts that produce them (hardcoded dev port/seed).
+/contest-gallery/
+/contest-e2e-screens/
+/contest-criteria-redesign/
+/contest-block-showcase/
+/scripts/shoot-*.mjs

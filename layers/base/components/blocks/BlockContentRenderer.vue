@@ -26,7 +26,14 @@ import BlockMathView from './BlockMathView.vue';
 import BlockGalleryView from './BlockGalleryView.vue';
 import BlockSectionHeaderView from './BlockSectionHeaderView.vue';
 import BlockMarkdownView from './BlockMarkdownView.vue';
+import BlockHtmlView from './BlockHtmlView.vue';
+import BlockCriteriaBarView from './BlockCriteriaBarView.vue';
+import BlockTableView from './BlockTableView.vue';
+import BlockTabsView from './BlockTabsView.vue';
 import BlockJudgesShowcaseView from './BlockJudgesShowcaseView.vue';
+import BlockSponsorsView from './BlockSponsorsView.vue';
+import BlockCompareColumnsView from './BlockCompareColumnsView.vue';
+import BlockRoadmapView from './BlockRoadmapView.vue';
 import type { BlockTuple } from '@commonpub/editor';
 
 const props = defineProps<{
@@ -53,6 +60,7 @@ const componentMap: Record<string, unknown> = {
   callout: BlockCalloutView,
   divider: BlockDividerView,
   horizontalRule: BlockDividerView,
+  horizontal_rule: BlockDividerView,
   video: BlockVideoView,
   embed: BlockEmbedView,
   partsList: BlockPartsListView,
@@ -68,7 +76,14 @@ const componentMap: Record<string, unknown> = {
   gallery: BlockGalleryView,
   sectionHeader: BlockSectionHeaderView,
   markdown: BlockMarkdownView,
+  html: BlockHtmlView,
+  criteriaBar: BlockCriteriaBarView,
+  table: BlockTableView,
+  tabs: BlockTabsView,
   judgesShowcase: BlockJudgesShowcaseView,
+  sponsors: BlockSponsorsView,
+  compareColumns: BlockCompareColumnsView,
+  roadmap: BlockRoadmapView,
 };
 
 const visibleBlocks = computed(() => {

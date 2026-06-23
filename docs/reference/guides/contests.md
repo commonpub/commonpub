@@ -310,14 +310,50 @@ by a dedicated permission.
             else 403.  The normal entries endpoints NEVER include PII.
 ```
 
-- `contest.pii` is seeded to `staff` (migration 0030) and held by `admin` via `*`.
-  The contest owner/editor does **not** get entrant PII unless they are also
-  admin/staff (operator decision; widen later via RBAC).
+- `contest.pii` is seeded to `staff` (migration 0030) and held by `admin` via `*` — but
+  with `features.rbac` **OFF** (the default on all live instances) the seed is inert, so PII
+  access is effectively **admin-only**; `staff` gains it only once RBAC is enabled. A contest
+  owner/editor does **not** get entrant PII unless they're also admin (or hold the grant
+  under RBAC). Non-admin owners' CSV exports omit the `PII:` columns.
 - Agreement acceptances are append-only and snapshot the exact terms text + a
   sha-256 hash (`hashTerms`) so the wording the entrant agreed to survives later
   template edits. Exportable for legal/audit.
 - `features.contestPii` only controls whether PII field types are **offered** in the
   builder; **access** is always gated by `contest.pii` regardless of the flag.
+- **In-app viewer** (`ContestEntryPrivateData.vue`, session 218): the entry detail page
+  (`/contests/:slug/entries/:entryId`) shows a "Personal information" card for the
+  entrant or a `contest.pii` holder — PII fields (addresses rendered as a formatted
+  block, not raw JSON) + agreement acceptances (label · accepted-at · collapsible terms
+  snapshot · sha-256 hash). Fetched **client-side only** so partitioned PII never enters
+  the SSR payload; a 403/empty leaves the section hidden, so judges + the public never
+  see it. Bulk PII stays available via the CSV export (`PII:` columns, same gate).
+
+### Storage, retention & safety (audited session 218)
+
+A two-front adversarial audit (storage/retention + access/leak) found the model sound —
+no P0/P1, no leak path, erasure works. The deliberate decisions + hardening:
+
+- **At rest:** PII is stored as **plaintext `jsonb`** (`contest_entry_private_fields.fields`)
+  and plaintext `text`/`varchar` (agreement `terms_snapshot`, consent `ip`). There is **no
+  app-layer encryption** — confidentiality rests on (1) the strict server-side partition (PII
+  never reaches the public artifact — unknown keys are rejected and partitioning is
+  template-driven, so an entrant can't smuggle PII into `stageSubmissions`), (2) the
+  `contest.pii`/entrant access gate, and (3) **the operator enabling Postgres at-rest /
+  disk encryption** — that last one is the operator's responsibility. App-layer envelope
+  encryption of `fields`/`ip` is a possible future enhancement (needs a key-management
+  decision) if protecting against a raw DB dump is in scope.
+- **Erasure (right-to-erasure):** all three FKs (`contest_id`, `entry_id`, `user_id`) on both
+  PII tables are `ON DELETE CASCADE`, and every delete path is a **hard** delete — deleting a
+  **contest**, **withdrawing an entry**, or **deleting a user account** (self-serve
+  `/api/auth/delete-user` or admin) erases the associated PII + agreement acceptances. No
+  orphans. (`users.deletedAt` soft-delete is test-only.)
+- **Retention:** there is **no automated time-based purge** yet — PII persists for the
+  contest/entry/user lifetime. A purge (e.g. drop PII + consent IPs N days after a contest is
+  `completed`/`cancelled`) is a recommended follow-up for data minimization.
+- **Transport/cache:** `/private` and `/export` send `Cache-Control: no-store`; the in-app
+  viewer fetches `/private` **client-side only** (PII never in the SSR payload).
+- **Consent audit:** each agreement acceptance snapshots the terms + a sha-256 hash + the
+  client IP; the IP is surfaced in the subject's own-data view (transparency).
 
 ---
 
@@ -405,28 +441,55 @@ and can change at any time.
 ## The editor
 
 One mode-aware, **client-only** orchestrator `ContestEditor.vue` backs BOTH
-`pages/contests/create.vue` and `[slug]/edit.vue` as 1-line thin shells (create =
-blank model, edit = hydrated). Form model = the tested composable
+`pages/contests/create.vue` and `[slug]/edit.vue` as 1-line `layout:false` thin shells
+(create = blank model, edit = hydrated). Form model = the tested composable
 `useContestEditor.ts` (refs · slugify · ISO dates · dirty · hydrate · buildPayload ·
 mode-aware POST/PUT save incl. `{silent}` autosave + `onRenamed`).
 
+Since **session 218** the editor is a **full-screen 3-panel shell** matching the
+project/blog/explainer editor (not the old single scrolling column):
+
 ```
-ContestEditor (ClientOnly)
-├─ sticky topbar      back · title · status · dirty/required · View · Save · autosave indicator
-├─ ContestMediaStrip  banner (4:1) + cover placeholders (themed ImageUpload)
-├─ ContestBodyTabs    Overview · Rules · Prizes (block body, each its own *Blocks jsonb)
-│   └─ Write / Preview / Code switch (Preview = live BlockContentRenderer; Code = tuple JSON)
-│   └─ extra tabs: Stages (ContestStagesEditor) · Judging (ContestCriteriaEditor)
-└─ settings rail      Details · Schedule (CpubDateTimeField) · Entries · Prizes cards ·
-                      Visibility · People (ContestJudgeManager / ContestStakeholderManager)
+ContestEditor (ClientOnly, layout:false, cpub-ce-layout, height:100vh)
+├─ topbar            back · title input · status badge · dirty/autosave · View · Save · Status ▾ menu
+└─ cpub-ce-shell (3 columns)
+   ├─ LEFT  EditorBlocks palette   Basic(Text/Heading/Image/Code) · Contest(Judges Showcase/Criteria Bar) ·
+   │                                Media(Video/Embed) · Rich(Tip/Warning/Quote/Divider/Markdown/HTML/Table) ·
+   │                                Layout(Tabs)
+   ├─ CENTER ContestBodyCanvas      Overview · Rules · Prizes tabs over ONE shared BlockCanvas
+   │   ├─ Write / Preview / Code switch (Preview = live BlockContentRenderer; Code = tuple JSON)
+   │   └─ inline banner (4:1) + cover inset — Overview body only (#overview-lead slot)
+   └─ RIGHT  EditorSection rail (~340px)   Details · Schedule (CpubDateTimeField) · Stages
+              (+ edit-only advancement) · Entries · Prizes cards · Judging (ContestCriteriaEditor) ·
+              Access · People (ContestJudgeManager / ContestStakeholderManager) · Danger Zone
 ```
 
+- **The one refactor:** the three body `useBlockEditor` instances are HOISTED into
+  `ContestEditor` so a single left palette inserts into the *currently active* body
+  (`activeBodyEditor` computed). Write-back marks the form dirty explicitly and watches
+  `() => editor.blocks.value` (a bare readonly-ref watch misses structural inserts), guarded
+  by `syncingBodies` so hydration/reseed doesn't false-dirty.
+- **NOT a `<form>`** — embedded palette/`EditorSection`/canvas buttons default to
+  `type=submit`, so a form would let any of them fire a save. Save is an explicit `@click`.
+- **Lifecycle** transitions live in the topbar `Status ▾` menu (edit-only; full menu-button
+  keyboard pattern — open focuses first action, arrows rove, Esc returns to toggle).
+  Advancement (Top-N / manual cut) stays inside the **Stages** rail section.
 - Body fields are **BlockTuple[]** (`descriptionBlocks`/`rulesBlocks`/`prizesBlocks`);
-  legacy `description`/`rules`/`prizesDescription` text + `*Format` toggle stay for
-  back-compat, converted to blocks on first block-edit.
-- **Dates** use `CpubDateTimeField` (local-correct via `utils/datetime`, themed native
-  popup, `min`/`max` coupling). The whole editor is `<ClientOnly>` and date fields are
-  `onMounted`-gated to avoid prod UTC-vs-local hydration mismatches.
+  legacy `description`/`rules`/`prizesDescription` text stays for back-compat, converted to
+  blocks on first edit. Contest-specific blocks: `judgesShowcase` + the sanitized **`html`**
+  block (raw HTML through `sanitizeRichHtml`+neutralizeColors, `BlockHtmlView`).
+- **Rich layout blocks (session 218)** — so organizers don't hand-write HTML: **`tabs`**
+  (tabbed container, each panel nested blocks — drop one in the Rules body for **tabbed /
+  multiple rule sets** like Track A vs Track B; nested palette can't nest tabs), **`table`**
+  (responsive data table, plain-text cells), and **`criteriaBar`** (judging criteria as one
+  stacked weighted bar with a color legend). Each is registered in the renderer `componentMap`
+  + palette + `blockDefaults` + `BLOCK_COMPONENTS_KEY`; segment math in `utils/contestBlocks.ts`.
+  Niceties: the **tabs** block takes an optional `urlKey` to deep-link the open tab
+  (`?<urlKey>=<slug>`, e.g. `?tab=rules&track=track-b-startups`); the **criteriaBar** block offers
+  a "Use rubric" auto-fill from the contest's `judgingCriteria` (via `CONTEST_RUBRIC_KEY` provide);
+  and markdown GFM tables import as structured `table` blocks (`@commonpub/editor` `mapTable`).
+- **Dates** use `CpubDateTimeField` (local-correct via `utils/datetime`); the whole editor is
+  `<ClientOnly>` to avoid prod UTC-vs-local hydration mismatches.
 - **Autosave** for draft contests via `useEditorAutosave` (silent save + rename-in-place
   + hydrate guard); published/upcoming keep save-on-action.
 - **Stages editor** offers the Phase 4 field-type builder (see

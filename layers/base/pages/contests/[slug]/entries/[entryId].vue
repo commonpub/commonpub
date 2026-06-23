@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Serialized, ContestDetail, ContestEntryItem } from '@commonpub/server';
+import type { Serialized, ContestDetail, ContestEntryItem, EntryPrivateData } from '@commonpub/server';
 import type { ContestStage } from '@commonpub/schema';
 
 // Entry detail: the content summary plus the entry's per-stage artifacts in a
@@ -60,6 +60,30 @@ const contentLink = computed(() =>
 function fmtDate(iso: string): string {
   return new Date(iso).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
 }
+
+// --- Personal data (PII + agreement acceptances) ---
+// Fetched CLIENT-SIDE only, so partitioned PII never lands in the SSR payload.
+// The /private endpoint gates access (entrant or `contest.pii`); a 403/empty just
+// leaves the section hidden, so judges + the public never see it.
+const { contestPii } = useFeatures();
+const privateData = ref<Serialized<EntryPrivateData> | null>(null);
+const allTemplateFields = computed(() =>
+  stages.value.flatMap((s) => s.submissionTemplate ?? []).map((f) => ({ key: f.key, label: f.label, type: f.type })),
+);
+let piiFetched = false;
+async function loadPrivate(): Promise<void> {
+  if (piiFetched || typeof window === 'undefined') return;
+  piiFetched = true;
+  try {
+    const d = await $fetch<Serialized<EntryPrivateData>>(`/api/contests/${slug}/entries/${entryId}/private`);
+    if (d && (Object.keys(d.fields ?? {}).length > 0 || (d.agreements ?? []).length > 0)) privateData.value = d;
+  } catch {
+    // 403 (not the entrant / no contest.pii) or no data → section stays hidden.
+  }
+}
+// contestPii hydrates from /api/features on the client (DB overrides), so watch it
+// rather than reading once at mount.
+watch(contestPii, (on) => { if (on) void loadPrivate(); }, { immediate: true });
 </script>
 
 <template>
@@ -122,6 +146,15 @@ function fmtDate(iso: string): string {
           </li>
         </ol>
       </section>
+
+      <!-- Personal data viewer (entrant / contest.pii holders only; client-fetched). -->
+      <ContestEntryPrivateData
+        v-if="privateData"
+        :fields="privateData.fields"
+        :agreements="privateData.agreements"
+        :template="allTemplateFields"
+        :updated-at="privateData.updatedAt"
+      />
     </template>
   </div>
 </template>
