@@ -1,49 +1,359 @@
 # Contests
 
 CommonPub contests let an instance run a skill-based competition: organisers
-create a contest, makers submit published projects as entries, an invited judge
-panel scores them, and ranked results are published. Contests are **instance-
-local** — they never federate.
+create a contest, makers enter (by attaching a published project **or** submitting
+a proposal form), an invited judge panel scores entries across one or more rounds,
+cohorts are culled between rounds, and ranked results are published. Contests are
+**instance-local** — they never federate (no ActivityPub surface; see
+[Federation scope](#federation-scope)).
 
 Gated by `features.contests`. Who may create contests is controlled by
 `instance.contestCreation` (`open` | `staff` | `admin`, default `admin`).
 
-## Lifecycle
+---
 
-`contestStatusEnum` has **7 states** (draft + paused added session 189) and transitions are
-**bidirectional** — the server's `VALID_TRANSITIONS` map is the gating truth (you can move a contest
-back, e.g. `judging → paused` to re-open submissions). The classic forward path:
+## Contents
+
+1. [Architecture at a glance](#architecture-at-a-glance)
+2. [Server module map](#server-module-map)
+3. [Data model](#data-model)
+4. [Status lifecycle (state machine)](#status-lifecycle-state-machine)
+5. [Stage engine](#stage-engine)
+6. [Entry submission paths](#entry-submission-paths)
+7. [Submission forms & field types](#submission-forms--field-types)
+8. [PII & agreements](#pii--agreements)
+9. [Judging & advancement](#judging--advancement)
+10. [Score & visibility](#score--visibility)
+11. [Visibility & access control](#visibility--access-control)
+12. [The editor](#the-editor)
+13. [The public contest page](#the-public-contest-page)
+14. [API surface](#api-surface)
+15. [Feature flags](#feature-flags)
+16. [RBAC permissions](#rbac-permissions)
+17. [Notifications](#notifications)
+18. [Federation scope](#federation-scope)
+19. [Testing strategy](#testing-strategy)
+20. [Key files](#key-files)
+
+---
+
+## Architecture at a glance
+
+Contests are contained to four packages plus the reference layer. New capability
+is **additive** (new columns/tables/field-types/routes) so legacy contests render
+byte-identically.
 
 ```
-draft ──▶ upcoming ──activate──▶ active ──begin judging──▶ judging ──complete──▶ completed
+┌─────────────────────────────────────────────────────────────────────┐
+│ @commonpub/schema    tables + Zod validators + the RBAC catalog       │
+│   contest.ts (tables, jsonb shapes), validators/contest.ts (Zod),     │
+│   permissions.ts (contest.create / contest.manage / contest.pii)      │
+├─────────────────────────────────────────────────────────────────────┤
+│ @commonpub/server    framework-agnostic business logic (no HTTP)      │
+│   contest/  → see "Server module map"                                 │
+│   rbac/seed.ts (STAFF_PERMISSION_SET), content/content.ts (createContent)│
+├─────────────────────────────────────────────────────────────────────┤
+│ @commonpub/config    feature flags (contests, contestStageSubmissions,│
+│                       contestProposals, contestPii)                    │
+├─────────────────────────────────────────────────────────────────────┤
+│ layers/base          Nitro routes + Vue components                    │
+│   server/api/contests/**   thin routes: validate → authz → call server │
+│   components/contest/**     editor + view components                  │
+│   pages/contests/**         create / [slug] / [slug]/edit / judge      │
+│   utils/{contestStages,contestSubmission,contestTransitions,datetime}  │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
-- **draft** — not yet public (gated out of public reads). A new contest can be created here.
-- **upcoming** — created, not yet open. Edit freely.
-- **active** — entrants submit / withdraw published content. Community voting (if enabled, **advisory**) is open.
-- **paused** — temporarily halted (from `active` or `judging`); reversible.
-- **judging** — submissions locked; accepted judges score each entry 1–100. `judgingEndDate` drives the countdown.
-- **completed** — `calculateContestRanks()` assigns ranks (`RANK()` over scored, **non-eliminated** entries; ties share a rank, unscored stay unranked). Results + leaderboard published.
-- **cancelled** — reachable from any non-terminal state. **Not strictly terminal** — `VALID_TRANSITIONS` allows `cancelled → draft` / `cancelled → upcoming` to revive.
+**Principle: build on the engine, refactor the surface.** The schema/server engine
+is mature; the editor, layout, submission breadth, and judging UX are the evolving
+surface. `status` is always the behavioural source of truth for gating; the stage
+timeline drives display.
 
-Multi-stage contests (cohorts / Top-N cull / per-round judging) layer an explicit `stages` timeline
-on top of `status`; `status` stays the gating truth. See `codebase-analysis/02` + `07` for the stage
-model and `calculateContestRanks` cohort-exclusion invariant.
+---
 
-Only the contest owner (or an admin) can transition status, edit, or manage judges.
+## Server module map
 
-## Judges (single source of truth: `contest_judges`)
+`packages/server/src/contest/` is decomposed into a clean, acyclic module DAG
+(session 215; was a single 1666-line `contest.ts`). Each module is cohesive and
+under ~350 lines. `index.ts` is the public barrel re-exporting the unchanged API.
 
-Judges are managed through the `contest_judges` table — **not** the legacy
-`contests.judges` jsonb column. Flow:
+```
+        types.ts ........... all interfaces/types (dependency leaf)
+           ▲
+     ┌─────┴───────┐
+ stages.ts     validation.ts     (pure, no DB)
+     ▲              ▲
+     │   ┌──────────┼──────────────┐
+   read.ts      entries.ts     submissions.ts
+     ▲              ▲                ▲
+     └──────┬───────┘                │
+        contest.ts (CRUD)        judging.ts
+```
 
-1. Owner invites a user via the judge manager (`POST /api/contests/:slug/judges`, role `lead`/`judge`/`guest`). The invitee gets a notification.
-2. The invitee accepts (`POST /api/contests/:slug/judges/accept`) — surfaced as an "Accept invitation" banner on the contest + judge pages.
-3. Once **accepted** and not a `guest`, they can score during the judging phase. Guest judges are view-only.
+| Module | Responsibility |
+| --- | --- |
+| `types.ts` | All interfaces/types: `ContestDetail`, `ContestEntryItem`, `CreateContestInput`, `StageSource`, `PartitionedSubmission`, `AgreementAcceptanceInput`, `ContestTx`, … |
+| `stages.ts` | Pure stage-timeline helpers: `synthesizeStages`, `normalizeStages`, `currentStage`, `isEliminated`. |
+| `validation.ts` | Pure submission validation + partition: `validateSubmissionFields`, `validateStageArtifactFields`, `hashTerms`. |
+| `read.ts` | Reads + visibility: `listContests`, `getContestBySlug`, `canViewContest`, `shouldRevealScores`, `toContestDetail`. |
+| `entries.ts` | Entry lifecycle: `listContestEntries`, `getContestEntry`, `submitContestEntry`, `withdrawContestEntry`, `calculateContestRanks`. |
+| `submissions.ts` | DB writers for artifacts/PII/agreements/proposals: `recordPrivateAndAgreements`, `submitStageArtifact`, `submitContestProposal`, `getEntryPrivateData`. |
+| `judging.ts` | `judgeContestEntry`, `advanceContestStage`. |
+| `contest.ts` | CRUD core: `createContest`, `updateContest`, `deleteContest`, `transitionContestStatus`, `canCreateContest`. |
+| `judges.ts` / `stakeholders.ts` | Judge panel + per-contest collaborator management. |
 
-Per-entry score is the mean of accepted judges' scores (`Math.round`).
+---
 
-## Score visibility
+## Data model
+
+`packages/schema/src/contest.ts`. Tables (instance-local; no AP serialization):
+
+| Table | Purpose | Notable columns |
+| --- | --- | --- |
+| `contests` | The contest itself | `status`, `visibility`, `stages` (jsonb), `currentStageId`, `descriptionBlocks`/`rulesBlocks`/`prizesBlocks` (jsonb BlockTuple[]), legacy `description`/`rules`/`prizesDescription` text + `*Format` enums, `prizes`/`judgingCriteria` (jsonb), `eligibleContentTypes`, `maxEntriesPerUser`, `entryCount` (denormalized), `visibleToRoles` |
+| `contest_entries` | One entry per (contest, user, content) | `contentId`, `score`, `rank`, `judgeScores` (jsonb), `stageState` (jsonb cohort outcome), `stageSubmissions` (jsonb artifacts) — **never** holds PII |
+| `contest_judges` | The judge panel (single source of truth) | `role` (`lead`/`judge`/`guest`), `acceptedAt` |
+| `contest_stakeholders` | Per-contest collaborators | `role` (`reviewer` view-only / `editor` full edit, contest-scoped) |
+| `contest_agreement_acceptances` | **Phase 4** immutable acceptance audit log | `stageId`, `fieldKey`, `termsHash` (sha-256), `termsSnapshot`, `ip`, `acceptedAt` |
+| `contest_entry_private_fields` | **Phase 4** entrant PII, kept OUT of the public artifact | `fields` (jsonb, one row per entry, upserted); `address` values JSON-encoded |
+
+### jsonb shapes
+
+- `contests.stages` → `ContestStage[]`. A stage:
+  `{ id, name, kind, startsAt?, endsAt?, core?, description?, location?, url?, criteria?, advanceCount?, submissionTemplate?, submissionMode? }`.
+- `submissionTemplate[]` → `ContestSubmissionTemplateField`:
+  `{ key, label, type, required, help?, options?, pii?, terms?, termsFormat?, mustAccept? }`.
+- `contest_entries.stageSubmissions` → `{ stageId, fields: Record<string,string>, submittedAt }[]` (non-PII artifact only).
+- `contest_entries.stageState` → `{ stageId, status: 'advanced'|'eliminated', score?, rank? }[]`.
+
+### Migrations
+
+Additive. `0021` (stageSubmissions), `0028`/`0029` (block columns), **`0030`**
+(Phase 4: `contest_agreement_acceptances` + `contest_entry_private_fields` +
+idempotent staff `contest.pii` seed). Applied via the deploy `db-migrate` path,
+never `db:push` in prod.
+
+---
+
+## Status lifecycle (state machine)
+
+`contestStatusEnum` has **7 states**. Transitions are **bidirectional** — the
+server's `VALID_TRANSITIONS` map (`contest.ts`, mirrored client-side in
+`utils/contestTransitions.ts`) is the gating truth (you can move a contest *back*,
+e.g. `judging → paused` to re-open submissions). `status` is the behavioural source
+of truth for every gate.
+
+```
+                ┌─────────────────────────── cancelled ◀──────────────────┐
+                │                                 │ (revive)               │ (cancel from
+                ▼                                 ▼                        │  any non-terminal)
+   ┌──────▶ draft ──▶ upcoming ──▶ active ──▶ judging ──▶ completed         │
+   │                     ▲    ╲      │  ▲        │                          │
+   └─────────────────────┘     ╲     ▼  │        │                          │
+                                ╲  paused ───────┘                          │
+                                 ╲_______________________________(to/from)__┘
+```
+
+| State | Meaning | Gates |
+| --- | --- | --- |
+| `draft` | Not public (filtered from public reads). | Owner-only view; freely editable. |
+| `upcoming` | Created, not yet open. | Editable; no entries. |
+| `active` | Entries open (attach or proposal); community voting (advisory) open. | `submitContestEntry`/`submitStageArtifact`/`submitContestProposal` require `active`. |
+| `paused` | Temporarily halted (from `active`/`judging`); reversible. | Entries/judging closed. |
+| `judging` | Submissions locked; accepted judges score 1–100. `judgingEndDate` drives the countdown. | `judgeContestEntry` allowed. |
+| `completed` | `calculateContestRanks()` assigns ranks. Results + leaderboard published. | Terminal-ish (revivable). |
+| `cancelled` | Reachable from any non-terminal state; revivable to `draft`/`upcoming`. | — |
+
+Only the contest **owner**, a per-contest **editor**, or a `contest.manage` holder
+can transition status (`transitionContestStatus` takes a `canManage` boolean and
+re-checks editor server-side).
+
+---
+
+## Stage engine
+
+A contest's timeline is either its explicit `stages` array or, when empty, the
+**synthesized classic flow**. The standard flow is the zero-config default, so a
+contest with no `stages` renders identically to a pre-stage contest.
+
+```
+normalizeStages(c):  c.stages?.length ? c.stages : synthesizeStages(c)
+
+synthesizeStages(c) = [ Submissions(submission) , Judging(review) , Results(results) ]
+
+currentStage(c):  currentStageId resolves → that stage
+                  else derived from status:
+                     draft|cancelled        → null
+                     completed              → results (or last)
+                     judging                → review
+                     upcoming|active|paused → submission (or first)
+```
+
+Stage **kinds** drive display and map onto the coarse `status` when the owner
+advances stages:
+
+| kind | Meaning | Maps to status |
+| --- | --- | --- |
+| `submission` | Collect entries/artifacts (proposal vs prototype round) | `active` |
+| `review` | A judging round (carries its own `criteria` + `advanceCount`) | `judging` |
+| `interim` | A working/sprint period | `active` |
+| `results` | Results published | `completed` |
+| `event` | A showcase/venue milestone (carries `location`/`url`) | `completed` |
+| `custom` | Arbitrary named milestone | — |
+
+This lets a contest have multiple submission/judging **rounds** that all gate
+identically (via `status`) but display as distinct named stages. The
+`submission`-stage extras (`submissionTemplate`, `submissionMode`) drive the
+[entry submission paths](#entry-submission-paths).
+
+---
+
+## Entry submission paths
+
+A `submission`-kind stage has a `submissionMode`:
+
+- **`attach`** (default) — the entrant attaches a **pre-existing published** content
+  item they own. Classic path.
+- **`proposal`** (Phase 4, gated by `features.contestProposals`) — the entrant fills
+  a form; the server creates a **DRAFT placeholder project** linked as the entry and
+  routes them into the editor to develop it for later rounds.
+
+### Attach path
+
+```
+entrant ── picks published project ──▶ POST /contests/:slug/entries { contentId }
+   └─ submitContestEntry: status==active? owns content? content published?
+      type eligible? under per-user cap? ──▶ tx { insert entry; entryCount += 1 }
+```
+
+### Proposal path (form-first)
+
+```
+entrant fills the stage form (ContestProposalForm)
+        │  POST /contests/:slug/proposal { stageId, fields }   [requireFeature contestProposals]
+        ▼
+submitContestProposal(db, {contestId, stageId, fields, userId, ip}):
+   1. contest active?  stage current + kind=submission + submissionMode=proposal?
+   2. validateSubmissionFields(template, fields) → { artifact, pii, agreements }
+   3. per-user cap check (BEFORE creating anything)
+   4. createContent(draft placeholder project)          ── own write
+   5. tx {                                                  ┐
+        insert contest_entry (links the DRAFT — published   │ atomic
+          gate relaxed for proposal mode); stageSubmissions │  unit
+          = [{stageId, artifact}]                           │
+        contests.entryCount += 1                            │
+        recordPrivateAndAgreements(pii, agreements)         │
+      }                                                     ┘
+   6. on tx failure → deleteContent(placeholder)  (no orphan draft)
+   ▼
+returns { entryId, projectSlug }  ──▶ client routes to the project editor
+```
+
+The published-only gate that `submitContestEntry` enforces is **relaxed only** for
+proposal-mode stages (a draft placeholder is a valid entry there). The
+`stageSubmissions` artifact records only the **non-PII, non-agreement** fields.
+
+---
+
+## Submission forms & field types
+
+`submissionTemplate[]` field types (extended in Phase 4). `validateSubmissionFields`
+(pure, `validation.ts`) validates the domain of each AND **partitions** values into
+three buckets so PII and consent never reach the public artifact:
+
+| type | Control | Validation | Bucket |
+| --- | --- | --- | --- |
+| `text` / `textarea` | input / textarea | non-blank if required, ≤4000 chars | artifact |
+| `url` | url input | `https?://` only + structural parse | artifact |
+| `email` | email input | RFC-lite email regex | artifact (or PII if `pii`) |
+| `number` | number input | finite number | artifact (or PII if `pii`) |
+| `select` | dropdown | value ∈ `options` | artifact (or PII if `pii`) |
+| `checkbox` | checkbox | required ⇒ must be checked; stored `'true'`/`'false'` | artifact (or PII if `pii`) |
+| `date` | date input | `YYYY-MM-DD` + parseable | artifact (or PII if `pii`) |
+| `agreement` | terms box + accept checkbox | required/`mustAccept` ⇒ must accept | **agreement** (never artifact) |
+| `address` | structured subform (line1/line2/city/region/postal/country) | JSON object | **PII** (auto, JSON-encoded) |
+
+- `pii: true` (auto for `address`) routes a field's value to
+  `contest_entry_private_fields`, never the public `stageSubmissions`.
+- `agreement` fields are **consent, not data**: each accepted agreement becomes an
+  immutable row in `contest_agreement_acceptances` (terms hash + snapshot + ip).
+- **Organizer UI**: `ContestStagesEditor` offers the scalar types whenever
+  `features.contestStageSubmissions` is on; `agreement` + `address` + the per-field
+  PII toggle are gated behind `features.contestPii`; the `submissionMode` selector
+  behind `features.contestProposals`.
+- **Entrant UI**: one reusable `ContestSubmissionField` renders every type (used by
+  both the per-stage artifact form and the proposal form). Client helpers
+  (`utils/contestSubmission.ts` — `blockingFields`, `buildSubmissionPayload`,
+  `parse/serializeAddress`) gate + serialize identically on both surfaces; the
+  server stays the authoritative validator.
+
+---
+
+## PII & agreements
+
+**PII is a permission, not a column you hope nobody selects.** Personal data lives
+in a separate table, never serialized through the normal entries endpoints, gated
+by a dedicated permission.
+
+```
+                         ┌──────────────────────────────────────────────┐
+ submit form values ───▶ │ validateSubmissionFields → partition           │
+                         │   artifact   → contest_entries.stageSubmissions │ (public-ish, gated)
+                         │   pii        → contest_entry_private_fields      │ (private)
+                         │   agreements → contest_agreement_acceptances     │ (audit)
+                         └──────────────────────────────────────────────┘
+
+ READ PII:  GET /contests/:slug/entries/:entryId/private
+            allow IF  requester is the entrant (own PII)
+                  OR  hasPermission('contest.pii')   (seeded admin via *, + staff)
+            else 403.  The normal entries endpoints NEVER include PII.
+```
+
+- `contest.pii` is seeded to `staff` (migration 0030) and held by `admin` via `*`.
+  The contest owner/editor does **not** get entrant PII unless they are also
+  admin/staff (operator decision; widen later via RBAC).
+- Agreement acceptances are append-only and snapshot the exact terms text + a
+  sha-256 hash (`hashTerms`) so the wording the entrant agreed to survives later
+  template edits. Exportable for legal/audit.
+- `features.contestPii` only controls whether PII field types are **offered** in the
+  builder; **access** is always gated by `contest.pii` regardless of the flag.
+
+---
+
+## Judging & advancement
+
+### Per-round scoring
+
+`judgeContestEntry` (`judging.ts`) — transactional (`FOR UPDATE`), conflict-of-
+interest check, accepted-non-guest gate, per-`roundId` score isolation, per-stage
+`criteria` rubric (falls back to contest-level `judgingCriteria`).
+
+- With **no criteria**: judges submit one holistic 1–100 score.
+- With **criteria**: judges score each criterion (0..weight, or 0..100 if no weight);
+  the overall 0–100 is the normalized weighted sum `sum(score)/sum(max)*100`; the
+  breakdown is stored in `judgeScores`. Writes are row-locked so concurrent judges
+  never clobber each other. Per-entry aggregate = mean of accepted judges' scores.
+
+### Advancement (the Top-N cull)
+
+```
+advanceContestStage(db, contestId, canManage, { reviewStageId, mode, topN | advancedEntryIds }):
+   mode=topN   → rank the surviving cohort by round score, advance the top N,
+                 eliminate the rest (deterministic tiebreak)
+   mode=manual → advance the explicit entry ids, eliminate the rest of the cohort
+   ▼
+   writes contest_entries.stageState[{stageId, status, score, rank}] (snapshot),
+   moves currentStageId to the next stage, idempotent per stage.
+```
+
+`isEliminated(entry)` is the cohort gate: a culled entry can no longer submit
+later-stage artifacts or be scored in later rounds. `calculateContestRanks()` ranks
+only **scored, non-eliminated** entries (`RANK()` window; ties share a rank;
+unscored stay unranked).
+
+---
+
+## Score & visibility
 
 `judgingVisibility` controls who sees aggregate scores before results:
 
@@ -53,171 +363,194 @@ Per-entry score is the mean of accepted judges' scores (`Math.round`).
 | `judges-only` (default) | only after `completed` | privileged only |
 | `private` | never (ranks may still show) | privileged only |
 
-"Privileged" = contest owner, instance admin, or a panel judge. The decision is
-the pure helper `shouldRevealScores(visibility, status, privileged)`; per-judge
-detail (`includeJudgeScores`) is always privileged-only regardless of visibility.
+"Privileged" = contest owner, instance admin, or a panel judge. Decision is the pure
+helper `shouldRevealScores(visibility, status, privileged)` (`read.ts`); per-judge
+detail is always privileged-only. Per-round snapshot scores in `stageState` honour
+`revealScores` too (the cohort outcome itself stays public).
 
-## Prizes & judging criteria
+---
 
-- **Prizes** carry an optional `place` (ranked: 1st/2nd/3rd…) **and/or** an
-  optional `category` (themed: "Best in Show", "Robotics"). Place-based prizes
-  map onto the results podium; category prizes display as themed awards.
-- **Judging criteria** is an optional rubric (`label`, optional `weight` points,
-  optional `description`) shown to entrants on the contest page. When a contest
-  defines criteria, judges score **each criterion** (0..weight, or 0..100 if no
-  weight) on the judge page and the overall 0–100 is the normalized weighted sum
-  (`sum(score)/sum(max)*100`); the per-criterion breakdown is stored in
-  `judgeScores`. With no criteria, judges submit a single holistic 1–100 score.
-  Score writes are atomic (row-locked transaction), so concurrent judges scoring
-  the same entry never clobber each other.
+## Visibility & access control
 
-## Visibility & access
-
-`visibility` is **orthogonal to `status`** (lifecycle) — it controls *who can see*
-the contest, and you can change it at any time (e.g. keep a contest `private`
-while drafting, then flip to `public` to publish):
+`visibility` is **orthogonal to `status`** — it controls *who can see* the contest
+and can change at any time.
 
 | `visibility` | Listed? | Who can view |
 | --- | --- | --- |
 | `public` (default) | yes | everyone |
 | `unlisted` | no | anyone with the direct link |
-| `private` | no | owner, admins, **collaborators** (reviewers + editors), panel judges, and any role in `visibleToRoles` |
+| `private` | no | owner, admins, collaborators (reviewers + editors), panel judges, roles in `visibleToRoles` |
 
-- **`visibleToRoles`** (e.g. `['staff']`) grants whole roles view access to a
-  `private` contest.
-- **Collaborators** (`contest_stakeholders` table, managed on the Edit page) are
-  per-contest grants scoped to that one contest only, with **no** system-wide
-  access. The `role` column distinguishes two kinds:
-  - **`reviewer`** (default) — view-only. Can see a private/unpublished contest to
-    review it, without being a judge or admin (never appears in the judge list,
-    can't score or edit).
-  - **`editor`** — full edit rights to *that* contest: edit fields, transition
-    status, and advance stages, exactly like the owner. An editor **cannot**
-    delete the contest, manage judges, or add/promote other collaborators (those
-    stay owner / `contest.manage`), so an editor can't escalate. Recognized by
-    `isContestEditor`.
-- Access is enforced server-side by `canViewContest(db, contest, user)` on every
-  read endpoint (detail/entries/votes/judges/submit); a blocked viewer gets a
-  **404** (not 403) so a private contest's existence isn't leaked. The public v1
-  API (`isPublicContest`) only ever exposes `public` contests.
-- The public `/contests` listing shows only `public` contests; signed-in users
-  also see their own drafts there, and admins see everything.
-- **Who can edit/manage:** edit (`PUT`), status transition, and stage advance are
-  authorized for the **owner**, a per-contest **editor**, or a holder of the
-  `contest.manage` RBAC permission (`canManage = ownerOrPermission(event,
-  contest.createdById, 'contest.manage') || isContestEditor(...)`). The three
-  server functions (`updateContest`/`transitionContestStatus`/
-  `advanceContestStage`) take a `canManage` boolean and also re-check the editor
-  server-side. Delete + judge/collaborator management stay owner / `contest.manage`
-  only. The contest detail payload exposes a per-request `viewerCanManage` flag so
-  the client shows the Edit affordance to editors (UI hint only; the server
-  enforces).
-- **Delete vs hide:** `DELETE /api/contests/:slug` removes a contest entirely;
-  setting `visibility` to `unlisted`/`private` hides it without deleting.
+- **Collaborators** (`contest_stakeholders`) are per-contest, no system-wide access:
+  `reviewer` (view-only) and `editor` (full edit of *that* contest — fields,
+  transition, advance — but cannot delete, manage judges, or add collaborators, so
+  no escalation; recognized by `isContestEditor`).
+- `canViewContest(db, contest, user)` gates every read endpoint; a blocked viewer
+  gets **404** (not 403) so a private contest's existence isn't leaked.
+- **Who can edit/manage:** `canManage = ownerOrPermission(..., 'contest.manage') ||
+  isContestEditor(...)`; `updateContest`/`transitionContestStatus`/
+  `advanceContestStage` take a `canManage` boolean and re-check the editor. Delete +
+  judge/collaborator management stay owner / `contest.manage`. The detail payload
+  exposes a per-request `viewerCanManage` hint (server still enforces).
 
-## Participants
+---
 
-The contest detail page has a **Participants** tab listing the unique entrants
-(distinct from the **Entries** tab, which lists submissions) with their entry
-counts, linking to each profile.
+## The editor
 
-## Entry eligibility
+One mode-aware, **client-only** orchestrator `ContestEditor.vue` backs BOTH
+`pages/contests/create.vue` and `[slug]/edit.vue` as 1-line thin shells (create =
+blank model, edit = hydrated). Form model = the tested composable
+`useContestEditor.ts` (refs · slugify · ISO dates · dirty · hydrate · buildPayload ·
+mode-aware POST/PUT save incl. `{silent}` autosave + `onRenamed`).
 
-Two optional per-contest controls (default = unrestricted, set in create/edit):
+```
+ContestEditor (ClientOnly)
+├─ sticky topbar      back · title · status · dirty/required · View · Save · autosave indicator
+├─ ContestMediaStrip  banner (4:1) + cover placeholders (themed ImageUpload)
+├─ ContestBodyTabs    Overview · Rules · Prizes (block body, each its own *Blocks jsonb)
+│   └─ Write / Preview / Code switch (Preview = live BlockContentRenderer; Code = tuple JSON)
+│   └─ extra tabs: Stages (ContestStagesEditor) · Judging (ContestCriteriaEditor)
+└─ settings rail      Details · Schedule (CpubDateTimeField) · Entries · Prizes cards ·
+                      Visibility · People (ContestJudgeManager / ContestStakeholderManager)
+```
 
-- **`eligibleContentTypes`** — restrict entries to specific content types (e.g.
-  `['project']`). Empty/unset = any published content the entrant owns. The
-  submit picker filters to eligible types; the server enforces it as a backstop.
-- **`maxEntriesPerUser`** — cap the number of distinct entries one person may
-  submit. Null = unlimited. Enforced in `submitContestEntry`.
+- Body fields are **BlockTuple[]** (`descriptionBlocks`/`rulesBlocks`/`prizesBlocks`);
+  legacy `description`/`rules`/`prizesDescription` text + `*Format` toggle stay for
+  back-compat, converted to blocks on first block-edit.
+- **Dates** use `CpubDateTimeField` (local-correct via `utils/datetime`, themed native
+  popup, `min`/`max` coupling). The whole editor is `<ClientOnly>` and date fields are
+  `onMounted`-gated to avoid prod UTC-vs-local hydration mismatches.
+- **Autosave** for draft contests via `useEditorAutosave` (silent save + rename-in-place
+  + hydrate guard); published/upcoming keep save-on-action.
+- **Stages editor** offers the Phase 4 field-type builder (see
+  [Submission forms](#submission-forms--field-types)).
 
-(The unique constraint `(contestId, userId, contentId)` already prevents
-submitting the *same* content twice, independent of the cap.)
+---
 
-## Per-stage submissions (multi-stage artifacts)
+## The public contest page
 
-For multi-phase contests (proposal → prototype), each `submission`-kind stage can
-carry a **submission template** — the fields entrants must fill for *that* stage's
-artifact. Gated by `features.contestStageSubmissions` (default ON, inert until a
-template is defined; no effect unless `contests` is on too).
+`pages/contests/[slug]/index.vue`. Slim hero (`ContestHero` = ≤220px banner + one
+compact bar) + `coverImageUrl` as a lead image atop Overview. Tabs **Overview ·
+Rules · Prizes · Entries · Participants · Judges** are deep-linkable via `?tab=`
+(SSR-aware, reload-stable). All local dates render through one `formatLocalDate`
+(`utils/datetime`), `onMounted`-gated.
 
-- **Define it**: in the stages editor, a `submission` stage gets a "Submission
-  form, this stage" panel — add fields with a label, a type (`text` / `textarea` /
-  `url`), a required toggle, and an optional hint. Field keys derive from the
-  label and stay stable once hand-edited (artifact values hang off them).
-- **Fill it**: an entrant with a live entry sees the form on the contest page's
-  Entries tab while the contest is `active` and that stage is **current**.
-  Re-submitting while the stage is open replaces the artifact (snapshotted with
-  `submittedAt`). The cohort gate applies: an entry culled at a review stage
-  cannot submit later-stage artifacts.
-- **Validation**: required fields must be non-blank; `url` fields accept
-  `http(s)://` only (`javascript:` and friends are rejected); unknown keys are
-  rejected; values cap at 4000 chars. Server-enforced in
-  `validateStageArtifactFields` (pure, exhaustively tested).
-- **Judge it**: the judge page shows each entry's artifact for the round being
-  judged — the nearest `submission` stage preceding the current review stage —
-  beside the per-round rubric, plus an "All submissions" link.
-- **View it**: `/contests/:slug/entries/:entryId` is the entry-detail page — the
-  content summary plus every stage's artifact in a timeline. Artifacts are
-  visible to judges/owner/admin and the entrant; the public sees the content
-  card only. Entry cards link here.
-- **Storage**: templates live on `contests.stages[].submissionTemplate` (jsonb,
-  no migration); artifacts on `contest_entries.stage_submissions`
-  (migration 0021, additive `[]` default).
+The **Entries** tab is submission-mode aware:
 
-A typical Resilient-America-style flow: a *Proposals* stage with a summary/focus
-template → a *Screening* review round (Top-N cull) → a *Prototype* stage whose
-template asks for repo + demo URLs (only advanced entrants can fill it) → a
-*Final Judging* round scoring the prototype artifact.
+- proposal-mode current stage + signed in + no entry yet → `ContestProposalForm`
+- proposal-mode + anonymous → log-in prompt
+- attach mode (no proposal stage) → the classic "Submit Entry" CTA
+- entrant with a live entry + current submission stage → `ContestStageSubmission`
+  (edit the artifact)
 
-## Community voting
+---
 
-When `communityVotingEnabled`, signed-in members can upvote entries (one vote
-per user per entry) while the contest is `active` or `judging`. **A user cannot
-vote for their own entry.** Votes are advisory — they do not feed the ranking —
-but on the results page the most-voted entry is highlighted as the **Community
-Choice** and a per-entry vote tally is shown in the leaderboard.
+## API surface
+
+`layers/base/server/api/contests/`. Routes are thin: `requireFeature` → `parseParams`
+→ `getContestBySlug`/`canViewContest` → `parseBody` → call the server fn.
+
+| Method + path | Purpose | Auth |
+| --- | --- | --- |
+| `GET /contests` | List (public; own drafts when signed in; all for admin) | optional |
+| `POST /contests` | Create | authed + `contestCreation` policy |
+| `GET /contests/:slug` | Detail (+ `viewerCanManage`) | `canViewContest` |
+| `PUT /contests/:slug` | Update | owner / editor / `contest.manage` |
+| `DELETE /contests/:slug` | Delete | owner / `contest.manage` |
+| `POST /contests/:slug/transition` | Status transition | owner / editor / `contest.manage` |
+| `POST /contests/:slug/advance` | Advancement cut (Top-N / manual) | owner / editor / `contest.manage` |
+| `GET /contests/:slug/entries` | List entries (PII never included) | `canViewContest` |
+| `POST /contests/:slug/entries` | Attach a published project | authed entrant |
+| `DELETE /contests/:slug/entries/:entryId` | Withdraw | entrant / owner |
+| `GET /contests/:slug/entries/:entryId` | Entry detail (artifacts gated) | `canViewContest` |
+| `PUT /contests/:slug/entries/:entryId/submission` | Submit/update a per-stage artifact | entrant (owns entry) |
+| **`POST /contests/:slug/proposal`** | **Form-first proposal entry** (Phase 4) | authed + `features.contestProposals` |
+| **`GET /contests/:slug/entries/:entryId/private`** | **Entrant PII + agreements** (Phase 4) | `contest.pii` OR own entry |
+| `GET/POST/DELETE /contests/:slug/judges*` | Judge panel management | owner / `contest.manage` |
+| `POST /contests/:slug/judges/accept` | Accept a judge invite | invitee |
+| `GET/POST/DELETE /contests/:slug/stakeholders*` | Collaborator management | owner / `contest.manage` |
+| `GET /contests/:slug/user-search` | Contest-scoped user search (public fields) | owner / `contest.manage` |
+| `POST/DELETE /contests/:slug/entries/:entryId/vote` | Community vote | authed (not own entry) |
+
+---
+
+## Feature flags
+
+| Flag | Default | Gates |
+| --- | --- | --- |
+| `features.contests` | OFF (reference: ON) | The whole contest surface. |
+| `features.contestStageSubmissions` | ON | Per-stage submission templates + artifact form. Inert until a template exists. |
+| `features.contestProposals` | OFF | Proposal `submissionMode` + the proposal form + `POST /proposal`. |
+| `features.contestPii` | OFF | Offering PII field types (agreement/address/`pii` toggle) in the builder. Access to stored PII is always gated by `contest.pii`. |
+
+All declared end-to-end: `config/types.ts` + `config/schema.ts`,
+`nuxt.config.ts` `runtimeConfig.public.features` (env-propagation),
+`useFeatures.ts` (interface + DEFAULT_FLAGS + accessor), `/admin/features` metadata.
+
+---
+
+## RBAC permissions
+
+Catalog: `packages/schema/src/permissions.ts` (single-dot `<segment>.<segment>`).
+
+| Permission | Held by | Grants |
+| --- | --- | --- |
+| `contest.create` | staff, admin (`*`) | Create contests (with `contestCreation` policy). |
+| `contest.manage` | staff, admin (`*`) | Manage any contest (edit/transition/advance/delete/judges). |
+| `contest.pii` | staff, admin (`*`) | Read entrant PII via the gated private endpoint. Seeded to staff in migration 0030. |
+
+Per-contest `editor`/`reviewer` (`contest_stakeholders`) are orthogonal, scoped
+grants — not global permissions.
+
+---
 
 ## Notifications
 
-Status transitions notify participants (in-app, + email when
-`emailNotifications` is on):
+Status transitions notify participants (in-app, + email when `emailNotifications`):
 
-- **active / judging / cancelled** — all entrants get a status note; judges get a
+- **active / judging / cancelled** — entrants get a status note; judges get a
   judging/cancelled note.
-- **completed** — entrants whose rank earns a place-prize (or place in the top 3
-  when no place-prizes are defined) get a **"🏆 You won!"** alert naming their
-  placement and prize; every other entrant gets the standard "Results Posted"
-  note. Judges are notified separately. Fired after `calculateContestRanks`.
-- Judge **invite** → the invitee; judge **accept** → the contest owner.
+- **completed** — entrants whose rank earns a place-prize (or top-3 when no
+  place-prizes) get a "You won" alert naming placement + prize; others get "Results
+  Posted". Judges notified separately. Fired after `calculateContestRanks`.
+- Judge **invite** → invitee; judge **accept** → owner.
+
+---
+
+## Federation scope
+
+Contests are **instance-local**. They never serialize through `@commonpub/protocol`
+and have no ActivityPub type. PII + agreements are likewise never federated. The
+public v1 API (`isPublicContest`) only ever exposes `public` contests.
+
+---
+
+## Testing strategy
+
+- **Pure (unit):** `validation.ts` (field-type domain + partition), `stages.ts`,
+  client `utils/contestStages.ts` + `utils/contestSubmission.ts`, the enum-derived
+  validators (drift guard).
+- **Server (real-PG/PGlite harness):** `submitContestProposal` (tx atomicity, draft
+  placeholder, entry link, PII isolation, agreement capture, gates, per-user cap),
+  the B1/B2 tx fixes, per-round judging, advancement cohort gate, RBAC seed parity.
+- **Components (@testing-library/vue + axe):** `ContestStagesEditor` (Phase 4 builder,
+  flag-gating), `ContestSubmissionField` (every type + axe), `ContestStageSubmission`,
+  body tabs, criteria editor, `CpubDateTimeField`.
+- **Invariant under test:** the normal entries endpoint never includes PII — proven
+  both in the server integration suite and verified live.
+
+---
 
 ## Key files
 
-- Schema: `packages/schema/src/contest.ts`, validators in `validators.ts`.
-- Server: `packages/server/src/contest/` (`contest.ts`, `judges.ts`) + voting in `voting/voting.ts`.
+- Schema: `packages/schema/src/contest.ts`, `validators/contest.ts`, `permissions.ts`.
+- Server: `packages/server/src/contest/` (see [module map](#server-module-map)) +
+  `rbac/seed.ts`, `content/content.ts`, voting in `voting/voting.ts`.
 - API: `layers/base/server/api/contests/**`.
-- UI: `layers/base/pages/contests/**` + `layers/base/components/contest/**`.
-- Homepage section + layout-engine section: `components/homepage/ContestsSection.vue`, `sections/builtin/contests.ts`.
-
-## Editor surfaces (session 211, `contests` branch — unreleased)
-
-- **Dates** use `CpubDateTimeField` (`components/CpubDateTimeField.vue`): local-correct via
-  `utils/datetime`, themed native popup (`color-scheme`), and `min`/`max` coupling in the stages editor
-  (a stage's end can't precede its start). Replaces raw `datetime-local`, which had a UTC display bug on
-  the edit form.
-- **Long-text fields** (description / rules / prizes) support Markdown or Full-HTML per field
-  (`FormatToggle`). Full-HTML is **dark-mode-safe**: inline hardcoded colors are neutralized so the theme
-  baseline shows through; use `var(--text)` / `var(--accent)` etc. in author HTML to keep intentional
-  colors across themes.
-- **Tabs are deep-linkable** via `?tab=` (e.g. `/contests/<slug>?tab=judges`) — shareable + reload-stable.
-- **Adding judges / reviewers** uses a contest-scoped user search
-  (`GET /api/contests/[slug]/user-search`, gated to owner / `contest.manage`), so a non-admin organizer
-  can search users (public fields only) without the admin user list.
-
-## Reliability notes (session 211)
-
-- `createContest` and `withdrawContestEntry` are transactional — the contest plus its seeded
-  judges/reviewers, and the entry delete plus the `entryCount` decrement, each commit atomically.
-- `addContestJudge` is conflict-safe (`onConflictDoNothing`); concurrent double-invites no longer 500.
-- Contest enum validators (status/visibility/format/role) are derived from the pgEnums, so a column-enum
-  change can't silently bypass validation.
+- UI: `layers/base/pages/contests/**` + `layers/base/components/contest/**`
+  (`ContestEditor`, `ContestBodyTabs`, `ContestStagesEditor`, `ContestCriteriaEditor`,
+  `ContestSubmissionField`, `ContestProposalForm`, `ContestStageSubmission`,
+  `ContestHero`, `ContestSidebar`, `ContestJudgeManager`, `ContestStakeholderManager`).
+- Utils: `layers/base/utils/{contestStages,contestSubmission,contestTransitions,contestBody,datetime}.ts`.
+- Homepage/layout section: `components/homepage/ContestsSection.vue`,
+  `sections/builtin/contests.ts`.
