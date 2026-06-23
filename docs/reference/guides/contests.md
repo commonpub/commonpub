@@ -318,6 +318,13 @@ by a dedicated permission.
   template edits. Exportable for legal/audit.
 - `features.contestPii` only controls whether PII field types are **offered** in the
   builder; **access** is always gated by `contest.pii` regardless of the flag.
+- **In-app viewer** (`ContestEntryPrivateData.vue`, session 218): the entry detail page
+  (`/contests/:slug/entries/:entryId`) shows a "Personal information" card for the
+  entrant or a `contest.pii` holder — PII fields (addresses rendered as a formatted
+  block, not raw JSON) + agreement acceptances (label · accepted-at · collapsible terms
+  snapshot · sha-256 hash). Fetched **client-side only** so partitioned PII never enters
+  the SSR payload; a 403/empty leaves the section hidden, so judges + the public never
+  see it. Bulk PII stays available via the CSV export (`PII:` columns, same gate).
 
 ---
 

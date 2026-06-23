@@ -126,3 +126,21 @@ the rendered DOM, and a post-transition capture raced the SSR settle).
 
 Re-gates after fixes: layer suite **1226/1226**, `turbo typecheck` **28/28**, E2E **26/26**,
 a11y/divider checks **7/7**. Audit verdict: no P0s, no XSS, no save-path data loss.
+
+## Advanced contest E2E + in-app PII viewer (same session)
+
+Ran a full multi-stage / multi-track contest E2E (`15/15`) — two tracks (a `select` field),
+proposal → sprint → final per-stage submissions with agreement + address (PII) fields, and **two
+review rounds with different rubrics** (the judge UI resolves the rubric from the current review
+stage, so the same judge scores Individual vs Startup criteria per round). Captured every stage +
+view to `contest-e2e-screens/` (untracked). Confirmed PII partitioning, per-round rubrics, score
+visibility (judges-only hides during judging, reveals on completion), and the CSV export's PII
+columns vs a plain judge's PII-free export.
+
+That E2E surfaced a gap: **no in-app viewer for partitioned PII** (addresses + agreement acceptances
+were only reachable via CSV export or the raw `/private` API). Closed it (commit `b3cb9057`): new
+`ContestEntryPrivateData.vue` on the entry detail page renders a "Personal information" card (PII
+fields with addresses formatted, + agreement acceptances with terms snapshot + sha-256 hash),
+fetched **client-side only** so PII never enters the SSR payload, gated by `features.contestPii` +
+the endpoint's entrant-or-`contest.pii` authz. Verified: organizer + entrant see it, judge does not,
+PII absent from SSR. Layer suite **1232/1232**.
