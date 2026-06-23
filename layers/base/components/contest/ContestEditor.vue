@@ -268,6 +268,25 @@ async function transitionStatus(newStatus: string): Promise<void> {
   }
 }
 
+// --- Topbar Status menu (the contest analogue of Publish; lifecycle lives here,
+// not the rail). Edit-only. Closes on select, Escape, or an outside pointer. ---
+const statusMenuOpen = ref(false);
+const statusMenuRef = ref<HTMLElement | null>(null);
+function closeStatusMenu(): void { statusMenuOpen.value = false; }
+async function selectTransition(t: string): Promise<void> { closeStatusMenu(); await transitionStatus(t); }
+function onStatusDocPointer(e: PointerEvent): void {
+  if (statusMenuOpen.value && statusMenuRef.value && !statusMenuRef.value.contains(e.target as Node)) closeStatusMenu();
+}
+function onStatusDocKey(e: KeyboardEvent): void { if (e.key === 'Escape') closeStatusMenu(); }
+onMounted(() => {
+  document.addEventListener('pointerdown', onStatusDocPointer);
+  document.addEventListener('keydown', onStatusDocKey);
+});
+onUnmounted(() => {
+  document.removeEventListener('pointerdown', onStatusDocPointer);
+  document.removeEventListener('keydown', onStatusDocKey);
+});
+
 // Advancement cuts operate on the PERSISTED stages (contest.value), not the
 // editable `stages` ref, since they act on real entries.
 const reviewStages = computed(() => (contest.value?.stages ?? []).filter((s) => s.kind === 'review'));
@@ -366,6 +385,42 @@ async function advanceStage(stageId: string): Promise<void> {
           <i class="fa-solid" :class="mode === 'create' ? 'fa-trophy' : 'fa-floppy-disk'"></i>
           {{ busy ? (mode === 'create' ? 'Creating…' : 'Saving…') : (mode === 'create' ? 'Create Contest' : (formDirty ? 'Save Changes' : 'Saved')) }}
         </button>
+
+        <!-- Lifecycle transitions (edit-only) live in this Status menu, not the rail. -->
+        <div v-if="mode === 'edit' && contest" ref="statusMenuRef" class="cpub-ce-status-menu">
+          <button
+            type="button"
+            class="cpub-ce-topbar-btn"
+            aria-haspopup="menu"
+            :aria-expanded="statusMenuOpen"
+            @click="statusMenuOpen = !statusMenuOpen"
+          >
+            <i class="fa-solid fa-flag"></i> Status <i class="fa-solid fa-chevron-down cpub-ce-status-caret" :class="{ open: statusMenuOpen }"></i>
+          </button>
+          <div v-if="statusMenuOpen" class="cpub-ce-status-dropdown" role="menu" aria-label="Change contest status">
+            <p class="cpub-ce-status-current">
+              Current: <span class="cpub-status-badge" :class="`cpub-status-${contest.status}`">{{ contest.status }}</span>
+            </p>
+            <button
+              v-for="t in availableTransitions"
+              :key="t"
+              type="button"
+              role="menuitem"
+              class="cpub-ce-status-item"
+              :class="{
+                'cpub-ce-status-go': statusAction(t).tone === 'go',
+                'cpub-ce-status-warn': statusAction(t).tone === 'warn',
+                'cpub-ce-status-danger': statusAction(t).tone === 'danger',
+              }"
+              @click="selectTransition(t)"
+            >
+              <i class="fa-solid" :class="statusAction(t).icon"></i> {{ statusAction(t).label }}
+            </button>
+            <p v-if="!availableTransitions.length" class="cpub-ce-status-empty">
+              <i class="fa-solid fa-circle-check"></i> No status changes available from <strong>{{ contest.status }}</strong>.
+            </p>
+          </div>
+        </div>
       </div>
     </header>
 
@@ -689,6 +744,29 @@ async function advanceStage(stageId: string): Promise<void> {
 .cpub-ce-topbar-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .cpub-ce-topbar-btn-primary { background: var(--accent); color: var(--color-text-inverse); font-weight: 600; border-color: var(--accent); box-shadow: var(--shadow-md); }
 .cpub-ce-topbar-btn-primary:hover:not(:disabled) { box-shadow: var(--shadow-sm); background: var(--accent); }
+
+/* Topbar Status ▾ dropdown */
+.cpub-ce-status-menu { position: relative; }
+.cpub-ce-status-caret { font-size: 9px; transition: transform 0.15s; }
+.cpub-ce-status-caret.open { transform: rotate(180deg); }
+.cpub-ce-status-dropdown {
+  position: absolute; top: calc(100% + 4px); right: 0; z-index: 200; min-width: 220px;
+  background: var(--surface); border: var(--border-width-default) solid var(--border);
+  box-shadow: var(--shadow-md); padding: 6px; display: flex; flex-direction: column; gap: 2px;
+}
+.cpub-ce-status-current { font-size: 11px; color: var(--text-faint); margin: 0; padding: 4px 8px 6px; display: flex; align-items: center; gap: 6px; border-bottom: var(--border-width-default) solid var(--border); }
+.cpub-ce-status-item {
+  display: flex; align-items: center; gap: 8px; width: 100%; text-align: left;
+  padding: 8px 10px; background: none; border: var(--border-width-default) solid transparent;
+  color: var(--text-dim); cursor: pointer; font-size: 12px; font-family: var(--font-sans);
+}
+.cpub-ce-status-item:hover { background: var(--surface2); border-color: var(--border2); color: var(--text); }
+.cpub-ce-status-item i { width: 14px; text-align: center; font-size: 11px; }
+.cpub-ce-status-go { color: var(--green); }
+.cpub-ce-status-warn { color: var(--yellow); }
+.cpub-ce-status-danger { color: var(--red); }
+.cpub-ce-status-empty { font-size: 11px; color: var(--text-dim); margin: 0; padding: 8px 10px; display: flex; align-items: center; gap: 6px; }
+.cpub-ce-status-empty i { color: var(--green); }
 
 /* 3-panel shell */
 .cpub-ce-shell { display: flex; flex: 1; overflow: hidden; }
