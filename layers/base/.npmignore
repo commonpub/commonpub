@@ -1,3 +1,10 @@
-**/__tests__/
-**/test-setup.ts
-**/vitest.config.ts
+# Depth-agnostic (bare) patterns — gitignore semantics match these at ANY depth
+# WITHOUT a `**/` glob, which npm-packlist mis-evaluates under bracketed Nuxt route
+# dirs like `content/[id]/__tests__/` (it treats `[id]` as a char class, leaking the
+# test). See feedback_npm_pack_bracketed_paths.
+__tests__/
+*.test.ts
+*.test.js
+*.spec.ts
+test-setup.ts
+vitest.config.ts
