@@ -105,11 +105,13 @@ describe('markdownToBlockTuples', () => {
     expect((blocks[0]![1] as { html: string }).html).toContain('<ol>');
   });
 
-  it('converts GFM tables', () => {
-    const md = '| Name | Value |\n| --- | --- |\n| A | 1 |';
+  it('converts GFM tables to a structured table block', () => {
+    const md = '| Name | Value |\n| --- | --- |\n| A | 1 |\n| B | 2 |';
     const blocks = markdownToBlockTuples(md);
-    expect(blocks[0]![0]).toBe('text');
-    expect((blocks[0]![1] as { html: string }).html).toContain('<table>');
+    expect(blocks[0]![0]).toBe('table');
+    const t = blocks[0]![1] as { header: string[]; rows: string[][] };
+    expect(t.header).toEqual(['Name', 'Value']);
+    expect(t.rows).toEqual([['A', '1'], ['B', '2']]);
   });
 
   it('handles wikilinks by stripping to plain text', () => {

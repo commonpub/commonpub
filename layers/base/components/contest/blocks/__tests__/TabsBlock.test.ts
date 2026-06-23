@@ -53,6 +53,12 @@ describe('TabsBlock', () => {
     expect(t[0]!.blocks.length).toBe(1); // active = tab 0
   });
 
+  it('sets the deep-link url key', async () => {
+    const { container, emitted } = render(TabsBlock, { props: base, global: { stubs } });
+    await fireEvent.update(container.querySelector('.cpub-tabsedit-keyinput') as HTMLInputElement, 'track');
+    expect(lastUpdate(emitted()).urlKey).toBe('track');
+  });
+
   it('passes an axe scan', async () => {
     const { container } = render(TabsBlock, { props: base, global: { stubs } });
     expect((await axe.run(container)).violations).toEqual([]);

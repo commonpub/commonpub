@@ -11,13 +11,49 @@ import { useId } from 'vue';
 import type { BlockTuple } from '@commonpub/editor';
 
 interface TabDef { label: string; blocks: BlockTuple[] }
-const props = defineProps<{ content: { tabs?: TabDef[] } }>();
+const props = defineProps<{ content: { tabs?: TabDef[]; urlKey?: string } }>();
 
 const tabs = computed<TabDef[]>(() =>
   (props.content.tabs ?? []).filter((t) => t && Array.isArray(t.blocks)),
 );
-const active = ref(0);
+
+// Optional deep-link: when the author sets `urlKey`, the open tab syncs to
+// ?<urlKey>=<slug>. Router access is guarded (try/catch) so the block also works
+// outside a Nuxt route context (tests, isolated render) — it just stays local.
+const urlKey = computed(() => (typeof props.content.urlKey === 'string' ? props.content.urlKey.trim() : ''));
+function safe<T>(fn: () => T): T | null { try { return fn(); } catch { return null; } }
+const route = safe(() => useRoute());
+const router = safe(() => useRouter());
+function slugify(s: string): string {
+  return s.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-+)|(-+$)/g, '');
+}
+function indexFromUrl(): number {
+  if (!urlKey.value || !route) return 0;
+  const v = String(route.query[urlKey.value] ?? '').toLowerCase();
+  if (!v) return 0;
+  const i = tabs.value.findIndex((t, idx) => slugify(t.label) === v || String(idx + 1) === v);
+  return i >= 0 ? i : 0;
+}
+const active = ref(indexFromUrl());
 watchEffect(() => { if (active.value >= tabs.value.length) active.value = 0; });
+
+function setActive(i: number): void {
+  active.value = i;
+  if (urlKey.value && router && route) {
+    const s = slugify(tabs.value[i]?.label ?? '') || String(i + 1);
+    if (String(route.query[urlKey.value] ?? '') !== s) {
+      void router.replace({ query: { ...route.query, [urlKey.value]: s } });
+    }
+  }
+}
+// Honor back/forward + a shared deep link landing on a different tab.
+if (route) {
+  watch(() => route.query[urlKey.value], () => {
+    if (!urlKey.value) return;
+    const i = indexFromUrl();
+    if (i !== active.value) active.value = i;
+  });
+}
 
 const uid = useId();
 const tabId = (i: number): string => `${uid}-tab-${i}`;
@@ -32,7 +68,7 @@ function onKey(e: KeyboardEvent, i: number): void {
   else if (e.key === 'End') next = n - 1;
   if (next === null) return;
   e.preventDefault();
-  active.value = next;
+  setActive(next);
   void nextTick(() => { if (typeof document !== 'undefined') document.getElementById(tabId(next!))?.focus(); });
 }
 </script>
@@ -51,7 +87,7 @@ function onKey(e: KeyboardEvent, i: number): void {
         :tabindex="active === i ? 0 : -1"
         class="cpub-tabs-tab"
         :class="{ 'cpub-tabs-tab-active': active === i }"
-        @click="active = i"
+        @click="setActive(i)"
         @keydown="onKey($event, i)"
       >{{ t.label || `Tab ${i + 1}` }}</button>
     </div>

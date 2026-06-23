@@ -5,10 +5,15 @@
  * toggle, and a live preview of the bar. House block-edit contract: `content`
  * in, `update` out. Provided via BLOCK_COMPONENTS_KEY.
  */
-import { CRITERIA_BAR_PALETTE, criteriaSegments, type CriteriaBarItem } from '../../../utils/contestBlocks';
+import { inject } from 'vue';
+import { CRITERIA_BAR_PALETTE, CONTEST_RUBRIC_KEY, criteriaSegments, type CriteriaBarItem } from '../../../utils/contestBlocks';
 
 const props = defineProps<{ content: Record<string, unknown> }>();
 const emit = defineEmits<{ update: [content: Record<string, unknown>] }>();
+
+// The contest editor provides its live judging rubric; offer a one-click fill.
+const rubric = inject(CONTEST_RUBRIC_KEY, null);
+const canUseRubric = computed(() => !!rubric?.value?.some((c) => (c.label ?? '').trim()));
 
 const heading = computed(() => (typeof props.content.heading === 'string' ? props.content.heading : ''));
 const items = computed<CriteriaBarItem[]>(() => (Array.isArray(props.content.items) ? (props.content.items as CriteriaBarItem[]) : []));
@@ -27,6 +32,10 @@ function setItem(i: number, field: keyof CriteriaBarItem, value: string | number
 function removeItem(i: number): void {
   commit({ items: items.value.filter((_, idx) => idx !== i) });
 }
+function useRubric(): void {
+  const src = (rubric?.value ?? []).filter((c) => (c.label ?? '').trim());
+  commit({ items: src.map((c, i) => ({ label: c.label.trim(), weight: Number(c.weight) || 0, color: CRITERIA_BAR_PALETTE[i % CRITERIA_BAR_PALETTE.length]! })) });
+}
 </script>
 
 <template>
@@ -35,6 +44,7 @@ function removeItem(i: number): void {
       <div class="cpub-cbedit-icon"><i class="fa-solid fa-chart-simple"></i></div>
       <span class="cpub-cbedit-title">Criteria Bar</span>
       <span class="cpub-cbedit-total">{{ preview.total }} total</span>
+      <button v-if="canUseRubric" type="button" class="cpub-cbedit-add" title="Fill from this contest's judging rubric" @click="useRubric"><i class="fa-solid fa-wand-magic-sparkles"></i> Use rubric</button>
       <button type="button" class="cpub-cbedit-add" @click="addItem"><i class="fa-solid fa-plus"></i> Add criterion</button>
     </div>
 

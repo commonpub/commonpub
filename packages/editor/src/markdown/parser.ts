@@ -192,9 +192,20 @@ function mapList(node: List): BlockTuple {
   return ['text', { html }];
 }
 
+/**
+ * GFM tables map to a structured `table` block (header + body rows, plain-text
+ * cells) so they import as editable tables, not raw HTML in a text block. Inline
+ * marks in cells are flattened to text (the `table` block renders plain text). The
+ * first GFM row is always the header.
+ */
 function mapTable(node: Table): BlockTuple {
-  const html = nodeToHtml(node);
-  return ['text', { html }];
+  const grid = (node.children ?? []).map((row) =>
+    ((row as { children?: Content[] }).children ?? []).map((cell) =>
+      extractPlainText(cell as { children?: Content[] }).trim(),
+    ),
+  );
+  const [header = [], ...rows] = grid;
+  return ['table', { header, rows }];
 }
 
 function mapHtml(node: Html): BlockTuple {

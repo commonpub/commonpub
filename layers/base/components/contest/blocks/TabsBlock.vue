@@ -45,8 +45,12 @@ const tabs = computed<TabDef[]>(() =>
 const active = ref(0);
 watchEffect(() => { if (active.value >= tabs.value.length) active.value = Math.max(0, tabs.value.length - 1); });
 
+const urlKey = computed(() => (typeof props.content.urlKey === 'string' ? props.content.urlKey : ''));
 function commit(next: TabDef[]): void {
-  emit('update', { tabs: next });
+  emit('update', { tabs: next, urlKey: urlKey.value || undefined });
+}
+function setUrlKey(v: string): void {
+  emit('update', { tabs: tabs.value, urlKey: v.trim() || undefined });
 }
 function setLabel(i: number, label: string): void {
   commit(tabs.value.map((t, idx) => (idx === i ? { ...t, label } : t)));
@@ -78,6 +82,18 @@ function moveTab(i: number, dir: -1 | 1): void {
       <span class="cpub-tabsedit-title">Tabs</span>
       <span class="cpub-tabsedit-count">{{ tabs.length }} {{ tabs.length === 1 ? 'tab' : 'tabs' }}</span>
       <button type="button" class="cpub-tabsedit-add" @click="addTab"><i class="fa-solid fa-plus"></i> Add tab</button>
+    </div>
+
+    <div v-if="tabs.length" class="cpub-tabsedit-urlkey">
+      <input
+        class="cpub-tabsedit-keyinput"
+        type="text"
+        :value="urlKey"
+        placeholder="Deep-link key (optional), e.g. track"
+        aria-label="Deep-link URL key"
+        @input="setUrlKey(($event.target as HTMLInputElement).value)"
+      />
+      <span class="cpub-tabsedit-keyhint">Shareable: <code>?{{ urlKey || 'key' }}=&lt;tab&gt;</code> opens that tab.</span>
     </div>
 
     <div v-if="tabs.length" class="cpub-tabsedit-bar" role="group" aria-label="Select a tab to edit">
@@ -126,6 +142,12 @@ function moveTab(i: number, dir: -1 | 1): void {
 .cpub-tabsedit-count { font-family: var(--font-mono); font-size: 10px; color: var(--text-faint); margin-left: auto; }
 .cpub-tabsedit-add { font-family: var(--font-mono); font-size: 10px; padding: 3px 8px; background: transparent; border: var(--border-width-default) solid var(--border2); color: var(--text-dim); cursor: pointer; display: flex; align-items: center; gap: 4px; margin-left: 8px; }
 .cpub-tabsedit-add:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-bg); }
+
+.cpub-tabsedit-urlkey { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 14px 0; }
+.cpub-tabsedit-keyinput { padding: 5px 8px; font-size: 11px; font-family: var(--font-mono); background: var(--surface); border: var(--border-width-default) solid var(--border); color: var(--text); outline: none; min-width: 220px; }
+.cpub-tabsedit-keyinput:focus { border-color: var(--accent); }
+.cpub-tabsedit-keyhint { font-size: 10px; color: var(--text-faint); }
+.cpub-tabsedit-keyhint code { font-family: var(--font-mono); color: var(--text-dim); }
 
 .cpub-tabsedit-bar { display: flex; flex-wrap: wrap; gap: 4px; padding: 10px 14px 0; }
 .cpub-tabsedit-tab { display: inline-flex; }

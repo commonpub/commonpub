@@ -81,6 +81,8 @@ const activeBodyEditor = computed(() => ({ overview: overviewEditor, rules: rule
 
 // Contest-specific edit block + image upload, provided once for all three bodies.
 provide(BLOCK_COMPONENTS_KEY, { judgesShowcase: JudgesShowcaseBlock, html: HtmlBlock, criteriaBar: CriteriaBarBlock, table: TableBlock, tabs: TabsBlock });
+// Feed the criteria-bar block this contest's live rubric (for its auto-fill).
+provide(CONTEST_RUBRIC_KEY, criteria);
 const { uploadFile } = useFileUpload();
 provide(UPLOAD_HANDLER_KEY, (file: File) => uploadFile<{ url: string; width?: number | null; height?: number | null }>(file, 'content'));
 

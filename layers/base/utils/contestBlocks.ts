@@ -1,7 +1,17 @@
 /**
- * Pure helpers for contest content blocks (criteria-bar segment math, the shared
- * theme-color palette). No Vue/DOM — unit-testable in isolation.
+ * Helpers for contest content blocks (criteria-bar segment math, the shared
+ * theme-color palette) + the inject key the contest editor uses to feed the
+ * criteria-bar block its rubric. The math is pure/unit-testable in isolation.
  */
+import type { InjectionKey, Ref } from 'vue';
+
+/** A contest judging-rubric criterion (mirrors useContestEditor's criteria row). */
+export interface ContestRubricCriterion { label: string; weight?: number; description?: string }
+
+/** ContestEditor `provide`s its live judging criteria under this key so the
+ *  criteria-bar edit block can offer a "use this contest's rubric" auto-fill.
+ *  Absent (null) when the block is used outside the contest editor. */
+export const CONTEST_RUBRIC_KEY: InjectionKey<Ref<ContestRubricCriterion[]>> = Symbol('contestRubric');
 
 /** Theme color tokens segments cycle through (all dark/light-safe `var(--*)`). */
 export const CRITERIA_BAR_PALETTE = ['accent', 'teal', 'green', 'yellow', 'purple', 'pink', 'red'] as const;
