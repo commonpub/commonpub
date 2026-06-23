@@ -6,7 +6,7 @@
  * in, `update` out. Provided via BLOCK_COMPONENTS_KEY.
  */
 import { inject } from 'vue';
-import { CRITERIA_BAR_PALETTE, CONTEST_RUBRIC_KEY, criteriaSegments, type CriteriaBarItem } from '../../../utils/contestBlocks';
+import { CRITERIA_BAR_PALETTE, CONTEST_RUBRIC_KEY, criteriaBar, type CriteriaBarItem } from '../../../utils/contestBlocks';
 
 const props = defineProps<{ content: Record<string, unknown> }>();
 const emit = defineEmits<{ update: [content: Record<string, unknown>] }>();
@@ -18,7 +18,7 @@ const canUseRubric = computed(() => !!rubric?.value?.some((c) => (c.label ?? '')
 const heading = computed(() => (typeof props.content.heading === 'string' ? props.content.heading : ''));
 const items = computed<CriteriaBarItem[]>(() => (Array.isArray(props.content.items) ? (props.content.items as CriteriaBarItem[]) : []));
 const showLegend = computed(() => props.content.showLegend !== false);
-const preview = computed(() => criteriaSegments(items.value));
+const preview = computed(() => criteriaBar(items.value));
 
 function commit(next: Partial<{ heading: string; items: CriteriaBarItem[]; showLegend: boolean }>): void {
   emit('update', { heading: heading.value || undefined, items: items.value, showLegend: showLegend.value, ...next });
@@ -58,13 +58,9 @@ function useRubric(): void {
         @input="commit({ heading: ($event.target as HTMLInputElement).value || undefined })"
       />
 
-      <!-- Live preview -->
-      <div v-if="preview.segments.length" class="cpub-cbedit-preview" aria-hidden="true">
-        <div class="cpub-cbedit-track">
-          <div v-for="(s, i) in preview.segments" :key="i" class="cpub-cbedit-seg" :style="{ width: `${s.pct}%`, background: s.colorVar }" :title="`${s.label} ${s.pct}%`">
-            <span v-if="s.pct >= 12" class="cpub-cbedit-seg-label">{{ s.label }} {{ s.pct }}%</span>
-          </div>
-        </div>
+      <!-- Live preview (the real shared bar — WYSIWYG) -->
+      <div v-if="preview.rows.length" class="cpub-cbedit-preview">
+        <CpubCriteriaBar :items="items" :show-legend="showLegend" />
       </div>
 
       <div v-for="(it, i) in items" :key="i" class="cpub-cbedit-row">
@@ -107,11 +103,7 @@ function useRubric(): void {
 .cpub-cbedit-input:focus { border-color: var(--accent); }
 .cpub-cbedit-input::placeholder { color: var(--text-faint); }
 .cpub-cbedit-heading { width: 100%; font-weight: 600; }
-.cpub-cbedit-preview { padding: 4px 0; }
-.cpub-cbedit-track { display: flex; width: 100%; height: 28px; overflow: hidden; border: var(--border-width-default) solid var(--border); background: var(--surface2); }
-.cpub-cbedit-seg { height: 100%; min-width: 3px; display: flex; align-items: center; justify-content: center; overflow: hidden; border-right: var(--border-width-default) solid var(--surface); }
-.cpub-cbedit-seg:last-child { border-right: none; }
-.cpub-cbedit-seg-label { font-size: 10px; font-weight: 700; color: var(--color-text-inverse); white-space: nowrap; padding: 0 5px; overflow: hidden; text-overflow: ellipsis; }
+.cpub-cbedit-preview { padding: 6px 0 2px; }
 .cpub-cbedit-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .cpub-cbedit-label { flex: 1; min-width: 140px; }
 .cpub-cbedit-weight { width: 70px; }
