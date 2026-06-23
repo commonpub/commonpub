@@ -82,3 +82,47 @@ next iteration, built in 5 verified slices + a gates pass.
 - Rail width is 340px; `ContestStagesEditor` / `ContestCriteriaEditor` read acceptably inline
   at that width in testing (no slide-over drawer needed).
 - Next: on go-ahead, the deveco/heatsync roll is a separate later step.
+
+## Post-build audit + full-lifecycle E2E (same session)
+
+After the build, ran a background adversarial code audit + a complete contest-lifecycle E2E
+locally (commit `be15fd74`).
+
+**Full-lifecycle E2E** (`draft→upcoming→active→judging→completed`, 26/26 assertions): created a
+contest via the editor-shaped payload, verified editor hydrate + Preview (HTML block sanitized,
+judges-showcase rendered), opened the topbar Status menu (UI), 3 entrants published projects +
+entered, 2 judges added + accepted + scored per-criterion (6 scores), non-judge rejected (403),
+Top-N advancement at the review stage (2 advanced / 1 eliminated; eliminated entry no longer
+scorable), completion computed rankings, and the **public contest page** rendered banner/cover/
+subheading + all three bodies including the sanitized HTML block (rendered output script-free +
+color-neutralized; the raw `<script>` only survives in Nuxt's escaped JSON hydration island, which
+is non-executable and re-sanitized client-side). Multi-stage timeline (submission/review/interim/
+results/event) + advancement UI in the editor verified in the judging state.
+
+**Fixed (commit `be15fd74`):**
+- **P1 — dividers vanished on render.** The palette inserts `horizontal_rule` but
+  `BlockContentRenderer` mapped only `divider`/`horizontalRule` (fallback only catches `.html`
+  blocks), so dividers rendered nothing in Preview + on the public page (also affected the project
+  editor). Added the `horizontal_rule` alias. Verified divider now renders in preview + public.
+- **a11y** — `ContestBodyCanvas` tablist now moves DOM focus with arrow-key selection (+ focusable
+  tabpanel); the topbar Status menu implements the full menu-button keyboard pattern (open focuses
+  first action, Arrow/Home/End rove, Esc closes + returns focus to the toggle, items `tabindex=-1`,
+  `aria-controls`/`id`). Verified with keyboard-driven checks.
+
+**Documented, NOT fixed (pre-existing / narrow / out of redesign scope):**
+- Autosave-rename mid-flight race: keystrokes typed during a draft autosave that *also* renames the
+  slug can be overwritten by the post-rename `reseedBodies`. Narrow window; pre-existing in
+  `useContestEditor`.
+- `reseedBodies()` resets per-body undo history on every non-dirty refetch (after a non-silent save /
+  transition / advance). No data loss; minor UX.
+- Deleting ALL Overview blocks on a *legacy* contest resurfaces the old `description` markdown
+  (public page falls back when `descriptionBlocks` is empty). Pre-existing data-model interaction.
+- Cover inset can overflow a very short banner on a narrow center column. Cosmetic.
+
+**Confirmed NON-issues** (E2E "failures" that were test-harness artifacts): contests are created in
+`upcoming` not `draft` (the Status menu correctly reflects actual status); the HTML block *does*
+render on the public page (an early assertion mis-checked the hydration-island raw source instead of
+the rendered DOM, and a post-transition capture raced the SSR settle).
+
+Re-gates after fixes: layer suite **1226/1226**, `turbo typecheck` **28/28**, E2E **26/26**,
+a11y/divider checks **7/7**. Audit verdict: no P0s, no XSS, no save-path data loss.

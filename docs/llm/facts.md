@@ -162,13 +162,26 @@ live on commonpub.io** via a runtime override — verify with `curl
 
 ## Contest system (session 117, overhauled 171)
 
-> **Elevation in progress (session 211, `contests` branch — UNRELEASED):** see
-> `docs/plans/contest-elevation.md`. Landed: transactional `createContest`/`withdrawContestEntry`,
-> race-safe `addContestJudge`, pgEnum-derived validators; `utils/datetime` + `CpubDateTimeField`
-> (UTC datetime-local bug fixed) + `color-scheme` on `:root`/all dark themes; dark-safe Full-HTML
-> (`sanitizeRichHtml` neutralizeColors + `.cpub-md-html` baseline); `?tab=` deep links; contest-scoped
-> `/api/contests/[slug]/user-search` (`searchUsers`). NEXT: body-as-BlockTuple[] (+ first migration),
-> contest blocks (judgesShowcase), unified `ContestEditor`. Gotchas: `codebase-analysis/09` session-211.
+> **Elevation (session 211) MERGED to main + LIVE on commonpub.io only** (deveco/heatsync
+> pending publish): transactional `createContest`/`withdrawContestEntry`, race-safe
+> `addContestJudge`, pgEnum-derived validators, `CpubDateTimeField` (UTC fix), dark-safe Full-HTML
+> (`sanitizeRichHtml` neutralizeColors + `.cpub-md-html`), per-stage submissions/proposals, PII
+> partition. See `docs/plans/contest-elevation.md`.
+>
+> **Editor = 3-panel shell (session 218, `contest-editor-shell` branch — UNRELEASED):**
+> `ContestEditor.vue` is a `layout:false` full-screen editor matching the project/blog editor —
+> left `EditorBlocks` palette · center `ContestBodyCanvas` (Overview/Rules/Prizes tabs over ONE
+> shared `BlockCanvas`) · ~340px right `EditorSection` rail (Details/Schedule/Stages+advancement/
+> Entries/Prizes/Judging/Access/People/Danger). Banner+cover render inline in the Overview body;
+> lifecycle transitions live in a topbar `Status ▾` menu (full menu-button keyboard pattern). The
+> three body `useBlockEditor`s are HOISTED into `ContestEditor` so the palette targets the active
+> body; write-back marks dirty explicitly and watches `() => editor.blocks.value` (the bare
+> readonly-ref watch misses structural inserts). It is **NOT a `<form>`** — embedded palette/
+> section buttons default to `type=submit` and would fire stray saves. Bodies are `BlockTuple[]`
+> (`descriptionBlocks`/`rulesBlocks`/`prizesBlocks`); legacy markdown converts on first edit.
+> Contest blocks: `judgesShowcase` + the new sanitized `html` block (`BlockHtmlView` via
+> `sanitizeRichHtml`+neutralizeColors, registered globally in `BlockContentRenderer`). See
+> `docs/plans/contest-editor-shell.md` + `docs/sessions/218-contest-editor-shell-build.md`.
 
 Behind `features.contests` (**live on all three instances**). Tables:
 `contests`, `contest_entries`, `contest_judges`, `contest_entry_votes`.

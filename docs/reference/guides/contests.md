@@ -405,28 +405,44 @@ and can change at any time.
 ## The editor
 
 One mode-aware, **client-only** orchestrator `ContestEditor.vue` backs BOTH
-`pages/contests/create.vue` and `[slug]/edit.vue` as 1-line thin shells (create =
-blank model, edit = hydrated). Form model = the tested composable
+`pages/contests/create.vue` and `[slug]/edit.vue` as 1-line `layout:false` thin shells
+(create = blank model, edit = hydrated). Form model = the tested composable
 `useContestEditor.ts` (refs · slugify · ISO dates · dirty · hydrate · buildPayload ·
 mode-aware POST/PUT save incl. `{silent}` autosave + `onRenamed`).
 
+Since **session 218** the editor is a **full-screen 3-panel shell** matching the
+project/blog/explainer editor (not the old single scrolling column):
+
 ```
-ContestEditor (ClientOnly)
-├─ sticky topbar      back · title · status · dirty/required · View · Save · autosave indicator
-├─ ContestMediaStrip  banner (4:1) + cover placeholders (themed ImageUpload)
-├─ ContestBodyTabs    Overview · Rules · Prizes (block body, each its own *Blocks jsonb)
-│   └─ Write / Preview / Code switch (Preview = live BlockContentRenderer; Code = tuple JSON)
-│   └─ extra tabs: Stages (ContestStagesEditor) · Judging (ContestCriteriaEditor)
-└─ settings rail      Details · Schedule (CpubDateTimeField) · Entries · Prizes cards ·
-                      Visibility · People (ContestJudgeManager / ContestStakeholderManager)
+ContestEditor (ClientOnly, layout:false, cpub-ce-layout, height:100vh)
+├─ topbar            back · title input · status badge · dirty/autosave · View · Save · Status ▾ menu
+└─ cpub-ce-shell (3 columns)
+   ├─ LEFT  EditorBlocks palette   Basic(Text/Heading/Image/Code) · Contest(Judges Showcase) ·
+   │                                Media(Video/Embed) · Rich(Tip/Warning/Quote/Divider/Markdown/HTML)
+   ├─ CENTER ContestBodyCanvas      Overview · Rules · Prizes tabs over ONE shared BlockCanvas
+   │   ├─ Write / Preview / Code switch (Preview = live BlockContentRenderer; Code = tuple JSON)
+   │   └─ inline banner (4:1) + cover inset — Overview body only (#overview-lead slot)
+   └─ RIGHT  EditorSection rail (~340px)   Details · Schedule (CpubDateTimeField) · Stages
+              (+ edit-only advancement) · Entries · Prizes cards · Judging (ContestCriteriaEditor) ·
+              Access · People (ContestJudgeManager / ContestStakeholderManager) · Danger Zone
 ```
 
+- **The one refactor:** the three body `useBlockEditor` instances are HOISTED into
+  `ContestEditor` so a single left palette inserts into the *currently active* body
+  (`activeBodyEditor` computed). Write-back marks the form dirty explicitly and watches
+  `() => editor.blocks.value` (a bare readonly-ref watch misses structural inserts), guarded
+  by `syncingBodies` so hydration/reseed doesn't false-dirty.
+- **NOT a `<form>`** — embedded palette/`EditorSection`/canvas buttons default to
+  `type=submit`, so a form would let any of them fire a save. Save is an explicit `@click`.
+- **Lifecycle** transitions live in the topbar `Status ▾` menu (edit-only; full menu-button
+  keyboard pattern — open focuses first action, arrows rove, Esc returns to toggle).
+  Advancement (Top-N / manual cut) stays inside the **Stages** rail section.
 - Body fields are **BlockTuple[]** (`descriptionBlocks`/`rulesBlocks`/`prizesBlocks`);
-  legacy `description`/`rules`/`prizesDescription` text + `*Format` toggle stay for
-  back-compat, converted to blocks on first block-edit.
-- **Dates** use `CpubDateTimeField` (local-correct via `utils/datetime`, themed native
-  popup, `min`/`max` coupling). The whole editor is `<ClientOnly>` and date fields are
-  `onMounted`-gated to avoid prod UTC-vs-local hydration mismatches.
+  legacy `description`/`rules`/`prizesDescription` text stays for back-compat, converted to
+  blocks on first edit. Contest-specific blocks: `judgesShowcase` + the sanitized **`html`**
+  block (raw HTML through `sanitizeRichHtml`+neutralizeColors, `BlockHtmlView`).
+- **Dates** use `CpubDateTimeField` (local-correct via `utils/datetime`); the whole editor is
+  `<ClientOnly>` to avoid prod UTC-vs-local hydration mismatches.
 - **Autosave** for draft contests via `useEditorAutosave` (silent save + rename-in-place
   + hydrate guard); published/upcoming keep save-on-action.
 - **Stages editor** offers the Phase 4 field-type builder (see

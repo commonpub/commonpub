@@ -1218,3 +1218,29 @@ source of truth is `packages/ui/theme/`** (base/dark/agora-dark/stoa-dark/prose/
 layer copy is silently uncommitted AND overwritten on the next bundle; in local dev run `node
 layers/base/scripts/bundle-theme.mjs` after editing the source so the dev server reflects it. Same class
 as the unanchored-gitignore-swallows-source landmine.
+
+## Contest editor 3-panel shell invariants (session 218)
+
+The contest editor (`ContestEditor.vue`) was rebuilt into the house project/blog 3-panel shell
+(left `EditorBlocks` palette · center `ContestBodyCanvas` · right `EditorSection` rail). Invariants:
+
+- **Palette block-type keys MUST be registered in `BlockContentRenderer`'s `componentMap`** (and via
+  `BLOCK_COMPONENTS_KEY` for the edit component). The palette inserted `horizontal_rule` while the
+  renderer mapped only `divider`/`horizontalRule`, and the renderer's fallback only catches blocks
+  with a `.html` field — so dividers rendered *nothing* in Preview + on the public page yet looked
+  fine in the write canvas. Fixed by aliasing `horizontal_rule → BlockDividerView`. Any new palette
+  type needs the matching render key or it silently vanishes downstream.
+- **A block-editor shell must NOT be wrapped in a `<form>`.** `EditorBlocks`/`EditorSection`/
+  `BlockCanvas` buttons have no `type` ⇒ default `type=submit`; inside a form, a palette click or
+  section toggle submits → save → refetch → re-hydrate wipes dirty state. Use `<div>` + explicit
+  `@click` Save (as `ProjectEditor` does).
+- **Hoisted-editor dirty tracking** watches `() => editor.blocks.value` (getter), not the bare
+  `readonly(blocks)` ref — the bare ref's deep watch misses structural inserts (push/splice), so a
+  content-less block wouldn't enable Save. Write-back also sets `formDirty` explicitly, guarded by a
+  `syncingBodies` reseed flag.
+- `@commonpub/editor/vue` exports (`EditorSection`/`EditorBlocks`/`BlockCanvas`/`useBlockEditor`) are
+  NOT Nuxt auto-imports — import them explicitly (a missing `EditorSection` import renders the rail
+  flat: slot content leaks, no collapsible headers).
+
+Verified by a 26/26 full-lifecycle E2E (draft→completed, entries, judging, advancement, rankings,
+public render incl. sanitized HTML block). See `docs/sessions/218-contest-editor-shell-build.md`.
