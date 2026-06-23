@@ -178,6 +178,31 @@ const currentSubmissionStage = computed(() => {
 });
 const myEntries = computed(() => entries.value.filter((e) => e.userId === user.value?.id));
 
+// Proposal mode (Phase 4): when the CURRENT submission stage is proposal-mode
+// and proposals are enabled, entrants submit a form (no pre-existing project)
+// and the server creates a draft placeholder. Replaces the attach-an-entry CTA.
+const currentProposalStage = computed(() => {
+  if (!c.value || features.value.contestProposals !== true || c.value.status !== 'active') return null;
+  const source = {
+    status: c.value.status,
+    startDate: c.value.startDate,
+    endDate: c.value.endDate,
+    judgingEndDate: c.value.judgingEndDate ?? null,
+    stages: c.value.stages,
+    currentStageId: c.value.currentStageId,
+  };
+  const stage = normalizeStages(source).find((s) => s.id === currentStageId(source));
+  return stage && stage.kind === 'submission' && stage.submissionMode === 'proposal' && stage.submissionTemplate?.length ? stage : null;
+});
+
+function onProposalSubmitted(projectSlug: string): void {
+  refreshNuxtData();
+  // Route the entrant into their new draft project to develop it for later rounds.
+  if (user.value?.username) {
+    navigateTo(`/u/${user.value.username}/${newProjectType.value}/${projectSlug}/edit`);
+  }
+}
+
 // Restrict the submit picker to the contest's eligible content types (if set).
 const eligibleTypes = computed<string[]>(() => (c.value?.eligibleContentTypes as string[] | undefined) ?? []);
 const submittableContent = computed(() => {
@@ -372,7 +397,25 @@ async function withdrawEntry(entryId: string): Promise<void> {
               :entries="myEntries"
               @saved="refreshEntries"
             />
-            <div v-if="c?.status === 'active'" class="cpub-entries-cta">
+            <!-- Proposal mode: a first-time entrant submits the form (no project yet). -->
+            <ContestProposalForm
+              v-if="currentProposalStage && isAuthenticated && !myEntries.length"
+              :contest-slug="slug"
+              :stage="currentProposalStage"
+              @submitted="onProposalSubmitted"
+            />
+            <!-- Proposal mode + anonymous: prompt to log in. -->
+            <div v-else-if="currentProposalStage && !isAuthenticated" class="cpub-entries-cta">
+              <div class="cpub-entries-cta-text">
+                <p class="cpub-entries-cta-title"><i class="fa-solid fa-clipboard-list"></i> Submit a proposal</p>
+                <p class="cpub-entries-cta-sub">Log in to submit a proposal for this contest.</p>
+              </div>
+              <NuxtLink :to="`/auth/login?redirect=/contests/${slug}`" class="cpub-btn cpub-btn-primary cpub-btn-lg">
+                <i class="fa-solid fa-right-to-bracket"></i> Log in to enter
+              </NuxtLink>
+            </div>
+            <!-- Attach mode (no proposal stage): the classic enter-with-a-project CTA. -->
+            <div v-if="c?.status === 'active' && !currentProposalStage" class="cpub-entries-cta">
               <div class="cpub-entries-cta-text">
                 <p class="cpub-entries-cta-title"><i class="fa-solid fa-trophy"></i> Enter this contest</p>
                 <p class="cpub-entries-cta-sub">Submit one of your published projects, or start a new one.</p>

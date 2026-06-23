@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { ContestStage, ContestStageSubmission } from '@commonpub/schema';
+import { blockingFields, buildSubmissionPayload } from '../../utils/contestSubmission';
 
 // Per-stage artifact form: an entrant with an entry fills the CURRENT
 // submission stage's template fields (a proposal, a prototype's links, ...).
@@ -51,9 +52,7 @@ watch([existing, template], () => {
 const dirty = computed(() =>
   template.value.some((f) => (values.value[f.key] ?? '') !== (existing.value?.fields[f.key] ?? '')),
 );
-const missingRequired = computed(() =>
-  template.value.filter((f) => f.required && !(values.value[f.key] ?? '').trim()).map((f) => f.label),
-);
+const missingRequired = computed(() => blockingFields(template.value, values.value));
 
 const saving = ref(false);
 async function save(): Promise<void> {
@@ -64,11 +63,7 @@ async function save(): Promise<void> {
   }
   saving.value = true;
   try {
-    const fields: Record<string, string> = {};
-    for (const f of template.value) {
-      const v = (values.value[f.key] ?? '').trim();
-      if (v) fields[f.key] = v;
-    }
+    const fields = buildSubmissionPayload(template.value, values.value);
     await $fetch(`/api/contests/${props.contestSlug}/entries/${selectedEntryId.value}/submission`, {
       method: 'PUT',
       body: { stageId: props.stage.id, fields },
@@ -107,34 +102,13 @@ function submittedAtLabel(iso: string): string {
       </select>
     </div>
 
-    <div v-for="f in template" :key="f.key" class="cpub-stagesub-field">
-      <label class="cpub-stagesub-label" :for="`cpub-stagesub-${f.key}`">
-        {{ f.label }} <span v-if="f.required" class="cpub-stagesub-req" aria-hidden="true">*</span>
-        <span v-if="f.required" class="cpub-sr-only">(required)</span>
-      </label>
-      <textarea
-        v-if="f.type === 'textarea'"
-        :id="`cpub-stagesub-${f.key}`"
-        v-model="values[f.key]"
-        class="cpub-stagesub-input cpub-stagesub-textarea"
-        rows="4"
-        maxlength="4000"
-        :required="f.required"
-        :aria-describedby="f.help ? `cpub-stagesub-${f.key}-help` : undefined"
-      ></textarea>
-      <input
-        v-else
-        :id="`cpub-stagesub-${f.key}`"
-        v-model="values[f.key]"
-        :type="f.type === 'url' ? 'url' : 'text'"
-        class="cpub-stagesub-input"
-        maxlength="4000"
-        :placeholder="f.type === 'url' ? 'https://' : undefined"
-        :required="f.required"
-        :aria-describedby="f.help ? `cpub-stagesub-${f.key}-help` : undefined"
-      />
-      <p v-if="f.help" :id="`cpub-stagesub-${f.key}-help`" class="cpub-stagesub-help">{{ f.help }}</p>
-    </div>
+    <ContestSubmissionField
+      v-for="f in template"
+      :key="f.key"
+      :field="f"
+      v-model="values[f.key]"
+      id-prefix="cpub-stagesub"
+    />
 
     <div class="cpub-stagesub-actions">
       <button
