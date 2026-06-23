@@ -37,6 +37,21 @@ draft autosave) **and Phase 3** (slim hero + cover-on-detail + hydration-mismatc
   lead image; sidebar timeline dates; axe 0 on the hero; create-via-button still 200+navigates.
 - **Phase 3 judges-in-overview:** already satisfied by the `judgesShowcase` block (2c) — organizer-opt-in,
   renders in the Overview when added; Judges tab stays canonical otherwise. No new work needed.
+- `fffaebec` **(audit follow-up)** dropped a colliding per-mode class: `ContestBodyEditor`'s wrapper carried
+  `:class="cpub-cbe-${mode}"`, which in preview/code mode added `cpub-cbe-preview`/`cpub-cbe-code` to the
+  WRAPPER, colliding with the inner content divs of the same name (double padding/styling; 6
+  `.cpub-cbe-preview` rendered for 3 editors). Removed (it was also dead — no `.cpub-cbe-write` rule).
+
+**Adversarial audit (session 214, post-Phase-3, all PASS except the class collision above):**
+- All gates green at HEAD `fffaebec`: server 1469, schema 470, layer 1204, reference vue-tsc 0.
+- Re-verified the risky changes live: under `<ClientOnly>` + the `CpubDateTimeField` mounted-gate, the editor
+  dates still DISPLAY correctly (17:00Z→10:00 local) AND ROUND-TRIP (edit End to 09:00 local → autosave →
+  persisted `16:00Z`, exact at UTC-7); autosave indicator reaches "All changes saved"; Preview/Code modes
+  still work; create-via-button still 200+navigates. Editor + view pages log ZERO hydration messages.
+- Hero fallback states all correct: completed→"Contest ended", paused→"Submissions paused",
+  draft→"Draft, not launched"; pills correct. axe 0 on the hero.
+- ClientOnly is NOT a double-mount (`.cpub-contest-edit`=1, `.cpub-contest-body-editor`=3); the "6" was the
+  class collision, now fixed.
 
 **Session 214 (2026-06-22) — Phase 2e-2c (editor polish, 3 slices):**
 - `eb1adbbd` **2e-2c.1** `ContestMediaStrip.vue` (banner 4:1 + cover, reusing the themed `ImageUpload`
@@ -179,12 +194,15 @@ save) + the settings sections.
 - This roll also clears the still-pending 203/204 + 209/210 work to deveco/heatsync (nothing published since).
 
 ## Resume checklist
-1. `git -C <repo> log --oneline main..HEAD` (branch `contests`, clean).
-2. Gates: `pnpm -C packages/server exec vitest run` (1469), `pnpm -C layers/base exec vitest run` (1172),
+1. `git -C <repo> log --oneline main..HEAD` (branch `contests`, clean; newest = `fffaebec`, origin in sync).
+2. Gates: `pnpm -C packages/server exec vitest run` (1469), `pnpm -C layers/base exec vitest run` (1204),
    `pnpm -C packages/schema exec vitest run` (470), `cd apps/reference && pnpm typecheck` (0).
-3. Visual verify: follow `reference_local_run_and_visual_verify` (docker :5433 + `drizzle-kit push` to add
-   new cols + `nuxt dev --port 3100` + Playwright: API sign-up auto-session, SQL admin-promote read fresh,
-   `Origin` header on custom `/api/*` POSTs).
+3. Visual verify: follow `reference_local_run_and_visual_verify`. Verified gotchas this session: app reads
+   `NUXT_DATABASE_URL`; **DB password is `commonpub_dev`** (container `commonpub-postgres-1` on :5433);
+   `nuxt dev` on `PORT=3100`; Playwright `waitUntil:'domcontentloaded'`; `Origin` header on custom POSTs;
+   the FIRST `.fill()` of a `datetime-local` is flaky (double-fill or `waitForFunction(()=>!btn.disabled)`);
+   capture FULL Vue console warnings to diagnose hydration mismatches (they name the node + server/client
+   values). Block tuple shape: heading `['heading',{text,level}]`, paragraph `['paragraph',{html}]`.
 
 ## Landmines
 - `layers/base/theme/` is a GENERATED gitignored copy — edit `packages/ui/theme/`; refresh with
