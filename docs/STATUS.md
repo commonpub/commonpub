@@ -12,6 +12,14 @@
 
 ## TL;DR — where things stand
 
+**Session 216 (2026-06-23) — `contests` branch MERGED to main + LIVE on commonpub.io ONLY**
+(merge commit `00139353`, deploy run `28019122283` ✅). Ships 108 commits = the **monolith-splits backlog**
+(sessions 205-210) + the **contest elevation** initiative (211-216). Migrations **0028-0031** applied;
+new flags `contestProposals`/`contestPii` present + **OFF**; health + all key surfaces 200. **deveco.io +
+heatsynclabs.io NOT updated** (no npm publish this roll — they lag main until the publish chain runs).
+Pre-deploy deep audit (3 agents): migrations GO, security all-PASS (133 tests), flags safe-OFF. See the
+`contests` branch section below for detail.
+
 **Sessions 203-204 — full codebase audit + remediation MERGED to main, LIVE on commonpub.io ONLY
 (merge commit `d32e773f`, 2026-06-19).** Deploy ✅ (run 27812795608, 6m39s); commonpub.io verified
 healthy (health/homepage/content/keyset feed 200, flags intact, CSRF live + not over-blocking).
@@ -575,13 +583,30 @@ default **false**.
 
 ---
 
-## Active feature branch: `contests` (session 211-215 — NOT merged / published / deployed)
+## `contests` branch — MERGED + LIVE on commonpub.io ONLY (session 216, 2026-06-23)
 
-Forked from `monolith-splits` (itself unreleased). The **contest elevation** initiative
-(`docs/plans/contest-elevation.md`, 6 phases). **Phases 1-5 DONE + Phase 6 non-release work DONE**
-(drop dead cols, B5a, denormalization note). Gates green: schema **475**, server **1490**, layer
-**1223**, both app typechecks 0. Nothing is live — these notes describe BRANCH state. Rolling handoff:
-`docs/sessions/211-contest-elevation.md`. ADR: `docs/adr/029-contest-proposal-pii-model.md`.
+**Merged to `main` (`00139353`) and deployed to commonpub.io. deveco.io + heatsynclabs.io are
+NOT updated** (no npm publish this roll — the reference app builds from `workspace:*`, so commonpub.io
+ships from the monorepo; the other two consume npm packages and were intentionally left untouched per
+operator instruction). Deploy run `28019122283` = success; migrations **0028-0031** applied via the
+deploy `db-migrate` path; `/api/health` 200; new flags `contestProposals`/`contestPii` present + **OFF**;
+`/`, `/contests`, `/hubs`, `/docs`, `/learn`, `/videos` all 200. The 108-commit merge shipped BOTH the
+**monolith-splits backlog** (sessions 205-210) and the **contest elevation** initiative (211-216).
+
+**Deep audit before the deploy (3 agents, all clean):** migrations GO (additive + metadata-only DROP on
+the tiny `contests` table, each in its own tx); security all-PASS (133 tests — PII isolation, CSV
+formula-injection, B5a, no unauth 500s, monolith-splits invite-IDOR + like/boost tx fixes); flags
+safe-OFF at every layer. One irreversible change: migration 0031 DROP COLUMN of already-dead
+`judges`/`content_format`.
+
+**Still pending for deveco/heatsync (NOT done):** the npm publish chain (schema → config → server → ui →
+layer via `pnpm run publish:layer`) + bump their pins + both lockfiles + CLI. Until then those two
+instances lag main. **Behavior change to flag when they roll:** contest Full-HTML `neutralizeColors` (ON
+by default). The contest plan: `docs/plans/contest-elevation.md`; ADR `docs/adr/029-contest-proposal-pii-model.md`;
+rolling handoff `docs/sessions/211-contest-elevation.md`.
+
+### What the `contests` branch contained (now on main)
+Gates at merge: schema **475**, server **1490**, layer **1223**, all app+package typechecks 0.
 
 **Landed (all atomic, tested):**
 - **Phase 1** bug fixes + primitives: transactional `createContest`/`withdrawContestEntry`, race-safe

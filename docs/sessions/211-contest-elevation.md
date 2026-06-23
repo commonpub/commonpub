@@ -15,6 +15,34 @@ used by BOTH create and edit as thin route shells: a sticky topbar + full-width 
 draft autosave) **and Phase 3** (slim hero + cover-on-detail + hydration-mismatch fixes + one date formatter) now done too.
 **Gates: schema 470, server 1469, layer 1204, reference vue-tsc 0.** Nothing outward-facing.
 
+**Session 216 (2026-06-23) — RELEASED to commonpub.io ONLY.** After the Phase 6 non-release work below,
+the operator gave the go-ahead to release to commonpub.io only (NOT deveco/heatsync). Ran a 3-agent deep
+audit, then merged + deployed.
+- **Deep audit (3 parallel agents, all clean):** (1) migrations 0028-0031 = **GO** — additive or
+  metadata-only DROP on the tiny `contests` table, each in its own tx (drizzle native migrate); prod was
+  at 0027 so exactly these 4 pending. (2) security = **all 5 PASS** (133 tests): PII isolation (3 gated
+  readers only), CSV formula-injection-safe, B5a, no unauth 500s (entryId validated as uuid pre-bind),
+  and the monolith-splits fixes (hub-invite IDOR + wrong-hub use-burn `a4e02d98`; like/boost tx+row-lock
+  `0fc4b1ef`) both correct. (3) flags = **safe-OFF** at every layer (config schema, layer
+  `nuxt.config.ts:103-104` runtimeConfig, useFeatures); reference config byte-identical to main; no
+  leftover flips. Behavior changes all LOW risk (Full-HTML neutralizeColors ON, contestCreation→admin
+  tightening, local-TZ dates). + my own local SSR smoke (all critical routes 200).
+- **Release mechanics:** the reference app uses `workspace:*`, so commonpub.io builds the layer/packages
+  FROM the monorepo — **no npm publish needed** for commonpub.io. `.github/workflows/deploy.yml` triggers
+  on push to `main` and targets ONLY commonpub.io's droplet (deveco/heatsync are separate repos), so
+  merging to main is inherently "commonpub.io only". Merged `contests`→`main` `--no-ff` (**`00139353`**,
+  108 commits = monolith-splits 205-210 + contest 211-216), pushed; pre-push turbo typecheck 28/28.
+- **Deploy `28019122283` = success.** Build → scp image → load + `db-migrate.mjs` (applied 0028-0031 under
+  `pipefail`) → `smoke.mjs` (waits `/api/health`, verifies `/`). **Verified LIVE:** `/api/health` 200;
+  `/api/features` now shows `contestProposals`/`contestPii` present + **FALSE** (were `None`);
+  `/`, `/contests`, `/hubs`, `/docs`, `/learn`, `/videos` all 200, zero error markers. Prod has 0 live
+  contests (list renders empty state).
+- **deveco.io + heatsynclabs.io DELIBERATELY UNTOUCHED.** To roll them later (separate go-ahead): the npm
+  publish chain schema → config → server → ui → layer (`pnpm run publish:layer`) + bump their pins + both
+  lockfiles + CLI. Flag the Full-HTML `neutralizeColors` (ON) behavior change in their release notes.
+- One irreversible change shipped: migration 0031 DROP COLUMN of already-dead `judges`/`content_format`
+  (flagged the snapshot caveat to the operator; the data was already unread).
+
 **Session 216 (2026-06-23) — Phase 6 (the non-release subset): cleanup + B5a + denorm note + docs.**
 Five atomic commits on `contests`; STOPPED before publish/deploy (awaiting explicit go-ahead). Gates
 green throughout: schema **475**, server **1490**, layer **1223**, schema+server+reference+shell
