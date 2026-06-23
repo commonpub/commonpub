@@ -81,7 +81,7 @@ const blockTypes: BlockTypeGroup[] = [
 </script>
 
 <template>
-  <div class="cpub-contest-body-editor" :class="`cpub-cbe-${mode}`">
+  <div class="cpub-contest-body-editor">
     <!-- Canvas stays mounted (v-show) so block state + undo history survive a
          hop to Preview/Code and back. -->
     <BlockCanvas v-show="mode === 'write'" :block-editor="blockEditor" :block-types="blockTypes" />
