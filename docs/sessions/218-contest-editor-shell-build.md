@@ -1,5 +1,9 @@
 # Session 218 — Contest editor 3-panel shell redesign (build)
 
+> **Consolidated handoff:** see `docs/sessions/219-kickoff-next.md` for the clean current-state
+> summary (full feature inventory · gates · run/verify · next steps). This doc is the chronological
+> build log.
+
 Branch: `contest-editor-shell`. Plan: `docs/plans/contest-editor-shell.md` (session 217).
 Goal: make the contest editor FEEL like the house project/blog/explainer editor —
 left block palette · center body tabs · right settings rail — with banner + cover
