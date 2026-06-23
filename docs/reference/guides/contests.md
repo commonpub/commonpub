@@ -98,7 +98,8 @@ under ~350 lines. `index.ts` is the public barrel re-exporting the unchanged API
 | `read.ts` | Reads + visibility: `listContests`, `getContestBySlug`, `canViewContest`, `shouldRevealScores`, `toContestDetail`. |
 | `entries.ts` | Entry lifecycle: `listContestEntries`, `getContestEntry`, `submitContestEntry`, `withdrawContestEntry`, `calculateContestRanks`. |
 | `submissions.ts` | DB writers for artifacts/PII/agreements/proposals: `recordPrivateAndAgreements`, `submitStageArtifact`, `submitContestProposal`, `getEntryPrivateData`. |
-| `judging.ts` | `judgeContestEntry`, `advanceContestStage`. |
+| `judging.ts` | `judgeContestEntry` (+ `scoreAgainstRubric`), `advanceContestStage`. |
+| `export.ts` | CSV submissions export: pure `toCsv` + `buildContestExport` (PII columns gated). |
 | `contest.ts` | CRUD core: `createContest`, `updateContest`, `deleteContest`, `transitionContestStatus`, `canCreateContest`. |
 | `judges.ts` / `stakeholders.ts` | Judge panel + per-contest collaborator management. |
 
@@ -160,7 +161,7 @@ of truth for every gate.
 | `upcoming` | Created, not yet open. | Editable; no entries. |
 | `active` | Entries open (attach or proposal); community voting (advisory) open. | `submitContestEntry`/`submitStageArtifact`/`submitContestProposal` require `active`. |
 | `paused` | Temporarily halted (from `active`/`judging`); reversible. | Entries/judging closed. |
-| `judging` | Submissions locked; accepted judges score 1–100. `judgingEndDate` drives the countdown. | `judgeContestEntry` allowed. |
+| `judging` | Submissions locked; accepted judges score 0–100. `judgingEndDate` drives the countdown. | `judgeContestEntry` allowed. |
 | `completed` | `calculateContestRanks()` assigns ranks. Results + leaderboard published. | Terminal-ish (revivable). |
 | `cancelled` | Reachable from any non-terminal state; revivable to `draft`/`upcoming`. | — |
 
@@ -328,11 +329,17 @@ by a dedicated permission.
 interest check, accepted-non-guest gate, per-`roundId` score isolation, per-stage
 `criteria` rubric (falls back to contest-level `judgingCriteria`).
 
-- With **no criteria**: judges submit one holistic 1–100 score.
+- With **no criteria**: judges submit one holistic 0–100 score (floor standardized
+  to 0 to match per-criterion scoring).
 - With **criteria**: judges score each criterion (0..weight, or 0..100 if no weight);
-  the overall 0–100 is the normalized weighted sum `sum(score)/sum(max)*100`; the
-  breakdown is stored in `judgeScores`. Writes are row-locked so concurrent judges
-  never clobber each other. Per-entry aggregate = mean of accepted judges' scores.
+  the overall 0–100 is the normalized weighted sum `sum(score)/sum(max)*100`. **B3:**
+  submitted criteria are validated against the resolved rubric (this round's
+  `criteria` else `judgingCriteria`) — unknown/missing criteria are rejected and the
+  weighted sum uses the RUBRIC's maxes, never the client-supplied `max`
+  (`scoreAgainstRubric`). The breakdown is stored in `judgeScores`. Writes are
+  row-locked so concurrent judges never clobber each other. Per-entry aggregate =
+  mean of accepted judges' scores. The judge page shows per-card `aria-live` save
+  status, a `fieldset`-grouped rubric, and is `<ClientOnly>` (auth-gated, no SEO).
 
 ### Advancement (the Top-N cull)
 
@@ -466,6 +473,7 @@ The **Entries** tab is submission-mode aware:
 | `PUT /contests/:slug/entries/:entryId/submission` | Submit/update a per-stage artifact | entrant (owns entry) |
 | **`POST /contests/:slug/proposal`** | **Form-first proposal entry** (Phase 4) | authed + `features.contestProposals` |
 | **`GET /contests/:slug/entries/:entryId/private`** | **Entrant PII + agreements** (Phase 4) | `contest.pii` OR own entry |
+| **`GET /contests/:slug/export`** | **CSV submissions export** (Phase 5; all entries, one empty column per rubric criterion; PII columns only with `contest.pii`) | owner / `contest.manage` / editor / accepted judge |
 | `GET/POST/DELETE /contests/:slug/judges*` | Judge panel management | owner / `contest.manage` |
 | `POST /contests/:slug/judges/accept` | Accept a judge invite | invitee |
 | `GET/POST/DELETE /contests/:slug/stakeholders*` | Collaborator management | owner / `contest.manage` |
