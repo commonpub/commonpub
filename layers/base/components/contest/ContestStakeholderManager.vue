@@ -25,9 +25,10 @@ function handleSearch(): void {
   searchTimeout = setTimeout(async () => {
     searching.value = true;
     try {
-      const data = await ($fetch as Function)('/api/admin/users', { query: { search: searchQuery.value, limit: 8 } }) as { items: Array<{ id: string; username: string; displayName: string | null; avatarUrl: string | null }> };
+      // Contest-scoped, non-admin user search (public fields only).
+      const data = await ($fetch as Function)(`/api/contests/${props.contestSlug}/user-search`, { query: { q: searchQuery.value, limit: 8 } }) as Array<{ id: string; username: string; displayName: string | null; avatarUrl: string | null }>;
       const existing = new Set((stakeholders.value ?? []).map((s) => s.userId));
-      searchResults.value = data.items.filter((u) => !existing.has(u.id));
+      searchResults.value = data.filter((u) => !existing.has(u.id));
     } catch {
       searchResults.value = [];
     } finally {

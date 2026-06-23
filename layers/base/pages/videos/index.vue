@@ -22,6 +22,9 @@ const { data: videosData, pending: loadingVideos } = useFetch<{ items: any[]; to
 });
 
 const videos = computed(() => videosData.value?.items ?? []);
+// The first video is shown in the Featured hero, so the grid below skips it
+// (otherwise the most-recent video renders twice).
+const gridVideos = computed(() => videos.value.slice(1));
 const totalVideos = computed(() => videosData.value?.total ?? 0);
 
 const filterOptions = computed(() => {
@@ -75,8 +78,7 @@ function formatDate(dateStr: string): string {
         <select v-model="sortOption" class="cpub-sort-select">
           <option value="recent">Sort: Most Recent</option>
           <option value="viewed">Sort: Most Viewed</option>
-          <option value="rated">Sort: Top Rated</option>
-          <option value="shortest">Sort: Shortest First</option>
+          <option value="liked">Sort: Most Liked</option>
         </select>
       </div>
     </div>
@@ -113,10 +115,10 @@ function formatDate(dateStr: string): string {
             </div>
           </div>
 
-          <hr v-if="videos.length" class="cpub-divider" style="margin:20px 0;" />
+          <hr v-if="gridVideos.length" class="cpub-divider" style="margin:20px 0;" />
 
-          <!-- VIDEO GRID -->
-          <div class="cpub-sec-head">
+          <!-- VIDEO GRID — shown when there are non-featured videos, or while loading -->
+          <div v-if="loadingVideos || gridVideos.length" class="cpub-sec-head">
             <h2>Recent Videos</h2>
             <span class="cpub-sec-sub">{{ totalVideos }} videos</span>
           </div>
@@ -134,15 +136,16 @@ function formatDate(dateStr: string): string {
             </div>
           </div>
 
-          <!-- Real data -->
-          <div v-else-if="videos.length" class="cpub-video-grid">
-            <NuxtLink v-for="v in videos" :key="v.id" :to="`/videos/${v.id}`" style="text-decoration: none;">
+          <!-- Real data (skip videos[0] — it's the Featured hero above) -->
+          <div v-else-if="gridVideos.length" class="cpub-video-grid">
+            <NuxtLink v-for="v in gridVideos" :key="v.id" :to="`/videos/${v.id}`" style="text-decoration: none;">
               <VideoCard :video="v" />
             </NuxtLink>
           </div>
 
-          <!-- Empty state -->
-          <div v-else class="cpub-empty-state">
+          <!-- Empty state — only when there are genuinely no videos (not just an
+               empty grid because the sole video is in the Featured hero above). -->
+          <div v-else-if="!videos.length" class="cpub-empty-state">
             <div class="cpub-empty-icon"><i class="fa-solid fa-film"></i></div>
             <p class="cpub-empty-title">No videos yet</p>
             <p class="cpub-empty-sub">Be the first to upload a video to the community.</p>

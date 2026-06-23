@@ -37,6 +37,7 @@ export async function createPost(
       and(
         eq(hubMembers.hubId, input.hubId),
         eq(hubMembers.userId, authorId),
+        eq(hubMembers.status, 'active'),
       ),
     )
     .limit(1);
@@ -503,6 +504,7 @@ export async function createReply(
       and(
         eq(hubMembers.hubId, post[0]!.hubId),
         eq(hubMembers.userId, authorId),
+        eq(hubMembers.status, 'active'),
       ),
     )
     .limit(1);
@@ -716,7 +718,7 @@ export async function shareContent(
   const member = await db
     .select({ role: hubMembers.role })
     .from(hubMembers)
-    .where(and(eq(hubMembers.hubId, hubId), eq(hubMembers.userId, userId)))
+    .where(and(eq(hubMembers.hubId, hubId), eq(hubMembers.userId, userId), eq(hubMembers.status, 'active')))
     .limit(1);
 
   if (member.length === 0) return null;

@@ -3,7 +3,7 @@ useSeoMeta({ title: `Learn, ${useSiteName()}` });
 
 const { isAuthenticated, user } = useAuth();
 
-const { data: pathsData, pending: loadingPaths } = useFetch('/api/learn');
+const { data: pathsData, pending: loadingPaths, error: pathsError, refresh: refreshPaths } = useFetch('/api/learn');
 
 // Fetch author's own paths (including drafts) when authenticated
 const myPathsQuery = computed(() => user.value?.id ? { authorId: user.value.id } : {});
@@ -139,6 +139,13 @@ const activeDifficultyFilter = ref('');
           <!-- Loading -->
           <div v-if="loadingPaths" style="padding: 24px 0; text-align: center; color: var(--text-faint); font-size: 12px;">
             <i class="fa-solid fa-circle-notch fa-spin"></i> Loading paths...
+          </div>
+
+          <!-- Fetch error -->
+          <div v-else-if="pathsError" class="cpub-fetch-error">
+            <div class="cpub-fetch-error-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+            <div class="cpub-fetch-error-msg">Failed to load learning paths.</div>
+            <button class="cpub-btn cpub-btn-sm" @click="refreshPaths()">Retry</button>
           </div>
 
           <!-- Real data -->

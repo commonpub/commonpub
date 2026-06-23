@@ -143,6 +143,22 @@ describe('social integration', () => {
       expect(following.some((f: { id: string }) => f.id === userB)).toBe(true);
     });
 
+    it('annotates isFollowing for the viewer, not the profile owner', async () => {
+      const carol = await createTestUser(db, { username: 'carol' });
+      const dave = await createTestUser(db, { username: 'dave' });
+      await followUser(db, dave.id, carol.id); // dave follows carol → dave is one of carol's followers
+      await followUser(db, userA, dave.id);    // alice (the viewer) follows dave
+      // Viewer alice follows dave → the dave row is marked isFollowing.
+      const asAlice = await listFollowers(db, carol.id, {}, userA);
+      expect(asAlice.items.find((u) => u.username === 'dave')?.isFollowing).toBe(true);
+      // Viewer bob does NOT follow dave → false (proves it reflects the VIEWER, not the owner).
+      const asBob = await listFollowers(db, carol.id, {}, userB);
+      expect(asBob.items.find((u) => u.username === 'dave')?.isFollowing).toBe(false);
+      // No viewer → field omitted.
+      const anon = await listFollowers(db, carol.id, {});
+      expect(anon.items.find((u) => u.username === 'dave')?.isFollowing).toBeUndefined();
+    });
+
     it('unfollows a user', async () => {
       await unfollowUser(db, userA, userB);
       const following = await isFollowing(db, userA, userB);

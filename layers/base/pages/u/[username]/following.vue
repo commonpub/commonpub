@@ -4,17 +4,19 @@ const username = route.params.username as string;
 
 useSeoMeta({ title: `Following, @${username}, ${useSiteName()}` });
 
-const { data: following } = useLazyFetch<Array<{ id: string; username: string; displayName: string | null; avatarUrl: string | null }>>(`/api/users/${username}/following`);
+type FollowRow = { id: string; username: string; displayName: string | null; avatarUrl: string | null; isFollowing?: boolean };
+const { data: following } = useLazyFetch<{ items: FollowRow[]; total: number }>(`/api/users/${username}/following`);
 const { isAuthenticated, user } = useAuth();
 const toast = useToast();
 
 const followingState = ref<Record<string, boolean>>({});
 
-// Initialize all as "following" since they appear in this user's following list
-watch(following, (f) => {
-  if (!f) return;
-  for (const u of (f as Array<{ username: string }>)) {
-    followingState.value[u.username] = true;
+// Seed each row from the VIEWER's real relationship. (This is the profile owner's
+// following list — whether the VIEWER also follows each account is server-provided
+// per row, NOT implied by membership in this list.)
+watch(following, (d) => {
+  for (const u of d?.items ?? []) {
+    followingState.value[u.username] = !!u.isFollowing;
   }
 }, { immediate: true });
 
@@ -40,8 +42,8 @@ async function toggleFollow(targetUsername: string, isFollowing: boolean): Promi
       <h1 class="follow-title">Following</h1>
     </div>
 
-    <div v-if="following?.length" class="follow-list">
-      <div v-for="f in (following as Array<{ id: string; username: string; displayName: string | null; avatarUrl: string | null }>)" :key="f.id" class="follow-item">
+    <div v-if="following?.items?.length" class="follow-list">
+      <div v-for="f in following.items" :key="f.id" class="follow-item">
         <NuxtLink :to="`/u/${f.username}`" class="follow-user">
           <div class="follow-avatar">
             <img v-if="f.avatarUrl" :src="f.avatarUrl" :alt="f.displayName || f.username" class="follow-avatar-img" />

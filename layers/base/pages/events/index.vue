@@ -30,7 +30,7 @@ const queryParams = computed(() => {
   return q;
 });
 
-const { data, refresh } = await useFetch<{ items: EventListItem[]; total: number }>('/api/events', {
+const { data, refresh, error } = await useFetch<{ items: EventListItem[]; total: number }>('/api/events', {
   query: queryParams,
 });
 
@@ -109,7 +109,12 @@ function setView(mode: 'grid' | 'calendar'): void {
       <EventCalendar :events="data?.items ?? []" />
     </template>
     <template v-else>
-      <div v-if="data?.items?.length" class="cpub-events-grid">
+      <div v-if="error" class="cpub-fetch-error">
+        <div class="cpub-fetch-error-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+        <div class="cpub-fetch-error-msg">Failed to load events.</div>
+        <button class="cpub-btn cpub-btn-sm" @click="refresh()">Retry</button>
+      </div>
+      <div v-else-if="data?.items?.length" class="cpub-events-grid">
         <EventCard v-for="event in data.items" :key="event.id" :event="event" />
       </div>
       <div v-else class="cpub-empty-state">

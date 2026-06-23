@@ -1,10 +1,13 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import type { DB } from '../types.js';
 import { createTestDB, createTestUser, closeTestDB } from './helpers/testdb.js';
+import { createRealTestDB, realPgReachable, type RealTestDb } from './helpers/realpgdb.js';
 import { createHub, getHubBySlug, listHubs, updateHub } from '../hub/hub.js';
-import { joinHub, leaveHub, listMembers } from '../hub/members.js';
+import { joinHub, leaveHub, listMembers, getMember, listJoinRequests, approveJoinRequest, denyJoinRequest } from '../hub/members.js';
 import { createPost, listPosts, likePost, unlikePost, hasLikedPost } from '../hub/posts.js';
-import { banUser, checkBan, unbanUser, listBans, createInvite, listInvites } from '../hub/moderation.js';
+import { banUser, checkBan, unbanUser, listBans, createInvite, listInvites, revokeInvite } from '../hub/moderation.js';
+
+const reachable = await realPgReachable();
 
 describe('hub integration', () => {
   let db: DB;
@@ -124,6 +127,11 @@ describe('hub integration', () => {
 
     const bans = await listBans(db, hub.id);
     expect(bans.length).toBe(1);
+    // The ban-management UI renders the banned user, the reason, and who banned
+    // them — assert listBans hydrates that shape (not just the row count).
+    expect(bans[0]!.user.id).toBe(memberId);
+    expect(bans[0]!.reason).toBe('Test ban');
+    expect(bans[0]!.bannedBy.id).toBe(ownerId);
 
     await unbanUser(db, ownerId, hub.id, memberId);
     const banAfter = await checkBan(db, hub.id, memberId);
@@ -140,6 +148,81 @@ describe('hub integration', () => {
 
     const invites = await listInvites(db, hub.id);
     expect(invites.length).toBe(1);
+  });
+
+  it('revokes an invite (managers only)', async () => {
+    const hub = await createHub(db, ownerId, { name: 'Revoke Hub' });
+    const invite = await createInvite(db, ownerId, hub.id, 5);
+    expect(invite).toBeTruthy();
+
+    // A non-member cannot revoke (no manageMembers permission).
+    const stranger = await createTestUser(db, { username: 'invite-stranger' });
+    const denied = await revokeInvite(db, invite!.id, stranger.id, hub.id);
+    expect(denied).toBe(false);
+    expect((await listInvites(db, hub.id)).length).toBe(1);
+
+    // The owner can revoke.
+    const ok = await revokeInvite(db, invite!.id, ownerId, hub.id);
+    expect(ok).toBe(true);
+    expect((await listInvites(db, hub.id)).length).toBe(0);
+  });
+
+  it('joins an invite-only hub only with a valid token', async () => {
+    const hub = await createHub(db, ownerId, { name: 'Invite Only Hub' });
+    await updateHub(db, hub.id, ownerId, { joinPolicy: 'invite' });
+    const joiner = await createTestUser(db, { username: 'invitee-valid' });
+
+    // Without a token → rejected (this is the gap that made invite hubs unjoinable).
+    const noToken = await joinHub(db, joiner.id, hub.id);
+    expect(noToken.joined).toBe(false);
+
+    // With a valid token → joined.
+    const invite = await createInvite(db, ownerId, hub.id, 1);
+    const withToken = await joinHub(db, joiner.id, hub.id, invite!.token);
+    expect(withToken.joined).toBe(true);
+
+    const { items } = await listMembers(db, hub.id);
+    expect(items.some((m) => m.userId === joiner.id)).toBe(true);
+  });
+
+  it('rejects an invite token whose uses are exhausted', async () => {
+    const hub = await createHub(db, ownerId, { name: 'Max Uses Hub' });
+    await updateHub(db, hub.id, ownerId, { joinPolicy: 'invite' });
+    const invite = await createInvite(db, ownerId, hub.id, 1); // single use
+    const first = await createTestUser(db, { username: 'maxuse-first' });
+    const second = await createTestUser(db, { username: 'maxuse-second' });
+
+    expect((await joinHub(db, first.id, hub.id, invite!.token)).joined).toBe(true);
+    // The single use is spent → the second redemption is rejected.
+    expect((await joinHub(db, second.id, hub.id, invite!.token)).joined).toBe(false);
+  });
+
+  it('cannot revoke an invite belonging to a different hub (IDOR)', async () => {
+    const hubA = await createHub(db, ownerId, { name: 'IDOR Hub A' });
+    const otherOwner = await createTestUser(db, { username: 'idor-other-owner' });
+    const hubB = await createHub(db, otherOwner.id, { name: 'IDOR Hub B' });
+    const inviteB = await createInvite(db, otherOwner.id, hubB.id, 5);
+    expect(inviteB).toBeTruthy();
+
+    // ownerId manages hubA but NOT hubB. Revoking hubB's invite via hubA must fail
+    // and must NOT delete the invite.
+    const result = await revokeInvite(db, inviteB!.id, ownerId, hubA.id);
+    expect(result).toBe(false);
+    expect((await listInvites(db, hubB.id)).map((i) => i.id)).toContain(inviteB!.id);
+  });
+
+  it('a token submitted to the wrong hub does not consume a use', async () => {
+    const hubA = await createHub(db, ownerId, { name: 'Wrong Hub A' });
+    await updateHub(db, hubA.id, ownerId, { joinPolicy: 'invite' });
+    const hubB = await createHub(db, ownerId, { name: 'Wrong Hub B' });
+    await updateHub(db, hubB.id, ownerId, { joinPolicy: 'invite' });
+    const inviteA = await createInvite(db, ownerId, hubA.id, 1); // single use, hub A only
+    const joiner = await createTestUser(db, { username: 'wrong-hub-joiner' });
+
+    // Submitting hub A's token to hub B is rejected WITHOUT burning the use...
+    expect((await joinHub(db, joiner.id, hubB.id, inviteA!.token)).joined).toBe(false);
+    // ...so the single use is intact and still works for hub A.
+    expect((await joinHub(db, joiner.id, hubA.id, inviteA!.token)).joined).toBe(true);
   });
 
   it('updates hub settings', async () => {
@@ -172,40 +255,145 @@ describe('hub integration', () => {
     expect(ownerMember!.role).toBe('owner');
   });
 
-  // PGlite doesn't support ON CONFLICT ... DO NOTHING ... RETURNING — skip until real Postgres test DB
-  it.skip('likes and unlikes a hub post', async () => {
+});
+
+describe('hub approval join workflow', () => {
+  let db: DB;
+  let ownerId: string;
+  let requesterId: string;
+  let requester2Id: string;
+
+  beforeAll(async () => {
+    db = await createTestDB();
+    ownerId = (await createTestUser(db, { username: 'appr-owner' })).id;
+    requesterId = (await createTestUser(db, { username: 'appr-requester' })).id;
+    requester2Id = (await createTestUser(db, { username: 'appr-requester2' })).id;
+  });
+
+  afterAll(async () => {
+    await closeTestDB(db);
+  });
+
+  it('approval-policy join creates a pending request, not an active member', async () => {
+    const hub = await createHub(db, ownerId, { name: 'Approval Hub', joinPolicy: 'approval' });
+
+    const res = await joinHub(db, requesterId, hub.id); // no token for approval
+    expect(res.joined).toBe(false);
+    expect(res.pending).toBe(true);
+
+    // No member-count bump (memberCount counts active members; owner = 1).
+    const after = await getHubBySlug(db, hub.slug);
+    expect(after!.memberCount).toBe(1);
+
+    // Pending is not in the active roster and is not a member for authz.
+    const roster = await listMembers(db, hub.id);
+    expect(roster.items.some((m) => m.userId === requesterId)).toBe(false);
+    expect(await getMember(db, hub.id, requesterId)).toBeNull();
+
+    // It IS in the pending request queue.
+    const reqs = await listJoinRequests(db, hub.id);
+    expect(reqs.items.some((r) => r.userId === requesterId)).toBe(true);
+  });
+
+  it('a pending member cannot post to the hub (privilege gate requires active)', async () => {
+    const hub = await createHub(db, ownerId, { name: 'Gate Hub', joinPolicy: 'approval' });
+    await joinHub(db, requesterId, hub.id);
+    await expect(createPost(db, requesterId, { hubId: hub.id, content: 'sneaky' })).rejects.toThrow();
+  });
+
+  it('approve activates the request, bumps the count, and adds to the roster', async () => {
+    const hub = await createHub(db, ownerId, { name: 'Approve Hub', joinPolicy: 'approval' });
+    await joinHub(db, requesterId, hub.id);
+
+    const res = await approveJoinRequest(db, ownerId, hub.id, requesterId);
+    expect(res.approved).toBe(true);
+
+    const member = await getMember(db, hub.id, requesterId);
+    expect(member?.role).toBe('member');
+
+    const after = await getHubBySlug(db, hub.slug);
+    expect(after!.memberCount).toBe(2); // owner + newly-active member
+
+    const reqs = await listJoinRequests(db, hub.id);
+    expect(reqs.items.some((r) => r.userId === requesterId)).toBe(false);
+  });
+
+  it('deny removes the pending request without activating or bumping', async () => {
+    const hub = await createHub(db, ownerId, { name: 'Deny Hub', joinPolicy: 'approval' });
+    await joinHub(db, requester2Id, hub.id);
+
+    const res = await denyJoinRequest(db, ownerId, hub.id, requester2Id);
+    expect(res.denied).toBe(true);
+
+    expect(await getMember(db, hub.id, requester2Id)).toBeNull();
+    const reqs = await listJoinRequests(db, hub.id);
+    expect(reqs.items.some((r) => r.userId === requester2Id)).toBe(false);
+    const after = await getHubBySlug(db, hub.slug);
+    expect(after!.memberCount).toBe(1);
+  });
+
+  it('a pending member can cancel their request without changing the member count', async () => {
+    const hub = await createHub(db, ownerId, { name: 'Cancel Hub', joinPolicy: 'approval' });
+    await joinHub(db, requesterId, hub.id);
+
+    const res = await leaveHub(db, requesterId, hub.id);
+    expect(res.left).toBe(true);
+
+    expect(await getMember(db, hub.id, requesterId)).toBeNull();
+    const reqs = await listJoinRequests(db, hub.id);
+    expect(reqs.items.some((r) => r.userId === requesterId)).toBe(false);
+    // memberCount must stay at 1 (owner) — a pending request never incremented it.
+    const after = await getHubBySlug(db, hub.slug);
+    expect(after!.memberCount).toBe(1);
+  });
+
+  it('non-managers cannot approve or deny', async () => {
+    const hub = await createHub(db, ownerId, { name: 'Perm Hub', joinPolicy: 'approval' });
+    await joinHub(db, requesterId, hub.id);
+    // requester2 is not a member at all → no permission.
+    const res = await approveJoinRequest(db, requester2Id, hub.id, requesterId);
+    expect(res.approved).toBe(false);
+    expect(res.error).toBeTruthy();
+  });
+});
+
+// Hub-post likes use INSERT ... ON CONFLICT DO NOTHING ... RETURNING to gate the
+// like row + counter, which PGlite can't execute (it returns no row, so likePost
+// reports failure). These need a real Postgres. Skips cleanly when none is reachable.
+describe.skipIf(!reachable)('hub posts (real Postgres — ON CONFLICT ... RETURNING)', () => {
+  let h: RealTestDb;
+  let db: DB;
+  let ownerId: string;
+  let memberId: string;
+
+  beforeAll(async () => {
+    h = await createRealTestDB();
+    db = h.db;
+    ownerId = (await createTestUser(db, { username: 'rpg-hubowner' })).id;
+    memberId = (await createTestUser(db, { username: 'rpg-hubmember' })).id;
+  }, 60_000);
+
+  afterAll(async () => { await h?.cleanup(); });
+
+  it('likes and unlikes a hub post', async () => {
     const hub = await createHub(db, ownerId, { name: 'Like Test Hub' });
     await joinHub(db, memberId, hub.id);
     const post = await createPost(db, ownerId, { hubId: hub.id, content: 'Test post for likes' });
 
-    // Like
-    const liked = await likePost(db, post.id, memberId);
-    expect(liked).toBe(true);
-
-    // Check liked status
-    const isLiked = await hasLikedPost(db, post.id, memberId);
-    expect(isLiked).toBe(true);
-
-    // Unlike
-    const unliked = await unlikePost(db, post.id, memberId);
-    expect(unliked).toBe(true);
-
-    // Confirm unliked
-    const isStillLiked = await hasLikedPost(db, post.id, memberId);
-    expect(isStillLiked).toBe(false);
+    expect(await likePost(db, memberId, post.id)).toBe(true);
+    expect(await hasLikedPost(db, memberId, post.id)).toBe(true);
+    expect(await unlikePost(db, memberId, post.id)).toBe(true);
+    expect(await hasLikedPost(db, memberId, post.id)).toBe(false);
   });
 
-  it.skip('liking a post twice is idempotent', async () => {
+  it('liking a post twice is idempotent', async () => {
     const hub = await createHub(db, ownerId, { name: 'Idempotent Like Hub' });
     await joinHub(db, memberId, hub.id);
     const post = await createPost(db, ownerId, { hubId: hub.id, content: 'Double like test' });
 
-    await likePost(db, post.id, memberId);
-    const secondLike = await likePost(db, post.id, memberId);
-    // onConflictDoNothing means second like returns false (no new row)
-    expect(secondLike).toBe(false);
-
-    // Still liked
-    expect(await hasLikedPost(db, post.id, memberId)).toBe(true);
+    await likePost(db, memberId, post.id);
+    // onConflictDoNothing → the second like inserts no row → returns false.
+    expect(await likePost(db, memberId, post.id)).toBe(false);
+    expect(await hasLikedPost(db, memberId, post.id)).toBe(true);
   });
 });

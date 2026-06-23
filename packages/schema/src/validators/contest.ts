@@ -1,5 +1,25 @@
 import { z } from 'zod';
 import { optionalUrl } from './_shared.js';
+import {
+  contestStatusEnum,
+  contestVisibilityEnum,
+  contestContentFormatEnum,
+  judgingVisibilityEnum,
+  userRoleEnum,
+} from '../enums.js';
+
+// Derive the enum validators from the pgEnums (single source of truth) so a new
+// enum value can't silently bypass validation by being added to the column but
+// not these hand-maintained lists. See the drift-guard test in validators.test.ts.
+const contentFormatSchema = z.enum(contestContentFormatEnum.enumValues);
+const contestVisibilitySchema = z.enum(contestVisibilityEnum.enumValues);
+const judgingVisibilitySchema = z.enum(judgingVisibilityEnum.enumValues);
+const userRoleSchema = z.enum(userRoleEnum.enumValues);
+
+// Block-editor body (BlockTuple[] = `[type, content][]`) for the contest overview
+// + rules — the house editor format (loosely shaped, matches docs content blocks).
+// Bounded so a runaway array can't DoS; the 10MB JSON body limit is the backstop.
+const contestBlocksSchema = z.array(z.array(z.unknown())).max(1000);
 
 // --- Contest validators ---
 
@@ -29,15 +49,65 @@ export const contestJudgingCriterionSchema = z.object({
 });
 export type ContestJudgingCriterion = z.infer<typeof contestJudgingCriterionSchema>;
 
+// Per-stage submission-template field types (Phase 4 extends the original
+// text/textarea/url trio). `agreement` + `address` and any field flagged `pii`
+// are partitioned OUT of the public `stageSubmissions.fields` artifact at submit
+// time (see partitionTemplateFields in @commonpub/server): agreements record an
+// immutable acceptance row, PII lands in `contest_entry_private_fields`.
+export const SUBMISSION_TEMPLATE_FIELD_TYPES = [
+  'text',
+  'textarea',
+  'url',
+  'email',
+  'number',
+  'select',
+  'checkbox',
+  'date',
+  'agreement',
+  'address',
+] as const;
+export const submissionTemplateFieldTypeSchema = z.enum(SUBMISSION_TEMPLATE_FIELD_TYPES);
+export type SubmissionTemplateFieldType = (typeof SUBMISSION_TEMPLATE_FIELD_TYPES)[number];
+
+/** One choice of a `select` template field. */
+export const submissionTemplateOptionSchema = z.object({
+  value: z.string().min(1).max(120),
+  label: z.string().min(1).max(120),
+});
+
 // One field of a `submission` stage's artifact template (per-stage submissions).
 // `key` is the stable machine key in `stageSubmissions.fields`.
-export const submissionTemplateFieldSchema = z.object({
-  key: z.string().min(1).max(40).regex(/^[a-z0-9_]+$/, 'Lowercase letters, numbers and underscores only'),
-  label: z.string().min(1).max(120),
-  type: z.enum(['text', 'textarea', 'url']),
-  required: z.boolean(),
-  help: z.string().max(300).optional(),
-});
+export const submissionTemplateFieldSchema = z
+  .object({
+    key: z.string().min(1).max(40).regex(/^[a-z0-9_]+$/, 'Lowercase letters, numbers and underscores only'),
+    label: z.string().min(1).max(120),
+    type: submissionTemplateFieldTypeSchema,
+    required: z.boolean(),
+    help: z.string().max(300).optional(),
+    /** `select`-only: the allowed options. Required (non-empty) for `select`. */
+    options: z.array(submissionTemplateOptionSchema).max(50).optional(),
+    /**
+     * Personal data flag. When true the field's value is stored in
+     * `contest_entry_private_fields` (never the public `stageSubmissions`
+     * artifact) and is readable only with `contest.pii.read` or by the entrant.
+     * Forced true for `address`.
+     */
+    pii: z.boolean().optional(),
+    /** `agreement`-only: the terms text the entrant must accept (snapshotted on accept). */
+    terms: z.string().max(20_000).optional(),
+    /** `agreement`-only: how `terms` is rendered. */
+    termsFormat: contentFormatSchema.optional(),
+    /** `agreement`-only: require an explicit accept to submit (default true). */
+    mustAccept: z.boolean().optional(),
+  })
+  .refine((f) => f.type !== 'select' || (Array.isArray(f.options) && f.options.length > 0), {
+    message: 'A select field needs at least one option',
+    path: ['options'],
+  })
+  .refine((f) => f.type !== 'agreement' || !!f.terms?.trim(), {
+    message: 'An agreement field needs terms text',
+    path: ['terms'],
+  });
 export type SubmissionTemplateFieldInput = z.infer<typeof submissionTemplateFieldSchema>;
 
 // Phase B1 — a single ordered stage of a contest's timeline (stored as a jsonb
@@ -65,6 +135,11 @@ export const contestStageSchema = z.object({
       message: 'Template field keys must be unique',
     })
     .optional(),
+  // Submission stages (Phase 4): how an entry is created for this stage.
+  // `attach` (default) = the entrant attaches a pre-existing PUBLISHED content
+  // item. `proposal` = the entrant submits the form and the server creates a
+  // DRAFT placeholder project linked as the entry (gated by features.contestProposals).
+  submissionMode: z.enum(['attach', 'proposal']).optional(),
 });
 export type ContestStageInput = z.infer<typeof contestStageSchema>;
 
@@ -117,9 +192,13 @@ export const createContestSchema = z
     rules: z.string().max(CONTEST_RICH_TEXT_MAX).optional(),
     prizesDescription: z.string().max(CONTEST_RICH_TEXT_MAX).optional(),
     // Per-field render mode for the three long-form fields above (independent).
-    descriptionFormat: z.enum(['markdown', 'html']).optional(),
-    rulesFormat: z.enum(['markdown', 'html']).optional(),
-    prizesDescriptionFormat: z.enum(['markdown', 'html']).optional(),
+    descriptionFormat: contentFormatSchema.optional(),
+    rulesFormat: contentFormatSchema.optional(),
+    prizesDescriptionFormat: contentFormatSchema.optional(),
+    // Block-editor body (overrides description/rules text when present).
+    descriptionBlocks: contestBlocksSchema.optional(),
+    rulesBlocks: contestBlocksSchema.optional(),
+    prizesBlocks: contestBlocksSchema.optional(),
     bannerUrl: optionalUrl(),
     coverImageUrl: optionalUrl(),
     showPrizes: z.boolean().optional(),
@@ -140,11 +219,11 @@ export const createContestSchema = z
     // Seed-only: populates the contest_stakeholders table (view-only reviewers).
     stakeholders: z.array(z.string().uuid()).max(100).optional(),
     communityVotingEnabled: z.boolean().optional(),
-    judgingVisibility: z.enum(['public', 'judges-only', 'private']).optional(),
+    judgingVisibility: judgingVisibilitySchema.optional(),
     eligibleContentTypes: z.array(z.string().max(40)).max(20).optional(),
     maxEntriesPerUser: z.number().int().positive().max(1000).optional(),
-    visibility: z.enum(['public', 'unlisted', 'private']).optional(),
-    visibleToRoles: z.array(z.enum(['member', 'pro', 'verified', 'staff', 'admin'])).max(5).optional(),
+    visibility: contestVisibilitySchema.optional(),
+    visibleToRoles: z.array(userRoleSchema).max(5).optional(),
   })
   .refine((d) => new Date(d.endDate) > new Date(d.startDate), {
     message: 'End date must be after the start date',
@@ -165,9 +244,12 @@ export const updateContestSchema = z
     description: z.string().max(CONTEST_RICH_TEXT_MAX).optional(),
     rules: z.string().max(CONTEST_RICH_TEXT_MAX).optional(),
     prizesDescription: z.string().max(CONTEST_RICH_TEXT_MAX).optional(),
-    descriptionFormat: z.enum(['markdown', 'html']).optional(),
-    rulesFormat: z.enum(['markdown', 'html']).optional(),
-    prizesDescriptionFormat: z.enum(['markdown', 'html']).optional(),
+    descriptionFormat: contentFormatSchema.optional(),
+    rulesFormat: contentFormatSchema.optional(),
+    prizesDescriptionFormat: contentFormatSchema.optional(),
+    descriptionBlocks: contestBlocksSchema.optional(),
+    rulesBlocks: contestBlocksSchema.optional(),
+    prizesBlocks: contestBlocksSchema.optional(),
     bannerUrl: optionalUrl(),
     coverImageUrl: optionalUrl(),
     showPrizes: z.boolean().optional(),
@@ -180,11 +262,11 @@ export const updateContestSchema = z
     stages: z.array(contestStageSchema).max(20).optional(),
     currentStageId: z.string().max(64).optional(),
     communityVotingEnabled: z.boolean().optional(),
-    judgingVisibility: z.enum(['public', 'judges-only', 'private']).optional(),
+    judgingVisibility: judgingVisibilitySchema.optional(),
     eligibleContentTypes: z.array(z.string().max(40)).max(20).optional(),
     maxEntriesPerUser: z.number().int().positive().max(1000).optional(),
-    visibility: z.enum(['public', 'unlisted', 'private']).optional(),
-    visibleToRoles: z.array(z.enum(['member', 'pro', 'verified', 'staff', 'admin'])).max(5).optional(),
+    visibility: contestVisibilitySchema.optional(),
+    visibleToRoles: z.array(userRoleSchema).max(5).optional(),
   })
   // `judges` + `stakeholders` are intentionally NOT updatable here — they are
   // managed via the dedicated /judges and /stakeholders endpoints.
@@ -207,8 +289,9 @@ export const judgeEntrySchema = z
   .object({
     entryId: z.string().uuid(),
     // Either an overall 0–100 score, or a per-criterion breakdown (the overall is
-    // then derived server-side as a normalized weighted sum).
-    score: z.number().int().min(1).max(100).optional(),
+    // then derived server-side as a normalized weighted sum). 0 is allowed so the
+    // holistic floor matches the per-criterion 0 floor (one 0–100 scale).
+    score: z.number().int().min(0).max(100).optional(),
     criteriaScores: z.array(criterionScoreSchema).min(1).max(20).optional(),
     feedback: z.string().max(2000).optional(),
   })
@@ -219,11 +302,11 @@ export const judgeEntrySchema = z
 export type JudgeEntryInput = z.infer<typeof judgeEntrySchema>;
 
 export const contestTransitionSchema = z.object({
-  status: z.enum(['draft', 'upcoming', 'active', 'paused', 'judging', 'completed', 'cancelled']),
+  status: z.enum(contestStatusEnum.enumValues),
 });
 export type ContestTransitionInput = z.infer<typeof contestTransitionSchema>;
 
-export const contestStatusSchema = z.enum(['draft', 'upcoming', 'active', 'paused', 'judging', 'completed', 'cancelled']);
+export const contestStatusSchema = z.enum(contestStatusEnum.enumValues);
 export type ContestStatus = z.infer<typeof contestStatusSchema>;
 
 // --- Contest filters ---

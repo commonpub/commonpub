@@ -12,6 +12,7 @@ import {
 import { buildLikeActivity, buildAnnounceActivity, buildCreateActivity, contentToNote } from '@commonpub/protocol';
 import type { DB } from '../types.js';
 import { safeFetch } from '../import/ssrf.js';
+import { normalizePagination } from '../query.js';
 
 /** A federated content item with resolved actor info */
 export interface FederatedContentItem {
@@ -68,8 +69,7 @@ export async function listFederatedTimeline(
   db: DB,
   opts: FederatedTimelineOptions = {},
 ): Promise<{ items: FederatedContentItem[]; total: number }> {
-  const limit = Math.min(opts.limit ?? 20, 100);
-  const offset = opts.offset ?? 0;
+  const { limit, offset } = normalizePagination(opts, { limit: 20 });
 
   // Build where conditions
   const conditions = [isNull(federatedContent.deletedAt), eq(federatedContent.isHidden, false)];
@@ -221,6 +221,14 @@ export async function incrementFederatedViewCount(
  * Like remote federated content. Creates a local engagement record
  * and queues an outbound Like activity to the content's origin instance.
  * Idempotent: calling twice for the same user+content is a no-op.
+ *
+ * Transactional + row-locked: the check-then-increment-then-insert below is
+ * otherwise a race — two concurrent likes (double-click / retry) both pass the
+ * dedup check before either commits, double-incrementing the counter AND
+ * federating duplicate Like activities. The drift is unrecoverable (this path is
+ * not covered by reconcile-counters). The `FOR UPDATE` lock on the content row
+ * serializes concurrent likes of the same content so the dedup is atomic.
+ * (audit session 207)
  */
 export async function likeRemoteContent(
   db: DB,
@@ -228,60 +236,67 @@ export async function likeRemoteContent(
   federatedContentId: string,
   domain: string,
 ): Promise<boolean> {
-  // Get the federated content and user
-  const [content] = await db
-    .select()
-    .from(federatedContent)
-    .where(eq(federatedContent.id, federatedContentId))
-    .limit(1);
-  if (!content) return false;
+  return db.transaction(async (tx) => {
+    // Lock the content row first so concurrent likes of the same content serialize.
+    const [content] = await tx
+      .select()
+      .from(federatedContent)
+      .where(eq(federatedContent.id, federatedContentId))
+      .for('update')
+      .limit(1);
+    if (!content) return false;
 
-  const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
-  if (!user) return false;
+    const [user] = await tx.select().from(users).where(eq(users.id, userId)).limit(1);
+    if (!user) return false;
 
-  const actorUri = `https://${domain}/users/${user.username}`;
+    const actorUri = `https://${domain}/users/${user.username}`;
 
-  // Dedup: check if this user already liked this content (via outbound Like activity)
-  const existingLike = await db
-    .select({ id: activities.id })
-    .from(activities)
-    .where(
-      and(
-        eq(activities.type, 'Like'),
-        eq(activities.actorUri, actorUri),
-        eq(activities.objectUri, content.objectUri),
-        eq(activities.direction, 'outbound'),
-      ),
-    )
-    .limit(1);
+    // Dedup: check if this user already liked this content (via outbound Like activity).
+    // Runs after the lock is held, so it sees any committed prior like.
+    const existingLike = await tx
+      .select({ id: activities.id })
+      .from(activities)
+      .where(
+        and(
+          eq(activities.type, 'Like'),
+          eq(activities.actorUri, actorUri),
+          eq(activities.objectUri, content.objectUri),
+          eq(activities.direction, 'outbound'),
+        ),
+      )
+      .limit(1);
 
-  if (existingLike.length > 0) {
-    return true; // Already liked — idempotent success
-  }
+    if (existingLike.length > 0) {
+      return true; // Already liked — idempotent success
+    }
 
-  // Increment local like count
-  await db
-    .update(federatedContent)
-    .set({ localLikeCount: sql`${federatedContent.localLikeCount} + 1` })
-    .where(eq(federatedContent.id, federatedContentId));
+    // Increment local like count
+    await tx
+      .update(federatedContent)
+      .set({ localLikeCount: sql`${federatedContent.localLikeCount} + 1` })
+      .where(eq(federatedContent.id, federatedContentId));
 
-  // Queue outbound Like activity
-  const activity = buildLikeActivity(domain, actorUri, content.objectUri);
+    // Queue outbound Like activity
+    const activity = buildLikeActivity(domain, actorUri, content.objectUri);
 
-  await db.insert(activities).values({
-    type: 'Like',
-    actorUri,
-    objectUri: content.objectUri,
-    payload: activity,
-    direction: 'outbound',
-    status: 'pending',
+    await tx.insert(activities).values({
+      type: 'Like',
+      actorUri,
+      objectUri: content.objectUri,
+      payload: activity,
+      direction: 'outbound',
+      status: 'pending',
+    });
+
+    return true;
   });
-
-  return true;
 }
 
 /**
  * Boost/share remote federated content. Queues an outbound Announce activity.
+ * Idempotent: one outbound Announce per (actor, object). Transactional + row-locked
+ * so concurrent boosts (double-click / retry) can't each queue a duplicate Announce —
+ * this path previously had no dedup at all. (audit session 207)
  */
 export async function boostRemoteContent(
   db: DB,
@@ -289,30 +304,54 @@ export async function boostRemoteContent(
   federatedContentId: string,
   domain: string,
 ): Promise<boolean> {
-  const [content] = await db
-    .select()
-    .from(federatedContent)
-    .where(eq(federatedContent.id, federatedContentId))
-    .limit(1);
-  if (!content) return false;
+  return db.transaction(async (tx) => {
+    // Lock the content row first so concurrent boosts of the same content serialize.
+    const [content] = await tx
+      .select()
+      .from(federatedContent)
+      .where(eq(federatedContent.id, federatedContentId))
+      .for('update')
+      .limit(1);
+    if (!content) return false;
 
-  const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
-  if (!user) return false;
+    const [user] = await tx.select().from(users).where(eq(users.id, userId)).limit(1);
+    if (!user) return false;
 
-  const actorUri = `https://${domain}/users/${user.username}`;
-  const followersUri = `${actorUri}/followers`;
-  const activity = buildAnnounceActivity(domain, actorUri, content.objectUri, followersUri);
+    const actorUri = `https://${domain}/users/${user.username}`;
 
-  await db.insert(activities).values({
-    type: 'Announce',
-    actorUri,
-    objectUri: content.objectUri,
-    payload: activity,
-    direction: 'outbound',
-    status: 'pending',
+    // Dedup: one outbound Announce per (actor, object). Mirrors the Like dedup; runs
+    // after the lock is held so it sees any committed prior boost.
+    const existingBoost = await tx
+      .select({ id: activities.id })
+      .from(activities)
+      .where(
+        and(
+          eq(activities.type, 'Announce'),
+          eq(activities.actorUri, actorUri),
+          eq(activities.objectUri, content.objectUri),
+          eq(activities.direction, 'outbound'),
+        ),
+      )
+      .limit(1);
+
+    if (existingBoost.length > 0) {
+      return true; // Already boosted — idempotent success
+    }
+
+    const followersUri = `${actorUri}/followers`;
+    const activity = buildAnnounceActivity(domain, actorUri, content.objectUri, followersUri);
+
+    await tx.insert(activities).values({
+      type: 'Announce',
+      actorUri,
+      objectUri: content.objectUri,
+      payload: activity,
+      direction: 'outbound',
+      status: 'pending',
+    });
+
+    return true;
   });
-
-  return true;
 }
 
 /**
@@ -444,8 +483,7 @@ export async function searchFederatedContent(
   query: string,
   opts: { limit?: number; offset?: number; language?: string } = {},
 ): Promise<{ items: FederatedContentItem[]; total: number }> {
-  const limit = Math.min(opts.limit ?? 20, 100);
-  const offset = opts.offset ?? 0;
+  const { limit, offset } = normalizePagination(opts, { limit: 20 });
   const ftsLang = opts.language && VALID_FTS_LANGUAGES.has(opts.language) ? opts.language : 'english';
   const langLiteral = sql.raw(`'${ftsLang}'`);
 

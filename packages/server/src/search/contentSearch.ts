@@ -8,6 +8,7 @@
 import { eq, and, desc, sql, isNull, ilike, or, gte, lte } from 'drizzle-orm';
 import { contentItems, users, tags, contentTags } from '@commonpub/schema';
 import type { DB } from '../types.js';
+import { normalizePagination } from '../query.js';
 
 export interface ContentSearchResult {
   id: string;
@@ -38,7 +39,7 @@ export interface ContentSearchOptions {
   authorUsername?: string;
   dateFrom?: string;
   dateTo?: string;
-  sort?: 'relevance' | 'recent' | 'popular';
+  sort?: 'relevance' | 'recent' | 'popular' | 'likes';
   limit?: number;
   offset?: number;
 }
@@ -68,8 +69,7 @@ export async function searchWithMeilisearch(
   db: DB,
   opts: ContentSearchOptions,
 ): Promise<{ items: ContentSearchResult[]; total: number }> {
-  const limit = Math.min(opts.limit ?? 24, 100);
-  const offset = opts.offset ?? 0;
+  const { limit, offset } = normalizePagination(opts, { limit: 24 });
 
   // Escape user-supplied values that get interpolated into Meilisearch
   // filter strings. Meili's filter syntax uses double-quoted string
@@ -92,6 +92,7 @@ export async function searchWithMeilisearch(
   const sortOpts: string[] = [];
   if (opts.sort === 'recent') sortOpts.push('publishedAtTs:desc');
   else if (opts.sort === 'popular') sortOpts.push('viewCount:desc');
+  else if (opts.sort === 'likes') sortOpts.push('likeCount:desc');
   // 'relevance' is default — Meilisearch handles it
 
   const index = client.index(INDEX_NAME);
@@ -137,8 +138,7 @@ export async function searchWithPostgres(
   db: DB,
   opts: ContentSearchOptions,
 ): Promise<{ items: ContentSearchResult[]; total: number }> {
-  const limit = Math.min(opts.limit ?? 24, 100);
-  const offset = opts.offset ?? 0;
+  const { limit, offset } = normalizePagination(opts, { limit: 24 });
 
   const conditions = [
     eq(contentItems.status, 'published'),
@@ -208,6 +208,8 @@ export async function searchWithPostgres(
   let orderBy;
   if (opts.sort === 'popular') {
     orderBy = [desc(contentItems.viewCount), desc(contentItems.id)];
+  } else if (opts.sort === 'likes') {
+    orderBy = [desc(contentItems.likeCount), desc(contentItems.id)];
   } else {
     // 'relevance' and 'recent' both use publishedAt for Postgres path
     orderBy = [desc(contentItems.publishedAt), desc(contentItems.id)];

@@ -32,6 +32,7 @@ import {
 } from '@commonpub/protocol';
 import type { DB } from '../types.js';
 import { isPrivateUrl, safeFetch } from '../import/ssrf.js';
+import { normalizePagination } from '../query.js';
 
 // --- Keypair Management ---
 
@@ -916,8 +917,7 @@ export async function listFederationActivity(
   }
 
   const where = conditions.length > 0 ? and(...conditions) : undefined;
-  const limit = Math.min(filters.limit ?? 50, 100);
-  const offset = filters.offset ?? 0;
+  const { limit, offset } = normalizePagination(filters, { limit: 50 });
 
   const [rows, countResult] = await Promise.all([
     db

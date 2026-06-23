@@ -1,7 +1,7 @@
 <script setup lang="ts">
 useSeoMeta({ title: `Contests, ${useSiteName()}` });
 
-const { data: contests } = await useFetch('/api/contests');
+const { data: contests, error, refresh } = await useFetch('/api/contests');
 const { isAuthenticated, isAdmin, user } = useAuth();
 
 // Card blurb: prefer the short subheading; otherwise a plain-text, markdown-
@@ -44,7 +44,12 @@ const canCreateContest = computed(() => {
         <i class="fa-solid fa-plus"></i> Create Contest
       </NuxtLink>
     </div>
-    <div v-if="contests?.items?.length" class="cpub-grid-3">
+    <div v-if="error" class="cpub-fetch-error">
+      <div class="cpub-fetch-error-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+      <div class="cpub-fetch-error-msg">Failed to load contests.</div>
+      <button class="cpub-btn cpub-btn-sm" @click="refresh()">Retry</button>
+    </div>
+    <div v-else-if="contests?.items?.length" class="cpub-grid-3">
       <NuxtLink
         v-for="contest in contests.items"
         :key="contest.id"

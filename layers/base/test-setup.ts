@@ -52,3 +52,23 @@ if (typeof window !== 'undefined' && typeof (window as unknown as { PointerEvent
   (window as unknown as { PointerEvent: typeof PolyfillPointerEvent }).PointerEvent = PolyfillPointerEvent;
   (globalThis as unknown as { PointerEvent: typeof PolyfillPointerEvent }).PointerEvent = PolyfillPointerEvent;
 }
+
+/* IntersectionObserver shim for jsdom.
+ *
+ * jsdom ships no IntersectionObserver, so any component that mounts a scroll-spy
+ * (useScrollSpy: ProjectView, the docs viewer) would crash with "IntersectionObserver
+ * is not defined" the moment it observes a heading. This no-op stub keeps those
+ * mounts safe in tests that don't care about scroll-spy. Tests that DO exercise it
+ * (useScrollSpy.test.ts) override this with a controllable mock via vi.stubGlobal.
+ * Only loaded in tests — production browsers have the real constructor.
+ */
+if (typeof globalThis.IntersectionObserver === 'undefined') {
+  class NoopIntersectionObserver {
+    constructor(_cb: IntersectionObserverCallback, _opts?: IntersectionObserverInit) {}
+    observe(): void {}
+    unobserve(): void {}
+    disconnect(): void {}
+    takeRecords(): IntersectionObserverEntry[] { return []; }
+  }
+  (globalThis as unknown as { IntersectionObserver: unknown }).IntersectionObserver = NoopIntersectionObserver;
+}

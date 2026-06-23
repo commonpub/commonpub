@@ -1,4 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { eq } from 'drizzle-orm';
+import { videos } from '@commonpub/schema';
 import type { DB } from '../types.js';
 import { createTestDB, createTestUser, closeTestDB } from './helpers/testdb.js';
 import {
@@ -130,6 +132,48 @@ describe('video', () => {
     });
   });
 
+  describe('video sort', () => {
+    let sortAuthorId: string;
+    // Distinct order under each sort so each assertion independently catches a missing branch.
+    let vFirst: string; // created first  (oldest)
+    let vSecond: string;
+    let vThird: string; // created last   (newest)
+
+    beforeAll(async () => {
+      const author = await createTestUser(db, { username: 'sortauthor' });
+      sortAuthorId = author.id;
+      const first = await createVideo(db, { title: 'First', url: 'https://example.com/s1', authorId: sortAuthorId });
+      vFirst = first.id;
+      const second = await createVideo(db, { title: 'Second', url: 'https://example.com/s2', authorId: sortAuthorId });
+      vSecond = second.id;
+      const third = await createVideo(db, { title: 'Third', url: 'https://example.com/s3', authorId: sortAuthorId });
+      vThird = third.id;
+      // recent: [vThird, vSecond, vFirst]
+      // viewed: [vSecond, vFirst, vThird]   (views 9 / 5 / 1)
+      // liked:  [vFirst, vThird, vSecond]   (likes 9 / 4 / 1)
+      await db.update(videos).set({ viewCount: 5, likeCount: 9 }).where(eq(videos.id, vFirst));
+      await db.update(videos).set({ viewCount: 9, likeCount: 1 }).where(eq(videos.id, vSecond));
+      await db.update(videos).set({ viewCount: 1, likeCount: 4 }).where(eq(videos.id, vThird));
+    });
+
+    it('sort=viewed orders by viewCount DESC', async () => {
+      const { items } = await listVideos(db, { authorId: sortAuthorId, sort: 'viewed' });
+      expect(items.map((v) => v.id)).toEqual([vSecond, vFirst, vThird]);
+    });
+
+    it('sort=liked orders by likeCount DESC', async () => {
+      const { items } = await listVideos(db, { authorId: sortAuthorId, sort: 'liked' });
+      expect(items.map((v) => v.id)).toEqual([vFirst, vThird, vSecond]);
+    });
+
+    it('sort=recent (and default) orders by createdAt DESC', async () => {
+      const { items } = await listVideos(db, { authorId: sortAuthorId, sort: 'recent' });
+      expect(items.map((v) => v.id)).toEqual([vThird, vSecond, vFirst]);
+      const def = await listVideos(db, { authorId: sortAuthorId });
+      expect(def.items.map((v) => v.id)).toEqual([vThird, vSecond, vFirst]);
+    });
+  });
+
   describe('video categories', () => {
     it('creates a category with slug', async () => {
       const cat = await createVideoCategory(db, {
@@ -155,6 +199,15 @@ describe('video', () => {
         // Should be ordered (ascending)
         expect(cats[i - 1]).toBeDefined();
       }
+    });
+
+    it('list returns description + sortOrder (so the admin form can round-trip them)', async () => {
+      await createVideoCategory(db, { name: 'Roundtrip Cat', description: 'A described category', sortOrder: 42 });
+      const cats = await listVideoCategories(db);
+      const found = cats.find((c) => c.name === 'Roundtrip Cat');
+      expect(found).toBeDefined();
+      expect(found!.description).toBe('A described category');
+      expect(found!.sortOrder).toBe(42);
     });
 
     it('updates a category name and regenerates slug', async () => {

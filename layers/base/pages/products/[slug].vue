@@ -1,9 +1,44 @@
 <script setup lang="ts">
 const route = useRoute();
 const slug = route.params.slug as string;
+const toast = useToast();
 
-const { data: product, pending } = useLazyFetch(`/api/products/${slug}`) as { data: Ref<Record<string, any> | null>; pending: Ref<boolean> };
+const { data: product, pending, refresh } = useLazyFetch(`/api/products/${slug}`) as { data: Ref<Record<string, any> | null>; pending: Ref<boolean>; refresh: () => Promise<void> };
 const { data: projectsUsing } = useLazyFetch(`/api/products/${slug}/content`) as { data: Ref<any[] | null> };
+
+const { user } = useAuth();
+const canModerate = useCan('content.moderate');
+// PUT is owner-only on the server (updateProduct), so only the owner may edit.
+const canEdit = computed(() => !!user.value && product.value?.createdBy?.id === user.value.id);
+// DELETE allows owner OR content.moderate on the server.
+const canDelete = computed(() => canEdit.value || canModerate.value);
+
+const showEdit = ref(false);
+const deleting = ref(false);
+
+async function handleUpdated(updated: { slug: string }): Promise<void> {
+  // The slug regenerates when the name changes; route to the new slug if so.
+  if (updated.slug && updated.slug !== slug) {
+    await navigateTo(`/products/${updated.slug}`);
+  } else {
+    await refresh();
+  }
+}
+
+async function handleDelete(): Promise<void> {
+  if (!product.value) return;
+  if (!confirm(`Delete "${product.value.name}"? This cannot be undone.`)) return;
+  deleting.value = true;
+  try {
+    await $fetch(`/api/products/${product.value.id}`, { method: 'DELETE' });
+    toast.success('Product deleted');
+    await navigateTo('/products');
+  } catch {
+    toast.error('Failed to delete product');
+  } finally {
+    deleting.value = false;
+  }
+}
 
 useSeoMeta({
   title: () => product.value ? `${product.value.name}, ${useSiteName()}` : `Product, ${useSiteName()}`,
@@ -23,9 +58,17 @@ useSeoMeta({
       <div class="product-main">
         <div class="product-header">
           <div class="product-icon"><i class="fa-solid fa-microchip"></i></div>
-          <div>
+          <div class="product-header-main">
             <h1 class="product-name">{{ product.name }}</h1>
             <span v-if="product.category" class="product-category">{{ product.category }}</span>
+          </div>
+          <div v-if="canEdit || canDelete" class="product-header-actions">
+            <button v-if="canEdit" class="cpub-btn cpub-btn-sm" aria-label="Edit product" @click="showEdit = true">
+              <i class="fa-solid fa-pen"></i> Edit
+            </button>
+            <button v-if="canDelete" class="cpub-btn cpub-btn-sm cpub-product-delete" aria-label="Delete product" :disabled="deleting" @click="handleDelete">
+              <i class="fa-solid fa-trash"></i> {{ deleting ? 'Deleting...' : 'Delete' }}
+            </button>
           </div>
         </div>
 
@@ -83,6 +126,13 @@ useSeoMeta({
         </div>
       </aside>
     </div>
+
+    <ProductEditModal
+      v-if="showEdit"
+      :product="{ id: product.id, name: product.name, description: product.description, category: product.category, purchaseUrl: product.purchaseUrl, datasheetUrl: product.datasheetUrl, status: product.status }"
+      @close="showEdit = false"
+      @updated="handleUpdated"
+    />
   </div>
   <div v-else class="product-not-found">
     <h1>Product not found</h1>
@@ -97,6 +147,9 @@ useSeoMeta({
 .product-layout { display: grid; grid-template-columns: 1fr 280px; gap: 32px; }
 
 .product-header { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
+.product-header-main { flex: 1; min-width: 0; }
+.product-header-actions { display: flex; gap: 8px; flex-shrink: 0; }
+.cpub-product-delete:hover { color: var(--red); border-color: var(--red); }
 .product-icon { width: 56px; height: 56px; border: var(--border-width-default) solid var(--border); background: var(--accent-bg); display: flex; align-items: center; justify-content: center; font-size: 24px; color: var(--accent); }
 .product-name { font-size: 24px; font-weight: 700; letter-spacing: -0.02em; }
 .product-category { font-size: 11px; font-family: var(--font-mono); color: var(--text-faint); text-transform: capitalize; }

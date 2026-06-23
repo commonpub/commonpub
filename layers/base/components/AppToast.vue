@@ -10,7 +10,7 @@ const { toasts, dismiss } = useToast();
         :key="toast.id"
         class="cpub-toast"
         :class="`cpub-toast--${toast.type}`"
-        role="status"
+        :role="toast.type === 'error' ? 'alert' : 'status'"
       >
         <i
           :class="{

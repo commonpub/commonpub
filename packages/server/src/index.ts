@@ -142,6 +142,9 @@ export {
   leaveHub,
   getMember,
   listMembers,
+  listJoinRequests,
+  approveJoinRequest,
+  denyJoinRequest,
   listRemoteMembers,
   changeRole,
   kickMember,
@@ -301,8 +304,8 @@ export type {
 } from './admin/index.js';
 
 // Profile
-export { getUserByUsername, getUserContent, updateUserProfile, exportUserData } from './profile/index.js';
-export type { UserDataExport } from './profile/index.js';
+export { getUserByUsername, getUserContent, updateUserProfile, exportUserData, searchUsers } from './profile/index.js';
+export type { UserDataExport, UserSearchResult } from './profile/index.js';
 
 // Security
 export {
@@ -572,6 +575,13 @@ export {
   getContestEntry,
   submitStageArtifact,
   validateStageArtifactFields,
+  validateSubmissionFields,
+  recordPrivateAndAgreements,
+  hashTerms,
+  submitContestProposal,
+  getEntryPrivateData,
+  buildContestExport,
+  toCsv,
 } from './contest/index.js';
 export type {
   ContestListItem,
@@ -585,6 +595,12 @@ export type {
   ContestVisibility,
   CriterionScore,
   JudgeScoreEntry,
+  PartitionedSubmission,
+  AgreementAcceptanceInput,
+  SubmitProposalArgs,
+  SubmitProposalResult,
+  EntryPrivateData,
+  ContestExport,
 } from './contest/index.js';
 export {
   listContestJudges,

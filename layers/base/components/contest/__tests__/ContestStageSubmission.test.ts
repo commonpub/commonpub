@@ -13,6 +13,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, fireEvent } from '@testing-library/vue';
 import axe from 'axe-core';
 import ContestStageSubmission from '../ContestStageSubmission.vue';
+import ContestSubmissionField from '../ContestSubmissionField.vue';
 import type { ContestStage } from '@commonpub/schema';
 
 const toastSuccess = vi.fn();
@@ -50,6 +51,7 @@ function makeEntry(overrides: Record<string, unknown> = {}) {
 function mount(props: Record<string, unknown> = {}) {
   return render(ContestStageSubmission, {
     props: { contestSlug: 'resilient', stage: STAGE, entries: [makeEntry()], ...props },
+    global: { components: { ContestSubmissionField } },
   });
 }
 

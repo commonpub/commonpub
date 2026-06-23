@@ -6,6 +6,7 @@ const querySchema = z.object({
 });
 
 export default defineEventHandler(async (event) => {
+  requireFeature('publicApi');
   requirePermission(event, 'apikeys.manage');
   const { id } = parseParams(event, { id: 'uuid' });
   const parsed = querySchema.safeParse(getQuery(event));

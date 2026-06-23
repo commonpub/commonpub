@@ -57,7 +57,7 @@ async function removeTrusted(domain: string): Promise<void> {
     });
     await refreshTrusted();
   } catch {
-    alert('Failed to remove trusted instance');
+    toast.error('Failed to remove trusted instance');
   }
 }
 

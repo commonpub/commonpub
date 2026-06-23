@@ -30,6 +30,7 @@ export type CreateVideoCategoryInput = z.infer<typeof createVideoCategorySchema>
 export const videoFiltersSchema = z.object({
   categoryId: z.string().uuid().optional(),
   authorId: z.string().uuid().optional(),
+  sort: z.enum(['recent', 'viewed', 'liked']).optional(),
   limit: z.coerce.number().int().positive().max(100).optional(),
   offset: z.coerce.number().int().min(0).optional(),
 });

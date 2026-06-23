@@ -17,9 +17,15 @@ const emit = defineEmits<{
 type StepState = 'done' | 'current' | 'upcoming';
 interface TimelineStep { label: string; date: string | null; state: StepState; icon: string }
 
+// toLocaleDateString is timezone-dependent, so it would mismatch between the
+// server's TZ and the viewer's on hydration. Gate it on a client `mounted` flag so
+// the timeline dates only render (in the viewer's local TZ) after mount.
+const mounted = ref(false);
+onMounted(() => { mounted.value = true; });
+
 function fmt(d: string | null | undefined): string | null {
-  if (!d) return null;
-  return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  if (!d || !mounted.value) return null;
+  return formatLocalDate(d);
 }
 
 // Phase B1 — the timeline renders the contest's stages (its explicit `stages`, or

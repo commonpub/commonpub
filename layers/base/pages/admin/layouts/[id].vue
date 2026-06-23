@@ -17,11 +17,13 @@
 import type { LayoutRecord } from '@commonpub/server';
 import { PublishStepError } from '../../../composables/useLayoutEditor';
 import { useLayoutAnnouncer, narrateUndo, narrateRedo, narrateUndoEmpty, narrateRedoEmpty, narrateRowAdded, narrateRowRemoved } from '../../../composables/useLayoutAnnouncer';
-import { useLayoutHistory, addRowCommand, removeRowCommand } from '../../../composables/useLayoutHistory';
+import { useLayoutHistory, addRowCommand, removeRowCommand, insertSectionCommand } from '../../../composables/useLayoutHistory';
 import { useLayoutHotkeys } from '../../../composables/useLayoutHotkeys';
 import { DnDProvider } from '@vue-dnd-kit/core';
 import { useSectionRegistry } from '../../../sections/registry';
 import { useLayoutResize } from '../../../composables/useLayoutResize';
+import { createSectionFromSpec, paletteDragPayload } from '../../../composables/useLayoutDrag';
+import type { SectionDefinition } from '@commonpub/ui';
 
 definePageMeta({
   layout: 'admin',
@@ -161,6 +163,32 @@ function onAddRow(zoneSlug: string): void {
     row: newRow,
     label: `add row to ${zoneSlug}`,
   }));
+}
+
+/**
+ * Keyboard-insert from the palette — WCAG 2.1.1 alternative to drag. Mirrors the
+ * drop path (createSectionFromSpec + push); appends to the last row of the first
+ * populated zone, adding a row if the layout has none. Direct mutation fires the
+ * dirty watcher + autosave, exactly like a drop.
+ */
+function onPaletteInsert(section: SectionDefinition): void {
+  const draft = editor.draft.value;
+  if (!draft || draft.zones.length === 0) return;
+  const zone = draft.zones.find((z) => z.rows.length > 0) ?? draft.zones[0]!;
+  let row = zone.rows[zone.rows.length - 1];
+  // Record each mutation to history so Cmd+Z reverses it and the undo stack
+  // stays in sync with the draft (mirrors onAddRow + the LayoutRow drop path).
+  if (!row) {
+    const position = zone.rows.length;
+    row = { id: crypto.randomUUID(), order: position, config: null, sections: [] };
+    zone.rows.push(row);
+    history.record(addRowCommand({ zoneSlug: zone.zone, position, row, label: `add row to ${zone.zone}` }));
+  }
+  const newSection = createSectionFromSpec(paletteDragPayload(section));
+  const at = row.sections.length;
+  row.sections.push(newSection);
+  history.record(insertSectionCommand({ rowId: row.id, at, section: newSection, label: `insert ${section.type}` }));
+  useLayoutAnnouncer().announce(`Inserted ${section.name} section into ${zone.zone}`);
 }
 
 /**
@@ -702,7 +730,7 @@ async function onConflictForceSave(): Promise<void> {
             :on-add-row="onAddRow"
             :on-remove-row="onRemoveRow"
           />
-          <AdminLayoutsPalette v-show="!chrome.paletteHidden.value" />
+          <AdminLayoutsPalette v-show="!chrome.paletteHidden.value" @insert="onPaletteInsert" />
           <AdminLayoutsInspector
             v-show="!chrome.inspectorHidden.value"
             :draft="editor.draft.value"

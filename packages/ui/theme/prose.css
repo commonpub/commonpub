@@ -339,4 +339,24 @@
   text-transform: uppercase;
   letter-spacing: var(--tracking-wide);
 }
+
+/* ===========================================
+   Full-HTML author content (CpubMarkdown format=html)
+   The v-html children carry no scoped styles, so this global, theme-aware
+   baseline keeps un-styled (or var()-based) author HTML readable in BOTH
+   themes. Hardcoded color literals are neutralized at sanitize time
+   (sanitizeRichHtml neutralizeColors), so this baseline shows through.
+   =========================================== */
+.cpub-md-html {
+  color: var(--text);
+  line-height: var(--leading-normal);
+}
+.cpub-md-html a { color: var(--accent); }
+.cpub-md-html h1, .cpub-md-html h2, .cpub-md-html h3,
+.cpub-md-html h4, .cpub-md-html h5, .cpub-md-html h6 { color: var(--text); }
+.cpub-md-html img { max-width: 100%; height: auto; }
+.cpub-md-html hr { border: 0; border-top: var(--border-width-default) solid var(--border); }
+.cpub-md-html blockquote { border-left: 3px solid var(--border); color: var(--text-dim); padding-left: var(--space-4); }
+.cpub-md-html th, .cpub-md-html td { border: var(--border-width-default) solid var(--border); }
+.cpub-md-html pre, .cpub-md-html code { background: var(--surface2); color: var(--text); }
 }

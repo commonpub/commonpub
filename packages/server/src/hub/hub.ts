@@ -153,12 +153,13 @@ export async function getHubBySlug(
 
   const row = rows[0]!;
   let currentUserRole: HubRole | null = null;
+  let joinRequestPending = false;
   let isBanned = false;
 
   if (requesterId) {
     const [memberRows, banResult] = await Promise.all([
       db
-        .select({ role: hubMembers.role })
+        .select({ role: hubMembers.role, status: hubMembers.status })
         .from(hubMembers)
         .where(
           and(
@@ -170,7 +171,11 @@ export async function getHubBySlug(
       checkBan(db, row.hub.id, requesterId),
     ]);
 
-    currentUserRole = memberRows[0]?.role ?? null;
+    // A pending join request is NOT membership: currentUserRole stays null so the
+    // UI shows a "request pending" affordance rather than a "joined" badge.
+    const memberRow = memberRows[0];
+    currentUserRole = memberRow?.status === 'active' ? memberRow.role : null;
+    joinRequestPending = memberRow?.status === 'pending';
     isBanned = banResult !== null;
   }
 
@@ -198,6 +203,7 @@ export async function getHubBySlug(
       rules: null,
       updatedAt: row.hub.updatedAt,
       currentUserRole: null,
+      joinRequestPending,
       isBanned,
       hubType: row.hub.hubType,
       privacy: row.hub.privacy,
@@ -222,6 +228,7 @@ export async function getHubBySlug(
     rules: row.hub.rules,
     updatedAt: row.hub.updatedAt,
     currentUserRole,
+    joinRequestPending,
     isBanned,
     hubType: row.hub.hubType,
     privacy: row.hub.privacy,

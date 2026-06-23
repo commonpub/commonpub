@@ -109,18 +109,48 @@ const pageSlug = ref('');
 const pageSidebarLabel = ref('');
 const pageDescription = ref('');
 const pageStatus = ref<'draft' | 'published'>('draft');
-const savingPage = ref(false);
-const autoSaveTimer = ref<ReturnType<typeof setTimeout> | null>(null);
-const autoSaveStatus = ref<'idle' | 'saving' | 'saved' | 'error'>('idle');
-const isDirty = ref(false);
-const isLoadingPage = ref(false); // Guard: suppresses dirty-marking during page load
 const markdownNotice = ref<string | null>(null); // Shows notice when markdown page is converted
+
+// ═══ AUTOSAVE ENGINE ═══
+// persistPage() does the actual PUT + tree refresh; useEditorAutosave owns the
+// dirty flag, save-status machine, 5s trailing debounce, Cmd+S, and the
+// unsaved-changes (beforeunload) guard. The destructured refs keep their
+// historical names so the template + the rest of setup read unchanged.
+async function persistPage(): Promise<void> {
+  await $fetch(`/api/docs/${siteSlug.value}/pages/${selectedPageId.value}`, {
+    method: 'PUT',
+    body: {
+      title: selectedPage.value?.title,
+      slug: pageSlug.value,
+      sidebarLabel: pageSidebarLabel.value || null,
+      description: pageDescription.value || null,
+      content: blockEditor.toBlockTuples(),
+    },
+  });
+  // Keep the page tree in sync with the saved slug/label.
+  await refreshPages();
+}
+
+const {
+  isDirty,
+  isLoading: isLoadingPage, // Guard: suppresses dirty-marking during page load
+  status: autoSaveStatus,
+  saving: savingPage,
+  markDirty,
+  saveNow,
+  reset: resetAutosave,
+} = useEditorAutosave({
+  persist: persistPage,
+  canSave: () => !!selectedPageId.value,
+  debounceMs: 5000,
+  onError: (err: unknown) => toast(err instanceof Error ? err.message : 'Failed to save page', 'error'),
+});
 
 // Load page content when selecting
 async function selectPage(pageId: string): Promise<void> {
   // Save current page first if dirty
   if (isDirty.value && selectedPageId.value) {
-    await saveCurrentPage();
+    await saveNow();
   }
 
   selectedPageId.value = pageId;
@@ -149,44 +179,14 @@ async function selectPage(pageId: string): Promise<void> {
   pageSidebarLabel.value = (page as unknown as Record<string, unknown>).sidebarLabel as string ?? '';
   pageDescription.value = (page as unknown as Record<string, unknown>).description as string ?? '';
   pageStatus.value = ((page as unknown as Record<string, unknown>).status as 'draft' | 'published') || 'draft';
-  isDirty.value = false;
-  autoSaveStatus.value = 'idle';
+  resetAutosave();
 
   // Release guard after watchers have flushed
   await nextTick();
   isLoadingPage.value = false;
 }
 
-// ══�� SAVING ═══
-async function saveCurrentPage(): Promise<void> {
-  if (!selectedPageId.value) return;
-  savingPage.value = true;
-  autoSaveStatus.value = 'saving';
-
-  try {
-    await $fetch(`/api/docs/${siteSlug.value}/pages/${selectedPageId.value}`, {
-      method: 'PUT',
-      body: {
-        title: selectedPage.value?.title,
-        slug: pageSlug.value,
-        sidebarLabel: pageSidebarLabel.value || null,
-        description: pageDescription.value || null,
-        content: blockEditor.toBlockTuples(),
-      },
-    });
-    isDirty.value = false;
-    autoSaveStatus.value = 'saved';
-    // Refresh pages list to keep tree in sync
-    await refreshPages();
-  } catch (err: unknown) {
-    autoSaveStatus.value = 'error';
-    toast(err instanceof Error ? err.message : 'Failed to save page', 'error');
-  } finally {
-    savingPage.value = false;
-  }
-}
-
-// Autosave: debounce 5 seconds for docs (shorter than article 30s)
+// ═══ PUBLISH / UNPUBLISH ═══
 async function publishPage(): Promise<void> {
   if (!selectedPageId.value) return;
   try {
@@ -217,47 +217,17 @@ async function unpublishPage(): Promise<void> {
   }
 }
 
-function scheduleAutoSave(): void {
-  if (autoSaveTimer.value) clearTimeout(autoSaveTimer.value);
-  autoSaveTimer.value = setTimeout(() => {
-    if (isDirty.value && selectedPageId.value) {
-      saveCurrentPage();
-    }
-  }, 5000);
-}
-
-// Watch for changes — skip during page load to avoid false dirty
+// Watch for changes — markDirty() no-ops during page load (isLoadingPage guard)
+// and arms the autosave engine's trailing debounce.
 watch(() => blockEditor.blocks.value, () => {
-  if (isLoadingPage.value) return;
-  isDirty.value = true;
-  scheduleAutoSave();
+  markDirty();
 }, { deep: true });
 
 watch([pageSlug, pageSidebarLabel, pageDescription], () => {
-  if (isLoadingPage.value) return;
-  isDirty.value = true;
-  scheduleAutoSave();
+  markDirty();
 });
 
-// Keyboard shortcut: Cmd+S to save
-function handleKeydown(e: KeyboardEvent): void {
-  if ((e.metaKey || e.ctrlKey) && e.key === 's') {
-    e.preventDefault();
-    saveCurrentPage();
-  }
-}
-
-// Warn about unsaved changes on navigation
-function handleBeforeUnload(e: BeforeUnloadEvent): void {
-  if (isDirty.value) {
-    e.preventDefault();
-  }
-}
-
 onMounted(() => {
-  document.addEventListener('keydown', handleKeydown);
-  window.addEventListener('beforeunload', handleBeforeUnload);
-
   // Auto-select page from ?page= query or first page
   const requestedPage = route.query.page as string | undefined;
   if (requestedPage && pages.value.length > 0) {
@@ -273,12 +243,6 @@ onMounted(() => {
   }
 });
 
-onUnmounted(() => {
-  document.removeEventListener('keydown', handleKeydown);
-  window.removeEventListener('beforeunload', handleBeforeUnload);
-  if (autoSaveTimer.value) clearTimeout(autoSaveTimer.value);
-});
-
 // Warn before in-app navigation (beforeunload only covers full-page unload)
 onBeforeRouteLeave((_to, _from, next) => {
   if (isDirty.value && !window.confirm('You have unsaved changes. Leave anyway?')) {
@@ -289,105 +253,31 @@ onBeforeRouteLeave((_to, _from, next) => {
 });
 
 // ═══ PAGE TREE ACTIONS ═══
-const pendingReparent = ref(false);
-async function handleCreatePage(parentId: string | null, title: string): Promise<void> {
-  try {
-    const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-    const result = await $fetch(`/api/docs/${siteSlug.value}/pages`, {
-      method: 'POST',
-      body: {
-        title,
-        slug,
-        content: [['paragraph', { html: '' }]],
-        parentId: parentId ?? undefined,
-        sortOrder: (pages.value?.length ?? 0) + 1,
-        versionId: selectedVersionId.value,
-      },
-    });
-    await refreshPages();
-    if (result && typeof result === 'object' && 'id' in result) {
-      selectPage((result as { id: string }).id);
-    }
-    toast('Page created', 'success');
-  } catch (err: unknown) {
-    toast(err instanceof Error ? err.message : 'Failed to create page', 'error');
-  }
-}
-
-async function handleRenamePage(pageId: string, newTitle: string): Promise<void> {
-  try {
-    await $fetch(`/api/docs/${siteSlug.value}/pages/${pageId}`, {
-      method: 'PUT',
-      body: { title: newTitle },
-    });
-    await refreshPages();
-    toast('Page renamed', 'success');
-  } catch (err: unknown) {
-    toast(err instanceof Error ? err.message : 'Failed to rename', 'error');
-  }
-}
-
-async function handleDuplicatePage(pageId: string): Promise<void> {
-  try {
-    const result = await $fetch(`/api/docs/${siteSlug.value}/pages/${pageId}/duplicate`, {
-      method: 'POST',
-    });
-    await refreshPages();
-    if (result && typeof result === 'object' && 'id' in result) {
-      selectPage((result as { id: string }).id);
-    }
-    toast('Page duplicated', 'success');
-  } catch (err: unknown) {
-    toast(err instanceof Error ? err.message : 'Failed to duplicate page', 'error');
-  }
-}
-
-async function handleDeletePage(pageId: string): Promise<void> {
-  try {
-    await $fetch(`/api/docs/${siteSlug.value}/pages/${pageId}`, { method: 'DELETE' });
+// CRUD orchestration (incl. the reparent/reorder deferred-refresh coordination)
+// lives in useDocsPageTree; this page just supplies its context. Handler names
+// are preserved for the template bindings + the inline title edit below.
+const {
+  createPage: handleCreatePage,
+  renamePage: handleRenamePage,
+  duplicatePage: handleDuplicatePage,
+  deletePage: handleDeletePage,
+  reorder: handleReorder,
+  reparent: handleReparent,
+} = useDocsPageTree({
+  siteSlug: () => siteSlug.value,
+  versionId: () => selectedVersionId.value,
+  version: () => selectedVersion.value,
+  pageCount: () => pages.value.length,
+  refreshPages,
+  selectPage,
+  onDeleted: (pageId) => {
     if (selectedPageId.value === pageId) {
       selectedPageId.value = null;
       blockEditor.clearBlocks();
     }
-    await refreshPages();
-    toast('Page deleted', 'success');
-  } catch (err: unknown) {
-    toast(err instanceof Error ? err.message : 'Failed to delete', 'error');
-  }
-}
-
-async function handleReorder(pageIds: string[]): Promise<void> {
-  pendingReparent.value = false; // Cancel reparent's deferred refresh
-  try {
-    await $fetch(`/api/docs/${siteSlug.value}/pages/reorder`, {
-      method: 'POST',
-      body: { pageIds, version: selectedVersion.value || undefined },
-    });
-    await refreshPages();
-  } catch {
-    toast('Failed to reorder', 'error');
-  }
-}
-
-async function handleReparent(pageId: string, newParentId: string | null): Promise<void> {
-  try {
-    await $fetch(`/api/docs/${siteSlug.value}/pages/${pageId}`, {
-      method: 'PUT',
-      body: { parentId: newParentId ?? null },
-    });
-    // Don't refresh here — if reorder follows immediately, let reorder refresh
-    // If reparent is standalone (drag inside), refresh
-    pendingReparent.value = true;
-    setTimeout(async () => {
-      if (pendingReparent.value) {
-        pendingReparent.value = false;
-        await refreshPages();
-      }
-    }, 100);
-  } catch {
-    toast('Failed to move page', 'error');
-  }
-}
+  },
+  toast,
+});
 
 
 // ═══ PAGE TITLE EDITING ═══
@@ -431,18 +321,29 @@ function handleMarkdownImport(md: string, mode: 'append' | 'replace'): void {
   const { importMarkdown } = useMarkdownImport(blockEditor);
   importMarkdown(md, mode);
   showImportDialog.value = false;
-  isDirty.value = true;
-  scheduleAutoSave();
+  markDirty();
 }
 
 // ═══ SITE SETTINGS ═══
-const showSettings = ref(false);
-const settingsName = ref('');
-const settingsDesc = ref('');
-const savingSettings = ref(false);
-const newVersion = ref('');
-const newVersionDefault = ref(false);
-const savingVersion = ref(false);
+// Settings/versions actions live in useDocsSiteSettings (composable extraction).
+// The page keeps the watch(site) seeding below, since it owns the site fetch.
+const {
+  showSettings,
+  settingsName,
+  settingsDesc,
+  savingSettings,
+  newVersion,
+  newVersionDefault,
+  savingVersion,
+  saveSiteSettings,
+  deleteSite,
+  createVersion,
+} = useDocsSiteSettings({
+  siteSlug: () => siteSlug.value,
+  refreshSite,
+  onSiteDeleted: async () => { await navigateTo('/docs'); },
+  toast,
+});
 
 interface DocsSiteVersion {
   id: string;
@@ -455,52 +356,6 @@ watch(site, (s) => {
   settingsName.value = (s as Record<string, unknown>).name as string ?? '';
   settingsDesc.value = (s as Record<string, unknown>).description as string ?? '';
 }, { immediate: true });
-
-async function saveSiteSettings(): Promise<void> {
-  savingSettings.value = true;
-  try {
-    await $fetch(`/api/docs/${siteSlug.value}`, {
-      method: 'PUT',
-      body: { name: settingsName.value, description: settingsDesc.value },
-    });
-    toast('Site settings updated', 'success');
-    await refreshSite();
-  } catch (err: unknown) {
-    toast(err instanceof Error ? err.message : 'Failed to update settings', 'error');
-  } finally {
-    savingSettings.value = false;
-  }
-}
-
-async function deleteSite(): Promise<void> {
-  if (!confirm('Delete this entire docs site? All pages and versions will be permanently deleted.')) return;
-  try {
-    await $fetch(`/api/docs/${siteSlug.value}`, { method: 'DELETE' });
-    toast('Docs site deleted', 'success');
-    await navigateTo('/docs');
-  } catch {
-    toast('Failed to delete docs site', 'error');
-  }
-}
-
-async function createVersion(): Promise<void> {
-  if (!newVersion.value.trim()) return;
-  savingVersion.value = true;
-  try {
-    await $fetch(`/api/docs/${siteSlug.value}/versions`, {
-      method: 'POST',
-      body: { version: newVersion.value, isDefault: newVersionDefault.value },
-    });
-    toast('Version created', 'success');
-    newVersion.value = '';
-    newVersionDefault.value = false;
-    await refreshSite();
-  } catch (err: unknown) {
-    toast(err instanceof Error ? err.message : 'Failed to create version', 'error');
-  } finally {
-    savingVersion.value = false;
-  }
-}
 </script>
 
 <template>
@@ -543,7 +398,7 @@ async function createVersion(): Promise<void> {
         class="cpub-docs-toolbar-btn"
         :class="{ 'cpub-docs-toolbar-btn-saving': savingPage }"
         :disabled="!isDirty || savingPage"
-        @click="saveCurrentPage"
+        @click="saveNow"
       >
         <i class="fa-solid" :class="savingPage ? 'fa-spinner fa-spin' : 'fa-floppy-disk'" />
         <span>{{ savingPage ? 'Saving' : isDirty ? 'Save' : 'Saved' }}</span>

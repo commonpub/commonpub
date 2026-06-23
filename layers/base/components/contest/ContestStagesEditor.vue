@@ -20,17 +20,7 @@ const props = defineProps<{
 
 const KINDS: ContestStage['kind'][] = ['submission', 'review', 'interim', 'results', 'event', 'custom'];
 
-// datetime-local <-> ISO (mirrors the rest of the contest forms' convention).
-function toLocal(iso?: string): string {
-  if (!iso) return '';
-  try { return new Date(iso).toISOString().slice(0, 16); } catch { return ''; }
-}
-function toIso(local: string): string | undefined {
-  if (!local) return undefined;
-  const d = new Date(local);
-  return Number.isNaN(d.getTime()) ? undefined : d.toISOString();
-}
-
+// datetime-local <-> ISO via the shared, offset-correct helpers (utils/datetime).
 function commit(next: ContestStage[]): void {
   stages.value = next;
 }
@@ -40,29 +30,8 @@ function setField(i: number, patch: Partial<ContestStage>): void {
   commit(next);
 }
 
-function onDate(i: number, field: 'startsAt' | 'endsAt', e: Event): void {
-  const v = toIso((e.target as HTMLInputElement).value);
-  setField(i, { [field]: v } as Partial<ContestStage>);
-}
-
-// Per-round rubric (review stages). Immutable updates via setField.
-type StageCriterion = { label: string; weight?: number; description?: string };
-function addCriterion(i: number): void {
-  const cur = (stages.value[i]?.criteria ?? []) as StageCriterion[];
-  setField(i, { criteria: [...cur, { label: '' }] });
-}
-function setCriterion(i: number, ci: number, patch: Partial<StageCriterion>): void {
-  const cur = (stages.value[i]?.criteria ?? []).map((c, idx) => (idx === ci ? { ...c, ...patch } : c));
-  setField(i, { criteria: cur });
-}
-function removeCriterion(i: number, ci: number): void {
-  const cur = (stages.value[i]?.criteria ?? []).filter((_, idx) => idx !== ci);
-  setField(i, { criteria: cur.length ? cur : undefined });
-}
-function critWeightInput(i: number, ci: number, e: Event): void {
-  const v = (e.target as HTMLInputElement).value;
-  setCriterion(i, ci, { weight: v === '' ? undefined : Math.max(0, Math.min(100, Math.round(Number(v)))) });
-}
+// Per-round rubric (review stages) is edited by the shared ContestCriteriaEditor
+// (same component as the contest-level Judging tab — one rubric editor, no dup).
 function advanceCountInput(i: number, e: Event): void {
   const v = (e.target as HTMLInputElement).value;
   setField(i, { advanceCount: v === '' ? undefined : Math.max(1, Math.round(Number(v))) });
@@ -73,7 +42,15 @@ function advanceCountInput(i: number, e: Event): void {
 // functions in utils/contestStages.ts (unit-tested). Flag-gated (rule #2).
 const { features } = useFeatures();
 const templatesEnabled = computed(() => features.value.contestStageSubmissions !== false);
-const FIELD_TYPES: ContestSubmissionTemplateField['type'][] = ['text', 'textarea', 'url'];
+// Phase 4: the PII flag offers the agreement/address types + the per-field PII
+// toggle; the proposals flag offers per-stage submission mode (attach vs proposal).
+const piiEnabled = computed(() => features.value.contestPii === true);
+const proposalsEnabled = computed(() => features.value.contestProposals === true);
+const FIELD_TYPES = computed<ContestSubmissionTemplateField['type'][]>(() => {
+  const base: ContestSubmissionTemplateField['type'][] = ['text', 'textarea', 'url', 'email', 'number', 'select', 'checkbox', 'date'];
+  if (piiEnabled.value) base.push('agreement', 'address');
+  return base;
+});
 
 function addTemplateField(i: number): void {
   commit(withTemplateFieldAdded(stages.value, i));
@@ -81,11 +58,24 @@ function addTemplateField(i: number): void {
 function setTemplateField(i: number, fi: number, patch: Partial<ContestSubmissionTemplateField>): void {
   commit(withTemplateFieldSet(stages.value, i, fi, patch));
 }
+function changeTemplateFieldType(i: number, fi: number, type: ContestSubmissionTemplateField['type']): void {
+  commit(withTemplateFieldTypeChanged(stages.value, i, fi, type));
+}
 function templateFieldLabelInput(i: number, fi: number, e: Event): void {
   commit(withTemplateFieldLabelChanged(stages.value, i, fi, (e.target as HTMLInputElement).value));
 }
 function removeTemplateField(i: number, fi: number): void {
   commit(withTemplateFieldRemoved(stages.value, i, fi));
+}
+// Select-option ops (pure helpers in utils/contestStages.ts).
+function addOption(i: number, fi: number): void {
+  commit(withTemplateOptionAdded(stages.value, i, fi));
+}
+function setOption(i: number, fi: number, oi: number, patch: Partial<{ value: string; label: string }>): void {
+  commit(withTemplateOptionSet(stages.value, i, fi, oi, patch));
+}
+function removeOption(i: number, fi: number, oi: number): void {
+  commit(withTemplateOptionRemoved(stages.value, i, fi, oi));
 }
 
 // Array operations live as pure functions in utils/contestStages.ts (unit-tested).
@@ -169,8 +159,9 @@ const missingSubmission = computed(() => stages.value.length > 0 && !stages.valu
 
           <div class="cpub-form-row">
             <div class="cpub-form-field" style="flex: 2;">
-              <label class="cpub-form-label">Stage name</label>
+              <label :for="`stage-name-${i}`" class="cpub-form-label">Stage name</label>
               <input
+                :id="`stage-name-${i}`"
                 :value="stage.name"
                 type="text"
                 class="cpub-form-input"
@@ -179,8 +170,9 @@ const missingSubmission = computed(() => stages.value.length > 0 && !stages.valu
               />
             </div>
             <div class="cpub-form-field" style="flex: 1;">
-              <label class="cpub-form-label">Type</label>
+              <label :for="`stage-type-${i}`" class="cpub-form-label">Type</label>
               <select
+                :id="`stage-type-${i}`"
                 :value="stage.kind"
                 class="cpub-form-input"
                 @change="setField(i, { kind: ($event.target as HTMLSelectElement).value as ContestStage['kind'] })"
@@ -193,19 +185,24 @@ const missingSubmission = computed(() => stages.value.length > 0 && !stages.valu
           <p class="cpub-stage-kind-help"><i class="fa-solid fa-circle-info"></i> {{ STAGE_KIND_HELP[stage.kind] }}</p>
 
           <div class="cpub-form-row">
-            <div class="cpub-form-field">
-              <label class="cpub-form-label">Starts</label>
-              <input type="datetime-local" class="cpub-form-input" :value="toLocal(stage.startsAt)" @input="onDate(i, 'startsAt', $event)" />
-            </div>
-            <div class="cpub-form-field">
-              <label class="cpub-form-label">Ends (countdown target)</label>
-              <input type="datetime-local" class="cpub-form-input" :value="toLocal(stage.endsAt)" @input="onDate(i, 'endsAt', $event)" />
-            </div>
+            <CpubDateTimeField
+              label="Starts"
+              :model-value="stage.startsAt"
+              :max="stage.endsAt"
+              @update:model-value="setField(i, { startsAt: $event })"
+            />
+            <CpubDateTimeField
+              label="Ends (countdown target)"
+              :model-value="stage.endsAt"
+              :min="stage.startsAt"
+              @update:model-value="setField(i, { endsAt: $event })"
+            />
           </div>
 
           <div class="cpub-form-field">
-            <label class="cpub-form-label">Description (optional)</label>
+            <label :for="`stage-desc-${i}`" class="cpub-form-label">Description (optional)</label>
             <input
+              :id="`stage-desc-${i}`"
               :value="stage.description ?? ''"
               type="text"
               class="cpub-form-input"
@@ -217,19 +214,32 @@ const missingSubmission = computed(() => stages.value.length > 0 && !stages.valu
           <!-- Per-round config (review stages): how many advance + the rubric -->
           <div v-if="stage.kind === 'review'" class="cpub-stage-criteria">
             <div class="cpub-form-field" style="margin-bottom: 10px;">
-              <label class="cpub-form-label">Advance the top N to the next stage</label>
-              <input :value="stage.advanceCount ?? ''" type="number" min="1" class="cpub-form-input cpub-stage-advn" placeholder="e.g. 50, leave blank to decide at advance time" @input="advanceCountInput(i, $event)" />
-            </div>
-            <div class="cpub-stage-criteria-head">
-              <span class="cpub-form-label" style="margin: 0;">Judging criteria, this round</span>
-              <button type="button" class="cpub-btn cpub-btn-sm" @click="addCriterion(i)"><i class="fa-solid fa-plus"></i> Add</button>
+              <label :for="`stage-advance-${i}`" class="cpub-form-label">Advance the top N to the next stage</label>
+              <input :id="`stage-advance-${i}`" :value="stage.advanceCount ?? ''" type="number" min="1" class="cpub-form-input cpub-stage-advn" placeholder="e.g. 50, leave blank to decide at advance time" @input="advanceCountInput(i, $event)" />
             </div>
             <p class="cpub-form-hint" style="margin: 4px 0;">Optional, leave empty to use the contest’s default criteria. Set per-round criteria for multi-round contests (e.g. judge proposals on Feasibility, prototypes on Deployment readiness).</p>
-            <div v-for="(crit, ci) in (stage.criteria ?? [])" :key="ci" class="cpub-stage-crit-row">
-              <input :value="crit.label" type="text" class="cpub-form-input" placeholder="Criterion (e.g. Community impact)" @input="setCriterion(i, ci, { label: ($event.target as HTMLInputElement).value })" />
-              <input :value="crit.weight ?? ''" type="number" min="0" max="100" class="cpub-form-input cpub-stage-crit-pts" placeholder="pts" @input="critWeightInput(i, ci, $event)" />
-              <button type="button" class="cpub-stage-iconbtn cpub-stage-del" aria-label="Remove criterion" @click="removeCriterion(i, ci)"><i class="fa-solid fa-xmark"></i></button>
-            </div>
+            <ContestCriteriaEditor
+              :model-value="(stage.criteria ?? [])"
+              label="Judging criteria, this round"
+              :show-total="false"
+              @update:model-value="setField(i, { criteria: ($event as ContestStage['criteria']) })"
+            />
+          </div>
+
+          <!-- Submission mode (Phase 4): attach an existing project, or collect a
+               form-first proposal that seeds a draft placeholder project. -->
+          <div v-if="stage.kind === 'submission' && proposalsEnabled" class="cpub-form-field">
+            <label :for="`stage-mode-${i}`" class="cpub-form-label">How entrants submit</label>
+            <select
+              :id="`stage-mode-${i}`"
+              :value="stage.submissionMode ?? 'attach'"
+              class="cpub-form-input"
+              @change="setField(i, { submissionMode: (($event.target as HTMLSelectElement).value as 'attach' | 'proposal') })"
+            >
+              <option value="attach">Attach an existing published project</option>
+              <option value="proposal">Proposal form (creates a draft project)</option>
+            </select>
+            <p class="cpub-form-hint" style="margin: 4px 0;">Proposal mode lets entrants apply with just this form. The server creates a draft project they develop for later rounds.</p>
           </div>
 
           <!-- Per-stage submission template (submission stages): the artifact
@@ -254,7 +264,7 @@ const missingSubmission = computed(() => stages.value.length > 0 && !stages.valu
                   :value="tf.type"
                   class="cpub-form-input cpub-stage-tfield-type"
                   :aria-label="`Field ${fi + 1} type`"
-                  @change="setTemplateField(i, fi, { type: ($event.target as HTMLSelectElement).value as ContestSubmissionTemplateField['type'] })"
+                  @change="changeTemplateFieldType(i, fi, ($event.target as HTMLSelectElement).value as ContestSubmissionTemplateField['type'])"
                 >
                   <option v-for="t in FIELD_TYPES" :key="t" :value="t">{{ TEMPLATE_FIELD_TYPE_LABEL[t] }}</option>
                 </select>
@@ -277,17 +287,82 @@ const missingSubmission = computed(() => stages.value.length > 0 && !stages.valu
                 :aria-label="`Field ${fi + 1} hint`"
                 @input="setTemplateField(i, fi, { help: ($event.target as HTMLInputElement).value || undefined })"
               />
+
+              <!-- select: the allowed options -->
+              <div v-if="tf.type === 'select'" class="cpub-stage-tfield-extra">
+                <span class="cpub-form-hint" style="margin: 0;">Choices</span>
+                <div v-for="(opt, oi) in (tf.options ?? [])" :key="oi" class="cpub-stage-opt-row">
+                  <input
+                    :value="opt.label"
+                    type="text"
+                    class="cpub-form-input"
+                    placeholder="Label (shown to entrants)"
+                    :aria-label="`Field ${fi + 1} option ${oi + 1} label`"
+                    @input="setOption(i, fi, oi, { label: ($event.target as HTMLInputElement).value })"
+                  />
+                  <input
+                    :value="opt.value"
+                    type="text"
+                    class="cpub-form-input"
+                    placeholder="Value (stored)"
+                    :aria-label="`Field ${fi + 1} option ${oi + 1} value`"
+                    @input="setOption(i, fi, oi, { value: ($event.target as HTMLInputElement).value })"
+                  />
+                  <button type="button" class="cpub-stage-iconbtn cpub-stage-del" aria-label="Remove option" @click="removeOption(i, fi, oi)"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <button type="button" class="cpub-btn cpub-btn-sm" @click="addOption(i, fi)"><i class="fa-solid fa-plus"></i> Add choice</button>
+              </div>
+
+              <!-- agreement: terms the entrant must accept -->
+              <div v-if="tf.type === 'agreement'" class="cpub-stage-tfield-extra">
+                <textarea
+                  :value="tf.terms ?? ''"
+                  class="cpub-form-input cpub-form-textarea"
+                  rows="3"
+                  placeholder="Terms the entrant must accept (e.g. shipping the hardware to winners)"
+                  :aria-label="`Field ${fi + 1} agreement terms`"
+                  @input="setTemplateField(i, fi, { terms: ($event.target as HTMLTextAreaElement).value || undefined })"
+                ></textarea>
+                <label class="cpub-stage-tfield-req">
+                  <input
+                    type="checkbox"
+                    :checked="tf.mustAccept !== false"
+                    :aria-label="`Field ${fi + 1} must accept`"
+                    @change="setTemplateField(i, fi, { mustAccept: ($event.target as HTMLInputElement).checked })"
+                  />
+                  <span>Must accept to submit</span>
+                </label>
+              </div>
+
+              <!-- address: structured + always personal data -->
+              <p v-if="tf.type === 'address'" class="cpub-form-hint" style="margin: 4px 0;">
+                Collected as a structured mailing address and stored as personal data. Visible only to staff with PII access and the entrant.
+              </p>
+
+              <!-- PII toggle (non-address, non-agreement scalar fields) -->
+              <label
+                v-if="piiEnabled && tf.type !== 'address' && tf.type !== 'agreement'"
+                class="cpub-stage-tfield-req cpub-stage-tfield-pii"
+              >
+                <input
+                  type="checkbox"
+                  :checked="tf.pii === true"
+                  :aria-label="`Field ${fi + 1} is personal data`"
+                  @change="setTemplateField(i, fi, { pii: ($event.target as HTMLInputElement).checked || undefined })"
+                />
+                <span>Personal data (store privately, hide from the public listing)</span>
+              </label>
             </div>
           </div>
 
           <div v-if="stage.kind === 'event'" class="cpub-form-row">
             <div class="cpub-form-field">
-              <label class="cpub-form-label">Location</label>
-              <input :value="stage.location ?? ''" type="text" class="cpub-form-input" placeholder="e.g. Washington, D.C." @input="setField(i, { location: ($event.target as HTMLInputElement).value || undefined })" />
+              <label :for="`stage-location-${i}`" class="cpub-form-label">Location</label>
+              <input :id="`stage-location-${i}`" :value="stage.location ?? ''" type="text" class="cpub-form-input" placeholder="e.g. Washington, D.C." @input="setField(i, { location: ($event.target as HTMLInputElement).value || undefined })" />
             </div>
             <div class="cpub-form-field">
-              <label class="cpub-form-label">Link</label>
-              <input :value="stage.url ?? ''" type="url" class="cpub-form-input" placeholder="https://…" @input="setField(i, { url: ($event.target as HTMLInputElement).value || undefined })" />
+              <label :for="`stage-url-${i}`" class="cpub-form-label">Link</label>
+              <input :id="`stage-url-${i}`" :value="stage.url ?? ''" type="url" class="cpub-form-input" placeholder="https://…" @input="setField(i, { url: ($event.target as HTMLInputElement).value || undefined })" />
             </div>
           </div>
         </li>
@@ -331,9 +406,6 @@ const missingSubmission = computed(() => stages.value.length > 0 && !stages.valu
 .cpub-stage-kind-help i { color: var(--accent); margin-top: 2px; flex-shrink: 0; }
 .cpub-stage-criteria { border: var(--border-width-default) dashed var(--border2); padding: 10px; margin-top: 4px; background: var(--surface); }
 .cpub-stage-criteria-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.cpub-stage-crit-row { display: flex; align-items: center; gap: 6px; margin-top: 6px; }
-.cpub-stage-crit-row .cpub-form-input { margin: 0; }
-.cpub-stage-crit-pts { max-width: 70px; flex-shrink: 0; }
 .cpub-stage-advn { max-width: 320px; }
 .cpub-stage-tfield { margin-top: 8px; padding-top: 8px; border-top: var(--border-width-default) dashed var(--border2); }
 .cpub-stage-tfield:first-of-type { border-top: 0; padding-top: 0; }
@@ -343,4 +415,8 @@ const missingSubmission = computed(() => stages.value.length > 0 && !stages.valu
 .cpub-stage-tfield-req { display: inline-flex; align-items: center; gap: 5px; font-size: 10px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: .06em; color: var(--text-faint); cursor: pointer; flex-shrink: 0; }
 .cpub-stage-tfield-req input { width: 13px; height: 13px; }
 .cpub-stage-tfield-help { margin-top: 6px !important; font-size: var(--text-xs) !important; }
+.cpub-stage-tfield-extra { margin-top: 6px; padding: 8px; border: var(--border-width-default) dashed var(--border2); background: var(--surface2); display: flex; flex-direction: column; gap: 6px; }
+.cpub-stage-opt-row { display: flex; align-items: center; gap: 6px; }
+.cpub-stage-opt-row .cpub-form-input { flex: 1; min-width: 100px; margin: 0; }
+.cpub-stage-tfield-pii { margin-top: 6px; }
 </style>

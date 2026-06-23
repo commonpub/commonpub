@@ -23,7 +23,7 @@ useSeoMeta({
 const sortBy = ref('recent');
 const sortOptions = ['recent', 'popular'] as const;
 
-const { data, pending } = await useFetch<PaginatedResponse<Serialized<ContentListItem>>>('/api/content', {
+const { data, pending, error, refresh } = await useFetch<PaginatedResponse<Serialized<ContentListItem>>>('/api/content', {
   query: computed(() => ({
     status: 'published',
     type: contentType.value,
@@ -48,6 +48,11 @@ const { data, pending } = await useFetch<PaginatedResponse<Serialized<ContentLis
     </div>
 
     <p v-if="pending" class="cpub-listing-empty"><i class="fa-solid fa-circle-notch fa-spin"></i> Loading...</p>
+    <div v-else-if="error" class="cpub-fetch-error">
+      <div class="cpub-fetch-error-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+      <div class="cpub-fetch-error-msg">Failed to load {{ contentType }}s.</div>
+      <button class="cpub-btn cpub-btn-sm" @click="refresh()">Retry</button>
+    </div>
     <div v-else-if="data?.items?.length" class="cpub-listing-grid">
       <ContentCard v-for="item in data.items" :key="item.id" :item="item" />
     </div>

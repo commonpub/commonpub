@@ -6,6 +6,7 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{ 'product-created': [] }>();
+const toast = useToast();
 
 const canManage = computed(() => ['owner', 'admin', 'moderator'].includes(props.currentUserRole ?? ''));
 const showForm = ref(false);
@@ -29,8 +30,9 @@ async function handleCreate(): Promise<void> {
     formPurchaseUrl.value = '';
     showForm.value = false;
     emit('product-created');
-  } catch { /* toast error */ }
-  finally { creating.value = false; }
+  } catch {
+    toast.error('Failed to create product');
+  } finally { creating.value = false; }
 }
 </script>
 

@@ -1,6 +1,7 @@
 import { listApiKeys } from '@commonpub/server';
 
 export default defineEventHandler(async (event) => {
+  requireFeature('publicApi');
   requirePermission(event, 'apikeys.manage');
   const query = getQuery(event);
   const includeRevoked = query.includeRevoked === 'true' || query.includeRevoked === '1';

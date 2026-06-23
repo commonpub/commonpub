@@ -22,6 +22,12 @@ describe('permission catalog', () => {
       expect(key).toMatch(/^[a-z]+\.[a-z]+$/);
     }
   });
+
+  it('includes contest.pii (entrant-PII read capability, Phase 4)', () => {
+    expect(PERMISSIONS).toContain('contest.pii');
+    expect(isPermissionGrant('contest.pii')).toBe(true);
+    expect(permissionKeySchema.safeParse('contest.pii').success).toBe(true);
+  });
 });
 
 describe('isPermissionKey', () => {

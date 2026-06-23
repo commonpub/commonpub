@@ -22,10 +22,11 @@ const { hubs: hubsEnabled } = useFeatures();
          over an empty list reads as broken on quiet/new instances). -->
     <div v-if="trendingSearches?.length" class="cpub-sb-block">
       <div class="cpub-sb-heading">Trending Searches</div>
-      <ul class="cpub-pop-search-list">
-        <li
+      <div class="cpub-pop-search-list" role="group" aria-label="Trending searches">
+        <button
           v-for="(item, idx) in trendingSearches?.slice(0, 8) ?? []"
           :key="idx"
+          type="button"
           class="cpub-pop-search-item"
           @click="emit('search', item.query)"
         >
@@ -35,23 +36,25 @@ const { hubs: hubsEnabled } = useFeatures();
             <i :class="item.trend > 0 ? 'fa-solid fa-arrow-trend-up' : 'fa-solid fa-minus'" style="font-size: 9px"></i>
             <template v-if="item.trend > 0">+{{ item.trend }}%</template>
           </span>
-        </li>
-      </ul>
+        </button>
+      </div>
     </div>
 
     <!-- Suggested Tags -->
     <div class="cpub-sb-block">
       <div class="cpub-sb-heading">Suggested Tags</div>
       <div class="cpub-tag-cloud">
-        <span
+        <button
           v-for="tag in suggestedTags"
           :key="tag"
+          type="button"
           class="cpub-s-tag"
           :class="{ active: activeTags.includes(tag) }"
+          :aria-pressed="activeTags.includes(tag)"
           @click="emit('toggle-tag', tag)"
         >
           {{ tag }}
-        </span>
+        </button>
       </div>
     </div>
 
@@ -60,10 +63,10 @@ const { hubs: hubsEnabled } = useFeatures();
       <div class="cpub-sb-heading">Browse by Category</div>
       <p class="cpub-no-results-note">Not finding what you need? Try browsing a category directly.</p>
       <div class="cpub-cat-grid">
-        <div v-for="cat in categories" :key="cat.label" class="cpub-cat-cell" @click="emit('set-category', cat.label)">
+        <button v-for="cat in categories" :key="cat.label" type="button" class="cpub-cat-cell" @click="emit('set-category', cat.label)">
           <span class="cpub-cat-icon"><i :class="cat.icon"></i></span>
           <span class="cpub-cat-label">{{ cat.label }}</span>
-        </div>
+        </button>
       </div>
     </div>
 
@@ -79,9 +82,6 @@ const { hubs: hubsEnabled } = useFeatures();
             <NuxtLink :to="(hub as Record<string, unknown>).source === 'federated' ? `/federated-hubs/${hub.id}` : `/hubs/${hub.slug}`" class="cpub-related-hub-name">{{ hub.name }}</NuxtLink>
             <div class="cpub-related-hub-members">{{ hub.memberCount ?? 0 }} members</div>
           </div>
-          <button class="cpub-btn-join-sm">
-            <i class="fa-solid fa-plus" style="font-size: 8px"></i> Join
-          </button>
         </div>
       </div>
     </div>
@@ -104,7 +104,8 @@ const { hubs: hubsEnabled } = useFeatures();
 
 .cpub-pop-search-item {
   display: flex; align-items: center; gap: 8px; padding: 7px 0;
-  border-bottom: var(--border-width-default) solid var(--border2); cursor: pointer;
+  border: 0; border-bottom: var(--border-width-default) solid var(--border2);
+  width: 100%; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer;
 }
 
 .cpub-pop-search-item:last-child { border-bottom: none; }
@@ -146,6 +147,7 @@ const { hubs: hubsEnabled } = useFeatures();
 .cpub-cat-cell {
   background: var(--surface2); border: var(--border-width-default) solid var(--border); padding: 10px;
   cursor: pointer; transition: border-color 0.15s, background 0.15s; text-align: center;
+  width: 100%; color: inherit; font: inherit; display: block;
 }
 
 .cpub-cat-cell:hover { border-color: var(--accent); background: var(--surface3); }
@@ -170,13 +172,4 @@ const { hubs: hubsEnabled } = useFeatures();
 
 .cpub-related-hub-name:hover { color: var(--accent); }
 .cpub-related-hub-members { font-size: 10px; font-family: var(--font-mono); color: var(--text-faint); }
-
-.cpub-btn-join-sm {
-  font-size: 10px; font-family: var(--font-mono); padding: 3px 8px;
-  border: var(--border-width-default) solid var(--border); background: var(--green-bg); color: var(--green);
-  cursor: pointer; flex-shrink: 0; display: inline-flex; align-items: center; gap: 4px;
-  box-shadow: var(--shadow-sm); transition: all 0.15s;
-}
-
-.cpub-btn-join-sm:hover { box-shadow: var(--shadow-sm); }
 </style>

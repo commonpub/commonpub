@@ -3,6 +3,7 @@ import type { DB } from '../types.js';
 import { createTestDB, createTestUser, closeTestDB } from './helpers/testdb.js';
 import {
   createPath,
+  getPathBySlug,
   listPaths,
   updatePath,
   deletePath,
@@ -213,6 +214,28 @@ describe('learning integration', () => {
 
     expect(result).toBeDefined();
     expect(result.progress).toBeGreaterThan(0);
+  });
+
+  it('getPathBySlug tags per-lesson isCompleted for the requester', async () => {
+    const path = await createPath(db, authorId, { title: 'Readback Path' });
+    const mod = await createModule(db, authorId, { pathId: path.id, title: 'Readback Module', sortOrder: 0 });
+    const lessonA = await createLesson(db, authorId, { moduleId: mod.id, title: 'Done Lesson', type: 'article' });
+    const lessonB = await createLesson(db, authorId, { moduleId: mod.id, title: 'Pending Lesson', type: 'article' });
+    await publishPath(db, path.id, authorId);
+
+    await enroll(db, learnerId, path.id);
+    await markLessonComplete(db, learnerId, lessonA.id);
+
+    // Requester who completed lessonA: A is completed, B is not.
+    const forLearner = await getPathBySlug(db, path.slug, learnerId);
+    const lessonsForLearner = forLearner!.modules.flatMap((m) => m.lessons);
+    expect(lessonsForLearner.find((l) => l.id === lessonA.id)!.isCompleted).toBe(true);
+    expect(lessonsForLearner.find((l) => l.id === lessonB.id)!.isCompleted).toBe(false);
+
+    // A different requester (the author) has completed nothing on this path.
+    const forAuthor = await getPathBySlug(db, path.slug, authorId);
+    const lessonsForAuthor = forAuthor!.modules.flatMap((m) => m.lessons);
+    expect(lessonsForAuthor.find((l) => l.id === lessonA.id)!.isCompleted).toBe(false);
   });
 
   it('lists user enrollments', async () => {

@@ -4,6 +4,8 @@ defineProps<{
   prizes: Prize[];
   /** Optional intro shown above the prize cards (section-level, not per-prize). */
   description?: string | null;
+  /** Block-editor intro (BlockTuple[]); rendered instead of `description` when present. */
+  blocks?: unknown[] | null;
   format?: 'markdown' | 'html' | null;
 }>();
 
@@ -38,7 +40,12 @@ function prizeIcon(prize: Prize): string {
     <div class="cpub-sec-head">
       <h2><i class="fa fa-trophy" style="color: var(--yellow);"></i> Prizes</h2>
     </div>
-    <CpubMarkdown v-if="description" :source="description" :format="format" class="cpub-prizes-intro" />
+    <BlocksBlockContentRenderer
+      v-if="blocks?.length"
+      :blocks="(blocks as [string, Record<string, unknown>][])"
+      class="cpub-prose cpub-md cpub-prizes-intro"
+    />
+    <CpubMarkdown v-else-if="description" :source="description" :format="format" class="cpub-prizes-intro" />
     <div v-if="prizes.length" class="cpub-prize-grid">
       <div
         v-for="(prize, i) in prizes"

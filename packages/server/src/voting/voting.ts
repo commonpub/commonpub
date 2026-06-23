@@ -32,7 +32,7 @@ export async function voteOnPost(
     const [member] = await tx
       .select({ role: hubMembers.role })
       .from(hubMembers)
-      .where(and(eq(hubMembers.hubId, postRow.hubId), eq(hubMembers.userId, userId)))
+      .where(and(eq(hubMembers.hubId, postRow.hubId), eq(hubMembers.userId, userId), eq(hubMembers.status, 'active')))
       .limit(1);
     const ban = await checkBan(tx, postRow.hubId, userId);
     if (!member || ban) {
@@ -157,7 +157,7 @@ export async function voteOnPoll(
     const [member] = await tx
       .select({ role: hubMembers.role })
       .from(hubMembers)
-      .where(and(eq(hubMembers.hubId, post.hubId), eq(hubMembers.userId, userId)))
+      .where(and(eq(hubMembers.hubId, post.hubId), eq(hubMembers.userId, userId), eq(hubMembers.status, 'active')))
       .limit(1);
     const ban = await checkBan(tx, post.hubId, userId);
     if (!member) return { voted: false, error: 'Must be a member to vote' };

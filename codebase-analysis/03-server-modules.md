@@ -412,3 +412,10 @@ Consumer apps can register additional handlers via `onHook()` in their own serve
 - `federatedContent.mirrorId` now HAS a DB-level FK (`ON DELETE SET NULL`, migration 0002 `session130_constraints`) — the old "app-enforced only" note is obsolete.
 - A few PGlite-skipped integration tests (partial-index limitations per memory).
 - No dedicated module for `files/` CRUD beyond storage adapter — handled inline in the layer's upload API route.
+- **`profile/searchUsers(db, query, limit)`** (session 211): minimal PUBLIC-fields user lookup
+  (id/username/displayName/avatarUrl; soft-deleted excluded; LIKE metacharacters escaped) for invite
+  pickers — safe to expose to non-admin contest managers, unlike `admin/listUsers` (which returns
+  email/role). Exported from the server barrel as `searchUsers` + `UserSearchResult`.
+- **Contest write atomicity (session 211):** `createContest` (contest row + judges/stakeholders seed) and
+  `withdrawContestEntry` (entry delete + `entryCount` decrement) are now wrapped in `db.transaction`;
+  `addContestJudge` uses `onConflictDoNothing` (race-safe, no more 500 on a concurrent double-invite).

@@ -141,12 +141,23 @@ export interface PaginationOpts {
  * Guards non-finite input: routes pass `Number(query.limit)`, so `?limit=abc` yields NaN.
  * `??` does NOT catch NaN, and `Math.min(NaN, 100)` is NaN → `LIMIT NaN` → an
  * unauthenticated 500 on public list endpoints (audit session 203). Clamp limit to
- * [1, 100] and offset to >= 0, falling back to defaults when not a finite number.
+ * [1, maxLimit] and offset to >= 0, falling back to the default when not a finite number.
+ *
+ * `defaults.limit` sets the page size used when `opts.limit` is absent/invalid (each
+ * list endpoint has its own default, e.g. 20/24/50); `defaults.maxLimit` caps the
+ * upper bound (default 100). The single source of truth for pagination clamping —
+ * prefer this over a hand-rolled `Math.min(opts.limit ?? N, 100)`, which mishandles
+ * NaN, zero, and negative input.
  */
-export function normalizePagination(opts: PaginationOpts): { limit: number; offset: number } {
+export function normalizePagination(
+  opts: PaginationOpts,
+  defaults: { limit?: number; maxLimit?: number } = {},
+): { limit: number; offset: number } {
+  const maxLimit = defaults.maxLimit ?? 100;
+  const fallback = Math.min(Math.max(Math.trunc(defaults.limit ?? 20), 1), maxLimit);
   const limit = Number.isFinite(opts.limit)
-    ? Math.min(Math.max(Math.trunc(opts.limit as number), 1), 100)
-    : 20;
+    ? Math.min(Math.max(Math.trunc(opts.limit as number), 1), maxLimit)
+    : fallback;
   const offset = Number.isFinite(opts.offset)
     ? Math.max(Math.trunc(opts.offset as number), 0)
     : 0;

@@ -76,11 +76,12 @@ export async function createProduct(
     status?: 'active' | 'discontinued' | 'preview';
   },
 ): Promise<ProductDetail> {
-  // Verify user is a hub member (any role) before allowing product creation.
+  // Verify user is an active hub member (any role) before allowing product
+  // creation. Pending join requests (status != 'active') do not count.
   const [member] = await db
     .select({ role: hubMembers.role })
     .from(hubMembers)
-    .where(and(eq(hubMembers.hubId, hubId), eq(hubMembers.userId, userId)))
+    .where(and(eq(hubMembers.hubId, hubId), eq(hubMembers.userId, userId), eq(hubMembers.status, 'active')))
     .limit(1);
 
   if (!member) {

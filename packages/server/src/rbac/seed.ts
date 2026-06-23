@@ -23,6 +23,7 @@ export const STAFF_PERMISSION_SET = [
   'reports.review',
   'contest.create',
   'contest.manage',
+  'contest.pii',
   'event.create',
   'event.manage',
   'audit.read',

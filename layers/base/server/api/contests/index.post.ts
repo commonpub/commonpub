@@ -30,6 +30,6 @@ export default defineEventHandler(async (event): Promise<ContestDetail> => {
 
   return createContest(db, { ...input, slug, createdBy: user.id } as CreateContestInput, {
     userRole: user.role,
-    contestCreationPolicy: config.instance.contestCreation ?? 'staff',
+    contestCreationPolicy: config.instance.contestCreation ?? 'admin',
   });
 });

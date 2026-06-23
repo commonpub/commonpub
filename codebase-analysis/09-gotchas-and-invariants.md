@@ -922,6 +922,45 @@ via `currentStage`; the judge page mirrors this (its `currentRoundId` uses `norm
 like the server) to pre-fill only the current round's score. If you add another scoring surface,
 tag + aggregate by `roundId` the same way.
 
+**Score/rank denormalization chain (Phase 6):** `contest_entries.judgeScores` is the SOURCE OF
+TRUTH (per-judge inputs). `score` is the mean of the CURRENT round's `judgeScores`, re-derived by
+`judgeContestEntry` on every write; `rank` is RANK() over `score` DESC across the surviving cohort,
+re-derived by `calculateContestRanks` on completion; `stageState[].{score,rank}` is the IMMUTABLE
+per-round snapshot taken at each advancement cut (never recomputed). Flow: judgeScores → score →
+rank → stageState. Asserted by the "keeps score in sync with judgeScores" integration test. Don't
+write `score`/`rank` from anywhere but these two functions.
+
+**Contest PII partition (Phase 4 — security invariant):** PII NEVER lives in the public
+`contest_entries.stageSubmissions` jsonb. `validateSubmissionFields` splits each submission into
+{ artifact, pii, agreements }; only the non-PII artifact reaches `stageSubmissions`. PII goes to
+`contestEntryPrivateFields` (unique per entry), consent to `contestAgreementAcceptances`
+(append-only, with `termsHash`/`termsSnapshot`/`ip`). The only readers of those two tables live in
+`submissions.ts` (the upsert + the gated `getEntryPrivateData`). The `/entries` list + detail + judge
+page + CSV export's non-PII columns read ONLY `stageSubmissions`. PII surfaces ONLY via the gated
+`GET /entries/:entryId/private` (`contest.pii` OR own entry) and the export's PII columns
+(`contest.pii`). If you add an entries reader, do NOT join the PII/agreement tables. Contests don't
+federate, so there's no AP serialization leak path either.
+
+**`contest.pii` is single-dot (Phase 4):** unlike most permissions, the contest PII grant is
+`contest.pii` (not `contest.pii.read`) to satisfy the catalog test's `^[a-z]+\.[a-z]+$` shape.
+Seeded to admin (`*`) + staff (migration 0030 + STAFF_PERMISSION_SET).
+
+**CSV export is formula-injection-safe (Phase 5):** `contest/export.ts`'s `toCsv` prefixes any cell
+starting with `= + - @` TAB or CR with a `'` before RFC-4180 quoting, so entrant-controlled text
+(project title, proposal summary, author name) can't execute as a spreadsheet formula. Any new
+user-controlled CSV MUST route through `toCsv`.
+
+**Judge route slug-scoping (B5a, Phase 6):** `POST /contests/:slug/judge` resolves the contest by
+`:slug` and threads its id into `judgeContestEntry`, which rejects an entry that doesn't belong to
+that contest. Previously the route judged purely by entryId (a misleading contract, not an
+escalation — the judge-auth gate is contest-scoped).
+
+**Contest server is decomposed (Phase 4) — don't regrow the monolith:** the former 1666-line
+`contest/contest.ts` is split into an acyclic module DAG under `packages/server/src/contest/`:
+`types` ← `stages`/`validation` ← `read`/`entries`/`submissions` ← `judging`; `contest` (CRUD) ←
+`read`+`entries`; `export` is a leaf. `contest/index.ts` is the public barrel. New contest server
+logic goes in the right module.
+
 **Advancement-cull tests must defeat the insertion-order coincidence (session 189):** a Top-N cut
 test where the entries are scored in submission order can't tell a score-based cut from a buggy
 `slice(0, N)` (insertion-order) cut — both pass. The contest advancement + e2e tests deliberately
@@ -1133,3 +1172,49 @@ full page load SSR populates it, so typing the URL works. But on a **client-side
 `v-else` is "Contest not found" will flash/stick on that branch, reading as a broken link. Gate on
 the fetch `status`: treat `idle`/`pending` as a *loading* state distinct from a genuinely-null
 "not found". This is why a page can "work when you type the URL but not when you click the button".
+
+## Theme native controls: every dark theme MUST declare `color-scheme: dark` (session 211)
+
+`:root` (base.css) sets `color-scheme: light`; each dark theme block overrides with `color-scheme: dark`
+(`[data-theme="dark"]`, `[data-theme="agora-dark"]`, `[data-theme="stoa-dark"]`). Without the override a
+dark theme renders native UI (the `datetime-local` calendar popup, scrollbars, `<select>` chrome) in the
+LIGHT scheme → white popups on a dark page. stoa-dark was missing it (added session 211). **A new dark
+theme — including a custom DB-stored one — must declare `color-scheme: dark`.** Custom dark themes built
+via the theme editor do NOT yet set this (known follow-up; they were already light-control pre-211, so
+no regression).
+
+## datetime-local conversion: use `utils/datetime`, never `toISOString().slice(0,16)` (session 211)
+
+A `datetime-local` control speaks LOCAL wall-clock with no zone. `new Date(iso).toISOString().slice(0,16)`
+is UTC → the value shown is shifted by the local offset, so the time an organizer picks is not the time
+stored. Use `toLocalInput(iso)` / `fromLocalInput(local)` (`layers/base/utils/datetime.ts`), which build
+the input value from LOCAL date components and parse it back as local (round-trip-correct in every TZ).
+The shared `CpubDateTimeField.vue` wraps this + `min`/`max` coupling + a11y; prefer it over a raw input.
+edit.vue's contest-date LOAD (and `seedStandardStages` seeding via it) had this exact UTC bug — fixed 211.
+
+## Contest rich-HTML is color-neutralized for dark-safety (session 211)
+
+`CpubMarkdown` renders `format:'html'` via `sanitizeRichHtml(html, { neutralizeColors: true })`, which
+DROPS inline hardcoded color/background literals (hex/rgb/hsl/named) so the themed `.cpub-md-html`
+baseline (`packages/ui/theme/prose.css`) shows through in BOTH themes. Theme-adaptive values
+(`var(...)`, `currentColor`, `inherit`, `transparent`) are KEPT. `neutralizeColors` defaults OFF
+(general-purpose `sanitizeRichHtml` preserves colors — existing tests rely on that); only the contest
+HTML path opts in. **Deploy note:** existing contests with intentional hardcoded HTML colors will show
+the theme baseline instead after this ships — intended (dark-safety), not flagged/toggled.
+
+## `?tab=` is the contest detail tab state — deep-linkable (session 211)
+
+`pages/contests/[slug]/index.vue` syncs the active tab to `?tab=` (validated against the known keys,
+`router.replace`, overview omits the param). SSR-initialized so a shared `/contests/x?tab=judges` lands
+correctly; back/forward honored. Caveat: a deep link to a LAZY-data tab (judges/participants) for a
+non-owner can reset to overview before that data loads.
+
+## `layers/base/theme/` is a GENERATED COPY — edit `packages/ui/theme/` (session 211)
+
+`layers/base/theme/*.css` is gitignored (`layers/base/.gitignore` `/theme/`); `nuxt.config.ts` uses it
+when present (the npm-published bundle), else falls back to `packages/ui/theme`. It is regenerated from
+`packages/ui/theme` by `layers/base/scripts/bundle-theme.mjs` at publish (`prepublishOnly`). **The tracked
+source of truth is `packages/ui/theme/`** (base/dark/agora-dark/stoa-dark/prose/forms/...). Editing the
+layer copy is silently uncommitted AND overwritten on the next bundle; in local dev run `node
+layers/base/scripts/bundle-theme.mjs` after editing the source so the dev server reflects it. Same class
+as the unanchored-gitignore-swallows-source landmine.

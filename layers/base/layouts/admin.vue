@@ -1,8 +1,26 @@
 <script setup lang="ts">
 const { isAdmin } = useAuth();
-const { admin: adminEnabled, layoutEngine } = useFeatures();
+const { admin: adminEnabled, layoutEngine, publicApi } = useFeatures();
 const runtimeConfig = useRuntimeConfig();
 const siteName = computed(() => (runtimeConfig.public.siteName as string) || 'CommonPub');
+
+// Each nav link is gated on the permission key its target route enforces via
+// requirePermission (verified against the server routes). With the RBAC flag
+// OFF, useCan returns true for admins (admin floor) and false otherwise, so the
+// visible chrome is unchanged today; flipping the flag later drives the UI.
+const canDashboard = useCan('audit.read'); // /admin → /api/admin/stats
+const canUsers = useCan('users.read'); // /admin/users
+const canRoles = useCan('roles.manage'); // /admin/roles
+const canContent = useCan('content.moderate'); // /admin/content
+const canCategories = useCan('categories.manage'); // /admin/categories + video-categories
+const canReports = useCan('reports.review'); // /admin/reports
+const canAudit = useCan('audit.read'); // /admin/audit
+const canTheme = useCan('theme.manage'); // /admin/theme
+const canLayout = useCan('layout.manage'); // /admin/homepage + /admin/layouts
+const canNavigation = useCan('navigation.manage'); // /admin/navigation
+const canSettings = useCan('settings.manage'); // /admin/features + /admin/settings
+const canFederation = useCan('federation.manage'); // /admin/federation
+const canApiKeys = useCan('apikeys.manage'); // /admin/api-keys
 
 // Sidebar state (desktop collapse + mobile drawer) — see useAdminSidebar.ts.
 // Editor routes (/admin/layouts/[id], /admin/theme/edit/[id]) auto-collapse
@@ -57,52 +75,56 @@ const { desktopCollapsed, mobileOpen, toggleDesktop, toggleMobile, closeMobile }
             "Dashboard, link", the icon alone has no accessible name.
             `title` attr only set when collapsed → visual tooltip on hover.
           -->
-          <NuxtLink to="/admin" class="admin-nav-link" :title="desktopCollapsed ? 'Dashboard' : undefined" @click="closeMobile">
+          <NuxtLink v-if="canDashboard" to="/admin" class="admin-nav-link" :title="desktopCollapsed ? 'Dashboard' : undefined" @click="closeMobile">
             <i class="fa-solid fa-gauge"></i><span class="admin-nav-label">Dashboard</span>
           </NuxtLink>
-          <NuxtLink to="/admin/users" class="admin-nav-link" :title="desktopCollapsed ? 'Users' : undefined" @click="closeMobile">
+          <NuxtLink v-if="canUsers" to="/admin/users" class="admin-nav-link" :title="desktopCollapsed ? 'Users' : undefined" @click="closeMobile">
             <i class="fa-solid fa-users"></i><span class="admin-nav-label">Users</span>
           </NuxtLink>
-          <NuxtLink to="/admin/roles" class="admin-nav-link" :title="desktopCollapsed ? 'Roles' : undefined" @click="closeMobile">
+          <NuxtLink v-if="canRoles" to="/admin/roles" class="admin-nav-link" :title="desktopCollapsed ? 'Roles' : undefined" @click="closeMobile">
             <i class="fa-solid fa-user-shield"></i><span class="admin-nav-label">Roles</span>
           </NuxtLink>
-          <NuxtLink to="/admin/content" class="admin-nav-link" :title="desktopCollapsed ? 'Content' : undefined" @click="closeMobile">
+          <NuxtLink v-if="canContent" to="/admin/content" class="admin-nav-link" :title="desktopCollapsed ? 'Content' : undefined" @click="closeMobile">
             <i class="fa-solid fa-newspaper"></i><span class="admin-nav-label">Content</span>
           </NuxtLink>
-          <NuxtLink to="/admin/categories" class="admin-nav-link" :title="desktopCollapsed ? 'Categories' : undefined" @click="closeMobile">
+          <NuxtLink v-if="canCategories" to="/admin/categories" class="admin-nav-link" :title="desktopCollapsed ? 'Categories' : undefined" @click="closeMobile">
             <i class="fa-solid fa-tags"></i><span class="admin-nav-label">Categories</span>
           </NuxtLink>
-          <NuxtLink to="/admin/reports" class="admin-nav-link" :title="desktopCollapsed ? 'Reports' : undefined" @click="closeMobile">
+          <NuxtLink v-if="canCategories" to="/admin/video-categories" class="admin-nav-link" :title="desktopCollapsed ? 'Video Categories' : undefined" @click="closeMobile">
+            <i class="fa-solid fa-film"></i><span class="admin-nav-label">Video Categories</span>
+          </NuxtLink>
+          <NuxtLink v-if="canReports" to="/admin/reports" class="admin-nav-link" :title="desktopCollapsed ? 'Reports' : undefined" @click="closeMobile">
             <i class="fa-solid fa-flag"></i><span class="admin-nav-label">Reports</span>
           </NuxtLink>
-          <NuxtLink to="/admin/audit" class="admin-nav-link" :title="desktopCollapsed ? 'Audit Log' : undefined" @click="closeMobile">
+          <NuxtLink v-if="canAudit" to="/admin/audit" class="admin-nav-link" :title="desktopCollapsed ? 'Audit Log' : undefined" @click="closeMobile">
             <i class="fa-solid fa-clipboard-list"></i><span class="admin-nav-label">Audit Log</span>
           </NuxtLink>
-          <NuxtLink to="/admin/theme" class="admin-nav-link" :title="desktopCollapsed ? 'Theme' : undefined" @click="closeMobile">
+          <NuxtLink v-if="canTheme" to="/admin/theme" class="admin-nav-link" :title="desktopCollapsed ? 'Theme' : undefined" @click="closeMobile">
             <i class="fa-solid fa-palette"></i><span class="admin-nav-label">Theme</span>
           </NuxtLink>
-          <NuxtLink to="/admin/homepage" class="admin-nav-link" :title="desktopCollapsed ? 'Homepage' : undefined" @click="closeMobile">
+          <NuxtLink v-if="canLayout" to="/admin/homepage" class="admin-nav-link" :title="desktopCollapsed ? 'Homepage' : undefined" @click="closeMobile">
             <i class="fa-solid fa-house"></i><span class="admin-nav-label">Homepage</span>
           </NuxtLink>
-          <!-- Layouts editor — gated on layoutEngine feature flag (CLAUDE.md rule #2).
-               Stays invisible until the operator flips the flag, then appears between
-               the legacy /admin/homepage editor and Navigation. Phase 3a, session 160 audit. -->
-          <NuxtLink v-if="layoutEngine" to="/admin/layouts" class="admin-nav-link" :title="desktopCollapsed ? 'Layouts' : undefined" @click="closeMobile">
+          <!-- Layouts editor — gated on layoutEngine feature flag (CLAUDE.md rule #2)
+               AND layout.manage. Stays invisible until the operator flips the flag,
+               then appears between the legacy /admin/homepage editor and Navigation.
+               Phase 3a, session 160 audit. -->
+          <NuxtLink v-if="layoutEngine && canLayout" to="/admin/layouts" class="admin-nav-link" :title="desktopCollapsed ? 'Layouts' : undefined" @click="closeMobile">
             <i class="fa-solid fa-table-cells-large"></i><span class="admin-nav-label">Layouts</span>
           </NuxtLink>
-          <NuxtLink to="/admin/navigation" class="admin-nav-link" :title="desktopCollapsed ? 'Navigation' : undefined" @click="closeMobile">
+          <NuxtLink v-if="canNavigation" to="/admin/navigation" class="admin-nav-link" :title="desktopCollapsed ? 'Navigation' : undefined" @click="closeMobile">
             <i class="fa-solid fa-bars"></i><span class="admin-nav-label">Navigation</span>
           </NuxtLink>
-          <NuxtLink to="/admin/features" class="admin-nav-link" :title="desktopCollapsed ? 'Features' : undefined" @click="closeMobile">
+          <NuxtLink v-if="canSettings" to="/admin/features" class="admin-nav-link" :title="desktopCollapsed ? 'Features' : undefined" @click="closeMobile">
             <i class="fa-solid fa-toggle-on"></i><span class="admin-nav-label">Features</span>
           </NuxtLink>
-          <NuxtLink to="/admin/federation" class="admin-nav-link" :title="desktopCollapsed ? 'Federation' : undefined" @click="closeMobile">
+          <NuxtLink v-if="canFederation" to="/admin/federation" class="admin-nav-link" :title="desktopCollapsed ? 'Federation' : undefined" @click="closeMobile">
             <i class="fa-solid fa-globe"></i><span class="admin-nav-label">Federation</span>
           </NuxtLink>
-          <NuxtLink to="/admin/api-keys" class="admin-nav-link" :title="desktopCollapsed ? 'API Keys' : undefined" @click="closeMobile">
+          <NuxtLink v-if="publicApi && canApiKeys" to="/admin/api-keys" class="admin-nav-link" :title="desktopCollapsed ? 'API Keys' : undefined" @click="closeMobile">
             <i class="fa-solid fa-key"></i><span class="admin-nav-label">API Keys</span>
           </NuxtLink>
-          <NuxtLink to="/admin/settings" class="admin-nav-link" :title="desktopCollapsed ? 'Settings' : undefined" @click="closeMobile">
+          <NuxtLink v-if="canSettings" to="/admin/settings" class="admin-nav-link" :title="desktopCollapsed ? 'Settings' : undefined" @click="closeMobile">
             <i class="fa-solid fa-gear"></i><span class="admin-nav-label">Settings</span>
           </NuxtLink>
         </nav>

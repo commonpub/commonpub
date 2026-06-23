@@ -2,6 +2,7 @@
 import type { Serialized, ContestEntryItem, ContestJudgeItem } from '@commonpub/server';
 
 const route = useRoute();
+const router = useRouter();
 const slug = route.params.slug as string;
 const toast = useToast();
 const { extract: extractError } = useApiError();
@@ -56,17 +57,41 @@ const visibilityNote = computed(() => {
 interface Tab { key: string; label: string; icon: string; count?: number }
 const tabs = computed<Tab[]>(() => {
   const t: Tab[] = [{ key: 'overview', label: 'Overview', icon: 'fa-circle-info' }];
-  if (c.value?.rules) t.push({ key: 'rules', label: 'Rules', icon: 'fa-file-lines' });
-  if (c.value?.showPrizes !== false && (c.value?.prizes?.length || c.value?.prizesDescription)) t.push({ key: 'prizes', label: 'Prizes', icon: 'fa-trophy' });
+  if (c.value?.rules || c.value?.rulesBlocks?.length) t.push({ key: 'rules', label: 'Rules', icon: 'fa-file-lines' });
+  if (c.value?.showPrizes !== false && (c.value?.prizes?.length || c.value?.prizesDescription || c.value?.prizesBlocks?.length)) t.push({ key: 'prizes', label: 'Prizes', icon: 'fa-trophy' });
   t.push({ key: 'entries', label: 'Entries', icon: 'fa-box-open', count: c.value?.entryCount ?? entries.value.length });
   if (participants.value.length) t.push({ key: 'participants', label: 'Participants', icon: 'fa-users', count: participants.value.length });
   if (judges.value.length || isOwner.value) t.push({ key: 'judges', label: 'Judges', icon: 'fa-gavel', count: judges.value.length || undefined });
   return t;
 });
-const activeTab = ref('overview');
+// Active tab is synced to ?tab= so every section is directly linkable + shareable
+// and survives reload (the WAI-ARIA tablist + keyboard nav below are unchanged).
+// Validate against the known tab keys; unknown/garbage falls back to overview.
+const KNOWN_TABS = ['overview', 'rules', 'prizes', 'entries', 'participants', 'judges'];
+function tabFromQuery(): string {
+  const t = route.query.tab;
+  return typeof t === 'string' && KNOWN_TABS.includes(t) ? t : 'overview';
+}
+const activeTab = ref(tabFromQuery());
 watch(tabs, (list) => {
   if (!list.some((t) => t.key === activeTab.value)) activeTab.value = 'overview';
 });
+// Reflect tab changes in the URL (replace, not push, so tab clicks don't flood
+// history); overview is the default and omits the param for a clean URL.
+watch(activeTab, (key) => {
+  const q = { ...route.query };
+  if (key === 'overview') delete q.tab;
+  else q.tab = key;
+  if (q.tab !== route.query.tab) router.replace({ query: q });
+});
+// Honor browser back/forward that lands on a different ?tab=.
+watch(
+  () => route.query.tab,
+  () => {
+    const key = tabFromQuery();
+    if (key !== activeTab.value && tabs.value.some((t) => t.key === key)) activeTab.value = key;
+  },
+);
 
 // WAI-ARIA tabs keyboard pattern (arrow keys + Home/End, roving focus).
 function focusTab(key: string): void {
@@ -152,6 +177,32 @@ const currentSubmissionStage = computed(() => {
   return stage && stage.kind === 'submission' && stage.submissionTemplate?.length ? stage : null;
 });
 const myEntries = computed(() => entries.value.filter((e) => e.userId === user.value?.id));
+
+// Proposal mode (Phase 4): when the CURRENT submission stage is proposal-mode
+// and proposals are enabled, entrants submit a form (no pre-existing project)
+// and the server creates a draft placeholder. Replaces the attach-an-entry CTA.
+const currentProposalStage = computed(() => {
+  if (!c.value || features.value.contestProposals !== true || c.value.status !== 'active') return null;
+  const source = {
+    status: c.value.status,
+    startDate: c.value.startDate,
+    endDate: c.value.endDate,
+    judgingEndDate: c.value.judgingEndDate ?? null,
+    stages: c.value.stages,
+    currentStageId: c.value.currentStageId,
+  };
+  const stage = normalizeStages(source).find((s) => s.id === currentStageId(source));
+  return stage && stage.kind === 'submission' && stage.submissionMode === 'proposal' && stage.submissionTemplate?.length ? stage : null;
+});
+
+function onProposalSubmitted(projectSlug: string, contentType: string): void {
+  refreshNuxtData();
+  // Route the entrant into their new draft project to develop it for later rounds.
+  // Use the server's ACTUAL created type (not a client guess) so the URL resolves.
+  if (user.value?.username) {
+    navigateTo(`/u/${user.value.username}/${contentType}/${projectSlug}/edit`);
+  }
+}
 
 // Restrict the submit picker to the contest's eligible content types (if set).
 const eligibleTypes = computed<string[]>(() => (c.value?.eligibleContentTypes as string[] | undefined) ?? []);
@@ -314,8 +365,14 @@ async function withdrawEntry(entryId: string): Promise<void> {
           <div v-show="activeTab === 'overview'" id="cpub-panel-overview" role="tabpanel" aria-labelledby="cpub-tab-overview" tabindex="0">
             <div class="cpub-about-section">
               <div class="cpub-sec-head"><h2><i class="fa fa-circle-info" style="color: var(--accent);"></i> About This Contest</h2></div>
+              <img v-if="c?.coverImageUrl" :src="c.coverImageUrl" :alt="`${c?.title || 'Contest'} cover`" class="cpub-about-cover" />
               <div class="cpub-about-card">
-                <CpubMarkdown v-if="c?.description" :source="c.description" :format="c?.descriptionFormat" />
+                <BlocksBlockContentRenderer
+                  v-if="c?.descriptionBlocks?.length"
+                  :blocks="(c.descriptionBlocks as [string, Record<string, unknown>][])"
+                  class="cpub-prose cpub-md"
+                />
+                <CpubMarkdown v-else-if="c?.description" :source="c.description" :format="c?.descriptionFormat" />
                 <p v-else>No description available for this contest.</p>
               </div>
             </div>
@@ -324,12 +381,12 @@ async function withdrawEntry(entryId: string): Promise<void> {
 
           <!-- RULES -->
           <div v-show="activeTab === 'rules'" id="cpub-panel-rules" role="tabpanel" aria-labelledby="cpub-tab-rules" tabindex="0">
-            <ContestRules v-if="c?.rules" :rules="c.rules" :format="c?.rulesFormat" />
+            <ContestRules v-if="c?.rules || c?.rulesBlocks?.length" :rules="c?.rules ?? ''" :blocks="c?.rulesBlocks" :format="c?.rulesFormat" />
           </div>
 
           <!-- PRIZES -->
           <div v-show="activeTab === 'prizes'" id="cpub-panel-prizes" role="tabpanel" aria-labelledby="cpub-tab-prizes" tabindex="0">
-            <ContestPrizes v-if="c?.showPrizes !== false && (c?.prizes?.length || c?.prizesDescription)" :prizes="c?.prizes ?? []" :description="c?.prizesDescription" :format="c?.prizesDescriptionFormat" />
+            <ContestPrizes v-if="c?.showPrizes !== false && (c?.prizes?.length || c?.prizesDescription || c?.prizesBlocks?.length)" :prizes="c?.prizes ?? []" :description="c?.prizesDescription" :blocks="c?.prizesBlocks" :format="c?.prizesDescriptionFormat" />
           </div>
 
           <!-- ENTRIES -->
@@ -341,7 +398,25 @@ async function withdrawEntry(entryId: string): Promise<void> {
               :entries="myEntries"
               @saved="refreshEntries"
             />
-            <div v-if="c?.status === 'active'" class="cpub-entries-cta">
+            <!-- Proposal mode: a first-time entrant submits the form (no project yet). -->
+            <ContestProposalForm
+              v-if="currentProposalStage && isAuthenticated && !myEntries.length"
+              :contest-slug="slug"
+              :stage="currentProposalStage"
+              @submitted="onProposalSubmitted"
+            />
+            <!-- Proposal mode + anonymous: prompt to log in. -->
+            <div v-else-if="currentProposalStage && !isAuthenticated" class="cpub-entries-cta">
+              <div class="cpub-entries-cta-text">
+                <p class="cpub-entries-cta-title"><i class="fa-solid fa-clipboard-list"></i> Submit a proposal</p>
+                <p class="cpub-entries-cta-sub">Log in to submit a proposal for this contest.</p>
+              </div>
+              <NuxtLink :to="`/auth/login?redirect=/contests/${slug}`" class="cpub-btn cpub-btn-primary cpub-btn-lg">
+                <i class="fa-solid fa-right-to-bracket"></i> Log in to enter
+              </NuxtLink>
+            </div>
+            <!-- Attach mode (no proposal stage): the classic enter-with-a-project CTA. -->
+            <div v-if="c?.status === 'active' && !currentProposalStage" class="cpub-entries-cta">
               <div class="cpub-entries-cta-text">
                 <p class="cpub-entries-cta-title"><i class="fa-solid fa-trophy"></i> Enter this contest</p>
                 <p class="cpub-entries-cta-sub">Submit one of your published projects, or start a new one.</p>
@@ -352,6 +427,15 @@ async function withdrawEntry(entryId: string): Promise<void> {
               <NuxtLink v-else :to="`/auth/login?redirect=/contests/${slug}`" class="cpub-btn cpub-btn-primary cpub-btn-lg">
                 <i class="fa-solid fa-right-to-bracket"></i> Log in to enter
               </NuxtLink>
+            </div>
+            <div v-if="canManage && entries.length" class="cpub-entries-tools">
+              <a
+                :href="`/api/contests/${slug}/export`"
+                class="cpub-btn cpub-btn-sm"
+                download
+              >
+                <i class="fa-solid fa-file-csv"></i> Export entries (CSV)
+              </a>
             </div>
             <ContestEntries
               :entries="entries"
@@ -424,6 +508,7 @@ async function withdrawEntry(entryId: string): Promise<void> {
 /* LAYOUT */
 .cpub-contest-main { max-width: 1100px; margin: 0 auto; padding: 32px; }
 
+.cpub-entries-tools { display: flex; justify-content: flex-end; margin-bottom: 12px; }
 .cpub-entries-cta { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding: 16px 20px; margin-bottom: 18px; background: var(--accent-bg); border: var(--border-width-default) solid var(--accent-border); }
 .cpub-entries-cta-title { font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 8px; margin: 0; }
 .cpub-entries-cta-title i { color: var(--accent); }
@@ -470,6 +555,7 @@ async function withdrawEntry(entryId: string): Promise<void> {
 
 /* ABOUT */
 .cpub-about-section { margin-bottom: 20px; }
+.cpub-about-cover { width: 100%; max-height: 380px; object-fit: cover; display: block; border: var(--border-width-default) solid var(--border); box-shadow: var(--shadow-md); margin-bottom: 16px; }
 .cpub-about-card { background: var(--surface); border: var(--border-width-default) solid var(--border); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow-md); font-size: 12px; color: var(--text-dim); line-height: 1.7; }
 .cpub-about-card p { margin: 0; white-space: pre-line; }
 

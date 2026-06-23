@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import type { DB } from '../types.js';
 import { createTestDB, createTestUser, closeTestDB } from './helpers/testdb.js';
+import { createRealTestDB, realPgReachable, type RealTestDb } from './helpers/realpgdb.js';
 import {
   createConversation,
   findOrCreateConversation,
@@ -9,6 +10,8 @@ import {
   sendMessage,
   markMessagesRead,
 } from '../messaging/messaging.js';
+
+const reachable = await realPgReachable();
 
 describe('messaging integration', () => {
   let db: DB;
@@ -101,15 +104,6 @@ describe('messaging integration', () => {
     expect(readMsg!.readAt).not.toBeNull();
   });
 
-  // PGlite doesn't support JSONB @> with jsonb_array_length — findOrCreateConversation
-  // always creates a new row instead of finding existing. Passes with real Postgres.
-  it.skip('findOrCreateConversation returns existing', async () => {
-    const conv = await createConversation(db, [alice, bob]);
-    const found = await findOrCreateConversation(db, [alice, bob]);
-
-    expect(found.id).toBe(conv.id);
-  });
-
   it('findOrCreateConversation creates new', async () => {
     await listConversations(db, charlie);
 
@@ -127,5 +121,30 @@ describe('messaging integration', () => {
     await expect(createConversation(db, [alice, fakeId])).rejects.toThrow(
       'One or more participant IDs do not exist',
     );
+  });
+});
+
+// findOrCreateConversation dedups via a JSONB `@>` containment + jsonb_array_length
+// match that PGlite can't execute (it always inserts a new row), so this proof needs
+// a real Postgres. Skips cleanly when none is reachable.
+describe.skipIf(!reachable)('messaging integration (real Postgres — JSONB @> dedup)', () => {
+  let h: RealTestDb;
+  let db: DB;
+  let alice: string;
+  let bob: string;
+
+  beforeAll(async () => {
+    h = await createRealTestDB();
+    db = h.db;
+    alice = (await createTestUser(db, { username: 'rpg-alice' })).id;
+    bob = (await createTestUser(db, { username: 'rpg-bob' })).id;
+  }, 60_000);
+
+  afterAll(async () => { await h?.cleanup(); });
+
+  it('findOrCreateConversation returns the existing conversation for the same pair', async () => {
+    const conv = await createConversation(db, [alice, bob]);
+    const found = await findOrCreateConversation(db, [alice, bob]);
+    expect(found.id).toBe(conv.id);
   });
 });

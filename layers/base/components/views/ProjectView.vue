@@ -1,5 +1,15 @@
 <script setup lang="ts">
 import type { ContentViewData } from '../../composables/useEngagement';
+import {
+  extractParts,
+  extractBuildSteps,
+  extractCodeBlocks,
+  extractDownloadFiles,
+  extractTocEntries,
+} from '../../utils/projectBlocks';
+// Explicit import (not Nuxt auto-import): ProjectView.test.ts mounts the SFC with
+// no Nuxt transform, so an auto-imported composable would be undefined there.
+import { useScrollSpy } from '../../composables/useScrollSpy';
 
 const { hubs: hubsEnabled } = useFeatures();
 const { user: authUser } = useAuth();
@@ -36,6 +46,23 @@ const tabs = computed(() => {
   return result;
 });
 
+// Roving-tabindex keyboard nav for the tablist (WCAG 4.1.2 / APG tabs pattern):
+// Arrow keys move + activate the adjacent tab, Home/End jump to the ends.
+function onTabKeydown(e: KeyboardEvent, idx: number): void {
+  const count = tabs.value.length;
+  let next = -1;
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') next = (idx + 1) % count;
+  else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') next = (idx - 1 + count) % count;
+  else if (e.key === 'Home') next = 0;
+  else if (e.key === 'End') next = count - 1;
+  else return;
+  e.preventDefault();
+  const tab = tabs.value[next];
+  if (!tab) return;
+  activeTab.value = tab.value;
+  nextTick(() => document.getElementById(`cpub-tab-${tab.value}`)?.focus());
+}
+
 const contentId = computed(() => props.content?.id);
 const contentType = computed(() => props.content?.type ?? 'project');
 const fedId = computed(() => props.federatedId);
@@ -43,6 +70,7 @@ const { liked, bookmarked, likeCount, isFederated, toggleLike, toggleBookmark, s
 
 onMounted(() => {
   fetchInitialState(props.content?.likeCount ?? 0);
+  hydrateBuildState();
 });
 
 const config = useRuntimeConfig();
@@ -93,202 +121,26 @@ const formattedDate = computed(() => {
   return new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 });
 
-// Extract parts list blocks from content for BOM tab
-interface PartItem {
-  name: string;
-  quantity: number;
-  productId?: string;
-  notes?: string;
-}
+// Structured views of the project's block content. The parsing lives in the
+// pure, unit-tested helpers in utils/projectBlocks.ts (imported above); the BOM,
+// build-steps, code, files, and TOC tabs all read from these computeds.
+const partsFromBlocks = computed(() => extractParts(props.content?.content));
+const buildStepsFromBlocks = computed(() => extractBuildSteps(props.content?.content));
+const codeBlocks = computed(() => extractCodeBlocks(props.content?.content));
+const downloadFiles = computed(() => extractDownloadFiles(props.content?.content));
+const tocEntries = computed(() => extractTocEntries(props.content?.content));
 
-const partsFromBlocks = computed<PartItem[]>(() => {
-  const blocks = props.content?.content;
-  if (!Array.isArray(blocks)) return [];
-  const items: PartItem[] = [];
-  for (const block of blocks) {
-    const [type, data] = block as [string, Record<string, unknown>];
-    if (type === 'partsList' && Array.isArray(data.parts)) {
-      for (const part of data.parts as Array<Record<string, unknown>>) {
-        items.push({
-          name: (part.name as string) || 'Unknown',
-          quantity: (part.qty as number) ?? (part.quantity as number) ?? 1,
-          productId: part.productId as string | undefined,
-          notes: (part.notes as string) || '',
-        });
-      }
-    }
-  }
-  return items;
+// TOC scroll-spy + smooth scroll, shared with the docs viewer via useScrollSpy.
+// Re-observes when the heading set changes (the inline version never did, so the
+// highlight went stale on content change) and disconnects on unmount.
+const { activeId: tocActiveId, scrollTo: scrollToHeading } = useScrollSpy({
+  source: () => tocEntries.value,
+  getHeadingElements: () =>
+    tocEntries.value
+      .map((e) => document.getElementById(e.id))
+      .filter((el): el is HTMLElement => !!el),
+  rootMargin: '-80px 0px -70% 0px',
 });
-
-// Extract build steps from content
-interface BuildStep {
-  number: number;
-  title: string;
-  children: Array<[string, Record<string, unknown>]>;
-  time?: string;
-}
-
-const buildStepsFromBlocks = computed<BuildStep[]>(() => {
-  const blocks = props.content?.content;
-  if (!Array.isArray(blocks)) return [];
-  const steps: BuildStep[] = [];
-  let stepNum = 0;
-  for (const block of blocks) {
-    const [type, data] = block as [string, Record<string, unknown>];
-    if (type === 'buildStep') {
-      stepNum++;
-      // Migrate old format (instructions + image) to children
-      let children: Array<[string, Record<string, unknown>]> = [];
-      if (data.children && Array.isArray(data.children) && data.children.length > 0) {
-        children = data.children as Array<[string, Record<string, unknown>]>;
-      } else {
-        const instructions = data.instructions as string | undefined;
-        if (instructions && instructions.trim()) {
-          const html = instructions.startsWith('<') ? instructions : `<p>${instructions}</p>`;
-          children.push(['paragraph', { html }]);
-        }
-        const image = data.image as string | undefined;
-        if (image && image.trim()) {
-          children.push(['image', { src: image, alt: `Step ${stepNum}`, caption: '' }]);
-        }
-      }
-      steps.push({
-        number: (data.stepNumber as number) || stepNum,
-        title: (data.title as string) || `Step ${stepNum}`,
-        children,
-        time: data.time as string | undefined,
-      });
-    }
-  }
-  return steps;
-});
-
-// Extract code blocks for code tab
-interface CodeSnippet {
-  language: string;
-  filename: string;
-  code: string;
-}
-
-const codeBlocks = computed<CodeSnippet[]>(() => {
-  const blocks = props.content?.content;
-  if (!Array.isArray(blocks)) return [];
-  const snippets: CodeSnippet[] = [];
-  for (const block of blocks) {
-    const [type, data] = block as [string, Record<string, unknown>];
-    if (type === 'code_block' || type === 'codeBlock') {
-      snippets.push({
-        language: (data.language as string) || '',
-        filename: (data.filename as string) || '',
-        code: (data.code as string) || '',
-      });
-    }
-  }
-  return snippets;
-});
-
-// Extract download blocks for files tab
-interface FileItem {
-  name: string;
-  url: string;
-  size?: string;
-}
-
-const downloadFiles = computed<FileItem[]>(() => {
-  const blocks = props.content?.content;
-  if (!Array.isArray(blocks)) return [];
-  const files: FileItem[] = [];
-  for (const block of blocks) {
-    const [type, data] = block as [string, Record<string, unknown>];
-    if (type === 'downloads' && Array.isArray(data.files)) {
-      for (const file of data.files as Array<Record<string, unknown>>) {
-        files.push({
-          name: (file.name as string) || 'Unknown',
-          url: (file.url as string) || '',
-          size: (file.size as string) || '',
-        });
-      }
-    }
-  }
-  return files;
-});
-
-// Extract headings from content for table of contents
-interface TocEntry { id: string; text: string; level: number }
-const tocEntries = computed<TocEntry[]>(() => {
-  const blocks = props.content?.content;
-  if (!Array.isArray(blocks)) return [];
-  const entries: TocEntry[] = [];
-  for (const block of blocks) {
-    const [type, data] = block as [string, Record<string, unknown>];
-    if (type === 'heading' && data.text) {
-      const text = String(data.text).replace(/<[^>]+>/g, '');
-      if (text.trim()) {
-        entries.push({
-          id: text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
-          text: text.trim(),
-          level: (data.level as number) ?? 2,
-        });
-      }
-    }
-  }
-  return entries;
-});
-
-const tocActiveId = ref('');
-
-function scrollToHeading(id: string): void {
-  const el = document.getElementById(id);
-  if (el) {
-    // CSS scroll-behavior is reduced-motion-gated in base.css, but the JS
-    // smooth option ignores that — honour the preference explicitly.
-    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    el.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
-    tocActiveId.value = id;
-  }
-}
-
-// Scroll-spy: highlight active TOC entry based on which heading is in view
-let observer: IntersectionObserver | null = null;
-
-onMounted(() => {
-  nextTick(() => {
-    setupScrollSpy();
-  });
-});
-
-onUnmounted(() => {
-  observer?.disconnect();
-});
-
-function setupScrollSpy(): void {
-  if (!tocEntries.value.length) return;
-  observer?.disconnect();
-
-  const headingEls = tocEntries.value
-    .map((e) => document.getElementById(e.id))
-    .filter((el): el is HTMLElement => !!el);
-
-  if (!headingEls.length) return;
-
-  observer = new IntersectionObserver(
-    (entries) => {
-      // Find the topmost visible heading
-      for (const entry of entries) {
-        if (entry.isIntersecting) {
-          tocActiveId.value = entry.target.id;
-          break;
-        }
-      }
-    },
-    { rootMargin: '-80px 0px -70% 0px', threshold: 0 },
-  );
-
-  for (const el of headingEls) {
-    observer.observe(el);
-  }
-}
 
 // Fork
 const forking = ref(false);
@@ -310,6 +162,21 @@ async function handleFork(): Promise<void> {
 // I Built This
 const buildMarked = ref(false);
 const localBuildCount = ref(props.content?.buildCount ?? 0);
+
+// Hydrate the "I Built This" state on load — without this the button always
+// renders inactive after a reload and a re-click un-marks + decrements.
+async function hydrateBuildState(): Promise<void> {
+  if (!props.content?.id && !props.federatedId) return;
+  const url = isFederated.value
+    ? `/api/federation/content/${props.federatedId}/build`
+    : `/api/content/${props.content.id}/build`;
+  try {
+    const res = await $fetch<{ marked: boolean }>(url);
+    buildMarked.value = res.marked;
+  } catch {
+    // logged-out (401) or not-found → leave unmarked
+  }
+}
 const buildToggling = ref(false);
 async function handleBuild(): Promise<void> {
   buildToggling.value = true;
@@ -415,13 +282,19 @@ async function handleBuild(): Promise<void> {
 
     <!-- STICKY TABS -->
     <div class="cpub-tabs-sticky">
-      <div class="cpub-tabs-inner">
+      <div class="cpub-tabs-inner" role="tablist" aria-label="Project sections">
         <button
-          v-for="tab in tabs"
+          v-for="(tab, idx) in tabs"
           :key="tab.value"
+          :id="`cpub-tab-${tab.value}`"
           class="cpub-tab"
           :class="{ active: activeTab === tab.value }"
+          role="tab"
+          :aria-selected="activeTab === tab.value"
+          aria-controls="cpub-project-tabpanel"
+          :tabindex="activeTab === tab.value ? 0 : -1"
           @click="activeTab = tab.value"
+          @keydown="onTabKeydown($event, idx)"
         >
           {{ tab.label }}
           <span v-if="tab.count" class="cpub-tab-badge">{{ tab.count }}</span>
@@ -451,7 +324,13 @@ async function handleBuild(): Promise<void> {
         </nav>
 
         <!-- CENTER: CONTENT -->
-        <div class="cpub-content-col">
+        <div
+          class="cpub-content-col"
+          role="tabpanel"
+          id="cpub-project-tabpanel"
+          :aria-labelledby="`cpub-tab-${activeTab}`"
+          tabindex="0"
+        >
           <!-- OVERVIEW TAB -->
           <template v-if="activeTab === 'overview'">
             <!-- Cover photo (in-body featured image) -->

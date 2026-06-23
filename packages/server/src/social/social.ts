@@ -181,8 +181,7 @@ export async function listComments(
   limit?: number,
   offset?: number,
 ): Promise<CommentItem[]> {
-  const safeLimit = Math.min(limit ?? 20, 100);
-  const safeOffset = offset ?? 0;
+  const { limit: safeLimit, offset: safeOffset } = normalizePagination({ limit, offset }, { limit: 20 });
 
   // Step 1: Fetch paginated root comment IDs
   const rootRows = await db
@@ -657,12 +656,29 @@ export interface FollowUserItem {
   avatarUrl: string | null;
   bio: string | null;
   followedAt: Date;
+  /** Whether the requesting viewer follows this user. Only set when a viewerId is passed. */
+  isFollowing?: boolean;
+}
+
+/**
+ * One batched lookup of which of `targetIds` the viewer already follows, so the
+ * followers/following lists render the correct Follow/Following button for the
+ * VIEWER (not the profile owner). Empty set when there's no viewer.
+ */
+async function viewerFollowingSet(db: DB, viewerId: string | undefined, targetIds: string[]): Promise<Set<string>> {
+  if (!viewerId || targetIds.length === 0) return new Set();
+  const rows = await db
+    .select({ id: follows.followingId })
+    .from(follows)
+    .where(and(eq(follows.followerId, viewerId), inArray(follows.followingId, targetIds)));
+  return new Set(rows.map((r) => r.id));
 }
 
 export async function listFollowers(
   db: DB,
   userId: string,
   opts: { limit?: number; offset?: number } = {},
+  viewerId?: string,
 ): Promise<{ items: FollowUserItem[]; total: number }> {
   const { limit, offset } = normalizePagination(opts);
 
@@ -683,11 +699,14 @@ export async function listFollowers(
     countRows(db, follows, where),
   ]);
 
+  const followed = await viewerFollowingSet(db, viewerId, rows.map((r) => r.user.id));
+
   return {
     items: rows.map((row) => ({
       ...row.user,
       bio: row.user.bio ?? null,
       followedAt: row.followedAt,
+      isFollowing: viewerId ? followed.has(row.user.id) : undefined,
     })),
     total,
   };
@@ -697,6 +716,7 @@ export async function listFollowing(
   db: DB,
   userId: string,
   opts: { limit?: number; offset?: number } = {},
+  viewerId?: string,
 ): Promise<{ items: FollowUserItem[]; total: number }> {
   const { limit, offset } = normalizePagination(opts);
 
@@ -717,11 +737,14 @@ export async function listFollowing(
     countRows(db, follows, where),
   ]);
 
+  const followed = await viewerFollowingSet(db, viewerId, rows.map((r) => r.user.id));
+
   return {
     items: rows.map((row) => ({
       ...row.user,
       bio: row.user.bio ?? null,
       followedAt: row.followedAt,
+      isFollowing: viewerId ? followed.has(row.user.id) : undefined,
     })),
     total,
   };

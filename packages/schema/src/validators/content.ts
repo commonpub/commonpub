@@ -88,7 +88,7 @@ export const contentFiltersSchema = z.object({
   difficulty: difficultySchema.optional(),
   search: z.string().max(200).optional(),
   tag: z.string().max(64).optional(),
-  sort: z.enum(['recent', 'popular', 'featured', 'editorial']).optional(),
+  sort: z.enum(['recent', 'popular', 'featured', 'editorial', 'likes']).optional(),
   limit: z.coerce.number().int().positive().max(100).optional(),
   offset: z.coerce.number().int().min(0).optional(),
   // Keyset (cursor) pagination — opaque token from a prior response's `nextCursor`.

@@ -16,6 +16,10 @@ import {
   withTemplateFieldSet,
   withTemplateFieldLabelChanged,
   withTemplateFieldRemoved,
+  withTemplateFieldTypeChanged,
+  withTemplateOptionAdded,
+  withTemplateOptionSet,
+  withTemplateOptionRemoved,
   type StageSource,
 } from '../contestStages';
 import type { ContestStage } from '@commonpub/schema';
@@ -165,5 +169,42 @@ describe('submission-template field operations', () => {
     expect(one[0]!.submissionTemplate!.map((f) => f.key)).toEqual(['b']);
     const none = withTemplateFieldRemoved(one, 0, 0);
     expect(none[0]!.submissionTemplate).toBeUndefined();
+  });
+
+  // --- Phase 4 field-type normalization + select options ---
+  it('withTemplateFieldTypeChanged normalizes ancillary props for the new type', () => {
+    const start = [stage([{ key: 'f', label: 'F', type: 'text', required: false }])];
+
+    // → select seeds one blank option.
+    const sel = withTemplateFieldTypeChanged(start, 0, 0, 'select');
+    expect(sel[0]!.submissionTemplate![0]!.options).toEqual([{ value: '', label: '' }]);
+
+    // → address forces pii true.
+    const addr = withTemplateFieldTypeChanged(start, 0, 0, 'address');
+    expect(addr[0]!.submissionTemplate![0]!.pii).toBe(true);
+
+    // → agreement defaults mustAccept true; switching AWAY clears agreement props.
+    const agr = withTemplateFieldTypeChanged(start, 0, 0, 'agreement');
+    expect(agr[0]!.submissionTemplate![0]!.mustAccept).toBe(true);
+    const back = withTemplateFieldTypeChanged(agr, 0, 0, 'text');
+    expect(back[0]!.submissionTemplate![0]!.terms).toBeUndefined();
+    expect(back[0]!.submissionTemplate![0]!.mustAccept).toBeUndefined();
+
+    // Leaving select drops options.
+    const selToText = withTemplateFieldTypeChanged(sel, 0, 0, 'text');
+    expect(selToText[0]!.submissionTemplate![0]!.options).toBeUndefined();
+  });
+
+  it('select option add/set/remove are immutable', () => {
+    const start = [stage([{ key: 'track', label: 'Track', type: 'select', required: true, options: [] }])];
+    const added = withTemplateOptionAdded(start, 0, 0);
+    expect(added[0]!.submissionTemplate![0]!.options).toHaveLength(1);
+    expect(start[0]!.submissionTemplate![0]!.options).toHaveLength(0); // original untouched
+
+    const set = withTemplateOptionSet(added, 0, 0, 0, { value: 'hw', label: 'Hardware' });
+    expect(set[0]!.submissionTemplate![0]!.options![0]).toEqual({ value: 'hw', label: 'Hardware' });
+
+    const removed = withTemplateOptionRemoved(set, 0, 0, 0);
+    expect(removed[0]!.submissionTemplate![0]!.options).toHaveLength(0);
   });
 });

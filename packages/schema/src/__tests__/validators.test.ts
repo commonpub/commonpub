@@ -1,4 +1,6 @@
 import { describe, it, expect } from 'vitest';
+import { contestStatusEnum } from '../enums';
+import { contestTransitionSchema } from '../validators';
 import {
   usernameSchema,
   emailSchema,
@@ -12,6 +14,7 @@ import {
   createLearningPathSchema,
   createLessonSchema,
   createVideoSchema,
+  videoFiltersSchema,
   updateContentSchema,
   createReportSchema,
   displayNameSchema,
@@ -42,6 +45,7 @@ import {
   contestStageSchema,
   submissionTemplateFieldSchema,
   stageSubmissionSchema,
+  contentFiltersSchema,
 } from '../validators';
 
 describe('usernameSchema', () => {
@@ -845,12 +849,12 @@ describe('createProductSchema — boundary tests', () => {
 describe('judgeEntrySchema — boundary tests', () => {
   const uuid = crypto.randomUUID();
 
-  it('rejects score below 1', () => {
+  it('rejects a negative score', () => {
     expect(() => judgeEntrySchema.parse({ entryId: uuid, score: -1 })).toThrow();
   });
 
-  it('rejects score of exactly 0 (scores are 1–100)', () => {
-    expect(() => judgeEntrySchema.parse({ entryId: uuid, score: 0 })).toThrow();
+  it('accepts score of exactly 0 (scale standardized to 0–100)', () => {
+    expect(judgeEntrySchema.parse({ entryId: uuid, score: 0 }).score).toBe(0);
   });
 
   it('accepts score of exactly 1', () => {
@@ -1102,6 +1106,36 @@ describe('submissionTemplateFieldSchema + stage submissionTemplate', () => {
 
     const dup = { ...stage, submissionTemplate: [field, { ...field, label: 'Again' }] };
     expect(contestStageSchema.safeParse(dup).success).toBe(false);
+  });
+
+  // --- Phase 4 field types ---
+  it('accepts the new scalar field types (email/number/checkbox/date)', () => {
+    for (const type of ['email', 'number', 'checkbox', 'date']) {
+      expect(submissionTemplateFieldSchema.safeParse({ ...field, type }).success, type).toBe(true);
+    }
+  });
+
+  it('accepts a select field WITH options and rejects one without', () => {
+    const sel = { key: 'track', label: 'Track', type: 'select', required: true };
+    expect(submissionTemplateFieldSchema.safeParse(sel).success).toBe(false);
+    expect(submissionTemplateFieldSchema.safeParse({ ...sel, options: [] }).success).toBe(false);
+    expect(
+      submissionTemplateFieldSchema.safeParse({ ...sel, options: [{ value: 'a', label: 'Alpha' }] }).success,
+    ).toBe(true);
+  });
+
+  it('accepts an agreement field WITH terms and rejects one without', () => {
+    const agr = { key: 'tos', label: 'Terms', type: 'agreement', required: true, mustAccept: true };
+    expect(submissionTemplateFieldSchema.safeParse(agr).success).toBe(false);
+    expect(submissionTemplateFieldSchema.safeParse({ ...agr, terms: '   ' }).success).toBe(false);
+    expect(
+      submissionTemplateFieldSchema.safeParse({ ...agr, terms: 'You agree to ship the hardware.' }).success,
+    ).toBe(true);
+  });
+
+  it('accepts a pii flag and an address field', () => {
+    expect(submissionTemplateFieldSchema.safeParse({ key: 'addr', label: 'Mailing address', type: 'address', required: true, pii: true }).success).toBe(true);
+    expect(submissionTemplateFieldSchema.safeParse({ ...field, type: 'email', pii: true }).success).toBe(true);
   });
 });
 
@@ -1471,6 +1505,24 @@ describe('contestStatusSchema — boundary tests', () => {
   });
 });
 
+describe('contest enum validators stay derived from the pgEnums (drift guard)', () => {
+  it('contestStatusSchema mirrors contestStatusEnum exactly', () => {
+    // RED if someone re-hardcodes the list and it drifts from the column enum.
+    expect([...contestStatusSchema.options].sort()).toEqual([...contestStatusEnum.enumValues].sort());
+    // Auto-covers every value (incl. draft + paused, which the boundary test omits).
+    for (const v of contestStatusEnum.enumValues) {
+      expect(contestStatusSchema.parse(v)).toBe(v);
+    }
+  });
+
+  it('contestTransitionSchema.status accepts every contest status and rejects unknowns', () => {
+    for (const v of contestStatusEnum.enumValues) {
+      expect(contestTransitionSchema.safeParse({ status: v }).success).toBe(true);
+    }
+    expect(contestTransitionSchema.safeParse({ status: 'not-a-status' }).success).toBe(false);
+  });
+});
+
 describe('videoPlatformSchema — boundary tests', () => {
   it('accepts all valid video platforms', () => {
     for (const platform of ['youtube', 'vimeo', 'other'] as const) {
@@ -1666,6 +1718,13 @@ describe('validator field-drop regressions', () => {
     ).toThrow();
   });
 
+  it('videoFiltersSchema keeps the sort option (was stripped → every sort returned identical results)', () => {
+    expect(videoFiltersSchema.parse({ sort: 'recent' }).sort).toBe('recent');
+    expect(videoFiltersSchema.parse({ sort: 'viewed' }).sort).toBe('viewed');
+    expect(videoFiltersSchema.parse({ sort: 'liked' }).sort).toBe('liked');
+    expect(() => videoFiltersSchema.parse({ sort: 'bogus' })).toThrow();
+  });
+
   it('createContentSchema keeps a custom slug (editor slug field was a no-op)', () => {
     const parsed = createContentSchema.parse({ type: 'blog', title: 'Hello', slug: 'my-custom-slug' });
     expect(parsed.slug).toBe('my-custom-slug');
@@ -1690,5 +1749,12 @@ describe('validator field-drop regressions', () => {
 
   it('contentStatusSchema includes scheduled', () => {
     expect(contentStatusSchema.parse('scheduled')).toBe('scheduled');
+  });
+
+  it('contentFiltersSchema accepts the likes sort (powers the "Most Liked" search option)', () => {
+    // Was missing → the search route 400'd the moment a user picked "Most Liked".
+    expect(contentFiltersSchema.parse({ sort: 'likes' }).sort).toBe('likes');
+    expect(contentFiltersSchema.parse({ sort: 'popular' }).sort).toBe('popular');
+    expect(() => contentFiltersSchema.parse({ sort: 'bogus' })).toThrow();
   });
 });

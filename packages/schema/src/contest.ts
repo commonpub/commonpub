@@ -57,18 +57,50 @@ export interface ContestStage {
    * (classic content-only entry), so this is fully additive.
    */
   submissionTemplate?: ContestSubmissionTemplateField[];
+  /**
+   * How an entry is created for this `submission` stage (Phase 4). `attach`
+   * (default/undefined) = the entrant attaches a pre-existing PUBLISHED content
+   * item. `proposal` = the entrant submits the form and the server creates a
+   * DRAFT placeholder project as the entry (gated by features.contestProposals).
+   */
+  submissionMode?: 'attach' | 'proposal';
 }
 
-/** One field of a `submission` stage's artifact template. */
+/**
+ * One field of a `submission` stage's artifact template. Phase 4 widened the
+ * type set; `agreement` and `address` (and any field with `pii: true`) are
+ * partitioned out of the public `stageSubmissions.fields` artifact at submit
+ * time. Mirror of `submissionTemplateFieldSchema` (validators/contest.ts).
+ */
 export interface ContestSubmissionTemplateField {
   /** Stable machine key (`^[a-z0-9_]+$`) — the key in `stageSubmissions.fields`. */
   key: string;
   /** Human label shown on the entrant form + artifact views. */
   label: string;
-  type: 'text' | 'textarea' | 'url';
+  type:
+    | 'text'
+    | 'textarea'
+    | 'url'
+    | 'email'
+    | 'number'
+    | 'select'
+    | 'checkbox'
+    | 'date'
+    | 'agreement'
+    | 'address';
   required: boolean;
   /** Optional hint shown under the input. */
   help?: string;
+  /** `select`-only: the allowed options. */
+  options?: Array<{ value: string; label: string }>;
+  /** Personal data — stored in `contest_entry_private_fields`, not the artifact. Forced true for `address`. */
+  pii?: boolean;
+  /** `agreement`-only: terms the entrant must accept (snapshotted on accept). */
+  terms?: string;
+  /** `agreement`-only: how `terms` renders. */
+  termsFormat?: 'markdown' | 'html';
+  /** `agreement`-only: require an explicit accept to submit (default true). */
+  mustAccept?: boolean;
 }
 
 /**
@@ -91,22 +123,25 @@ export const contests = pgTable('contests', {
   slug: varchar('slug', { length: 255 }).notNull().unique(),
   /** Short one-line tagline shown in the contest hero (plain text). */
   subheading: varchar('subheading', { length: 300 }),
-  /** Long-form body, rendered per `contentFormat` (Markdown or raw HTML). */
+  /** Long-form body, rendered per `descriptionFormat` (Markdown or raw HTML). */
   description: text('description'),
   rules: text('rules'),
   /** Intro shown on the Prizes tab, above the individual prize cards. */
   prizesDescription: text('prizes_description'),
-  /**
-   * @deprecated Superseded by the per-field `*Format` columns below (session 197).
-   * Kept as an inert column to avoid a rename-ambiguous migration; safe to drop
-   * in a later interactive `db:generate`. No code reads it.
-   */
-  contentFormat: contestContentFormatEnum('content_format').default('markdown').notNull(),
   /** Per-field render mode: `markdown` (default, Markdown + safe inline-HTML) or
    *  `html` (author's raw presentational HTML). Each long-form field is independent. */
   descriptionFormat: contestContentFormatEnum('description_format').default('markdown').notNull(),
   rulesFormat: contestContentFormatEnum('rules_format').default('markdown').notNull(),
   prizesDescriptionFormat: contestContentFormatEnum('prizes_description_format').default('markdown').notNull(),
+  /**
+   * Block-editor body (BlockTuple[]) for the overview/rules — the house editor
+   * format (same as projects/blogs/docs). When present, the viewer renders these
+   * INSTEAD of the legacy `description`/`rules` text + `*Format` toggle (which stay
+   * for back-compat + rollback; converted into blocks on first block-edit). Null ⇒
+   * legacy text. Untyped jsonb mirrors `content_items.content`. */
+  descriptionBlocks: jsonb('description_blocks'),
+  rulesBlocks: jsonb('rules_blocks'),
+  prizesBlocks: jsonb('prizes_blocks'),
   /** Master switch for the Prizes tab. When false the tab is hidden even if
    *  prize data exists (and prizes are optional regardless). */
   showPrizes: boolean('show_prizes').default(true).notNull(),
@@ -151,13 +186,6 @@ export const contests = pgTable('contests', {
   >(),
   judgingVisibility: judgingVisibilityEnum('judging_visibility').default('judges-only').notNull(),
   /**
-   * @deprecated Vestigial. Judges are stored in the `contest_judges` table (the
-   * single source of truth); `createContest` seeds that table from create input.
-   * This column is no longer read or written — retained only to avoid a
-   * destructive DROP migration. Do not use.
-   */
-  judges: jsonb('judges').$type<string[]>(),
-  /**
    * Content types eligible for entry (subset of the instance content types).
    * Null/empty = any published content the entrant owns. e.g. ['project'].
    */
@@ -192,6 +220,15 @@ export const contestEntries = pgTable('contest_entries', {
   userId: uuid('user_id')
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
+  /**
+   * DENORMALIZED. The source of truth is `judgeScores` (the per-judge inputs).
+   * `score` is the mean of the CURRENT round's `judgeScores` entries, re-derived
+   * by `judgeContestEntry` on every score write. `rank` is RANK() over `score`
+   * DESC across the surviving (non-eliminated) cohort, re-derived by
+   * `calculateContestRanks` when the contest completes. `stageState[].{score,rank}`
+   * is the IMMUTABLE per-round snapshot of these two, taken at each advancement
+   * cut and never recomputed. Flow: judgeScores → score → rank → stageState.
+   */
   score: integer('score'),
   rank: integer('rank'),
   judgeScores: jsonb('judge_scores').$type<
@@ -278,6 +315,65 @@ export const contestStakeholders = pgTable('contest_stakeholders', {
   index('idx_contest_stakeholders_user_id').on(t.userId),
 ]);
 
+// --- Contest Agreement Acceptances (Phase 4) ---
+// Immutable audit log: one row each time an entrant accepts an `agreement`
+// template field's terms. The terms text + its sha-256 hash are snapshotted so
+// the exact wording the entrant agreed to survives later edits to the template.
+// Instance-local (never federated). Captured atomically with the submission.
+export const contestAgreementAcceptances = pgTable('contest_agreement_acceptances', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  contestId: uuid('contest_id')
+    .notNull()
+    .references(() => contests.id, { onDelete: 'cascade' }),
+  entryId: uuid('entry_id')
+    .notNull()
+    .references(() => contestEntries.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  /** The submission stage this acceptance was captured in. */
+  stageId: text('stage_id').notNull(),
+  /** The agreement template field's key. */
+  fieldKey: varchar('field_key', { length: 40 }).notNull(),
+  /** sha-256 hex of the exact accepted terms (integrity check vs the snapshot). */
+  termsHash: varchar('terms_hash', { length: 64 }).notNull(),
+  /** The exact terms text shown to and accepted by the entrant. */
+  termsSnapshot: text('terms_snapshot').notNull(),
+  /** Best-effort client IP captured at acceptance (audit). */
+  ip: varchar('ip', { length: 64 }),
+  acceptedAt: timestamp('accepted_at', { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [
+  index('idx_contest_agreements_contest_id').on(t.contestId),
+  index('idx_contest_agreements_entry_id').on(t.entryId),
+]);
+
+// --- Contest Entry Private Fields (PII, Phase 4) ---
+// Entrant-supplied personal data (email/address/etc.) for an entry, stored OUT
+// of the public `contest_entries.stageSubmissions` jsonb so it is NEVER returned
+// by the normal entries endpoints. Access is gated by the `contest.pii`
+// permission (seeded admin + staff) OR the entrant reading their own. One row
+// per entry, upserted. `fields` keys are the PII template field keys; `address`
+// values are JSON-encoded objects.
+export const contestEntryPrivateFields = pgTable('contest_entry_private_fields', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  contestId: uuid('contest_id')
+    .notNull()
+    .references(() => contests.id, { onDelete: 'cascade' }),
+  entryId: uuid('entry_id')
+    .notNull()
+    .references(() => contestEntries.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  /** PII template-field key → entrant value (`address` values are JSON strings). */
+  fields: jsonb('fields').$type<Record<string, string>>().default({}).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [
+  unique('uq_contest_entry_private_fields_entry').on(t.entryId),
+  index('idx_contest_entry_private_fields_contest_id').on(t.contestId),
+]);
+
 // --- Relations ---
 
 export const contestsRelations = relations(contests, ({ one, many }) => ({
@@ -305,6 +401,18 @@ export const contestStakeholdersRelations = relations(contestStakeholders, ({ on
   user: one(users, { fields: [contestStakeholders.userId], references: [users.id] }),
 }));
 
+export const contestAgreementAcceptancesRelations = relations(contestAgreementAcceptances, ({ one }) => ({
+  contest: one(contests, { fields: [contestAgreementAcceptances.contestId], references: [contests.id] }),
+  entry: one(contestEntries, { fields: [contestAgreementAcceptances.entryId], references: [contestEntries.id] }),
+  user: one(users, { fields: [contestAgreementAcceptances.userId], references: [users.id] }),
+}));
+
+export const contestEntryPrivateFieldsRelations = relations(contestEntryPrivateFields, ({ one }) => ({
+  contest: one(contests, { fields: [contestEntryPrivateFields.contestId], references: [contests.id] }),
+  entry: one(contestEntries, { fields: [contestEntryPrivateFields.entryId], references: [contestEntries.id] }),
+  user: one(users, { fields: [contestEntryPrivateFields.userId], references: [users.id] }),
+}));
+
 // --- Inferred Types ---
 export type ContestRow = typeof contests.$inferSelect;
 export type NewContestRow = typeof contests.$inferInsert;
@@ -314,3 +422,7 @@ export type ContestJudgeRow = typeof contestJudges.$inferSelect;
 export type NewContestJudgeRow = typeof contestJudges.$inferInsert;
 export type ContestStakeholderRow = typeof contestStakeholders.$inferSelect;
 export type NewContestStakeholderRow = typeof contestStakeholders.$inferInsert;
+export type ContestAgreementAcceptanceRow = typeof contestAgreementAcceptances.$inferSelect;
+export type NewContestAgreementAcceptanceRow = typeof contestAgreementAcceptances.$inferInsert;
+export type ContestEntryPrivateFieldsRow = typeof contestEntryPrivateFields.$inferSelect;
+export type NewContestEntryPrivateFieldsRow = typeof contestEntryPrivateFields.$inferInsert;

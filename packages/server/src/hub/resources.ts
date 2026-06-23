@@ -56,11 +56,11 @@ export async function createHubResource(
     sortOrder?: number;
   },
 ): Promise<HubResourceItem> {
-  // Verify user is a hub member (any role)
+  // Verify user is an active hub member (any role); pending requests don't count.
   const [member] = await db
     .select({ role: hubMembers.role })
     .from(hubMembers)
-    .where(and(eq(hubMembers.hubId, hubId), eq(hubMembers.userId, userId)))
+    .where(and(eq(hubMembers.hubId, hubId), eq(hubMembers.userId, userId), eq(hubMembers.status, 'active')))
     .limit(1);
 
   if (!member) {

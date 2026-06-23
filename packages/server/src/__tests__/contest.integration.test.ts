@@ -18,7 +18,7 @@ import {
   canViewContest,
   advanceContestStage,
   isEliminated,
-} from '../contest/contest.js';
+} from '../contest/index.js';
 import {
   addContestStakeholder,
   removeContestStakeholder,
@@ -445,6 +445,52 @@ describe('contest integration', () => {
     it('createContest works without options (backward compatible)', async () => {
       const contest = await createContest(db, makeContestInput({ slug: `compat-${Date.now()}` }));
       expect(contest.id).toBeDefined();
+    });
+
+    it('createContest rolls back the contest when seeding a bad judge id fails (atomicity)', async () => {
+      const slug = `atomic-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+      const ghost = '00000000-0000-0000-0000-000000000000';
+      await expect(
+        createContest(db, { ...makeContestInput({ slug }), judges: [ghost] }),
+      ).rejects.toThrow();
+      // RED on revert: without the wrapping transaction the contest row persists
+      // even though the judges seed threw (FK violation on the ghost user id).
+      const found = await getContestBySlug(db, slug);
+      expect(found).toBeNull();
+    });
+
+    it('addContestJudge returns "already a judge" on a duplicate add (race-safe, no 500)', async () => {
+      const contest = await createContest(db, makeContestInput({ slug: `dupe-judge-${Date.now()}` }));
+      const first = await addContestJudge(db, contest.id, judgeUserId, 'judge');
+      expect(first.added).toBe(true);
+      const second = await addContestJudge(db, contest.id, judgeUserId, 'judge');
+      expect(second.added).toBe(false);
+      expect(second.error).toBe('User is already a judge');
+    });
+
+    it('round-trips descriptionBlocks/rulesBlocks (BlockTuple[]) through create + get', async () => {
+      const blocks = [['heading', { level: 2, text: 'Mission' }], ['text', { text: 'Build something.' }]];
+      const contest = await createContest(db, {
+        ...makeContestInput({ slug: `blocks-${Date.now()}` }),
+        descriptionBlocks: blocks,
+        rulesBlocks: [['text', { text: 'Be nice.' }]],
+        prizesBlocks: [['text', { text: 'Cash + hardware.' }]],
+      });
+      const fetched = await getContestBySlug(db, contest.slug);
+      expect(fetched?.descriptionBlocks).toEqual(blocks);
+      expect(fetched?.rulesBlocks).toEqual([['text', { text: 'Be nice.' }]]);
+      expect(fetched?.prizesBlocks).toEqual([['text', { text: 'Cash + hardware.' }]]);
+    });
+
+    it('updateContest sets descriptionBlocks and preserves them when other fields change', async () => {
+      const contest = await createContest(db, makeContestInput({ slug: `blocks-upd-${Date.now()}` }));
+      await updateContest(db, contest.slug, organizerId, { descriptionBlocks: [['text', { text: 'A' }]] }, true);
+      expect((await getContestBySlug(db, contest.slug))?.descriptionBlocks).toEqual([['text', { text: 'A' }]]);
+      // An unrelated update doesn't wipe blocks (only written when provided).
+      await updateContest(db, contest.slug, organizerId, { title: 'Renamed' }, true);
+      const f = await getContestBySlug(db, contest.slug);
+      expect(f?.title).toBe('Renamed');
+      expect(f?.descriptionBlocks).toEqual([['text', { text: 'A' }]]);
     });
   });
 
@@ -1127,7 +1173,56 @@ describe('contest integration', () => {
       { label: 'Creativity', score: 10, max: 30 },
     ]);
     expect(res.judged).toBe(false);
-    expect(res.error).toMatch(/out of range/i);
+    expect(res.error).toMatch(/Documentation score must be between 0 and 20/i);
+  });
+
+  // --- B3: validate criteriaScores against the resolved rubric ---
+  it('B3: ignores a tampered client max — the rubric weight is authoritative', async () => {
+    const { contest, judge, entry } = await rubricContestWithEntry('Rubric Tamper');
+    // Client lies about max (1000) to try to skew the normalized sum; score stays
+    // within the REAL rubric max (20). The overall + stored max must use the rubric.
+    const res = await judgeContestEntry(db, entry.id, undefined, judge.id, undefined, [
+      { label: 'Documentation', score: 20, max: 1000 },
+      { label: 'Creativity', score: 30, max: 1000 },
+    ]);
+    expect(res.judged).toBe(true);
+    const { items } = await listContestEntries(db, contest.id, { includeJudgeScores: true });
+    const e = items.find((i) => i.id === entry.id)!;
+    expect(e.score).toBe(100); // (20+30)/(20+30) — rubric maxes, NOT 50/2000
+    expect(e.judgeScores![0]!.criteriaScores!.find((c) => c.label === 'Documentation')!.max).toBe(20);
+  });
+
+  it('B3: rejects an unknown criterion and a missing criterion', async () => {
+    const { judge, entry } = await rubricContestWithEntry('Rubric Unknown');
+    const unknown = await judgeContestEntry(db, entry.id, undefined, judge.id, undefined, [
+      { label: 'Documentation', score: 10, max: 20 },
+      { label: 'Creativity', score: 10, max: 30 },
+      { label: 'Bribe', score: 99, max: 99 },
+    ]);
+    expect(unknown.judged).toBe(false);
+    expect(unknown.error).toMatch(/Unknown criterion: Bribe/i);
+
+    const missing = await judgeContestEntry(db, entry.id, undefined, judge.id, undefined, [
+      { label: 'Documentation', score: 10, max: 20 },
+    ]);
+    expect(missing.judged).toBe(false);
+    expect(missing.error).toMatch(/Missing score for Creativity/i);
+  });
+
+  it('B3: rejects per-criterion scores when the contest has no rubric', async () => {
+    const judge = await createTestUser(db, { username: `norub-j-${Date.now()}` });
+    const contest = await createContest(db, { ...makeContestInput({ title: 'No Rubric' }), judges: [judge.id] });
+    await acceptJudgeInvite(db, contest.id, judge.id);
+    await transitionContestStatus(db, contest.id, organizerId, 'active');
+    const content = await createContent(db, participantId, { type: 'project', title: 'No rubric entry' });
+    await publishContent(db, content.id, participantId);
+    const entry = await submitContestEntry(db, contest.id, content.id, participantId);
+    await transitionContestStatus(db, contest.id, organizerId, 'judging');
+    const res = await judgeContestEntry(db, entry!.id, undefined, judge.id, undefined, [
+      { label: 'Anything', score: 5, max: 10 },
+    ]);
+    expect(res.judged).toBe(false);
+    expect(res.error).toMatch(/no judging rubric/i);
   });
 
   it('two judges scoring the same entry concurrently both persist (no lost update)', async () => {
@@ -1170,6 +1265,73 @@ describe('contest integration', () => {
     const res = await judgeContestEntry(db, entry!.id, 100, judgeEntrant.id);
     expect(res.judged).toBe(false);
     expect(res.error).toMatch(/your own entry/i);
+  });
+
+  // --- B5a: the route `:slug` must scope the judged entry ---
+
+  it('B5a: rejects judging an entry through a non-owning contest id', async () => {
+    const judge = await createTestUser(db, { username: `b5a-j-${Date.now()}` });
+    // contest A owns the entry; contest B is an unrelated contest the judge also sits on.
+    const contestA = await createContest(db, { ...makeContestInput({ title: 'B5a Owner' }), judges: [judge.id] });
+    const contestB = await createContest(db, { ...makeContestInput({ title: 'B5a Other' }), judges: [judge.id] });
+    await acceptJudgeInvite(db, contestA.id, judge.id);
+    await transitionContestStatus(db, contestA.id, organizerId, 'active');
+    const content = await createContent(db, participantId, { type: 'project', title: 'B5a entry' });
+    await publishContent(db, content.id, participantId);
+    const entry = await submitContestEntry(db, contestA.id, content.id, participantId);
+    await transitionContestStatus(db, contestA.id, organizerId, 'judging');
+
+    // What the route does for `/contests/<B-slug>/judge` with A's entryId: the
+    // entry belongs to A, so the membership guard rejects it (B5a).
+    const wrong = await judgeContestEntry(db, entry!.id, 80, judge.id, undefined, undefined, contestB.id);
+    expect(wrong.judged).toBe(false);
+    expect(wrong.error).toMatch(/does not belong to this contest/i);
+
+    // The correct slug (contest A) scopes to the entry and the score persists.
+    const right = await judgeContestEntry(db, entry!.id, 80, judge.id, undefined, undefined, contestA.id);
+    expect(right.judged).toBe(true);
+  });
+
+  // --- Score/rank denormalization invariant (Phase 6) ---
+  // judgeScores is the source of truth; `score` is the mean of the current round's
+  // judgeScores; `rank` is RANK() over `score` DESC. This guards that chain.
+  it('keeps score in sync with judgeScores and rank in score order', async () => {
+    const j1 = await createTestUser(db, { username: `den-j1-${Date.now()}` });
+    const j2 = await createTestUser(db, { username: `den-j2-${Date.now()}` });
+    const p1 = await createTestUser(db, { username: `den-p1-${Date.now()}` });
+    const p2 = await createTestUser(db, { username: `den-p2-${Date.now()}` });
+    const contest = await createContest(db, { ...makeContestInput({ title: 'Denorm Sync' }), judges: [j1.id, j2.id] });
+    await acceptJudgeInvite(db, contest.id, j1.id);
+    await acceptJudgeInvite(db, contest.id, j2.id);
+    await transitionContestStatus(db, contest.id, organizerId, 'active');
+
+    const c1 = await createContent(db, p1.id, { type: 'project', title: 'Denorm A' });
+    await publishContent(db, c1.id, p1.id);
+    const e1 = await submitContestEntry(db, contest.id, c1.id, p1.id);
+    const c2 = await createContent(db, p2.id, { type: 'project', title: 'Denorm B' });
+    await publishContent(db, c2.id, p2.id);
+    const e2 = await submitContestEntry(db, contest.id, c2.id, p2.id);
+
+    await transitionContestStatus(db, contest.id, organizerId, 'judging');
+    // entry 1: mean(90, 80) = 85 ; entry 2: mean(60, 50) = 55
+    await judgeContestEntry(db, e1!.id, 90, j1.id);
+    await judgeContestEntry(db, e1!.id, 80, j2.id);
+    await judgeContestEntry(db, e2!.id, 60, j1.id);
+    await judgeContestEntry(db, e2!.id, 50, j2.id);
+    // Completion re-derives rank from the denormalized score.
+    await transitionContestStatus(db, contest.id, organizerId, 'completed');
+
+    const { items } = await listContestEntries(db, contest.id, { includeJudgeScores: true });
+    for (const item of items) {
+      const mean = Math.round(item.judgeScores!.reduce((s, j) => s + j.score, 0) / item.judgeScores!.length);
+      expect(item.score).toBe(mean); // score stays the mean of judgeScores
+    }
+    const a = items.find((i) => i.id === e1!.id)!;
+    const b = items.find((i) => i.id === e2!.id)!;
+    expect(a.score).toBe(85);
+    expect(b.score).toBe(55);
+    expect(a.rank).toBe(1); // higher score → rank 1
+    expect(b.rank).toBe(2);
   });
 
   // --- Access control: visibility + role gate + stakeholders (session 174) ---

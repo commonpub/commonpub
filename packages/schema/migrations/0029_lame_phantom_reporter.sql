@@ -1,0 +1,1 @@
+ALTER TABLE "contests" ADD COLUMN "prizes_blocks" jsonb;

@@ -19,6 +19,22 @@ export interface FeatureFlags {
    * No effect unless `contests` is also on.
    */
   contestStageSubmissions: boolean;
+  /**
+   * Form-first proposal submissions (Phase 4). When ON, a `submission` stage can
+   * be set to proposal mode: an entrant submits a form (no pre-existing content
+   * required) and the server creates a DRAFT placeholder project linked as the
+   * entry, routing the entrant into the editor to develop it. Default OFF. No
+   * effect unless `contests` is also on.
+   */
+  contestProposals: boolean;
+  /**
+   * Offer PII field types (email/address + the `pii` flag) in the contest
+   * submission-form builder (Phase 4). Default OFF. Access to stored PII is
+   * ALWAYS gated by the `contest.pii` permission regardless of this flag;
+   * this only controls whether organizers can ADD PII fields. No effect unless
+   * `contests` is also on.
+   */
+  contestPii: boolean;
   /** Enable events system (listing, RSVP, calendar) */
   events: boolean;
   /** Enable learning paths (enrollment, progress, certificates) */

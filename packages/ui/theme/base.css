@@ -7,6 +7,11 @@
    =========================================== */
 
 :root {
+  /* Theme native UI (date/time pickers, scrollbars, form controls) to the light
+     palette; dark.css overrides to `dark`. Without this, native popups (e.g. the
+     datetime-local calendar) render in the OS default scheme and clash. */
+  color-scheme: light;
+
   /* === SURFACES === */
   --bg: #fafaf9;
   --surface: #ffffff;

@@ -154,11 +154,73 @@ export function withTemplateFieldRemoved(stages: ContestStage[], i: number, fi: 
   return withTemplate(stages, i, cur);
 }
 
+type FieldType = ContestSubmissionTemplateField['type'];
+
+/**
+ * Change a template field's type AND normalize the type-specific ancillary props
+ * so the stored field stays coherent (Phase 4): `address` forces `pii`; leaving
+ * `select` drops `options`; leaving `agreement` drops `terms`/`termsFormat`/
+ * `mustAccept`; entering `select` seeds one blank option; entering `agreement`
+ * defaults `mustAccept` true.
+ */
+export function withTemplateFieldTypeChanged(
+  stages: ContestStage[],
+  i: number,
+  fi: number,
+  type: FieldType,
+): ContestStage[] {
+  const field = stages[i]?.submissionTemplate?.[fi];
+  if (!field) return stages;
+  const patch: Partial<ContestSubmissionTemplateField> = { type };
+  patch.options = type === 'select' ? (field.options?.length ? field.options : [{ value: '', label: '' }]) : undefined;
+  if (type === 'agreement') {
+    patch.mustAccept = field.mustAccept ?? true;
+  } else {
+    patch.terms = undefined;
+    patch.termsFormat = undefined;
+    patch.mustAccept = undefined;
+  }
+  if (type === 'address') patch.pii = true;
+  return withTemplateFieldSet(stages, i, fi, patch);
+}
+
+export function withTemplateOptionAdded(stages: ContestStage[], i: number, fi: number): ContestStage[] {
+  const field = stages[i]?.submissionTemplate?.[fi];
+  if (!field) return stages;
+  return withTemplateFieldSet(stages, i, fi, { options: [...(field.options ?? []), { value: '', label: '' }] });
+}
+
+export function withTemplateOptionSet(
+  stages: ContestStage[],
+  i: number,
+  fi: number,
+  oi: number,
+  patch: Partial<{ value: string; label: string }>,
+): ContestStage[] {
+  const field = stages[i]?.submissionTemplate?.[fi];
+  if (!field) return stages;
+  const options = (field.options ?? []).map((o, idx) => (idx === oi ? { ...o, ...patch } : o));
+  return withTemplateFieldSet(stages, i, fi, { options });
+}
+
+export function withTemplateOptionRemoved(stages: ContestStage[], i: number, fi: number, oi: number): ContestStage[] {
+  const field = stages[i]?.submissionTemplate?.[fi];
+  if (!field) return stages;
+  return withTemplateFieldSet(stages, i, fi, { options: (field.options ?? []).filter((_, idx) => idx !== oi) });
+}
+
 /** Human label for each template field type (for the editor dropdown). */
 export const TEMPLATE_FIELD_TYPE_LABEL: Record<ContestSubmissionTemplateField['type'], string> = {
   text: 'Short text',
   textarea: 'Long text',
   url: 'Link (URL)',
+  email: 'Email address',
+  number: 'Number',
+  select: 'Dropdown (select)',
+  checkbox: 'Checkbox',
+  date: 'Date',
+  agreement: 'Agreement (terms to accept)',
+  address: 'Mailing address',
 };
 
 /** FontAwesome icon (no `fa-solid` prefix) for each stage kind. */

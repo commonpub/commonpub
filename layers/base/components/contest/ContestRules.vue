@@ -8,6 +8,8 @@
  */
 defineProps<{
   rules: string;
+  /** Block-editor body (BlockTuple[]); rendered instead of `rules` when present. */
+  blocks?: unknown[] | null;
   format?: 'markdown' | 'html' | null;
 }>();
 </script>
@@ -18,7 +20,12 @@ defineProps<{
       <h2><i class="fa fa-file-lines" style="color: var(--purple);"></i> Rules</h2>
     </div>
     <div class="cpub-rules-card">
-      <CpubMarkdown :source="rules" :format="format" />
+      <BlocksBlockContentRenderer
+        v-if="blocks?.length"
+        :blocks="(blocks as [string, Record<string, unknown>][])"
+        class="cpub-prose cpub-md"
+      />
+      <CpubMarkdown v-else :source="rules" :format="format" />
     </div>
   </div>
 </template>

@@ -1,0 +1,222 @@
+# Session 209 — kickoff / handoff (next)
+
+Date: 2026-06-19. **Supersedes `207-kickoff-next.md`** (still accurate for the deep-audit findings;
+this doc is the current branch state). Companion: the paste-ready prompt in
+`209-kickoff-prompt.md`, the audit report `208-ui-ux-functionality-audit.md`, the operator runbook
+`docs/STATUS.md`.
+
+---
+
+## TL;DR — where things stand
+
+**commonpub.io is healthy and LIVE on the sessions 203-204 audit remediation** (main `d1ce1320`).
+deveco.io / heatsynclabs.io are NOT rolled (nothing published since).
+
+**Active branch: `monolith-splits` — 27 commits ahead of main, NOT pushed / NO PR / NOT deployed /
+NOT published** (per standing instruction: all this session's work stays on this branch). Everything
+below is committed, fully green (server suite **1445**, layer suite **1117**, `nuxt typecheck` clean),
+and adversarially self-audited.
+
+### Session 209 continuation (post-handoff work, all committed on this branch)
+- **P1 like-race fix** (`0fc4b1ef`) — tx + `FOR UPDATE` on likeRemoteContent/boostRemoteContent.
+- **P2 pagination clamp hardening** (`31203d91`) — 10 hand-rolled clamps → `normalizePagination`.
+- **P0 hub-invite UI** (`04b33771`) — invites page + DELETE route + `?invite=` redemption.
+- **Invite security follow-up** (`a4e02d98`, from a 2-agent deep audit): fixed a **P1 IDOR** (revokeInvite
+  deleted by id with no hub filter → cross-hub revoke), a **P2** perm mismatch (moderators saw write
+  controls that 403'd → gated GET + UI to admin+), and a **P3** use-burn (validateAndUseInvite now
+  scoped by hubId, atomic). RED-on-revert tests added.
+- **Re-enabled 3 silently-skipped tests** (`a594ac8c`) — hub-post like/unlike, like idempotency, and
+  conversation dedup were `it.skip`'d "until real Postgres test DB"; moved onto the realpgdb harness
+  (`describe.skipIf`). Surfaced + fixed a latent swapped-arg bug in the never-run like tests. Server
+  suite 1445, **0 skipped**.
+- **useDocsPageTree extraction** (`0fee3818`) — 6 page-tree CRUD handlers (incl. the reparent/reorder
+  deferred-refresh coordination) out of edit.vue (1397→1323) into a tested composable (8 tests).
+
+- **useScrollSpy consolidation** (`5c449b36`) — DONE. The divergent, each-buggy TOC scroll-spy copies in
+  `ProjectView.vue` (never re-observed → stale highlight) and the docs viewer (leaked an observer per
+  navigation) are now one tested `useScrollSpy` composable that re-observes on `source` change +
+  disconnects on re-observe/unmount. Per-surface element discovery + rootMargin + scrollTo stay inputs.
+  Added a no-op IntersectionObserver shim to the layer test-setup (jsdom has none); 7-test controllable
+  mock. ProjectView 1574→1535; imports the composable explicitly (SFC unit test has no auto-import).
+
+`git diff --stat main..HEAD` → **~75 files**. Gates: server **1445**, layer **1124**, typecheck clean.
+
+---
+
+## Remaining-backlog execution (plan: `docs/plans/monolith-splits-remaining-backlog.md`)
+
+Landing decision (2026-06-22): **keep iterating** on the branch (no push/deploy/publish this session).
+
+- [x] **1a** Link hub member-management page from the hub header — `257184c6`
+- [x] **1b** Wire video sort (recent/viewed/liked end-to-end) — `86d725c5`
+- [x] **1c** Product edit/delete UI (ProductEditModal + delete on detail page) — `29c81c98`
+- [x] **1d** Video-category admin UI (/admin/video-categories + sidebar link; enriched VideoCategoryItem) — `892c49b9`
+- [x] **1e** Learning completion read-back (getPathBySlug tags isCompleted; lesson page seeds from server) — `e19a5110`
+- [x] **1f** Extract `useDocsSiteSettings` (edit.vue 1323→1289; 6 tests) — `a554d298`
+- [x] **1g** RBAC `useCan`-driven admin chrome (per-route perm keys, flag-off no-op; 3 tests) — `23275eaa`
+- [x] **Phase 2** Ban UI (Ban beside Kick + Banned section on members.vue) — `2be2e46e`
+- [x] **3a** Profile per-tab keyset pagination + owner-only Drafts tab (server-side draft authz) — `521064b2`
+  - Decisions: separate owner-only Drafts tab + Load-more (keyset).
+- [x] **3b** Real approval join workflow (pending requests + approve/deny + authz hardening) — `8ea8bd8b`
+  - Decisions: requests section on members page + 'Request pending' state.
+- [ ] Phase 3c (DECISION NEEDED — ask first)
+- [ ] Phase 4a/4b (high-risk, last)
+
+---
+
+## Session 210 wrap-up (2026-06-22) — START HERE on resume
+
+**Branch `monolith-splits` is the active work; STILL not pushed / no PR / not deployed / not
+published.** Clean tree. Gates after this session: **server 1458, layer 1136, `pnpm typecheck` EXIT 0.**
+
+This session executed Phase 1 (1a–1g), Phase 2, and Phase 3a + 3b of
+`docs/plans/monolith-splits-remaining-backlog.md` — 13 feature/refactor commits (`257184c6` … `8ea8bd8b`),
+each atomic + tested (RED-on-revert where there's a test surface; typecheck-gated for UI-only wiring).
+Landing decision was **keep iterating** (no outward-facing actions).
+
+**Changed publishable set (main..HEAD): `@commonpub/schema`, `@commonpub/server`, `@commonpub/layer`.**
+Notable server-package surface added/changed this session (relevant when Phase 5 publishes):
+- `videoFiltersSchema.sort` enum (schema); `VideoFilters.sort` + `listVideos` orderBy (server).
+- `VideoCategoryItem` gained `description` + `sortOrder` (additive); `listVideoCategories`/create/update return them.
+- `getPathBySlug` tags per-lesson `isCompleted`; `LearningPathDetail` lesson shape gained `isCompleted`.
+- `getUserContent` signature changed to an options object returning `{ items, nextCursor }` (keyset);
+  resolves draft visibility server-side from `viewerId`. **Breaking shape change** for that one fn.
+- New hub exports: `listJoinRequests`, `approveJoinRequest`, `denyJoinRequest`. `joinHub` return gained
+  optional `pending`. `HubDetail` gained `joinRequestPending: boolean` (constructed in `getHubDetail`).
+- **Authz hardening (security):** `getMember`/`listMembers` + 7 member-action gates (create post/reply/
+  share, product, resource, post vote, poll vote) now require `status='active'`; `leaveHub` lets a pending
+  member cancel without decrementing count; `kickMember`/`changeRole` only target active members. These are
+  additive-safe for open/invite hubs (all members already active) — verified, full suites green.
+
+**No new migration this session** (the `hub_member_status` 'pending' enum value already existed). Verify
+before Phase 5: `git diff --name-only main..HEAD | grep migrations` (expect none from this session).
+
+### Remaining backlog (for the next session)
+- **3c Federated follow from profile** — DECISION NEEDED (lightweight handle/URI input vs full remote-actor
+  profile page). Gate behind `features.federation`. Backend ready (`federation/follow.post.ts`,
+  `remote-follow.post.ts`, `resolveRemoteActor`); the gap is a UI entry surface. See plan §3c.
+- **Phase 4a Homepage 3-path consolidation** — HIGH blank-page risk + OUTWARD-FACING/multi-instance. Strict
+  per-instance seed → flag → remove ordering; do the `v-else`/legacy removal ONLY after curl-verifying every
+  instance is seeded. Gate hard on the user. See plan §4a.
+- **Phase 4b Extract `inboxHandlers.onCreate`** — HIGH risk; anchor with inbound-Create integration tests
+  FIRST, then refactor. See plan §4b.
+- **Phase 5 Landing & roll** — OUTWARD-FACING, explicit go-ahead required. Re-derive the changed set at
+  execution time; follow `docs/STATUS.md` §Runbook. This also clears the still-pending 203/204 security roll
+  to deveco.io / heatsynclabs.io. Publish order (changed only): schema → server → layer (`pnpm run
+  publish:layer`); then bump deveco/heatsync caret pins + BOTH lockfiles + CLI.
+- **Phase 6 residuals** — megalodon SSRF TOCTOU (flag-gated off); pg_trgm search ranking. Ops, low priority.
+
+### Resume checklist (Phase 0 every session)
+1. `git -C <repo> log --oneline main..HEAD` (expect 45+), `git status` clean, branch `monolith-splits`.
+2. `pnpm -C packages/server exec vitest run` (1458), `pnpm -C layers/base exec vitest run` (1136),
+   `pnpm typecheck` (EXIT 0). If red, fix before new work.
+3. Decide: keep iterating (3c → Phase 4) vs land (Phase 5, needs go-ahead).
+
+---
+
+## What's on the branch (3 bodies of work)
+
+**1. Monolith splits + refactors (TDD, tested):**
+- `useEditorAutosave` composable extracted from `docs/[siteSlug]/edit.vue` (1434→1397).
+- `projectBlocks.ts` util (5 pure block parsers) extracted from `ProjectView.vue` (1656→1522) + a
+  pre-existing TOC-anchor bug fixed (slug raw text to match the renderer).
+
+**2. Deep verification audit** (sessions 203/204 deploy verified live; new findings in `207`): the
+NEW P1 `likeRemoteContent` non-transactional like race is documented but **still unfixed** (see Deferred).
+
+**3. UI/UX + functionality audit (7 agents) + Phase A+B fixes** (`208` has the full report). All SHIPPED,
+tested where the surface allows, mutation-proven:
+- **Search** "Most Liked" sort (was a one-click 400) — wired through schema/route/Meili/PG/listContent.
+- **Admin API keys** gated behind `publicApi` (routes + sidebar + page) so admins can't mint dead keys.
+- **"I Built This"** state hydrates on load (new GET routes) — re-click no longer un-marks + decrements.
+- **Error-as-empty** masking fixed on 6 listing pages (error+retry instead of "No X yet").
+- **Follower/following**: fixed a real shape bug (lists rendered EMPTY — page read a `{items,total}`
+  object as an array) + viewer-aware `isFollowing` so the Follow button reflects the viewer.
+- **a11y**: ProjectView tabs → full tablist/roving-arrows; SearchSidebar clickable divs → real buttons;
+  layout palette tiles → Enter/Space keyboard insert (records history); **all 7 flagged forms' labels
+  associated** (WCAG 1.3.1/4.1.2, index-aware ids in loops).
+- **Misc**: cert loading state, ExplainerView comments, assertive error toasts, share() toast, nav
+  Home exact-active, video Featured dedup, 4 silent-catch→toast.
+- **Self-audit fixes** (final commit `df40f6b7`): the adversarial review of this branch caught a P1 I
+  introduced (onPaletteInsert didn't record to history → undo desync) + 2 P2 + 2 P3, all fixed.
+
+**Audit verdict:** branch is sound and safe to merge. The server-package changes (schema sort enum,
+listContent/contentSearch orderBy, listFollowers `viewerId`) were verified **purely additive +
+backward-compatible** — safe to publish to deveco/heatsync (no broken callers, no N+1, empty-array
+guarded, optional params/fields).
+
+---
+
+## DECISION NEEDED — how to land this branch
+
+The branch mixes internal refactors, user-facing UX/a11y fixes, AND server-package changes. Options
+(not mutually exclusive):
+
+1. **Merge → deploy commonpub.io** (push `main`, deploy.yml runs on push). Ships all the UX/a11y fixes
+   + refactors to the live reference app. No new migration this cycle (verify), so the deploy is
+   low-risk. This is the natural next step.
+2. **Publish + roll to deveco/heatsync.** The schema/server changes (search likes, follower
+   isFollowing) are consumer-safe per the audit. If rolling: bump + publish in dependency order
+   (`schema → protocol → server → infra → explainer → layer` per `207`'s corrected list — though THIS
+   branch only changed schema/server/layer, so re-confirm the changed set), then bump consumer pins +
+   CLI. Outward-facing; needs explicit go-ahead. The 203/204 SECURITY fixes ALSO still need this roll.
+3. **Keep iterating on the branch** (Phase C below) before landing.
+
+---
+
+## Deferred backlog (NOT done — needs decisions / its own efforts)
+
+**From the deep audit (`207`):**
+- ~~**P1 `likeRemoteContent` race**~~ — **FIXED in session 209, commit `0fc4b1ef`.** Both
+  `likeRemoteContent` and `boostRemoteContent` now wrap in `db.transaction` + a `.for('update')` row lock
+  on the `federated_content` row before the dedup check (mirrors the `createContentVersion` idiom). Chose
+  the row lock over a unique index because the dedup key lives in the shared `activities` table and a
+  unique constraint there would break the hub-post relike path. `boostRemoteContent` is now deduped too
+  (one Announce per actor+object; it previously had none). No schema change, no migration. Proven by the
+  real-Postgres concurrency harness (25 concurrent same-user calls → counter == 1, one outbound activity);
+  goes RED on revert (20/20 single bursts raced at N=25). Server suite 1433 pass, layer 1109 green.
+- ~~**P2 latent**: 10 hand-rolled `Math.min(limit ?? N, 100)` clamps~~ — **FIXED in session 209, commit
+  `31203d91`.** All 10 (admin audit log, content search meili+pg, federated timeline+search, hub bans+invites,
+  conversations, comments) now route through `normalizePagination`, which gained an additive
+  `defaults: { limit?, maxLimit? }` param so each keeps its own page size (20/24/50). Not-live footgun
+  closed (NaN/zero/negative/fractional now clamped). Tests cover the new param paths.
+
+**From the UI/UX audit (`208`, Phase C — feature builds / product decisions):**
+- ~~**Hub invite UI (P0)**~~ — **DONE in session 209, commit `04b33771`.** New `/hubs/[slug]/invites`
+  manager page (create with max-uses/expiry, list, copy join link, revoke) + the missing
+  `DELETE /api/hubs/[slug]/invites/[id]` route + invite-link redemption on the hub page
+  (`?invite=<token>` → join button sends it, "Accept invite" label, token preserved across login) +
+  a "Manage invites" link for managers. Also fixed a latent bug: handleJoin toasted "Joined hub!"
+  even on `{ joined: false }`. Tests added for revoke/redeem/max-uses (were untested). NOTE: the
+  "approval" join policy still behaves identically to "invite" (both just require a token; no distinct
+  pending-request workflow) — that remains a separate, larger feature.
+- Hub member-management page is orphaned (unlinked) + ban backend has no UI. (The invite page is now
+  linked from the hub header; members.vue is still only reachable via the new-member notification link.)
+- Video sort options are dead (no `sort` in `videoFiltersSchema`) + no video-category admin UI.
+- Products are read-only after create (edit/delete backend, no UI).
+- Learning per-lesson completion never reads back (`getCompletedLessonIds` called by no endpoint).
+- Homepage 3-path consolidation (2-phase deploy: seed layouts first); RBAC `useCan`-driven admin chrome;
+  profile per-tab pagination + own-drafts; federated-follow-from-profile; megalodon TOCTOU residual.
+
+---
+
+## Repo conventions / landmines (MUST follow)
+
+- **Tests-first, mutation bar**: a fix needs a test that goes RED when reverted. Pure logic → unit test;
+  components → @testing-library/vue (stub Nuxt auto-imports on `globalThis`, see ProjectView.test.ts);
+  DB logic → the real-Postgres harness (`packages/server/src/__tests__/helpers/` — PG is reachable in
+  THIS environment, tests run locally; CI has a PG service; `describe.skipIf` otherwise).
+- **Gates**: `cd layers/base && pnpm exec vitest run` (1109 baseline) AND `cd apps/reference && pnpm
+  typecheck` (vue-tsc strict — looser vitest/esbuild passes locally but CI's vue-tsc is stricter). After
+  changing a `packages/*` type, rebuild that package (`pnpm --filter @commonpub/<pkg> build`) so the
+  layer typecheck sees it.
+- **Edit tool needs a prior Read** of each file (a `grep`/`sed` via Bash does NOT count) — Read first.
+- **Committed migrations only** — never `db:push`. **Never deploy deveco/heatsync without curl-verifying**
+  (their deploy health is warn-only). **commonpub.io deploys on push to main** (deploy.yml; `pipefail`
+  migration gate + hard-fail smoke).
+- **CLAUDE.md standing rules**: no AI co-author / `Co-Authored-By` in commits (ANY repo); no feature
+  without a flag; `var(--*)` only (no hardcoded colors/fonts); TS strict (no `any`); **no em dashes in
+  user-facing copy** (labels/hints/toasts/titles — comments exempt); `cpub-` class prefix.
+- **`dist/` is gitignored** — don't commit build artifacts.
+- **Adversarially verify** agent findings + your own work against source before claiming done — this
+  session that caught a silently-failed grep (a duplicate fn) and a self-introduced undo-desync P1.

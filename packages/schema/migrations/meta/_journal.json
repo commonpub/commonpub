@@ -197,6 +197,34 @@
       "when": 1781841635777,
       "tag": "0027_audit204_indexes_dedup",
       "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1782151860599,
+      "tag": "0028_worthless_silver_centurion",
+      "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1782159631571,
+      "tag": "0029_lame_phantom_reporter",
+      "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1782192976732,
+      "tag": "0030_contest_phase4_pii_agreements",
+      "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1782203304301,
+      "tag": "0031_contest_phase6_drop_dead_cols",
+      "breakpoints": true
     }
   ]
 }

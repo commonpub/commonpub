@@ -66,57 +66,57 @@ async function submit(): Promise<void> {
 
     <form class="cpub-form" @submit.prevent="submit">
       <div class="cpub-form-field">
-        <label class="cpub-form-label">Title *</label>
-        <input v-model="form.title" class="cpub-form-input" placeholder="Event title" required />
+        <label for="ev-title" class="cpub-form-label">Title *</label>
+        <input id="ev-title" v-model="form.title" class="cpub-form-input" placeholder="Event title" required />
       </div>
 
       <div class="cpub-form-field">
-        <label class="cpub-form-label">Description</label>
-        <textarea v-model="form.description" class="cpub-form-textarea" rows="4" placeholder="Describe the event..." />
+        <label for="ev-description" class="cpub-form-label">Description</label>
+        <textarea id="ev-description" v-model="form.description" class="cpub-form-textarea" rows="4" placeholder="Describe the event..." />
       </div>
 
       <ImageUpload v-model="form.coverImage" purpose="cover" label="Cover Image" hint="Recommended: 16:9 aspect ratio" />
 
       <div class="cpub-form-row">
         <div class="cpub-form-field">
-          <label class="cpub-form-label">Type</label>
-          <select v-model="form.eventType" class="cpub-form-input">
+          <label for="ev-type" class="cpub-form-label">Type</label>
+          <select id="ev-type" v-model="form.eventType" class="cpub-form-input">
             <option value="in-person">In-Person</option>
             <option value="online">Online</option>
             <option value="hybrid">Hybrid</option>
           </select>
         </div>
         <div class="cpub-form-field">
-          <label class="cpub-form-label">Capacity</label>
-          <input v-model.number="form.capacity" type="number" min="1" class="cpub-form-input" placeholder="Unlimited" />
+          <label for="ev-capacity" class="cpub-form-label">Capacity</label>
+          <input id="ev-capacity" v-model.number="form.capacity" type="number" min="1" class="cpub-form-input" placeholder="Unlimited" />
         </div>
       </div>
 
       <div class="cpub-form-row">
         <div class="cpub-form-field">
-          <label class="cpub-form-label">Start Date *</label>
-          <input v-model="form.startDate" type="datetime-local" class="cpub-form-input" required />
+          <label for="ev-start" class="cpub-form-label">Start Date *</label>
+          <input id="ev-start" v-model="form.startDate" type="datetime-local" class="cpub-form-input" required />
         </div>
         <div class="cpub-form-field">
-          <label class="cpub-form-label">End Date *</label>
-          <input v-model="form.endDate" type="datetime-local" class="cpub-form-input" required />
+          <label for="ev-end" class="cpub-form-label">End Date *</label>
+          <input id="ev-end" v-model="form.endDate" type="datetime-local" class="cpub-form-input" required />
         </div>
       </div>
 
       <div v-if="form.eventType !== 'online'" class="cpub-form-row">
         <div class="cpub-form-field">
-          <label class="cpub-form-label">Location</label>
-          <input v-model="form.location" class="cpub-form-input" placeholder="Venue name / address" />
+          <label for="ev-location" class="cpub-form-label">Location</label>
+          <input id="ev-location" v-model="form.location" class="cpub-form-input" placeholder="Venue name / address" />
         </div>
         <div class="cpub-form-field">
-          <label class="cpub-form-label">Location URL</label>
-          <input v-model="form.locationUrl" type="url" class="cpub-form-input" placeholder="Map link" />
+          <label for="ev-location-url" class="cpub-form-label">Location URL</label>
+          <input id="ev-location-url" v-model="form.locationUrl" type="url" class="cpub-form-input" placeholder="Map link" />
         </div>
       </div>
 
       <div v-if="form.eventType !== 'in-person'" class="cpub-form-field">
-        <label class="cpub-form-label">Online URL</label>
-        <input v-model="form.onlineUrl" type="url" class="cpub-form-input" placeholder="Meeting link" />
+        <label for="ev-online-url" class="cpub-form-label">Online URL</label>
+        <input id="ev-online-url" v-model="form.onlineUrl" type="url" class="cpub-form-input" placeholder="Meeting link" />
       </div>
 
       <div class="cpub-form-actions">

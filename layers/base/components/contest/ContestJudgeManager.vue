@@ -30,12 +30,14 @@ function handleSearch(): void {
   searchTimeout = setTimeout(async () => {
     searching.value = true;
     try {
-      const data = await ($fetch as Function)('/api/admin/users', {
-        query: { search: searchQuery.value, limit: 8 },
-      }) as { items: Array<{ id: string; username: string; displayName: string | null; avatarUrl: string | null }> };
+      // Contest-scoped, non-admin user search (public fields only). Avoids the
+      // admin-only /api/admin/users that 403'd for non-admin contest owners.
+      const data = await ($fetch as Function)(`/api/contests/${props.contestSlug}/user-search`, {
+        query: { q: searchQuery.value, limit: 8 },
+      }) as Array<{ id: string; username: string; displayName: string | null; avatarUrl: string | null }>;
       // Filter out users who are already judges
       const judgeIds = new Set((judges.value ?? []).map((j: ContestJudgeItem) => j.userId));
-      searchResults.value = data.items.filter((u: { id: string }) => !judgeIds.has(u.id));
+      searchResults.value = data.filter((u: { id: string }) => !judgeIds.has(u.id));
     } catch {
       searchResults.value = [];
     } finally {

@@ -13,7 +13,7 @@ import type {
   HubRole,
 } from '../types.js';
 import { hasPermission, canManageRole } from '../utils.js';
-import { USER_REF_SELECT } from '../query.js';
+import { USER_REF_SELECT, normalizePagination } from '../query.js';
 import { createNotification } from '../notification/notification.js';
 
 // --- Bans ---
@@ -156,8 +156,7 @@ export async function listBans(db: DB, hubId: string, opts: { limit?: number; of
     bannerAvatarUrl: sql<string | null>`banner.avatar_url`.as('banner_avatar_url'),
   };
 
-  const limit = Math.min(opts.limit ?? 50, 100);
-  const offset = opts.offset ?? 0;
+  const { limit, offset } = normalizePagination(opts, { limit: 50 });
 
   const rows = await db
     .select({
@@ -240,17 +239,22 @@ export async function createInvite(
 export async function validateAndUseInvite(
   db: DB,
   token: string,
+  hubId?: string,
 ): Promise<{ valid: boolean; hubId?: string }> {
+  // Atomic check-and-increment: a token that is expired, exhausted, or (when hubId is
+  // given) for a different hub matches no row, so no use is consumed. Passing hubId
+  // means a token submitted to the wrong hub can't burn one of its uses.
+  const conditions = [
+    eq(hubInvites.token, token),
+    sql`(${hubInvites.expiresAt} IS NULL OR ${hubInvites.expiresAt} > NOW())`,
+    sql`(${hubInvites.maxUses} IS NULL OR ${hubInvites.useCount} < ${hubInvites.maxUses})`,
+  ];
+  if (hubId) conditions.push(eq(hubInvites.hubId, hubId));
+
   const updated = await db
     .update(hubInvites)
     .set({ useCount: sql`${hubInvites.useCount} + 1` })
-    .where(
-      and(
-        eq(hubInvites.token, token),
-        sql`(${hubInvites.expiresAt} IS NULL OR ${hubInvites.expiresAt} > NOW())`,
-        sql`(${hubInvites.maxUses} IS NULL OR ${hubInvites.useCount} < ${hubInvites.maxUses})`,
-      ),
-    )
+    .where(and(...conditions))
     .returning({ hubId: hubInvites.hubId });
 
   if (updated.length === 0) return { valid: false };
@@ -274,13 +278,18 @@ export async function revokeInvite(
     return false;
   }
 
-  await db.delete(hubInvites).where(eq(hubInvites.id, inviteId));
-  return true;
+  // Scope the delete to the hub the caller manages: deleting by id alone would let a
+  // manager of one hub revoke another hub's invite (cross-hub IDOR). Return false when
+  // no row matched so the caller (and the DELETE route) can surface a real 403/404.
+  const deleted = await db
+    .delete(hubInvites)
+    .where(and(eq(hubInvites.id, inviteId), eq(hubInvites.hubId, hubId)))
+    .returning({ id: hubInvites.id });
+  return deleted.length > 0;
 }
 
 export async function listInvites(db: DB, hubId: string, opts: { limit?: number; offset?: number } = {}): Promise<HubInviteItem[]> {
-  const limit = Math.min(opts.limit ?? 50, 100);
-  const offset = opts.offset ?? 0;
+  const { limit, offset } = normalizePagination(opts, { limit: 50 });
 
   const rows = await db
     .select({

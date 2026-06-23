@@ -34,6 +34,7 @@ export interface VideoDetail extends VideoListItem {
 export interface VideoFilters {
   categoryId?: string;
   authorId?: string;
+  sort?: 'recent' | 'viewed' | 'liked';
   limit?: number;
   offset?: number;
 }
@@ -42,6 +43,8 @@ export interface VideoCategoryItem {
   id: string;
   name: string;
   slug: string;
+  description: string | null;
+  sortOrder: number;
 }
 
 export async function listVideos(
@@ -60,6 +63,14 @@ export async function listVideos(
   const where = conditions.length > 0 ? and(...conditions) : undefined;
   const { limit, offset } = normalizePagination(filters);
 
+  // Primary sort column by option; always tie-break on id (pagination stability).
+  const sortColumn =
+    filters.sort === 'viewed'
+      ? videos.viewCount
+      : filters.sort === 'liked'
+        ? videos.likeCount
+        : videos.createdAt;
+
   const [rows, total] = await Promise.all([
     db
       .select({
@@ -74,7 +85,7 @@ export async function listVideos(
       .innerJoin(users, eq(videos.authorId, users.id))
       .leftJoin(videoCategories, eq(videos.categoryId, videoCategories.id))
       .where(where)
-      .orderBy(desc(videos.createdAt), desc(videos.id))
+      .orderBy(desc(sortColumn), desc(videos.id))
       .limit(limit)
       .offset(offset),
     // COUNT(*) only on the first page; deep load-more pages skip it (`-1` = "not computed").
@@ -189,6 +200,8 @@ export async function listVideoCategories(db: DB): Promise<VideoCategoryItem[]> 
       id: videoCategories.id,
       name: videoCategories.name,
       slug: videoCategories.slug,
+      description: videoCategories.description,
+      sortOrder: videoCategories.sortOrder,
     })
     .from(videoCategories)
     .orderBy(videoCategories.sortOrder);
@@ -219,7 +232,7 @@ export async function createVideoCategory(
     })
     .returning();
 
-  return { id: row!.id, name: row!.name, slug: row!.slug };
+  return { id: row!.id, name: row!.name, slug: row!.slug, description: row!.description, sortOrder: row!.sortOrder };
 }
 
 export async function updateVideoCategory(
@@ -252,7 +265,7 @@ export async function updateVideoCategory(
     .returning();
 
   if (!row) return null;
-  return { id: row.id, name: row.name, slug: row.slug };
+  return { id: row.id, name: row.name, slug: row.slug, description: row.description, sortOrder: row.sortOrder };
 }
 
 export async function deleteVideoCategory(db: DB, id: string): Promise<boolean> {

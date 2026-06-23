@@ -7,7 +7,7 @@ import { z } from 'zod';
 const searchQuerySchema = z.object({
   q: z.string().max(200).optional(),
   type: z.string().optional(),
-  sort: z.enum(['relevance', 'recent', 'popular']).optional(),
+  sort: z.enum(['relevance', 'recent', 'popular', 'likes']).optional(),
   difficulty: z.string().optional(),
   tags: z.string().optional(),
   author: z.string().optional(),
@@ -141,8 +141,10 @@ export default defineEventHandler(async (event): Promise<{ items: unknown[]; tot
       difficulty: params.difficulty as ContentFilters['difficulty'],
       tag: tagList[0],
       // Postgres has no relevance ranking (that's Meilisearch's job) — the old
-      // path also fell back to recency for 'relevance'.
-      sort: params.sort === 'popular' ? 'popular' : 'recent',
+      // path also fell back to recency for 'relevance'. 'popular'/'likes' pass
+      // through (listContent coerces them to recency when the merge federates,
+      // since federated rows carry no view/like counts — same as 'popular').
+      sort: params.sort === 'popular' || params.sort === 'likes' ? params.sort : 'recent',
       limit,
       offset,
     };

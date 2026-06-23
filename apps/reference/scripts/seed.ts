@@ -25,6 +25,7 @@ import {
   bookmarks,
   contests,
   contestEntries,
+  contestJudges,
   videos,
   videoCategories,
   learningPaths,
@@ -411,10 +412,16 @@ async function seed(): Promise<void> {
       { place: 2, title: 'Runner Up', value: '$3,000' },
       { place: 3, title: 'Third Place', value: '$2,000' },
     ],
-    judges: [userIds[7]!, userIds[3]!],
     createdById: userIds[8]!,
     entryCount: 3,
   });
+
+  // Judges live in the contest_judges table (the single source of truth). Seed
+  // them as already-accepted so the demo contest has an active panel.
+  await db.insert(contestJudges).values([
+    { contestId: contestId1, userId: userIds[7]!, acceptedAt: now },
+    { contestId: contestId1, userId: userIds[3]!, acceptedAt: now },
+  ]);
 
   // Submit some entries
   for (let i = 0; i < 3; i++) {

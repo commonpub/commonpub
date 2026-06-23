@@ -1,6 +1,7 @@
 import { revokeApiKey, createAuditEntry } from '@commonpub/server';
 
 export default defineEventHandler(async (event) => {
+  requireFeature('publicApi');
   const user = requirePermission(event, 'apikeys.manage');
   const { id } = parseParams(event, { id: 'uuid' });
   const db = useDB();
