@@ -45,10 +45,15 @@ export function useFileUpload(): UseFileUpload {
     if (purpose !== undefined) {
       formData.append('purpose', purpose);
     }
-    return await $fetch<T>('/api/files/upload', {
+    // Keep the `<T>` generic (it bounds the request type so Nuxt's route-scoring
+    // typegen doesn't recurse over the whole route union) but cast the result: the
+    // typed overload otherwise mis-resolves to the GET response shape in some apps'
+    // route typegen (a Nuxt fragility any new GET route can perturb). The upload
+    // endpoint returns a FileUploadResult, so the cast is sound.
+    return (await $fetch<T>('/api/files/upload', {
       method: 'POST',
       body: formData,
-    });
+    })) as unknown as T;
   }
 
   return { uploadFile };
