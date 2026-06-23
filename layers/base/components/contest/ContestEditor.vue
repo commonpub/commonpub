@@ -61,12 +61,21 @@ const {
 // Draft contests autosave (background PUT once edits settle); published contests
 // save on an explicit action. Create has no slug yet, so it never autosaves.
 const isDraftAutosave = computed(() => props.mode === 'edit' && contest.value?.status === 'draft');
+// Autosave retries on every keystroke after a failure, so toast each DISTINCT
+// message once (else a persistent error, e.g. a slug conflict, spams every 3s
+// while the organizer keeps typing). A successful save re-arms the toast.
+const lastAutosaveError = ref('');
 const autosave = useEditorAutosave({
   persist: () => editor.save({ silent: true }),
   canSave: () => isDraftAutosave.value && !dateError.value && !!title.value.trim(),
   debounceMs: 3000,
-  onError: (err) => toast.error(extractError(err)),
+  onError: (err) => {
+    const msg = extractError(err);
+    if (msg !== lastAutosaveError.value) toast.error(msg);
+    lastAutosaveError.value = msg;
+  },
 });
+watch(autosave.status, (s) => { if (s === 'saved') lastAutosaveError.value = ''; });
 // Any post-hydration edit re-arms the trailing debounce (only while autosaving).
 watch(formDirty, (d) => { if (d && isDraftAutosave.value) autosave.markDirty(); });
 const busy = computed(() => saving.value || autosave.saving.value);
