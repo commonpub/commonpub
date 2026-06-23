@@ -484,6 +484,10 @@ ContestEditor (ClientOnly, layout:false, cpub-ce-layout, height:100vh)
   (responsive data table, plain-text cells), and **`criteriaBar`** (judging criteria as one
   stacked weighted bar with a color legend). Each is registered in the renderer `componentMap`
   + palette + `blockDefaults` + `BLOCK_COMPONENTS_KEY`; segment math in `utils/contestBlocks.ts`.
+  Niceties: the **tabs** block takes an optional `urlKey` to deep-link the open tab
+  (`?<urlKey>=<slug>`, e.g. `?tab=rules&track=track-b-startups`); the **criteriaBar** block offers
+  a "Use rubric" auto-fill from the contest's `judgingCriteria` (via `CONTEST_RUBRIC_KEY` provide);
+  and markdown GFM tables import as structured `table` blocks (`@commonpub/editor` `mapTable`).
 - **Dates** use `CpubDateTimeField` (local-correct via `utils/datetime`); the whole editor is
   `<ClientOnly>` to avoid prod UTC-vs-local hydration mismatches.
 - **Autosave** for draft contests via `useEditorAutosave` (silent save + rename-in-place

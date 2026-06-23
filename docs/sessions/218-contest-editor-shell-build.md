@@ -186,9 +186,17 @@ straight into Rules. **There are NO true sub-routes** (`/contests/:slug/rules` i
 one `[slug]/index.vue` with query-param panels) — net-new work if literally wanted. The in-content
 **Tabs block** has component-local tab state (not URL-wired); fine for nested content.
 
-### Follow-up ideas (not built)
-- Wire the in-content Tabs block to a `?…` param so a specific track is deep-linkable.
-- A `criteriaBar` "pull from this contest's rubric" convenience (auto-fill items from
-  `judgingCriteria`).
-- Markdown GFM tables import as HTML-in-`text`, not the structured `table` block
-  (`@commonpub/editor` `mapTable`) — convert on import if desired.
+### Block follow-ups (built, commit `ed391752`)
+- **Tabs URL deep-link** — optional `urlKey` on the tabs block; the view syncs the open tab to
+  `?<urlKey>=<slug>` (read on load · `router.replace` on switch · back/forward restore), router
+  access try/catch-guarded so it no-ops without a route context. Editor has a Deep-link key field.
+  E.g. `?tab=rules&track=track-b-startups` opens the Startups rules tab.
+- **Criteria-bar "Use rubric"** — `ContestEditor` provides its live `judgingCriteria`
+  (`CONTEST_RUBRIC_KEY`); `CriteriaBarBlock` injects it and offers a one-click fill from
+  `{label, weight}` (button hidden outside the contest editor).
+- **Markdown GFM tables → structured `table` block** — `@commonpub/editor` `mapTable` now emits
+  `['table', { header, rows }]` (plain-text cells) instead of HTML-in-`text`, so legacy/imported
+  markdown tables become editable table blocks. Inline marks in cells flatten to text.
+
+  Gates: editor suite 243/243, layer 1270/1270, turbo typecheck 28/28; live-verified (screenshots
+  `21`–`23`). Still open (not requested): a true `/contests/:slug/rules` sub-route.
