@@ -144,3 +144,13 @@ fields with addresses formatted, + agreement acceptances with terms snapshot + s
 fetched **client-side only** so PII never enters the SSR payload, gated by `features.contestPii` +
 the endpoint's entrant-or-`contest.pii` authz. Verified: organizer + entrant see it, judge does not,
 PII absent from SSR. Layer suite **1232/1232**.
+
+Then a **deep PII storage/privacy audit** (two adversarial sweeps + manual review): verdict **safe,
+no P0/P1** — strict template-driven partitioning (PII can't reach the public artifact), airtight
+access control (admin-only when RBAC off; cross-contest entryId rejected; no non-`/private` leak;
+no federation/log leak), and `ON DELETE CASCADE` on contest/entry/**user** FKs so all three hard-
+delete paths erase PII (right-to-erasure works). Hardening applied (commit `6b4b3ff0`): `no-store`
+on `/private` + `/export`; consent-`ip` surfaced in `getEntryPrivateData` + the viewer (subject-
+access transparency); accurate `contest.pii` gating copy. Documented decisions (plaintext-at-rest
+relies on operator DB encryption; no automated retention purge yet) in `docs/reference/guides/
+contests.md` → "Storage, retention & safety". Layer suite **1233/1233**.

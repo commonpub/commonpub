@@ -310,9 +310,11 @@ by a dedicated permission.
             else 403.  The normal entries endpoints NEVER include PII.
 ```
 
-- `contest.pii` is seeded to `staff` (migration 0030) and held by `admin` via `*`.
-  The contest owner/editor does **not** get entrant PII unless they are also
-  admin/staff (operator decision; widen later via RBAC).
+- `contest.pii` is seeded to `staff` (migration 0030) and held by `admin` via `*` — but
+  with `features.rbac` **OFF** (the default on all live instances) the seed is inert, so PII
+  access is effectively **admin-only**; `staff` gains it only once RBAC is enabled. A contest
+  owner/editor does **not** get entrant PII unless they're also admin (or hold the grant
+  under RBAC). Non-admin owners' CSV exports omit the `PII:` columns.
 - Agreement acceptances are append-only and snapshot the exact terms text + a
   sha-256 hash (`hashTerms`) so the wording the entrant agreed to survives later
   template edits. Exportable for legal/audit.
@@ -325,6 +327,33 @@ by a dedicated permission.
   snapshot · sha-256 hash). Fetched **client-side only** so partitioned PII never enters
   the SSR payload; a 403/empty leaves the section hidden, so judges + the public never
   see it. Bulk PII stays available via the CSV export (`PII:` columns, same gate).
+
+### Storage, retention & safety (audited session 218)
+
+A two-front adversarial audit (storage/retention + access/leak) found the model sound —
+no P0/P1, no leak path, erasure works. The deliberate decisions + hardening:
+
+- **At rest:** PII is stored as **plaintext `jsonb`** (`contest_entry_private_fields.fields`)
+  and plaintext `text`/`varchar` (agreement `terms_snapshot`, consent `ip`). There is **no
+  app-layer encryption** — confidentiality rests on (1) the strict server-side partition (PII
+  never reaches the public artifact — unknown keys are rejected and partitioning is
+  template-driven, so an entrant can't smuggle PII into `stageSubmissions`), (2) the
+  `contest.pii`/entrant access gate, and (3) **the operator enabling Postgres at-rest /
+  disk encryption** — that last one is the operator's responsibility. App-layer envelope
+  encryption of `fields`/`ip` is a possible future enhancement (needs a key-management
+  decision) if protecting against a raw DB dump is in scope.
+- **Erasure (right-to-erasure):** all three FKs (`contest_id`, `entry_id`, `user_id`) on both
+  PII tables are `ON DELETE CASCADE`, and every delete path is a **hard** delete — deleting a
+  **contest**, **withdrawing an entry**, or **deleting a user account** (self-serve
+  `/api/auth/delete-user` or admin) erases the associated PII + agreement acceptances. No
+  orphans. (`users.deletedAt` soft-delete is test-only.)
+- **Retention:** there is **no automated time-based purge** yet — PII persists for the
+  contest/entry/user lifetime. A purge (e.g. drop PII + consent IPs N days after a contest is
+  `completed`/`cancelled`) is a recommended follow-up for data minimization.
+- **Transport/cache:** `/private` and `/export` send `Cache-Control: no-store`; the in-app
+  viewer fetches `/private` **client-side only** (PII never in the SSR payload).
+- **Consent audit:** each agreement acceptance snapshots the terms + a sha-256 hash + the
+  client IP; the IP is surfaced in the subject's own-data view (transparency).
 
 ---
 
