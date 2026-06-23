@@ -42,7 +42,15 @@ function advanceCountInput(i: number, e: Event): void {
 // functions in utils/contestStages.ts (unit-tested). Flag-gated (rule #2).
 const { features } = useFeatures();
 const templatesEnabled = computed(() => features.value.contestStageSubmissions !== false);
-const FIELD_TYPES: ContestSubmissionTemplateField['type'][] = ['text', 'textarea', 'url'];
+// Phase 4: the PII flag offers the agreement/address types + the per-field PII
+// toggle; the proposals flag offers per-stage submission mode (attach vs proposal).
+const piiEnabled = computed(() => features.value.contestPii === true);
+const proposalsEnabled = computed(() => features.value.contestProposals === true);
+const FIELD_TYPES = computed<ContestSubmissionTemplateField['type'][]>(() => {
+  const base: ContestSubmissionTemplateField['type'][] = ['text', 'textarea', 'url', 'email', 'number', 'select', 'checkbox', 'date'];
+  if (piiEnabled.value) base.push('agreement', 'address');
+  return base;
+});
 
 function addTemplateField(i: number): void {
   commit(withTemplateFieldAdded(stages.value, i));
@@ -50,11 +58,24 @@ function addTemplateField(i: number): void {
 function setTemplateField(i: number, fi: number, patch: Partial<ContestSubmissionTemplateField>): void {
   commit(withTemplateFieldSet(stages.value, i, fi, patch));
 }
+function changeTemplateFieldType(i: number, fi: number, type: ContestSubmissionTemplateField['type']): void {
+  commit(withTemplateFieldTypeChanged(stages.value, i, fi, type));
+}
 function templateFieldLabelInput(i: number, fi: number, e: Event): void {
   commit(withTemplateFieldLabelChanged(stages.value, i, fi, (e.target as HTMLInputElement).value));
 }
 function removeTemplateField(i: number, fi: number): void {
   commit(withTemplateFieldRemoved(stages.value, i, fi));
+}
+// Select-option ops (pure helpers in utils/contestStages.ts).
+function addOption(i: number, fi: number): void {
+  commit(withTemplateOptionAdded(stages.value, i, fi));
+}
+function setOption(i: number, fi: number, oi: number, patch: Partial<{ value: string; label: string }>): void {
+  commit(withTemplateOptionSet(stages.value, i, fi, oi, patch));
+}
+function removeOption(i: number, fi: number, oi: number): void {
+  commit(withTemplateOptionRemoved(stages.value, i, fi, oi));
 }
 
 // Array operations live as pure functions in utils/contestStages.ts (unit-tested).
@@ -205,6 +226,22 @@ const missingSubmission = computed(() => stages.value.length > 0 && !stages.valu
             />
           </div>
 
+          <!-- Submission mode (Phase 4): attach an existing project, or collect a
+               form-first proposal that seeds a draft placeholder project. -->
+          <div v-if="stage.kind === 'submission' && proposalsEnabled" class="cpub-form-field">
+            <label :for="`stage-mode-${i}`" class="cpub-form-label">How entrants submit</label>
+            <select
+              :id="`stage-mode-${i}`"
+              :value="stage.submissionMode ?? 'attach'"
+              class="cpub-form-input"
+              @change="setField(i, { submissionMode: (($event.target as HTMLSelectElement).value as 'attach' | 'proposal') })"
+            >
+              <option value="attach">Attach an existing published project</option>
+              <option value="proposal">Proposal form (creates a draft project)</option>
+            </select>
+            <p class="cpub-form-hint" style="margin: 4px 0;">Proposal mode lets entrants apply with just this form. The server creates a draft project they develop for later rounds.</p>
+          </div>
+
           <!-- Per-stage submission template (submission stages): the artifact
                fields entrants fill for THIS stage (proposal vs prototype). -->
           <div v-if="stage.kind === 'submission' && templatesEnabled" class="cpub-stage-criteria">
@@ -227,7 +264,7 @@ const missingSubmission = computed(() => stages.value.length > 0 && !stages.valu
                   :value="tf.type"
                   class="cpub-form-input cpub-stage-tfield-type"
                   :aria-label="`Field ${fi + 1} type`"
-                  @change="setTemplateField(i, fi, { type: ($event.target as HTMLSelectElement).value as ContestSubmissionTemplateField['type'] })"
+                  @change="changeTemplateFieldType(i, fi, ($event.target as HTMLSelectElement).value as ContestSubmissionTemplateField['type'])"
                 >
                   <option v-for="t in FIELD_TYPES" :key="t" :value="t">{{ TEMPLATE_FIELD_TYPE_LABEL[t] }}</option>
                 </select>
@@ -250,6 +287,71 @@ const missingSubmission = computed(() => stages.value.length > 0 && !stages.valu
                 :aria-label="`Field ${fi + 1} hint`"
                 @input="setTemplateField(i, fi, { help: ($event.target as HTMLInputElement).value || undefined })"
               />
+
+              <!-- select: the allowed options -->
+              <div v-if="tf.type === 'select'" class="cpub-stage-tfield-extra">
+                <span class="cpub-form-hint" style="margin: 0;">Choices</span>
+                <div v-for="(opt, oi) in (tf.options ?? [])" :key="oi" class="cpub-stage-opt-row">
+                  <input
+                    :value="opt.label"
+                    type="text"
+                    class="cpub-form-input"
+                    placeholder="Label (shown to entrants)"
+                    :aria-label="`Field ${fi + 1} option ${oi + 1} label`"
+                    @input="setOption(i, fi, oi, { label: ($event.target as HTMLInputElement).value })"
+                  />
+                  <input
+                    :value="opt.value"
+                    type="text"
+                    class="cpub-form-input"
+                    placeholder="Value (stored)"
+                    :aria-label="`Field ${fi + 1} option ${oi + 1} value`"
+                    @input="setOption(i, fi, oi, { value: ($event.target as HTMLInputElement).value })"
+                  />
+                  <button type="button" class="cpub-stage-iconbtn cpub-stage-del" aria-label="Remove option" @click="removeOption(i, fi, oi)"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <button type="button" class="cpub-btn cpub-btn-sm" @click="addOption(i, fi)"><i class="fa-solid fa-plus"></i> Add choice</button>
+              </div>
+
+              <!-- agreement: terms the entrant must accept -->
+              <div v-if="tf.type === 'agreement'" class="cpub-stage-tfield-extra">
+                <textarea
+                  :value="tf.terms ?? ''"
+                  class="cpub-form-input cpub-form-textarea"
+                  rows="3"
+                  placeholder="Terms the entrant must accept (e.g. shipping the hardware to winners)"
+                  :aria-label="`Field ${fi + 1} agreement terms`"
+                  @input="setTemplateField(i, fi, { terms: ($event.target as HTMLTextAreaElement).value || undefined })"
+                ></textarea>
+                <label class="cpub-stage-tfield-req">
+                  <input
+                    type="checkbox"
+                    :checked="tf.mustAccept !== false"
+                    :aria-label="`Field ${fi + 1} must accept`"
+                    @change="setTemplateField(i, fi, { mustAccept: ($event.target as HTMLInputElement).checked })"
+                  />
+                  <span>Must accept to submit</span>
+                </label>
+              </div>
+
+              <!-- address: structured + always personal data -->
+              <p v-if="tf.type === 'address'" class="cpub-form-hint" style="margin: 4px 0;">
+                Collected as a structured mailing address and stored as personal data. Visible only to staff with PII access and the entrant.
+              </p>
+
+              <!-- PII toggle (non-address, non-agreement scalar fields) -->
+              <label
+                v-if="piiEnabled && tf.type !== 'address' && tf.type !== 'agreement'"
+                class="cpub-stage-tfield-req cpub-stage-tfield-pii"
+              >
+                <input
+                  type="checkbox"
+                  :checked="tf.pii === true"
+                  :aria-label="`Field ${fi + 1} is personal data`"
+                  @change="setTemplateField(i, fi, { pii: ($event.target as HTMLInputElement).checked || undefined })"
+                />
+                <span>Personal data (store privately, hide from the public listing)</span>
+              </label>
             </div>
           </div>
 
@@ -313,4 +415,8 @@ const missingSubmission = computed(() => stages.value.length > 0 && !stages.valu
 .cpub-stage-tfield-req { display: inline-flex; align-items: center; gap: 5px; font-size: 10px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: .06em; color: var(--text-faint); cursor: pointer; flex-shrink: 0; }
 .cpub-stage-tfield-req input { width: 13px; height: 13px; }
 .cpub-stage-tfield-help { margin-top: 6px !important; font-size: var(--text-xs) !important; }
+.cpub-stage-tfield-extra { margin-top: 6px; padding: 8px; border: var(--border-width-default) dashed var(--border2); background: var(--surface2); display: flex; flex-direction: column; gap: 6px; }
+.cpub-stage-opt-row { display: flex; align-items: center; gap: 6px; }
+.cpub-stage-opt-row .cpub-form-input { flex: 1; min-width: 100px; margin: 0; }
+.cpub-stage-tfield-pii { margin-top: 6px; }
 </style>
