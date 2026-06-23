@@ -15,6 +15,59 @@ used by BOTH create and edit as thin route shells: a sticky topbar + full-width 
 draft autosave) **and Phase 3** (slim hero + cover-on-detail + hydration-mismatch fixes + one date formatter) now done too.
 **Gates: schema 470, server 1469, layer 1204, reference vue-tsc 0.** Nothing outward-facing.
 
+**Session 215 (2026-06-23) — Phase 4 (submission paths) + contest.ts decomposition + comprehensive docs:**
+Built Phase 4 end-to-end across 5 atomic commits, decomposed the server monolith, wrote the hyper-detailed
+reference doc, and VISUALLY VERIFIED the whole flow in the running app. **Not merged/published/deployed.**
+- `f7557a90` **4a foundation** — flags `features.contestProposals` + `features.contestPii` (both default OFF,
+  wired end-to-end: config types/schema, nuxt runtimeConfig, useFeatures, /admin/features); extended
+  `submissionTemplateFieldSchema` with field types email/number/select/checkbox/date/agreement/address +
+  options/pii/terms/termsFormat/mustAccept; new tables `contest_agreement_acceptances` +
+  `contest_entry_private_fields`; new RBAC permission **`contest.pii`** (single-dot to fit the catalog
+  convention + its test) on the catalog + STAFF_PERMISSION_SET; **migration 0030** (additive tables +
+  idempotent staff `contest.pii` seed). Applied to local dev DB. Validator/permission tests + rbac seed
+  parity test updated to union staff grants across 0025+0030.
+- `bb98a749` **4b server** — `validateSubmissionFields` validates every new type AND partitions into
+  { artifact, pii, agreements } so PII/consent NEVER reach the public `stageSubmissions` jsonb;
+  `recordPrivateAndAgreements` (tx-scoped, PII upsert-merged per entry, agreements append-only with terms
+  hash+snapshot+ip); `submitStageArtifact` made PII-aware (+ optional ip); **`submitContestProposal`**
+  (one flow: validate → createContent DRAFT placeholder → link entry relaxing the published gate for
+  proposal mode → artifact + PII + agreements + entryCount, compensating-delete on tx failure);
+  `getEntryPrivateData`. Routes: `POST /contests/:slug/proposal` (features.contestProposals) +
+  `GET /contests/:slug/entries/:entryId/private` (contest.pii OR own entry); submission.put forwards ip.
+  Stage gained `submissionMode: 'attach' | 'proposal'`. 10 integration tests (partition purity, PII
+  isolation, agreement capture, gates, per-user cap, attach-path PII-awareness).
+- `0ccd55c4` **DECOMPOSITION** (user-requested "no monolithic files") — split the 1666-line
+  `contest/contest.ts` into a clean acyclic DAG: `types.ts`(211) · `stages.ts`(59) · `validation.ts`(140) ·
+  `read.ts`(203) · `entries.ts`(344) · `submissions.ts`(350) · `judging.ts`(253) · `contest.ts`(351 CRUD).
+  DAG: types ← stages/validation ← read/entries/submissions ← judging; contest ← read+entries. Public API
+  (contest/index.ts barrel + server top-level index) unchanged. Behavior-preserving (full suite green).
+- `ca0c0586` **4c organizer UI** — ContestStagesEditor builder: new field types (flag-gated — scalars on
+  contestStageSubmissions; agreement/address/PII-toggle on contestPii), select-options editor, agreement
+  terms+must-accept editor, per-field PII toggle, per-stage submission-mode selector (contestProposals).
+  Pure tested helpers in utils/contestStages.ts (withTemplateFieldTypeChanged + option add/set/remove).
+- `a833ee00` **4d entrant UI** — `ContestSubmissionField.vue` (one reusable control for ALL types: address
+  structured subform JSON-encoded, agreement terms+accept, checkbox/agreement true/empty model);
+  `utils/contestSubmission.ts` (shared tested helpers blockingFields/buildSubmissionPayload/address); 
+  `ContestStageSubmission` refactored onto the shared field (ids+payload contract preserved);
+  `ContestProposalForm.vue` (POST /proposal → routes to the new draft project editor); index.vue entries tab
+  is submission-mode aware (proposal form / login prompt / attach CTA / artifact edit).
+- `8bd14186` **docs** — rewrote `docs/reference/guides/contests.md` into a hyper-detailed reference with
+  state-flow diagrams (architecture, server-module DAG, data model, status state machine, stage engine,
+  both submission paths, field types, PII/agreement access-control, judging/advancement, editor, public
+  page, full API table, flags, RBAC, federation scope, testing).
+- **VISUAL VERIFICATION (local run + Playwright, all PASS):** proposal form renders every field type with
+  ZERO hydration mismatches; end-to-end submit creates the draft project + redirects to its editor
+  (`/u/<un>/project/solar-pump-v1/edit`); **PII isolation confirmed LIVE** (entries listing leaks neither
+  email nor address — artifact = {title,track,summary}; `/private` returns the PII + agreement snapshot);
+  the builder renders all Phase 4 controls (mode selector, 6 type selects, select options, agreement terms,
+  4 PII toggles), zero hydration. Screenshots reviewed.
+- **Gates green at HEAD:** schema 474, server **1479**, layer **1223**, reference vue-tsc 0.
+- Decision (operator, this session): **PII access = admin/staff only** (not owner/editor); FormatToggle.vue
+  **retained** (hardened, not removed).
+- **NOT yet done (next):** Phase 5 (judging UX + Excel/CSV export, incl. B3 = validate judge criteriaScores
+  vs rubric); Phase 6 (drop dead `judges`/`content_format` cols, B5a, release). The Phase 4 flags ship
+  default OFF; reference config left at defaults (the local-verify flag flip was reverted).
+
 **Session 214 cont. — Phase 3 (display redesign + the hydration bug):**
 - `32c0aa29` (audit follow-up) dedupe repeated autosave-error toasts (a persistent error retried every
   ~3s spammed the same toast).
