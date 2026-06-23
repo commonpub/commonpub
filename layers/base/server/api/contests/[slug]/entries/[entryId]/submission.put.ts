@@ -27,7 +27,7 @@ export default defineEventHandler(async (event): Promise<{ submitted: boolean; s
   }
 
   const input = await parseBody(event, stageSubmissionSchema);
-  const result = await submitStageArtifact(db, entryId, input.stageId, input.fields, user.id);
+  const result = await submitStageArtifact(db, entryId, input.stageId, input.fields, user.id, getRequestIP(event) ?? null);
   if (!result.submitted) {
     throw createError({ statusCode: 400, statusMessage: result.error ?? 'Could not submit' });
   }

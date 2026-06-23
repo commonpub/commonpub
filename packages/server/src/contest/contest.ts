@@ -1,5 +1,15 @@
+import { createHash } from 'node:crypto';
 import { eq, ne, and, or, desc, sql, isNotNull, inArray } from 'drizzle-orm';
-import { contests, contestEntries, contestJudges, contestStakeholders, users, contentItems } from '@commonpub/schema';
+import {
+  contests,
+  contestEntries,
+  contestJudges,
+  contestStakeholders,
+  contestAgreementAcceptances,
+  contestEntryPrivateFields,
+  users,
+  contentItems,
+} from '@commonpub/schema';
 import type { DB } from '../types.js';
 import { normalizePagination, countRows } from '../query.js';
 import { isContestStakeholder, isContestEditor } from './stakeholders.js';
@@ -137,7 +147,7 @@ export interface CreateContestInput {
 
 // --- Phase B1: stage timeline helpers (pure — operate on a contest-like object) ---
 
-type StageSource = {
+export type StageSource = {
   status: string;
   startDate: Date | string;
   endDate: Date | string;
@@ -1218,44 +1228,214 @@ export function isEliminated(entry: { stageState?: Array<{ status: string }> | n
 
 // --- Per-stage submission artifacts (proposal → prototype) ---
 
+/** An accepted agreement field, ready to be recorded as an acceptance row. */
+export interface AgreementAcceptanceInput {
+  fieldKey: string;
+  label: string;
+  terms: string;
+  termsFormat: 'markdown' | 'html';
+}
+
 /**
- * Validate an entrant's artifact fields against the stage's template. Pure +
- * exhaustively testable. Domain checks, not just shape: unknown keys rejected
- * (no smuggling values outside the template), required fields must be
- * non-blank, and `url` fields must be real http(s) URLs — `javascript:` and
- * friends are known-bad payloads, not "strings that look url-ish".
+ * The result of validating + partitioning a submission form. Agreements and PII
+ * are split OUT of the public `artifact` so they never reach `stageSubmissions`:
+ * agreements become immutable acceptance rows, PII lands in the private table.
+ */
+export interface PartitionedSubmission {
+  /** Non-PII, non-agreement fields → the public `stageSubmissions` artifact. */
+  artifact: Record<string, string>;
+  /** PII fields (`pii: true` or `address`) → `contest_entry_private_fields`. */
+  pii: Record<string, string>;
+  /** Accepted agreements → `contest_agreement_acceptances`. */
+  agreements: AgreementAcceptanceInput[];
+}
+
+/** Truthy markers an `agreement`/`checkbox` value is "accepted/checked". */
+const ACCEPTANCE_VALUES = new Set(['true', 'on', '1', 'yes', 'accepted', 'checked']);
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/** A field whose value is personal data — stored in the private table, not the artifact. */
+function isPiiField(f: ContestSubmissionTemplateField): boolean {
+  return f.type === 'address' || f.pii === true;
+}
+
+/** sha-256 hex of an agreement's terms text (integrity check vs the snapshot). */
+export function hashTerms(terms: string): string {
+  return createHash('sha256').update(terms, 'utf8').digest('hex');
+}
+
+/**
+ * Validate an entrant's submission values against a stage template AND partition
+ * them into artifact / PII / agreements. Pure + exhaustively testable. Domain
+ * checks, not just shape: unknown keys rejected (no smuggling values outside the
+ * template), required fields non-blank, `url`/`email`/`number`/`select`/`date`/
+ * `address` validated for their kind, agreements must be accepted when required.
+ * PII (`pii`/`address`) and agreement fields are kept OUT of `artifact`.
+ */
+export function validateSubmissionFields(
+  template: ContestSubmissionTemplateField[],
+  values: Record<string, string>,
+): { ok: true; result: PartitionedSubmission } | { ok: false; error: string } {
+  const byKey = new Map(template.map((f) => [f.key, f]));
+  for (const key of Object.keys(values)) {
+    if (!byKey.has(key)) return { ok: false, error: `Unknown field: ${key}` };
+    if (typeof values[key] !== 'string') return { ok: false, error: `Invalid value for ${key}` };
+    if (values[key]!.length > 4000) return { ok: false, error: `${byKey.get(key)!.label} is too long (max 4000 characters)` };
+  }
+
+  const artifact: Record<string, string> = {};
+  const pii: Record<string, string> = {};
+  const agreements: AgreementAcceptanceInput[] = [];
+
+  for (const field of template) {
+    const value = (values[field.key] ?? '').trim();
+
+    // Agreements are consent, not data — recorded separately, never in the artifact.
+    if (field.type === 'agreement') {
+      const mustAccept = field.mustAccept !== false; // default true
+      const accepted = ACCEPTANCE_VALUES.has(value.toLowerCase());
+      if ((field.required || mustAccept) && !accepted) {
+        return { ok: false, error: `You must accept: ${field.label}` };
+      }
+      if (accepted) {
+        agreements.push({
+          fieldKey: field.key,
+          label: field.label,
+          terms: field.terms ?? '',
+          termsFormat: field.termsFormat ?? 'markdown',
+        });
+      }
+      continue;
+    }
+
+    // Checkbox: a normalized boolean. A required checkbox must be checked.
+    if (field.type === 'checkbox') {
+      const checked = ACCEPTANCE_VALUES.has(value.toLowerCase());
+      if (field.required && !checked) return { ok: false, error: `${field.label} must be checked` };
+      (isPiiField(field) ? pii : artifact)[field.key] = checked ? 'true' : 'false';
+      continue;
+    }
+
+    if (!value) {
+      if (field.required) return { ok: false, error: `${field.label} is required` };
+      continue; // optional + blank ⇒ omit
+    }
+
+    switch (field.type) {
+      case 'url': {
+        // Scheme allow-list FIRST (https?:// only), then structural URL parse.
+        if (!/^https?:\/\//i.test(value)) return { ok: false, error: `${field.label} must be an http(s) URL` };
+        try {
+          if (!new URL(value).hostname) return { ok: false, error: `${field.label} must be a valid URL` };
+        } catch {
+          return { ok: false, error: `${field.label} must be a valid URL` };
+        }
+        break;
+      }
+      case 'email':
+        if (!EMAIL_RE.test(value)) return { ok: false, error: `${field.label} must be a valid email address` };
+        break;
+      case 'number':
+        if (!Number.isFinite(Number(value))) return { ok: false, error: `${field.label} must be a number` };
+        break;
+      case 'date':
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(value) || Number.isNaN(Date.parse(value))) {
+          return { ok: false, error: `${field.label} must be a valid date` };
+        }
+        break;
+      case 'select': {
+        const allowed = new Set((field.options ?? []).map((o) => o.value));
+        if (!allowed.has(value)) return { ok: false, error: `${field.label}: choose one of the listed options` };
+        break;
+      }
+      case 'address': {
+        let parsed: unknown;
+        try {
+          parsed = JSON.parse(value);
+        } catch {
+          return { ok: false, error: `${field.label} is not a valid address` };
+        }
+        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+          return { ok: false, error: `${field.label} is not a valid address` };
+        }
+        break;
+      }
+      // text / textarea: no extra domain check.
+    }
+
+    (isPiiField(field) ? pii : artifact)[field.key] = value;
+  }
+
+  return { ok: true, result: { artifact, pii, agreements } };
+}
+
+/**
+ * Back-compat artifact-only validator (the original per-stage-artifact contract).
+ * Delegates to `validateSubmissionFields` and returns just the public artifact —
+ * PII/agreement fields, if any, are partitioned out and handled by the caller.
  */
 export function validateStageArtifactFields(
   template: ContestSubmissionTemplateField[],
   fields: Record<string, string>,
 ): { ok: true; fields: Record<string, string> } | { ok: false; error: string } {
-  const byKey = new Map(template.map((f) => [f.key, f]));
-  for (const key of Object.keys(fields)) {
-    if (!byKey.has(key)) return { ok: false, error: `Unknown field: ${key}` };
-    if (typeof fields[key] !== 'string') return { ok: false, error: `Invalid value for ${key}` };
-    if (fields[key]!.length > 4000) return { ok: false, error: `${byKey.get(key)!.label} is too long (max 4000 characters)` };
+  const r = validateSubmissionFields(template, fields);
+  if (!r.ok) return r;
+  return { ok: true, fields: r.result.artifact };
+}
+
+/** The transaction handle drizzle passes to `db.transaction(async (tx) => …)`. */
+export type ContestTx = Parameters<Parameters<DB['transaction']>[0]>[0];
+
+/**
+ * Persist the PII + agreement halves of a partitioned submission within an open
+ * transaction. PII is upserted (one row per entry, merged with any prior PII so
+ * a later stage's PII doesn't wipe an earlier stage's); agreements are appended
+ * as immutable acceptance rows (terms hash + snapshot). No-op when both empty.
+ */
+export async function recordPrivateAndAgreements(
+  tx: ContestTx,
+  args: {
+    contestId: string;
+    entryId: string;
+    userId: string;
+    stageId: string;
+    pii: Record<string, string>;
+    agreements: AgreementAcceptanceInput[];
+    ip?: string | null;
+  },
+): Promise<void> {
+  const { contestId, entryId, userId, stageId, pii, agreements, ip } = args;
+
+  if (Object.keys(pii).length > 0) {
+    const [existing] = await tx
+      .select({ fields: contestEntryPrivateFields.fields })
+      .from(contestEntryPrivateFields)
+      .where(eq(contestEntryPrivateFields.entryId, entryId))
+      .for('update');
+    const merged = { ...(existing?.fields ?? {}), ...pii };
+    await tx
+      .insert(contestEntryPrivateFields)
+      .values({ contestId, entryId, userId, fields: merged })
+      .onConflictDoUpdate({
+        target: contestEntryPrivateFields.entryId,
+        set: { fields: merged, updatedAt: new Date() },
+      });
   }
-  const clean: Record<string, string> = {};
-  for (const field of template) {
-    const raw = fields[field.key] ?? '';
-    const value = raw.trim();
-    if (!value) {
-      if (field.required) return { ok: false, error: `${field.label} is required` };
-      continue; // optional + blank ⇒ omit from the snapshot
-    }
-    if (field.type === 'url') {
-      // Scheme allow-list FIRST (https?:// only), then structural URL parse.
-      if (!/^https?:\/\//i.test(value)) return { ok: false, error: `${field.label} must be an http(s) URL` };
-      try {
-        const u = new URL(value);
-        if (!u.hostname) return { ok: false, error: `${field.label} must be a valid URL` };
-      } catch {
-        return { ok: false, error: `${field.label} must be a valid URL` };
-      }
-    }
-    clean[field.key] = value;
+
+  if (agreements.length > 0) {
+    await tx.insert(contestAgreementAcceptances).values(
+      agreements.map((a) => ({
+        contestId,
+        entryId,
+        userId,
+        stageId,
+        fieldKey: a.fieldKey,
+        termsHash: hashTerms(a.terms),
+        termsSnapshot: a.terms,
+        ip: ip ?? null,
+      })),
+    );
   }
-  return { ok: true, fields: clean };
 }
 
 /**
@@ -1273,11 +1453,13 @@ export async function submitStageArtifact(
   stageId: string,
   fields: Record<string, string>,
   userId: string,
+  ip?: string | null,
 ): Promise<{ submitted: boolean; stageSubmissions?: ContestStageSubmission[]; error?: string }> {
   const fail = (error: string) => ({ submitted: false, error });
 
   const existing = await db
     .select({
+      contestId: contestEntries.contestId,
       entrantId: contestEntries.userId,
       stageState: contestEntries.stageState,
       contestStatus: contests.status,
@@ -1324,11 +1506,14 @@ export async function submitStageArtifact(
     return fail('This entry was not advanced and can no longer submit');
   }
 
-  const validated = validateStageArtifactFields(template, fields);
+  const validated = validateSubmissionFields(template, fields);
   if (!validated.ok) return fail(validated.error);
+  const { artifact, pii, agreements } = validated.result;
 
   // Atomic read-modify-write: lock the entry row so two concurrent saves of
   // the same artifact can't clobber each other (same pattern as judgeScores).
+  // PII + agreements (if the template has any) are persisted in the SAME tx so
+  // they can never land in the public stageSubmissions jsonb.
   return db.transaction(async (tx) => {
     const [locked] = await tx
       .select({ stageSubmissions: contestEntries.stageSubmissions })
@@ -1337,7 +1522,7 @@ export async function submitStageArtifact(
       .for('update');
 
     const submissions = (locked?.stageSubmissions ?? []) as ContestStageSubmission[];
-    const record: ContestStageSubmission = { stageId, fields: validated.fields, submittedAt: new Date().toISOString() };
+    const record: ContestStageSubmission = { stageId, fields: artifact, submittedAt: new Date().toISOString() };
     const idx = submissions.findIndex((s) => s.stageId === stageId);
     if (idx >= 0) submissions[idx] = record;
     else submissions.push(record);
@@ -1346,6 +1531,8 @@ export async function submitStageArtifact(
       .update(contestEntries)
       .set({ stageSubmissions: submissions })
       .where(eq(contestEntries.id, entryId));
+
+    await recordPrivateAndAgreements(tx, { contestId: row.contestId, entryId, userId, stageId, pii, agreements, ip });
 
     return { submitted: true, stageSubmissions: submissions };
   });

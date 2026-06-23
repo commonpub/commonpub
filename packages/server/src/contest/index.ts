@@ -21,6 +21,9 @@ export {
   getContestEntry,
   submitStageArtifact,
   validateStageArtifactFields,
+  validateSubmissionFields,
+  recordPrivateAndAgreements,
+  hashTerms,
 } from './contest.js';
 export type {
   ContestListItem,
@@ -35,7 +38,21 @@ export type {
   ContestVisibility,
   CriterionScore,
   JudgeScoreEntry,
+  PartitionedSubmission,
+  AgreementAcceptanceInput,
+  StageSource,
+  ContestTx,
 } from './contest.js';
+
+export {
+  submitContestProposal,
+  getEntryPrivateData,
+} from './submissions.js';
+export type {
+  SubmitProposalArgs,
+  SubmitProposalResult,
+  EntryPrivateData,
+} from './submissions.js';
 
 export {
   listContestJudges,

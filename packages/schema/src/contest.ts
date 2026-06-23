@@ -57,6 +57,13 @@ export interface ContestStage {
    * (classic content-only entry), so this is fully additive.
    */
   submissionTemplate?: ContestSubmissionTemplateField[];
+  /**
+   * How an entry is created for this `submission` stage (Phase 4). `attach`
+   * (default/undefined) = the entrant attaches a pre-existing PUBLISHED content
+   * item. `proposal` = the entrant submits the form and the server creates a
+   * DRAFT placeholder project as the entry (gated by features.contestProposals).
+   */
+  submissionMode?: 'attach' | 'proposal';
 }
 
 /**

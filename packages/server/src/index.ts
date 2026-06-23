@@ -575,6 +575,11 @@ export {
   getContestEntry,
   submitStageArtifact,
   validateStageArtifactFields,
+  validateSubmissionFields,
+  recordPrivateAndAgreements,
+  hashTerms,
+  submitContestProposal,
+  getEntryPrivateData,
 } from './contest/index.js';
 export type {
   ContestListItem,
@@ -588,6 +593,11 @@ export type {
   ContestVisibility,
   CriterionScore,
   JudgeScoreEntry,
+  PartitionedSubmission,
+  AgreementAcceptanceInput,
+  SubmitProposalArgs,
+  SubmitProposalResult,
+  EntryPrivateData,
 } from './contest/index.js';
 export {
   listContestJudges,

@@ -135,6 +135,11 @@ export const contestStageSchema = z.object({
       message: 'Template field keys must be unique',
     })
     .optional(),
+  // Submission stages (Phase 4): how an entry is created for this stage.
+  // `attach` (default) = the entrant attaches a pre-existing PUBLISHED content
+  // item. `proposal` = the entrant submits the form and the server creates a
+  // DRAFT placeholder project linked as the entry (gated by features.contestProposals).
+  submissionMode: z.enum(['attach', 'proposal']).optional(),
 });
 export type ContestStageInput = z.infer<typeof contestStageSchema>;
 
