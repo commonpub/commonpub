@@ -154,3 +154,41 @@ on `/private` + `/export`; consent-`ip` surfaced in `getEntryPrivateData` + the 
 access transparency); accurate `contest.pii` gating copy. Documented decisions (plaintext-at-rest
 relies on operator DB encryption; no automated retention purge yet) in `docs/reference/guides/
 contests.md` → "Storage, retention & safety". Layer suite **1233/1233**.
+
+## Rich contest content blocks (same session, commit `ee69d445`)
+
+So organizers stop hand-writing HTML for rich rules/overview layouts (the Resilient America
+rules were one giant HTML blob with CSS radio-tabs), added three first-class body blocks —
+available in the Overview/Rules/Prizes block bodies, registered in all four spots (renderer
+`componentMap` + palette `contestBlockGroups` + `blockDefaults` + `BLOCK_COMPONENTS_KEY`):
+
+- **`tabs`** (Layout group) — tabbed container; each panel is nested `BlockTuple[]`. Solves
+  **tabbed / multiple rule sets** (Track A vs Track B): drop a Tabs block in the Rules body.
+  Edit via `TabsBlock` + `ContestTabPanel` (one nested `BlockCanvas`/`useBlockEditor` per active
+  tab, keyed; parent content is source of truth). View `BlockTabsView` = WAI-ARIA tablist
+  (roving tabindex + arrows, `useId` for SSR-safe unique ids) rendering panels recursively via
+  the auto-import `BlocksBlockContentRenderer`; all panels stay in the DOM (v-show). Nested
+  palette (`PANEL_GROUPS`) omits container blocks → no tabs-in-tabs.
+- **`table`** (Rich group) — responsive data table; cells plain text (no v-html). Editable grid.
+- **`criteriaBar`** (Contest group) — judging criteria as ONE stacked bar, each criterion a
+  proportional colored segment (theme-color palette, dark/light-safe) + a legend. Segment math
+  in `utils/contestBlocks.ts` (pure, tested).
+
++34 tests (axe on each). Layer suite **1267/1267**, typecheck 0. Live-verified: tabbed Track A/B
+rules (with a table + callout per panel), the stacked criteria bar, the editor palette + tabs
+editor — screenshots `contest-e2e-screens/16`–`20`.
+
+### Routing note ("routed pages for each rules section")
+The public contest tabs (`?tab=overview|rules|prizes|…`) are a **solid deep-link** (audited):
+read on load, written to the URL on switch (`router.replace`), restored on back/forward + reload,
+WAI-ARIA tablist. Each section is URL-addressable and shareable — verified `?tab=rules` loads
+straight into Rules. **There are NO true sub-routes** (`/contests/:slug/rules` is not a page; it's
+one `[slug]/index.vue` with query-param panels) — net-new work if literally wanted. The in-content
+**Tabs block** has component-local tab state (not URL-wired); fine for nested content.
+
+### Follow-up ideas (not built)
+- Wire the in-content Tabs block to a `?…` param so a specific track is deep-linkable.
+- A `criteriaBar` "pull from this contest's rubric" convenience (auto-fill items from
+  `judgingCriteria`).
+- Markdown GFM tables import as HTML-in-`text`, not the structured `table` block
+  (`@commonpub/editor` `mapTable`) — convert on import if desired.

@@ -453,8 +453,9 @@ project/blog/explainer editor (not the old single scrolling column):
 ContestEditor (ClientOnly, layout:false, cpub-ce-layout, height:100vh)
 ├─ topbar            back · title input · status badge · dirty/autosave · View · Save · Status ▾ menu
 └─ cpub-ce-shell (3 columns)
-   ├─ LEFT  EditorBlocks palette   Basic(Text/Heading/Image/Code) · Contest(Judges Showcase) ·
-   │                                Media(Video/Embed) · Rich(Tip/Warning/Quote/Divider/Markdown/HTML)
+   ├─ LEFT  EditorBlocks palette   Basic(Text/Heading/Image/Code) · Contest(Judges Showcase/Criteria Bar) ·
+   │                                Media(Video/Embed) · Rich(Tip/Warning/Quote/Divider/Markdown/HTML/Table) ·
+   │                                Layout(Tabs)
    ├─ CENTER ContestBodyCanvas      Overview · Rules · Prizes tabs over ONE shared BlockCanvas
    │   ├─ Write / Preview / Code switch (Preview = live BlockContentRenderer; Code = tuple JSON)
    │   └─ inline banner (4:1) + cover inset — Overview body only (#overview-lead slot)
@@ -477,6 +478,12 @@ ContestEditor (ClientOnly, layout:false, cpub-ce-layout, height:100vh)
   legacy `description`/`rules`/`prizesDescription` text stays for back-compat, converted to
   blocks on first edit. Contest-specific blocks: `judgesShowcase` + the sanitized **`html`**
   block (raw HTML through `sanitizeRichHtml`+neutralizeColors, `BlockHtmlView`).
+- **Rich layout blocks (session 218)** — so organizers don't hand-write HTML: **`tabs`**
+  (tabbed container, each panel nested blocks — drop one in the Rules body for **tabbed /
+  multiple rule sets** like Track A vs Track B; nested palette can't nest tabs), **`table`**
+  (responsive data table, plain-text cells), and **`criteriaBar`** (judging criteria as one
+  stacked weighted bar with a color legend). Each is registered in the renderer `componentMap`
+  + palette + `blockDefaults` + `BLOCK_COMPONENTS_KEY`; segment math in `utils/contestBlocks.ts`.
 - **Dates** use `CpubDateTimeField` (local-correct via `utils/datetime`); the whole editor is
   `<ClientOnly>` to avoid prod UTC-vs-local hydration mismatches.
 - **Autosave** for draft contests via `useEditorAutosave` (silent save + rename-in-place
