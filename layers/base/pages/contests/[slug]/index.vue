@@ -428,6 +428,15 @@ async function withdrawEntry(entryId: string): Promise<void> {
                 <i class="fa-solid fa-right-to-bracket"></i> Log in to enter
               </NuxtLink>
             </div>
+            <div v-if="canManage && entries.length" class="cpub-entries-tools">
+              <a
+                :href="`/api/contests/${slug}/export`"
+                class="cpub-btn cpub-btn-sm"
+                download
+              >
+                <i class="fa-solid fa-file-csv"></i> Export entries (CSV)
+              </a>
+            </div>
             <ContestEntries
               :entries="entries"
               :contest-status="c?.status"
@@ -499,6 +508,7 @@ async function withdrawEntry(entryId: string): Promise<void> {
 /* LAYOUT */
 .cpub-contest-main { max-width: 1100px; margin: 0 auto; padding: 32px; }
 
+.cpub-entries-tools { display: flex; justify-content: flex-end; margin-bottom: 12px; }
 .cpub-entries-cta { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding: 16px 20px; margin-bottom: 18px; background: var(--accent-bg); border: var(--border-width-default) solid var(--accent-border); }
 .cpub-entries-cta-title { font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 8px; margin: 0; }
 .cpub-entries-cta-title i { color: var(--accent); }

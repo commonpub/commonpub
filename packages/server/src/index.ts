@@ -580,6 +580,8 @@ export {
   hashTerms,
   submitContestProposal,
   getEntryPrivateData,
+  buildContestExport,
+  toCsv,
 } from './contest/index.js';
 export type {
   ContestListItem,
@@ -598,6 +600,7 @@ export type {
   SubmitProposalArgs,
   SubmitProposalResult,
   EntryPrivateData,
+  ContestExport,
 } from './contest/index.js';
 export {
   listContestJudges,

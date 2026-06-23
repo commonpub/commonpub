@@ -46,6 +46,9 @@ export {
   getEntryPrivateData,
 } from './submissions.js';
 
+export { buildContestExport, toCsv } from './export.js';
+export type { ContestExport } from './export.js';
+
 export type {
   ContestListItem,
   ContestDetail,
