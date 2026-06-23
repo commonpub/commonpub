@@ -24,9 +24,17 @@ const emit = defineEmits<{ 'update:modelValue': [value: string | undefined] }>()
 const generatedId = useId();
 const fieldId = computed(() => props.id ?? `cpub-dt-${generatedId}`);
 
-const localValue = computed(() => toLocalInput(props.modelValue));
-const localMin = computed(() => toLocalInput(props.min) || undefined);
-const localMax = computed(() => toLocalInput(props.max) || undefined);
+// The local wall-clock is timezone-dependent, so the server (its TZ) and the
+// client (the viewer's TZ) compute different value/min/max strings. Vue flags the
+// hydration mismatch and, worse, does NOT rectify it in production (the viewer
+// would see the SERVER's timezone). Defer the conversion to the client: render
+// empty on the server and the first hydration tick, then fill once mounted, so
+// SSR == hydration and the local value only appears client-side.
+const mounted = ref(false);
+onMounted(() => { mounted.value = true; });
+const localValue = computed(() => (mounted.value ? toLocalInput(props.modelValue) : ''));
+const localMin = computed(() => (mounted.value ? toLocalInput(props.min) || undefined : undefined));
+const localMax = computed(() => (mounted.value ? toLocalInput(props.max) || undefined : undefined));
 
 function onInput(e: Event): void {
   emit('update:modelValue', fromLocalInput((e.target as HTMLInputElement).value));

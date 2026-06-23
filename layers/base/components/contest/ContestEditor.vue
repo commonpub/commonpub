@@ -218,6 +218,10 @@ async function advanceStage(stageId: string): Promise<void> {
 </script>
 
 <template>
+  <!-- The editor is authed and entirely client-data-driven (its model hydrates from
+       a client-side fetch), so SSR would render an unhydrated form and mismatch on
+       hydration. Render it client-only with a loading fallback. -->
+  <ClientOnly>
   <div v-if="mode === 'edit' && contest && !canManage" class="cpub-not-found">
     <p>You don't have permission to edit this contest.</p>
     <NuxtLink :to="`/contests/${slug}`" class="cpub-btn cpub-btn-sm">Back to Contest</NuxtLink>
@@ -511,6 +515,10 @@ async function advanceStage(stageId: string): Promise<void> {
   </div>
   <div v-else-if="contestLoading" class="cpub-not-found"><p>Loading contest…</p></div>
   <div v-else class="cpub-not-found"><p>Contest not found</p></div>
+    <template #fallback>
+      <div class="cpub-not-found"><p>Loading editor…</p></div>
+    </template>
+  </ClientOnly>
 </template>
 
 <style scoped>

@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { nextTick } from 'vue';
 import { render, fireEvent } from '@testing-library/vue';
 import { toLocalInput, fromLocalInput } from '../../utils/datetime';
 
@@ -23,10 +24,12 @@ describe('CpubDateTimeField', () => {
     expect(input.id).toBeTruthy();
   });
 
-  it('shows the model ISO as local wall-clock (no UTC shift)', () => {
+  it('shows the model ISO as local wall-clock (no UTC shift), client-side only', async () => {
     const iso = new Date(2026, 5, 15, 14, 30, 0, 0).toISOString(); // 2026-06-15 14:30 local
     const { container } = render(CpubDateTimeField, { props: { modelValue: iso } });
     const input = container.querySelector('input')!;
+    // The local value is deferred to onMounted (SSR-safe), so it fills after a tick.
+    await nextTick();
     expect(input.value).toBe('2026-06-15T14:30');
   });
 
@@ -39,13 +42,24 @@ describe('CpubDateTimeField', () => {
     expect(events[0]![0]).toBe(new Date(2026, 5, 15, 14, 30, 0, 0).toISOString());
   });
 
-  it('constrains the picker via min/max (ISO -> local)', () => {
+  it('constrains the picker via min/max (ISO -> local), client-side only', async () => {
     const min = new Date(2026, 5, 1, 9, 0).toISOString();
     const max = new Date(2026, 5, 30, 17, 0).toISOString();
     const { container } = render(CpubDateTimeField, { props: { modelValue: null, min, max } });
     const input = container.querySelector('input')!;
+    await nextTick();
     expect(input.getAttribute('min')).toBe('2026-06-01T09:00');
     expect(input.getAttribute('max')).toBe('2026-06-30T17:00');
+  });
+
+  it('renders no value/min/max before mount (SSR-safe, avoids the TZ hydration mismatch)', () => {
+    const iso = new Date(2026, 5, 15, 14, 30).toISOString();
+    const min = new Date(2026, 5, 1, 9, 0).toISOString();
+    // First synchronous render is the pre-mount (server-equivalent) output.
+    const { container } = render(CpubDateTimeField, { props: { modelValue: iso, min } });
+    const input = container.querySelector('input')!;
+    expect(input.value).toBe('');
+    expect(input.getAttribute('min')).toBeNull();
   });
 
   it('falls back to an aria-label when no visible label is given', () => {
