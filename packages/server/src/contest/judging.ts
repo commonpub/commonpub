@@ -3,7 +3,47 @@ import { contests, contestEntries, contestJudges } from '@commonpub/schema';
 import type { DB } from '../types.js';
 import { isContestEditor } from './stakeholders.js';
 import { currentStage, normalizeStages, isEliminated } from './stages.js';
-import type { CriterionScore, JudgeScoreEntry, AdvanceStageInput } from './types.js';
+import type { ContestJudgingCriterion, CriterionScore, JudgeScoreEntry, AdvanceStageInput } from './types.js';
+
+/** A rubric criterion's max points: its `weight` when set (>0), else 100. */
+export function rubricCriterionMax(c: ContestJudgingCriterion): number {
+  return typeof c.weight === 'number' && c.weight > 0 ? c.weight : 100;
+}
+
+/**
+ * B3 — validate per-criterion scores against the RESOLVED rubric and compute the
+ * normalized overall (0–100) using the rubric's maxes, NOT the client-supplied
+ * `max` (which a tampering client could inflate to skew the weighted sum). Pure +
+ * testable. Rejects unknown criteria, missing criteria, and out-of-range scores.
+ * Returns the normalized criteriaScores (with rubric-authoritative `max`) to store.
+ */
+export function scoreAgainstRubric(
+  rubric: ContestJudgingCriterion[] | null | undefined,
+  submitted: CriterionScore[],
+): { ok: true; overall: number; normalized: CriterionScore[] } | { ok: false; error: string } {
+  if (!rubric || rubric.length === 0) {
+    return { ok: false, error: 'This contest has no judging rubric for this round; submit a single score' };
+  }
+  const rubricLabels = new Set(rubric.map((c) => c.label));
+  for (const s of submitted) {
+    if (!rubricLabels.has(s.label)) return { ok: false, error: `Unknown criterion: ${s.label}` };
+  }
+  const byLabel = new Map(submitted.map((s) => [s.label, s]));
+  const normalized: CriterionScore[] = [];
+  let totalScore = 0;
+  let totalMax = 0;
+  for (const c of rubric) {
+    const max = rubricCriterionMax(c);
+    const s = byLabel.get(c.label);
+    if (!s) return { ok: false, error: `Missing score for ${c.label}` };
+    if (s.score < 0 || s.score > max) return { ok: false, error: `${c.label} score must be between 0 and ${max}` };
+    normalized.push({ label: c.label, score: s.score, max }); // rubric max is authoritative
+    totalScore += s.score;
+    totalMax += max;
+  }
+  if (totalMax <= 0) return { ok: false, error: 'Invalid judging rubric' };
+  return { ok: true, overall: Math.round((totalScore / totalMax) * 100), normalized };
+}
 
 export async function judgeContestEntry(
   db: DB,
@@ -22,6 +62,7 @@ export async function judgeContestEntry(
       stageState: contestEntries.stageState,
       stages: contests.stages,
       currentStageId: contests.currentStageId,
+      judgingCriteria: contests.judgingCriteria,
       startDate: contests.startDate,
       endDate: contests.endDate,
       judgingEndDate: contests.judgingEndDate,
@@ -82,17 +123,19 @@ export async function judgeContestEntry(
     return { judged: false, error: 'Guest judges cannot submit scores' };
   }
 
-  // Derive the overall 0–100 score. When per-criterion scores are supplied, the
-  // overall is the normalized weighted sum (sum(score)/sum(max)*100), which
-  // supports any weight scheme; otherwise use the supplied overall score.
+  // Derive the overall 0–100 score. When per-criterion scores are supplied, they
+  // are validated against the RESOLVED rubric (this round's `criteria`, else the
+  // contest-level `judgingCriteria`) and the overall is the normalized weighted
+  // sum computed with the RUBRIC's maxes (B3 — never trust the client `max`).
+  // Otherwise use the supplied holistic score.
   let overall: number;
+  let storedCriteria: CriterionScore[] | undefined;
   if (criteriaScores && criteriaScores.length > 0) {
-    const totalMax = criteriaScores.reduce((s, c) => s + c.max, 0);
-    if (totalMax <= 0) return { judged: false, error: 'Invalid judging criteria' };
-    if (criteriaScores.some((c) => c.score < 0 || c.score > c.max)) {
-      return { judged: false, error: 'A criterion score is out of range' };
-    }
-    overall = Math.round((criteriaScores.reduce((s, c) => s + c.score, 0) / totalMax) * 100);
+    const rubric = (roundStage?.criteria ?? row.judgingCriteria ?? null) as ContestJudgingCriterion[] | null;
+    const scored = scoreAgainstRubric(rubric, criteriaScores);
+    if (!scored.ok) return { judged: false, error: scored.error };
+    overall = scored.overall;
+    storedCriteria = scored.normalized;
   } else if (typeof score === 'number') {
     overall = score;
   } else {
@@ -110,7 +153,7 @@ export async function judgeContestEntry(
 
     const scores = (locked?.judgeScores ?? []) as JudgeScoreEntry[];
     const record: JudgeScoreEntry = { judgeId, score: overall, feedback };
-    if (criteriaScores && criteriaScores.length > 0) record.criteriaScores = criteriaScores;
+    if (storedCriteria) record.criteriaScores = storedCriteria;
     if (roundId) record.roundId = roundId;
 
     // A judge has one score per round — match on judge AND round.

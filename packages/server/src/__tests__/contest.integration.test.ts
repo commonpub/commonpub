@@ -1173,7 +1173,56 @@ describe('contest integration', () => {
       { label: 'Creativity', score: 10, max: 30 },
     ]);
     expect(res.judged).toBe(false);
-    expect(res.error).toMatch(/out of range/i);
+    expect(res.error).toMatch(/Documentation score must be between 0 and 20/i);
+  });
+
+  // --- B3: validate criteriaScores against the resolved rubric ---
+  it('B3: ignores a tampered client max — the rubric weight is authoritative', async () => {
+    const { contest, judge, entry } = await rubricContestWithEntry('Rubric Tamper');
+    // Client lies about max (1000) to try to skew the normalized sum; score stays
+    // within the REAL rubric max (20). The overall + stored max must use the rubric.
+    const res = await judgeContestEntry(db, entry.id, undefined, judge.id, undefined, [
+      { label: 'Documentation', score: 20, max: 1000 },
+      { label: 'Creativity', score: 30, max: 1000 },
+    ]);
+    expect(res.judged).toBe(true);
+    const { items } = await listContestEntries(db, contest.id, { includeJudgeScores: true });
+    const e = items.find((i) => i.id === entry.id)!;
+    expect(e.score).toBe(100); // (20+30)/(20+30) — rubric maxes, NOT 50/2000
+    expect(e.judgeScores![0]!.criteriaScores!.find((c) => c.label === 'Documentation')!.max).toBe(20);
+  });
+
+  it('B3: rejects an unknown criterion and a missing criterion', async () => {
+    const { judge, entry } = await rubricContestWithEntry('Rubric Unknown');
+    const unknown = await judgeContestEntry(db, entry.id, undefined, judge.id, undefined, [
+      { label: 'Documentation', score: 10, max: 20 },
+      { label: 'Creativity', score: 10, max: 30 },
+      { label: 'Bribe', score: 99, max: 99 },
+    ]);
+    expect(unknown.judged).toBe(false);
+    expect(unknown.error).toMatch(/Unknown criterion: Bribe/i);
+
+    const missing = await judgeContestEntry(db, entry.id, undefined, judge.id, undefined, [
+      { label: 'Documentation', score: 10, max: 20 },
+    ]);
+    expect(missing.judged).toBe(false);
+    expect(missing.error).toMatch(/Missing score for Creativity/i);
+  });
+
+  it('B3: rejects per-criterion scores when the contest has no rubric', async () => {
+    const judge = await createTestUser(db, { username: `norub-j-${Date.now()}` });
+    const contest = await createContest(db, { ...makeContestInput({ title: 'No Rubric' }), judges: [judge.id] });
+    await acceptJudgeInvite(db, contest.id, judge.id);
+    await transitionContestStatus(db, contest.id, organizerId, 'active');
+    const content = await createContent(db, participantId, { type: 'project', title: 'No rubric entry' });
+    await publishContent(db, content.id, participantId);
+    const entry = await submitContestEntry(db, contest.id, content.id, participantId);
+    await transitionContestStatus(db, contest.id, organizerId, 'judging');
+    const res = await judgeContestEntry(db, entry!.id, undefined, judge.id, undefined, [
+      { label: 'Anything', score: 5, max: 10 },
+    ]);
+    expect(res.judged).toBe(false);
+    expect(res.error).toMatch(/no judging rubric/i);
   });
 
   it('two judges scoring the same entry concurrently both persist (no lost update)', async () => {
