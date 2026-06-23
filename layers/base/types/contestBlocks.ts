@@ -89,3 +89,34 @@ export interface CompareColumnsContent {
 }
 
 export const COMPARE_COLUMNS_TYPE = 'compareColumns';
+
+/** Visual emphasis of a roadmap node — default (hollow), accent (filled), highlight (finale). */
+export type RoadmapTone = 'default' | 'accent' | 'highlight';
+
+/** One milestone on the `roadmap` timeline. */
+export interface RoadmapItem {
+  /** Free-text date label, e.g. "Jun 30" (organizer-editable, not a real date). */
+  date?: string;
+  title: string;
+  /** Plain-text blurb under the title. */
+  description?: string;
+  /** Optional pill next to the date, e.g. "Mid-term". */
+  badge?: string;
+  tone?: RoadmapTone;
+}
+
+/**
+ * `roadmap` block — a vertical schedule timeline. The edit block can seed its
+ * items from the contest's stages/schedule (one click), then the organizer edits,
+ * reorders, and styles them freely; the saved items are independent of the live
+ * stages (present-how-you-like).
+ */
+export interface RoadmapContent {
+  /** Eyebrow label, e.g. "Key dates, 2026". */
+  eyebrow?: string;
+  /** Heading line, e.g. "The 18-week roadmap". */
+  heading?: string;
+  items: RoadmapItem[];
+}
+
+export const ROADMAP_TYPE = 'roadmap';

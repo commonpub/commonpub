@@ -4,6 +4,7 @@
  * criteria-bar block its rubric. The math is pure/unit-testable in isolation.
  */
 import type { InjectionKey, Ref } from 'vue';
+import type { RoadmapItem } from '../types/contestBlocks';
 
 /** A contest judging-rubric criterion (mirrors useContestEditor's criteria row). */
 export interface ContestRubricCriterion { label: string; weight?: number; description?: string }
@@ -12,6 +13,49 @@ export interface ContestRubricCriterion { label: string; weight?: number; descri
  *  criteria-bar edit block can offer a "use this contest's rubric" auto-fill.
  *  Absent (null) when the block is used outside the contest editor. */
 export const CONTEST_RUBRIC_KEY: InjectionKey<Ref<ContestRubricCriterion[]>> = Symbol('contestRubric');
+
+/** ContestEditor `provide`s a ready-to-use roadmap derived from the contest's
+ *  effective schedule under this key, so the roadmap block can offer a
+ *  "pull from schedule" seed. Absent (null) outside the contest editor. */
+export const CONTEST_SCHEDULE_KEY: InjectionKey<Ref<RoadmapItem[]>> = Symbol('contestSchedule');
+
+/** A stage as the roadmap cares about it (structural subset of ContestStage). */
+export interface RoadmapStageSource { name: string; kind?: string; startsAt?: string; endsAt?: string; description?: string }
+/** The three core schedule dates, when there are no custom stages. */
+export interface RoadmapScheduleDates { startDate?: string; endDate?: string; judgingEndDate?: string }
+
+/** Format an ISO date as a short label ("Jun 30"); '' for empty/invalid input. */
+export function fmtRoadmapDate(iso?: string): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+/**
+ * Derive roadmap items from the contest's effective timeline: the custom stages
+ * when present, else the core Submissions → Judging → Results flow from the
+ * schedule dates. The `results` kind (and the synthetic finale) get the
+ * `highlight` tone. Pure — the seed the roadmap edit block copies in.
+ */
+export function roadmapFromSchedule(stages: RoadmapStageSource[] | undefined, schedule: RoadmapScheduleDates): RoadmapItem[] {
+  const named = (stages ?? []).filter((s) => (s?.name ?? '').trim());
+  if (named.length) {
+    return named.map((s) => ({
+      date: fmtRoadmapDate(s.startsAt ?? s.endsAt),
+      title: s.name.trim(),
+      description: (s.description ?? '').trim() || undefined,
+      tone: s.kind === 'results' ? 'highlight' : 'default',
+    }));
+  }
+  const items: RoadmapItem[] = [];
+  if (schedule.startDate) items.push({ date: fmtRoadmapDate(schedule.startDate), title: 'Submissions open', tone: 'default' });
+  if (schedule.endDate) items.push({ date: fmtRoadmapDate(schedule.endDate), title: 'Submissions close', tone: 'default' });
+  const judge = schedule.judgingEndDate || schedule.endDate;
+  if (judge) items.push({ date: fmtRoadmapDate(judge), title: 'Judging ends', tone: 'default' });
+  items.push({ title: 'Results announced', tone: 'highlight' });
+  return items;
+}
 
 /**
  * Theme color tokens segments cycle through (all dark/light-safe `var(--*)`).
