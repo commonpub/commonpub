@@ -98,6 +98,24 @@ reference doc, and VISUALLY VERIFIED the whole flow in the running app. **Not me
   score/rank denormalization note; docs/STATUS refresh; then the RELEASE (publish chain + deploy) on
   explicit go-ahead. Phase 4+5 flags ship default OFF.
 
+**Adversarial audit (session 215, post-Phase-5):**
+- **`fe03bf29` FIXED (real, security)** — CSV **formula injection**. The export carries entrant-controlled
+  text (project title, proposal summary, author name) into a spreadsheet; `toCsv` quoted per RFC 4180 but a
+  cell starting with `= + - @` TAB or CR would be evaluated as a formula when an organizer opens it in Excel/
+  Sheets. `toCsv` now prefixes such cells with `'` before quoting. Tests RED on revert (per-trigger + an
+  end-to-end `=HYPERLINK` title). server 1488.
+- **PII isolation re-confirmed** for the export: the `Submission` column = `summarizeArtifact(stageSubmissions)`
+  which is the partitioned NON-PII artifact only; PII columns appear ONLY when `includePii` (`contest.pii`).
+  No PII reaches a judge's export.
+- Earlier this session `e7929984` fixed a Nuxt typed-route fragility the export GET route exposed
+  (`useFileUpload`'s `$fetch<T>` mis-resolved in the shell app → pre-push turbo typecheck failed). Both apps
+  green now; pre-push hook runs `turbo typecheck` across all 28 tasks (it WILL block a push on any app's
+  typecheck, incl. apps/shell — not just apps/reference).
+- Noted (not fixed, low priority): `scoreAgainstRubric` double-counts if a rubric has DUPLICATE criterion
+  labels (the schema doesn't enforce label uniqueness); the API allows a holistic score on a rubric contest
+  (the UI doesn't). Both pre-existing data-model gaps, out of Phase 5 scope.
+- Final gates: schema 475, server **1488**, layer 1223, both apps vue-tsc 0. Pushed to origin/contests.
+
 **Adversarial audit (session 215, post-Phase-4, all PASS except one real edge-case bug, now fixed):**
 - **PII isolation holds** — traced every reader: `contest_entry_private_fields` + `contest_agreement_acceptances`
   are read ONLY inside `submissions.ts` (the PII upsert-lock + the gated `getEntryPrivateData`). The
