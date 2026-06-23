@@ -1,16 +1,18 @@
 <script setup lang="ts">
 /**
  * ContestEditor — the one editor shell behind BOTH the create and edit routes
- * (`mode` prop). create.vue / [slug]/edit.vue are thin shells that mount this, so
- * creating a contest is identical to editing one (block body + canvas tabs + the
- * same settings), killing the old create/edit divergence.
+ * (`mode` prop). create.vue / [slug]/edit.vue are thin `layout: false` shells that
+ * mount this, so creating a contest is identical to editing one.
  *
- * The editable form model lives in useContestEditor (tested in isolation). This
- * component is the shell: topbar, the full-width body canvas (ContestBodyTabs:
- * Overview/Rules/Prizes + Stages/Judging extra tabs), and the settings columns.
- * Edit-only rails (People, lifecycle transitions, advancement, danger zone) are
- * gated on `mode === 'edit'`; they operate on a persisted contest + real entries.
+ * Layout matches the house project/blog/explainer editor: a full-screen
+ * `cpub-ce-layout` with a topbar (back · title · status · autosave · View · Save)
+ * and a 3-panel `cpub-ce-shell` — LEFT block palette · CENTER body tabs
+ * (Overview/Rules/Prizes) · RIGHT settings rail (Details/Schedule/Stages/Entries/
+ * Prizes/Judging/Access/People/Danger). The editable form model lives in
+ * useContestEditor (tested in isolation). Edit-only rails (People, lifecycle
+ * transitions, advancement, danger zone) are gated on `mode === 'edit'`.
  */
+import { EditorSection } from '@commonpub/editor/vue';
 import type { Serialized, ContestEntryItem } from '@commonpub/server';
 import type { ContestEditorSource } from '../../composables/useContestEditor';
 
@@ -106,12 +108,14 @@ useSeoMeta({
 const { enabledTypeMeta } = useContentTypes();
 const ROLE_OPTIONS = ['member', 'pro', 'verified', 'staff', 'admin'];
 
-// Extra full-width canvas tabs beside the body (Overview/Rules/Prizes): the heavy
-// editors that need room. Light settings stay in the columns below.
-const bodyExtraTabs = [
-  { key: 'stages', label: 'Stages', icon: 'fa-diagram-project' },
-  { key: 'judging', label: 'Judging', icon: 'fa-scale-balanced' },
-];
+// --- Right-rail collapsible sections ---
+const openSections = ref<Record<string, boolean>>({
+  details: true, schedule: true, stages: false, entries: true,
+  prizes: false, judging: false, access: false, people: false, danger: false,
+});
+function toggleSection(key: string): void {
+  openSections.value[key] = !openSections.value[key];
+}
 
 // Edit-only advancement state (operates on real entries, not the editable model).
 const advancing = ref<string | null>(null);
@@ -226,41 +230,60 @@ async function advanceStage(stageId: string): Promise<void> {
     <p>You don't have permission to edit this contest.</p>
     <NuxtLink :to="`/contests/${slug}`" class="cpub-btn cpub-btn-sm">Back to Contest</NuxtLink>
   </div>
-  <div v-else-if="mode === 'create' || contest" class="cpub-contest-edit">
-    <form class="cpub-edit-form" @submit.prevent="onSave">
-      <div class="cpub-edit-topbar">
-        <NuxtLink :to="mode === 'edit' ? `/contests/${slug}` : '/contests'" class="cpub-edit-topbar-back" aria-label="Back"><i class="fa-solid fa-arrow-left"></i></NuxtLink>
-        <div class="cpub-edit-topbar-titles">
-          <span class="cpub-edit-topbar-title">{{ mode === 'create' ? 'Create Contest' : 'Edit Contest' }}</span>
-          <span v-if="mode === 'edit' && contest" class="cpub-status-badge" :class="`cpub-status-${contest.status}`">{{ contest.status }}</span>
-          <span v-if="mode === 'create'" class="cpub-edit-required">Required: title, start &amp; end dates</span>
-          <span
-            v-else-if="isDraftAutosave"
-            class="cpub-edit-autosave"
-            :class="{ 'cpub-edit-autosave-err': autosaveError }"
-            role="status"
-            aria-live="polite"
-          ><i class="fa-solid" :class="autosaveIcon"></i> {{ autosaveLabel }}</span>
-          <span v-else-if="formDirty" class="cpub-edit-dirty"><i class="fa-solid fa-circle"></i> Unsaved</span>
-        </div>
-        <div class="cpub-edit-topbar-btns">
-          <NuxtLink v-if="mode === 'edit'" :to="`/contests/${slug}`" class="cpub-btn">View</NuxtLink>
-          <button type="submit" class="cpub-btn cpub-btn-primary" :disabled="busy || !canSubmit">
-            <i class="fa-solid" :class="mode === 'create' ? 'fa-trophy' : 'fa-floppy-disk'"></i>
-            {{ busy ? (mode === 'create' ? 'Creating…' : 'Saving…') : (mode === 'create' ? 'Create Contest' : (formDirty ? 'Save Changes' : 'Saved')) }}
-          </button>
-        </div>
+  <form v-else-if="mode === 'create' || contest" class="cpub-ce-layout" @submit.prevent="onSave">
+    <!-- Topbar: back · title · status · autosave · View · Save -->
+    <header class="cpub-ce-topbar">
+      <NuxtLink :to="mode === 'edit' ? `/contests/${slug}` : '/contests'" class="cpub-ce-back" aria-label="Back">
+        <i class="fa-solid fa-arrow-left"></i>
+      </NuxtLink>
+      <div class="cpub-ce-topbar-divider" aria-hidden="true" />
+      <div class="cpub-ce-title-wrap">
+        <input
+          v-model="title"
+          type="text"
+          class="cpub-ce-title-input"
+          :placeholder="mode === 'create' ? 'Contest title...' : 'Contest title'"
+          aria-label="Contest title"
+        />
+        <span v-if="mode === 'edit' && contest" class="cpub-status-badge" :class="`cpub-status-${contest.status}`">{{ contest.status }}</span>
+        <span v-if="mode === 'create'" class="cpub-ce-required">Required: title, start &amp; end dates</span>
+        <span
+          v-else-if="isDraftAutosave"
+          class="cpub-ce-autosave"
+          :class="{ 'cpub-ce-autosave-err': autosaveError }"
+          role="status"
+          aria-live="polite"
+        ><i class="fa-solid" :class="autosaveIcon"></i> {{ autosaveLabel }}</span>
+        <span v-else-if="formDirty" class="cpub-ce-dirty"><i class="fa-solid fa-circle"></i> Unsaved</span>
       </div>
+      <div class="cpub-ce-topbar-spacer" />
+      <div class="cpub-ce-topbar-actions">
+        <NuxtLink v-if="mode === 'edit'" :to="`/contests/${slug}`" class="cpub-ce-topbar-btn">
+          <i class="fa-solid fa-arrow-up-right-from-square"></i> View
+        </NuxtLink>
+        <button type="submit" class="cpub-ce-topbar-btn cpub-ce-topbar-btn-primary" :disabled="busy || !canSubmit">
+          <i class="fa-solid" :class="mode === 'create' ? 'fa-trophy' : 'fa-floppy-disk'"></i>
+          {{ busy ? (mode === 'create' ? 'Creating…' : 'Saving…') : (mode === 'create' ? 'Create Contest' : (formDirty ? 'Save Changes' : 'Saved')) }}
+        </button>
+      </div>
+    </header>
 
-      <!-- Body canvas — full width so the block editor has room. -->
-      <section class="cpub-form-section cpub-edit-body">
-        <!-- Cover + banner shown as visual placeholders above the canvas (like the
-             project/blog editors) so the organizer sees where each image appears. -->
+    <div class="cpub-ce-shell">
+      <!-- LEFT: block palette (wired in slice 2). -->
+      <aside class="cpub-ce-library" aria-label="Block palette">
+        <div class="cpub-ce-library-placeholder">
+          <i class="fa-solid fa-layer-group"></i>
+          <span class="cpub-ce-library-title">Blocks</span>
+          <p class="cpub-ce-library-hint">The block palette activates here. For now, insert blocks from inside the body canvas.</p>
+        </div>
+      </aside>
+
+      <!-- CENTER: contest body (Overview / Rules / Prizes). -->
+      <div class="cpub-ce-center">
         <ContestMediaStrip
           v-model:banner-url="bannerUrl"
           v-model:cover-image-url="coverImageUrl"
         />
-        <h2 class="cpub-form-section-title cpub-edit-body-title">Contest body</h2>
         <ContestBodyTabs
           v-if="mode === 'create' || contest"
           v-model:description="descriptionBlocks"
@@ -272,11 +295,46 @@ async function advanceStage(stageId: string): Promise<void> {
           :legacy-rules-format="rulesFormat"
           :legacy-prizes="prizesDescription"
           :legacy-prizes-format="prizesDescriptionFormat"
-          :extra-tabs="bodyExtraTabs"
-        >
-          <template #stages>
-            <p class="cpub-form-hint">Optional. The standard flow (Submissions → Judging → Results) is derived from the schedule (Details &rsaquo; Schedule). Add custom stages for multi-round contests, proposal rounds, a Top-N selection, a build sprint, multiple judging rounds, or a showcase event.</p>
-            <p class="cpub-form-hint">How the pieces fit: <strong>Stages</strong> are the public timeline entrants see. The <strong>Status</strong> control (right) is what's actually open right now (accepting entries / judging / completed). <strong>Advancement</strong> (below) runs each review round's Top-N cut. Mark a stage <strong>Current</strong> to point judges + the countdown at it.</p>
+        />
+        <p class="cpub-form-hint cpub-ce-body-hint">
+          The <strong>Overview</strong>, <strong>Rules</strong>, and <strong>Prizes</strong> bodies are blocks
+          (headings, lists, images, callouts, and the <strong>Judges Showcase</strong>), like the project and blog
+          editors. Stages, judging, and the rest live in the settings rail. Legacy text converts to blocks on first edit.
+        </p>
+      </div>
+
+      <!-- RIGHT: settings rail. -->
+      <aside class="cpub-ce-settings" aria-label="Contest settings">
+        <div class="cpub-ce-settings-body">
+          <EditorSection title="Details" icon="fa-circle-info" :open="openSections.details" @toggle="toggleSection('details')">
+            <div class="cpub-form-field">
+              <label for="contest-slug" class="cpub-form-label">URL Slug</label>
+              <input id="contest-slug" v-model="slugInput" type="text" class="cpub-form-input" :placeholder="mode === 'create' ? 'auto-generated from title' : ''" @input="slugTouched = true" @blur="slugInput = slugify(slugInput)" />
+              <p class="cpub-form-hint"><code>/contests/{{ slugify(slugInput) || 'your-contest' }}</code>. {{ mode === 'create' ? 'Auto-fills from the title.' : 'Changing it breaks old links, they won\'t redirect.' }}</p>
+            </div>
+            <div class="cpub-form-field">
+              <label for="contest-subheading" class="cpub-form-label">Subheading</label>
+              <input id="contest-subheading" v-model="subheading" type="text" maxlength="300" class="cpub-form-input" placeholder="One-line tagline shown in the contest header" />
+              <p class="cpub-form-hint">Short plain-text tagline shown under the title in the hero.</p>
+            </div>
+          </EditorSection>
+
+          <EditorSection title="Schedule" icon="fa-calendar" :open="openSections.schedule" @toggle="toggleSection('schedule')">
+            <div class="cpub-form-field">
+              <CpubDateTimeField label="Start Date" :model-value="startDate" :required="mode === 'create'" @update:model-value="startDate = $event ?? ''" />
+            </div>
+            <div class="cpub-form-field">
+              <CpubDateTimeField label="End Date" :model-value="endDate" :min="startDate || undefined" :required="mode === 'create'" @update:model-value="endDate = $event ?? ''" />
+            </div>
+            <div class="cpub-form-field">
+              <CpubDateTimeField label="Judging End Date" :model-value="judgingEndDate" :min="endDate || undefined" @update:model-value="judgingEndDate = $event ?? ''" />
+            </div>
+            <p v-if="dateError" class="cpub-form-error" role="alert">{{ dateError }}</p>
+          </EditorSection>
+
+          <EditorSection title="Stages" icon="fa-diagram-project" :open="openSections.stages" @toggle="toggleSection('stages')">
+            <p class="cpub-form-hint">Optional. The standard flow (Submissions → Judging → Results) is derived from the schedule. Add custom stages for multi-round contests, proposal rounds, a Top-N selection, a build sprint, or a showcase event.</p>
+            <p class="cpub-form-hint">How the pieces fit: <strong>Stages</strong> are the public timeline. The <strong>Status</strong> control is what's actually open now. <strong>Advancement</strong> (below) runs each review round's Top-N cut. Mark a stage <strong>Current</strong> to point judges + the countdown at it.</p>
             <ContestStagesEditor
               v-model="stages"
               v-model:current-stage-id="currentStageId"
@@ -284,9 +342,9 @@ async function advanceStage(stageId: string): Promise<void> {
               :end-date="endDate"
               :judging-end-date="judgingEndDate"
             />
-            <section v-if="mode === 'edit' && reviewStages.length" class="cpub-form-section cpub-advance-section">
-              <h2 class="cpub-form-section-title">Advancement</h2>
-              <p class="cpub-form-hint">Multi-round contests: after judging a review stage, advance the top entries to the next stage. Entries below the cut are marked "not advanced" and excluded from later judging + final results. Re-running re-computes the cut. (Save any stage changes above first.)</p>
+            <div v-if="mode === 'edit' && reviewStages.length" class="cpub-advance-section">
+              <h3 class="cpub-form-subtitle">Advancement</h3>
+              <p class="cpub-form-hint">After judging a review stage, advance the top entries to the next stage. Entries below the cut are marked "not advanced". Re-running re-computes the cut. (Save any stage changes above first.)</p>
               <div v-for="rs in reviewStages" :key="rs.id" class="cpub-advance-block">
                 <div class="cpub-advance-row">
                   <span class="cpub-advance-name"><i class="fa-solid fa-gavel"></i> {{ rs.name }}</span>
@@ -316,9 +374,63 @@ async function advanceStage(stageId: string): Promise<void> {
                   </template>
                 </div>
               </div>
-            </section>
-          </template>
-          <template #judging>
+            </div>
+          </EditorSection>
+
+          <EditorSection title="Entries" icon="fa-inbox" :open="openSections.entries" @toggle="toggleSection('entries')">
+            <div class="cpub-form-field">
+              <span class="cpub-form-label">Eligible content types</span>
+              <p class="cpub-form-hint">Leave all unchecked to accept any published content the entrant owns.</p>
+              <div class="cpub-type-options" role="group" aria-label="Eligible content types">
+                <label v-for="t in enabledTypeMeta" :key="t.type" class="cpub-form-check">
+                  <input type="checkbox" :checked="eligibleContentTypes.includes(t.type)" @change="toggleType(t.type)" />
+                  <span>{{ t.label }}</span>
+                </label>
+              </div>
+            </div>
+            <div class="cpub-form-field">
+              <label for="contest-max-entries" class="cpub-form-label">Max entries per person</label>
+              <input id="contest-max-entries" v-model.number="maxEntriesPerUser" type="number" min="1" class="cpub-form-input" placeholder="Unlimited" />
+            </div>
+          </EditorSection>
+
+          <EditorSection title="Prizes" icon="fa-trophy" :open="openSections.prizes" @toggle="toggleSection('prizes')">
+            <label class="cpub-form-check" style="margin-bottom: 10px;">
+              <input v-model="showPrizes" type="checkbox" />
+              <span>Show the Prizes tab on the contest page</span>
+            </label>
+            <p v-if="!showPrizes" class="cpub-form-hint">The Prizes tab is hidden, any prizes below are saved but not shown to visitors.</p>
+            <p class="cpub-form-hint">Every field is optional. Use <strong>place</strong> for ranked prizes, a <strong>category</strong> for themed awards, or just a <strong>description</strong>. The prizes <em>overview</em> copy is edited in the body's Prizes tab.</p>
+            <div v-for="(prize, i) in prizes" :key="i" class="cpub-prize-row">
+              <div class="cpub-prize-header">
+                <span class="cpub-prize-label">{{ prizeLabel(prize) }}</span>
+                <button type="button" class="cpub-prize-remove" aria-label="Remove prize" @click="removePrize(i)"><i class="fa-solid fa-times"></i></button>
+              </div>
+              <div class="cpub-form-field">
+                <label :for="`prize-place-${i}`" class="cpub-form-label">Place</label>
+                <input :id="`prize-place-${i}`" v-model.number="prize.place" type="number" min="1" class="cpub-form-input" placeholder="1" />
+              </div>
+              <div class="cpub-form-field">
+                <label :for="`prize-category-${i}`" class="cpub-form-label">Category (optional)</label>
+                <input :id="`prize-category-${i}`" v-model="prize.category" type="text" class="cpub-form-input" placeholder="e.g. Best in Show" />
+              </div>
+              <div class="cpub-form-field">
+                <label :for="`prize-title-${i}`" class="cpub-form-label">Title</label>
+                <input :id="`prize-title-${i}`" v-model="prize.title" type="text" class="cpub-form-input" placeholder="e.g. Gold Prize" />
+              </div>
+              <div class="cpub-form-field">
+                <label :for="`prize-value-${i}`" class="cpub-form-label">Value</label>
+                <input :id="`prize-value-${i}`" v-model="prize.value" type="text" class="cpub-form-input" placeholder="e.g. $500" />
+              </div>
+              <div class="cpub-form-field">
+                <label :for="`prize-desc-${i}`" class="cpub-form-label">Description</label>
+                <input :id="`prize-desc-${i}`" v-model="prize.description" type="text" class="cpub-form-input" placeholder="Optional description" />
+              </div>
+            </div>
+            <button type="button" class="cpub-btn cpub-btn-sm" @click="addPrize"><i class="fa-solid fa-plus"></i> Add Prize</button>
+          </EditorSection>
+
+          <EditorSection title="Judging" icon="fa-scale-balanced" :open="openSections.judging" @toggle="toggleSection('judging')">
             <div class="cpub-form-field">
               <label for="contest-judging-visibility" class="cpub-form-label">Score visibility</label>
               <select id="contest-judging-visibility" v-model="judgingVisibility" class="cpub-form-input">
@@ -328,191 +440,55 @@ async function advanceStage(stageId: string): Promise<void> {
               </select>
             </div>
             <label class="cpub-form-check"><input v-model="communityVotingEnabled" type="checkbox" /> <span>Enable community voting (advisory audience favourite, doesn't affect ranks)</span></label>
-            <p class="cpub-form-hint" style="margin-top: 12px;">The rubric below is the contest's default criteria. A review stage can override it with per-round criteria (Stages tab). Leave it empty and judges score an overall 1 to 100.</p>
+            <p class="cpub-form-hint" style="margin-top: 12px;">The rubric below is the contest's default criteria. A review stage can override it with per-round criteria. Leave it empty and judges score an overall 1 to 100.</p>
             <ContestCriteriaEditor v-model="criteria" label="Judging criteria" :show-total="true" />
-          </template>
-        </ContestBodyTabs>
-        <p class="cpub-form-hint">Edit the <strong>Overview</strong>, <strong>Rules</strong>, <strong>Prizes</strong>, and <strong>Stages</strong> in the tabs above. The body copy is blocks (headings, lists, images, callouts, and the <strong>Judges Showcase</strong>), like the project and blog editors. Legacy text converts to blocks on first edit.</p>
-      </section>
+          </EditorSection>
 
-      <div class="cpub-edit-layout">
-      <div class="cpub-edit-main">
-      <section class="cpub-form-section">
-        <h2 class="cpub-form-section-title">Details</h2>
-        <div class="cpub-form-field">
-          <label for="contest-title" class="cpub-form-label">Title</label>
-          <input id="contest-title" v-model="title" type="text" class="cpub-form-input" :placeholder="mode === 'create' ? 'Maker Challenge 2026' : ''" />
-        </div>
-        <div class="cpub-form-field">
-          <label for="contest-slug" class="cpub-form-label">URL Slug</label>
-          <input id="contest-slug" v-model="slugInput" type="text" class="cpub-form-input" :placeholder="mode === 'create' ? 'auto-generated from title' : ''" @input="slugTouched = true" @blur="slugInput = slugify(slugInput)" />
-          <p class="cpub-form-hint">The contest URL: <code>/contests/{{ slugify(slugInput) || 'your-contest' }}</code>. {{ mode === 'create' ? 'Auto-fills from the title.' : 'Changing it breaks old links, they won\'t redirect.' }}</p>
-        </div>
-        <div class="cpub-form-field">
-          <label for="contest-subheading" class="cpub-form-label">Subheading</label>
-          <input id="contest-subheading" v-model="subheading" type="text" maxlength="300" class="cpub-form-input" placeholder="One-line tagline shown in the contest header" />
-          <p class="cpub-form-hint">Short plain-text tagline shown under the title in the hero. The Contest body above is the full content. The banner and cover images are set above the body canvas.</p>
-        </div>
-      </section>
-
-      <section class="cpub-form-section">
-        <h2 class="cpub-form-section-title">Schedule</h2>
-        <div class="cpub-form-row">
-          <CpubDateTimeField label="Start Date" :model-value="startDate" :required="mode === 'create'" @update:model-value="startDate = $event ?? ''" />
-          <CpubDateTimeField label="End Date" :model-value="endDate" :min="startDate || undefined" :required="mode === 'create'" @update:model-value="endDate = $event ?? ''" />
-        </div>
-        <div class="cpub-form-field">
-          <CpubDateTimeField label="Judging End Date" :model-value="judgingEndDate" :min="endDate || undefined" @update:model-value="judgingEndDate = $event ?? ''" />
-        </div>
-        <p v-if="dateError" class="cpub-form-error" role="alert">{{ dateError }}</p>
-      </section>
-
-      <section class="cpub-form-section">
-        <h2 class="cpub-form-section-title">Prizes</h2>
-        <label class="cpub-form-check" style="margin-bottom: 10px;">
-          <input v-model="showPrizes" type="checkbox" />
-          <span>Show the Prizes tab on the contest page</span>
-        </label>
-        <p v-if="!showPrizes" class="cpub-form-hint">The Prizes tab is hidden, any prizes below are saved but not shown to visitors.</p>
-        <p class="cpub-form-hint">Every field is optional. Use <strong>place</strong> for ranked prizes, a <strong>category</strong> for themed awards, or just a <strong>description</strong>, whatever fits. Cash value is optional. The prizes <em>overview</em> copy is edited in the Contest body &rsaquo; Prizes tab above.</p>
-        <div v-for="(prize, i) in prizes" :key="i" class="cpub-prize-row">
-          <div class="cpub-prize-header">
-            <span class="cpub-prize-label">{{ prizeLabel(prize) }}</span>
-            <button type="button" class="cpub-prize-remove" aria-label="Remove prize" @click="removePrize(i)"><i class="fa-solid fa-times"></i></button>
-          </div>
-          <div class="cpub-form-row">
+          <EditorSection title="Access" icon="fa-eye" :open="openSections.access" @toggle="toggleSection('access')">
             <div class="cpub-form-field">
-              <label :for="`prize-place-${i}`" class="cpub-form-label">Place</label>
-              <input :id="`prize-place-${i}`" v-model.number="prize.place" type="number" min="1" class="cpub-form-input" placeholder="1" />
+              <label for="contest-visibility" class="cpub-form-label">Who can see this contest</label>
+              <select id="contest-visibility" v-model="visibility" class="cpub-form-input">
+                <option value="public">Public, listed and visible to everyone</option>
+                <option value="unlisted">Unlisted, visible by direct link, hidden from listings</option>
+                <option value="private">Private, restricted</option>
+              </select>
             </div>
-            <div class="cpub-form-field">
-              <label :for="`prize-category-${i}`" class="cpub-form-label">Category (optional)</label>
-              <input :id="`prize-category-${i}`" v-model="prize.category" type="text" class="cpub-form-input" placeholder="e.g. Best in Show" />
+            <div v-if="visibility === 'private'" class="cpub-form-field">
+              <span class="cpub-form-label">Also visible to roles</span>
+              <p v-if="mode === 'create'" class="cpub-form-hint">Owner, admins, judges, and reviewers (added after creation) can always see it. Optionally grant whole roles too.</p>
+              <div class="cpub-type-options" role="group" aria-label="Roles that can view">
+                <label v-for="r in ROLE_OPTIONS" :key="r" class="cpub-form-check">
+                  <input type="checkbox" :checked="visibleToRoles.includes(r)" @change="toggleRole(r)" />
+                  <span>{{ r }}</span>
+                </label>
+              </div>
             </div>
-          </div>
-          <div class="cpub-form-row">
-            <div class="cpub-form-field">
-              <label :for="`prize-title-${i}`" class="cpub-form-label">Title</label>
-              <input :id="`prize-title-${i}`" v-model="prize.title" type="text" class="cpub-form-input" placeholder="e.g. Gold Prize" />
+            <p v-if="mode === 'create' && visibility === 'private'" class="cpub-form-hint">Add named reviewers (stakeholders) from the contest's Edit page after creating it.</p>
+          </EditorSection>
+
+          <EditorSection v-if="mode === 'edit'" title="People" icon="fa-user-group" :open="openSections.people" @toggle="toggleSection('people')">
+            <ContestJudgeManager :contest-slug="slug" :is-owner="isOwner" />
+            <div v-if="isOwner" class="cpub-people-collab">
+              <h3 class="cpub-form-subtitle">Collaborators</h3>
+              <p class="cpub-form-hint">Per-contest access only (no system-wide). Reviewers can view, even while private or draft; editors can edit.</p>
+              <ContestStakeholderManager :contest-slug="slug" />
             </div>
-            <div class="cpub-form-field">
-              <label :for="`prize-value-${i}`" class="cpub-form-label">Value</label>
-              <input :id="`prize-value-${i}`" v-model="prize.value" type="text" class="cpub-form-input" placeholder="e.g. $500" />
-            </div>
-          </div>
-          <div class="cpub-form-field">
-            <label :for="`prize-desc-${i}`" class="cpub-form-label">Description</label>
-            <input :id="`prize-desc-${i}`" v-model="prize.description" type="text" class="cpub-form-input" placeholder="Optional description" />
-          </div>
-        </div>
-        <button type="button" class="cpub-btn cpub-btn-sm" @click="addPrize"><i class="fa-solid fa-plus"></i> Add Prize</button>
-      </section>
+          </EditorSection>
+          <EditorSection v-else title="People" icon="fa-user-group" :open="openSections.people" @toggle="toggleSection('people')">
+            <p class="cpub-form-hint" style="margin: 0;">Add judges, reviewers, and collaborators from the contest's Edit page once it's created.</p>
+          </EditorSection>
 
-      <section class="cpub-form-section">
-        <h2 class="cpub-form-section-title">Visibility &amp; Access</h2>
-        <div class="cpub-form-field">
-          <label for="contest-visibility" class="cpub-form-label">Who can see this contest</label>
-          <select id="contest-visibility" v-model="visibility" class="cpub-form-input">
-            <option value="public">Public, listed and visible to everyone</option>
-            <option value="unlisted">Unlisted, visible by direct link, hidden from listings</option>
-            <option value="private">Private, restricted</option>
-          </select>
-        </div>
-        <div v-if="visibility === 'private'" class="cpub-form-field">
-          <span class="cpub-form-label">Also visible to roles</span>
-          <p v-if="mode === 'create'" class="cpub-form-hint">Owner, admins, judges, and reviewers (added after creation) can always see it. Optionally grant whole roles too.</p>
-          <div class="cpub-type-options" role="group" aria-label="Roles that can view">
-            <label v-for="r in ROLE_OPTIONS" :key="r" class="cpub-form-check">
-              <input type="checkbox" :checked="visibleToRoles.includes(r)" @change="toggleRole(r)" />
-              <span>{{ r }}</span>
-            </label>
-          </div>
-        </div>
-        <p v-if="mode === 'create' && visibility === 'private'" class="cpub-form-hint">Add named reviewers (stakeholders) from the contest's Edit page after creating it.</p>
-      </section>
-      </div><!-- /cpub-edit-main -->
-
-      <aside class="cpub-edit-side">
-      <section class="cpub-form-section">
-        <h2 class="cpub-form-section-title">Entries</h2>
-        <div class="cpub-form-field">
-          <span class="cpub-form-label">Eligible content types</span>
-          <p class="cpub-form-hint">Leave all unchecked to accept any published content the entrant owns.</p>
-          <div class="cpub-type-options" role="group" aria-label="Eligible content types">
-            <label v-for="t in enabledTypeMeta" :key="t.type" class="cpub-form-check">
-              <input type="checkbox" :checked="eligibleContentTypes.includes(t.type)" @change="toggleType(t.type)" />
-              <span>{{ t.label }}</span>
-            </label>
-          </div>
-        </div>
-        <div class="cpub-form-field">
-          <label for="contest-max-entries" class="cpub-form-label">Max entries per person</label>
-          <input id="contest-max-entries" v-model.number="maxEntriesPerUser" type="number" min="1" class="cpub-form-input" placeholder="Unlimited" />
-        </div>
-      </section>
-
-      <section v-if="mode === 'edit'" class="cpub-form-section">
-        <h2 class="cpub-form-section-title">People</h2>
-        <ContestJudgeManager :contest-slug="slug" :is-owner="isOwner" />
-        <div v-if="isOwner" class="cpub-people-collab">
-          <h3 class="cpub-form-subtitle">Collaborators</h3>
-          <p class="cpub-form-hint">Per-contest access only (no system-wide). Reviewers can view, even while private or draft; editors can edit.</p>
-          <ContestStakeholderManager :contest-slug="slug" />
-        </div>
-      </section>
-      <section v-else class="cpub-form-section cpub-people-placeholder">
-        <h2 class="cpub-form-section-title">People</h2>
-        <p class="cpub-form-hint">Add judges, reviewers, and collaborators from the contest's Edit page once it's created.</p>
-      </section>
-
-      <section v-if="mode === 'edit' && contest" class="cpub-form-section">
-        <h2 class="cpub-form-section-title">Stage &amp; Status</h2>
-        <p class="cpub-form-hint">
-          A contest runs through <strong>Draft</strong> → <strong>Upcoming</strong> →
-          <strong>Active</strong> (accepting entries) → <strong>Judging</strong> →
-          <strong>Completed</strong>. You can move <em>backwards</em>, <strong>Pause</strong> to
-          temporarily stop submissions without cancelling, resume later, or cancel. Current status:
-          <span class="cpub-status-badge" :class="`cpub-status-${contest.status}`">{{ contest.status }}</span>
-        </p>
-        <div class="cpub-status-actions">
-          <button
-            v-for="t in availableTransitions"
-            :key="t"
-            type="button"
-            class="cpub-btn cpub-transition-btn"
-            :class="{
-              'cpub-transition-activate': statusAction(t).tone === 'go',
-              'cpub-transition-judging': statusAction(t).tone === 'warn',
-              'cpub-transition-cancel': statusAction(t).tone === 'danger',
-            }"
-            @click="transitionStatus(t)"
-          >
-            <i class="fa-solid" :class="statusAction(t).icon"></i> {{ statusAction(t).label }}
-          </button>
-          <p v-if="!availableTransitions.length" class="cpub-status-terminal">
-            <i class="fa-solid fa-circle-check"></i>
-            No status changes available from <strong>{{ contest.status }}</strong>.
-          </p>
-        </div>
-      </section>
-
-      <section v-if="mode === 'edit' && isOwner" class="cpub-form-section cpub-danger-zone">
-        <h2 class="cpub-form-section-title cpub-danger-title">Danger Zone</h2>
-        <div class="cpub-danger-row">
-          <div>
+          <EditorSection v-if="mode === 'edit' && isOwner" title="Danger Zone" icon="fa-triangle-exclamation" :open="openSections.danger" @toggle="toggleSection('danger')">
             <p class="cpub-danger-label">Delete this contest</p>
             <p class="cpub-form-hint">Permanently removes the contest and all of its entries, judges, and reviewers. This cannot be undone.</p>
-          </div>
-          <button type="button" class="cpub-btn cpub-btn-danger cpub-danger-btn" :disabled="deleting" @click="handleDelete">
-            <i class="fa-solid fa-trash"></i> {{ deleting ? 'Deleting...' : 'Delete Contest' }}
-          </button>
+            <button type="button" class="cpub-btn cpub-btn-danger cpub-danger-btn" :disabled="deleting" @click="handleDelete">
+              <i class="fa-solid fa-trash"></i> {{ deleting ? 'Deleting...' : 'Delete Contest' }}
+            </button>
+          </EditorSection>
         </div>
-      </section>
-      </aside><!-- /cpub-edit-side -->
-      </div><!-- /cpub-edit-layout -->
-
-    </form>
-  </div>
+      </aside>
+    </div>
+  </form>
   <div v-else-if="contestLoading" class="cpub-not-found"><p>Loading contest…</p></div>
   <div v-else class="cpub-not-found"><p>Contest not found</p></div>
     <template #fallback>
@@ -522,18 +498,86 @@ async function advanceStage(stageId: string): Promise<void> {
 </template>
 
 <style scoped>
-.cpub-contest-edit { max-width: 1080px; margin: 0 auto; padding: 32px; }
-/* Editor topbar: back + title + status + actions, sticky to the top while editing. */
-.cpub-edit-topbar { position: sticky; top: 0; z-index: 30; display: flex; align-items: center; gap: 12px; padding: 12px 0; margin: -8px 0 4px; background: var(--bg); border-bottom: var(--border-width-default) solid var(--border); }
-.cpub-edit-topbar-back { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border: var(--border-width-default) solid var(--border); background: var(--surface); color: var(--text-dim); text-decoration: none; flex-shrink: 0; }
-.cpub-edit-topbar-back:hover { border-color: var(--accent); color: var(--accent); }
-.cpub-edit-topbar-titles { display: flex; align-items: center; gap: 10px; min-width: 0; flex-wrap: wrap; }
-.cpub-edit-topbar-title { font-size: 16px; font-weight: 700; }
-.cpub-edit-topbar-btns { margin-left: auto; display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
-.cpub-edit-required { font-size: 11px; color: var(--text-faint); }
-.cpub-people-collab { margin-top: 16px; padding-top: 12px; border-top: var(--border-width-default) solid var(--border2); }
+/* --- Full-screen editor layout (matches the house project/blog editor) --- */
+.cpub-ce-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+}
 
-.cpub-status-badge { font-size: 10px; font-family: var(--font-mono); text-transform: uppercase; padding: 2px 8px; border: var(--border-width-default) solid; }
+/* Topbar */
+.cpub-ce-topbar {
+  height: 48px;
+  background: var(--surface);
+  border-bottom: var(--border-width-default) solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  flex-shrink: 0;
+  z-index: 100;
+}
+.cpub-ce-back {
+  width: 30px; height: 30px;
+  background: none;
+  border: var(--border-width-default) solid transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px;
+  flex-shrink: 0;
+  text-decoration: none;
+}
+.cpub-ce-back:hover { background: var(--surface2); border-color: var(--border2); color: var(--text); }
+.cpub-ce-topbar-divider { width: 2px; height: 22px; background: var(--border); margin: 0 12px; flex-shrink: 0; }
+.cpub-ce-title-wrap { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
+.cpub-ce-title-input {
+  font-size: 13px; font-weight: 500; color: var(--text);
+  background: none; border: var(--border-width-default) solid transparent;
+  padding: 4px 8px; cursor: text;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  max-width: 380px; outline: none; font-family: var(--font-sans, system-ui);
+}
+.cpub-ce-title-input:hover { border-color: var(--border2); background: var(--surface2); }
+.cpub-ce-title-input:focus { border-color: var(--accent); background: var(--surface2); }
+.cpub-ce-required { font-size: 11px; color: var(--text-faint); white-space: nowrap; }
+.cpub-ce-dirty { color: var(--accent); display: inline-flex; align-items: center; gap: 5px; font-size: 11px; }
+.cpub-ce-dirty i { font-size: 6px; }
+.cpub-ce-autosave { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-faint); white-space: nowrap; }
+.cpub-ce-autosave i { font-size: 9px; }
+.cpub-ce-autosave-err { color: var(--red); }
+.cpub-ce-topbar-spacer { flex: 1; }
+.cpub-ce-topbar-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.cpub-ce-topbar-btn {
+  font-family: var(--font-sans, system-ui); font-size: 12px;
+  padding: 6px 14px; border: var(--border-width-default) solid var(--border);
+  background: var(--surface); color: var(--text); cursor: pointer;
+  display: inline-flex; align-items: center; gap: 6px; text-decoration: none;
+}
+.cpub-ce-topbar-btn:hover { background: var(--surface2); }
+.cpub-ce-topbar-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.cpub-ce-topbar-btn-primary { background: var(--accent); color: var(--color-text-inverse); font-weight: 600; border-color: var(--accent); box-shadow: var(--shadow-md); }
+.cpub-ce-topbar-btn-primary:hover:not(:disabled) { box-shadow: var(--shadow-sm); background: var(--accent); }
+
+/* 3-panel shell */
+.cpub-ce-shell { display: flex; flex: 1; overflow: hidden; }
+.cpub-ce-library { width: 220px; flex-shrink: 0; background: var(--surface); border-right: var(--border-width-default) solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
+.cpub-ce-library-placeholder { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 28px 18px; text-align: center; color: var(--text-faint); }
+.cpub-ce-library-placeholder > i { font-size: 22px; }
+.cpub-ce-library-title { font-family: var(--font-mono); font-size: 10px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-dim); }
+.cpub-ce-library-hint { font-size: 11px; line-height: 1.5; margin: 0; }
+
+.cpub-ce-center { flex: 1; overflow-y: auto; background: var(--bg); padding: 24px; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.cpub-ce-body-hint { margin: 0; }
+
+.cpub-ce-settings { width: 340px; flex-shrink: 0; background: var(--surface); border-left: var(--border-width-default) solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
+.cpub-ce-settings-body { flex: 1; overflow-y: auto; }
+
+/* --- Status badge (also used in the topbar) --- */
+.cpub-status-badge { font-size: 10px; font-family: var(--font-mono); text-transform: uppercase; padding: 2px 8px; border: var(--border-width-default) solid; flex-shrink: 0; }
 .cpub-status-draft { color: var(--text-faint); border-color: var(--border2); background: var(--surface2); border-style: dashed; }
 .cpub-status-upcoming { color: var(--yellow); border-color: var(--yellow-border); background: var(--yellow-bg); }
 .cpub-status-active { color: var(--green); border-color: var(--green-border); background: var(--green-bg); }
@@ -542,55 +586,31 @@ async function advanceStage(stageId: string): Promise<void> {
 .cpub-status-completed { color: var(--text-faint); border-color: var(--border2); background: var(--surface2); }
 .cpub-status-cancelled { color: var(--red); border-color: var(--red-border); background: var(--red-bg); }
 
-.cpub-edit-form { display: flex; flex-direction: column; gap: 16px; }
-/* Two-column editor: wide content column + a sticky meta rail (Entries, People,
-   Stage & Status, Danger Zone) so lifecycle controls stay reachable while editing. */
-.cpub-edit-layout { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 16px; align-items: start; }
-.cpub-edit-main { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
-.cpub-edit-side { display: flex; flex-direction: column; gap: 16px; position: sticky; top: 76px; }
-.cpub-form-section { border: var(--border-width-default) solid var(--border); background: var(--surface); padding: 20px; box-shadow: var(--shadow-md); }
-.cpub-form-section-title { font-size: 14px; font-weight: 700; margin-bottom: 14px; }
-.cpub-edit-body-title { margin-top: 20px; }
+/* --- Form fields inside the rail (carried over verbatim) --- */
 .cpub-form-field { display: flex; flex-direction: column; gap: var(--space-1); margin-bottom: var(--space-3); }
-.cpub-field-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .cpub-form-field:last-child { margin-bottom: 0; }
-.cpub-form-input, .cpub-form-textarea { width: 100%; padding: var(--space-2) var(--space-3); border: var(--border-width-default) solid var(--border); background: var(--surface); color: var(--text); font-size: var(--text-sm); font-family: var(--font-sans); }
-.cpub-form-input:focus, .cpub-form-textarea:focus { border-color: var(--accent); outline: none; box-shadow: var(--shadow-accent); }
-.cpub-form-textarea { resize: vertical; }
-.cpub-form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: var(--space-3); }
-
+.cpub-form-label { font-size: 11px; font-weight: 600; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: .06em; color: var(--text-dim); }
+.cpub-form-input {
+  width: 100%; padding: var(--space-2) var(--space-3); border: var(--border-width-default) solid var(--border);
+  background: var(--surface); color: var(--text); font-size: var(--text-sm); font-family: var(--font-sans);
+}
+.cpub-form-input:focus { border-color: var(--accent); outline: none; box-shadow: var(--shadow-accent); }
 .cpub-form-error { font-size: 12px; color: var(--red); margin-top: 8px; }
 .cpub-form-check { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-dim); cursor: pointer; }
-.cpub-form-check input { width: 14px; height: 14px; }
-.cpub-type-options { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 6px; }
-.cpub-form-subtitle { font-size: 12px; font-weight: 700; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: .06em; color: var(--text-dim); display: flex; align-items: center; gap: 8px; }
+.cpub-form-check input { width: 14px; height: 14px; flex-shrink: 0; }
+.cpub-type-options { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 6px; }
+.cpub-form-subtitle { font-size: 12px; font-weight: 700; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: .06em; color: var(--text-dim); display: flex; align-items: center; gap: 8px; margin: 0 0 8px; }
 .cpub-form-hint { font-size: 11px; color: var(--text-faint); margin: 0 0 12px; line-height: 1.5; }
+.cpub-people-collab { margin-top: 16px; padding-top: 12px; border-top: var(--border-width-default) solid var(--border2); }
 
-.cpub-prize-row { border: var(--border-width-default) solid var(--border); padding: 14px; margin-bottom: 10px; background: var(--surface2); }
+.cpub-prize-row { border: var(--border-width-default) solid var(--border); padding: 12px; margin-bottom: 10px; background: var(--surface2); }
 .cpub-prize-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
 .cpub-prize-label { font-size: 11px; font-weight: 700; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent); }
 .cpub-prize-remove { background: none; border: none; color: var(--text-faint); cursor: pointer; font-size: 12px; }
 .cpub-prize-remove:hover { color: var(--red); }
 
-.cpub-status-actions { display: flex; gap: 8px; flex-wrap: wrap; }
-.cpub-transition-btn { display: inline-flex; align-items: center; gap: 6px; }
-.cpub-transition-activate { color: var(--green); border-color: var(--green-border); }
-.cpub-transition-judging { color: var(--yellow); border-color: var(--yellow-border); }
-.cpub-transition-complete { color: var(--accent); border-color: var(--accent-border); }
-.cpub-transition-cancel { color: var(--red); border-color: var(--red-border); }
-
-.cpub-status-terminal { font-size: 12px; color: var(--text-dim); display: flex; align-items: center; gap: 8px; margin: 0; }
-.cpub-status-terminal i { color: var(--green); }
-
-.cpub-danger-zone { border-color: var(--red-border); }
-.cpub-danger-title { color: var(--red); }
-.cpub-danger-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
-.cpub-danger-label { font-size: 13px; font-weight: 600; margin: 0 0 2px; }
-.cpub-danger-btn { color: var(--red); border-color: var(--red-border); flex-shrink: 0; }
-.cpub-danger-btn:hover:not(:disabled) { background: var(--red-bg); }
-
-.cpub-not-found { text-align: center; padding: 64px; color: var(--text-dim); display: flex; flex-direction: column; align-items: center; gap: 12px; }
-
+/* Advancement (edit-only, inside the Stages section) */
+.cpub-advance-section { margin-top: 16px; padding-top: 12px; border-top: var(--border-width-default) solid var(--border2); }
 .cpub-advance-block { padding: 12px 0; border-top: var(--border-width-default) solid var(--border); }
 .cpub-advance-block:first-of-type { border-top: 0; }
 .cpub-advance-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
@@ -605,19 +625,27 @@ async function advanceStage(stageId: string): Promise<void> {
 .cpub-advance-pick-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cpub-advance-pick-score { font-family: var(--font-mono); font-size: 11px; color: var(--accent); flex-shrink: 0; }
 .cpub-advance-manual .cpub-btn { align-self: flex-start; margin-top: 6px; }
-.cpub-edit-dirty { color: var(--accent); display: inline-flex; align-items: center; gap: 5px; }
-.cpub-edit-dirty i { font-size: 6px; }
-.cpub-edit-autosave { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-faint); }
-.cpub-edit-autosave i { font-size: 9px; }
-.cpub-edit-autosave-err { color: var(--red); }
 
-/* Collapse the meta rail under the main column on narrower viewports. */
-@media (max-width: 900px) {
-  .cpub-edit-layout { grid-template-columns: 1fr; }
-  .cpub-edit-side { position: static; }
+/* Danger zone */
+.cpub-danger-label { font-size: 13px; font-weight: 600; margin: 0 0 2px; color: var(--red); }
+.cpub-danger-btn { color: var(--red); border-color: var(--red-border); margin-top: 6px; }
+.cpub-danger-btn:hover:not(:disabled) { background: var(--red-bg); }
+
+.cpub-not-found { text-align: center; padding: 64px; color: var(--text-dim); display: flex; flex-direction: column; align-items: center; gap: 12px; }
+
+/* --- Responsive: stack the rail under the body on narrow viewports --- */
+@media (max-width: 1024px) {
+  .cpub-ce-layout { height: auto; min-height: 100vh; overflow: visible; }
+  .cpub-ce-shell { flex-direction: column; overflow: visible; }
+  .cpub-ce-library { width: auto; border-right: none; border-bottom: var(--border-width-default) solid var(--border); }
+  .cpub-ce-center { overflow: visible; }
+  .cpub-ce-settings { width: auto; border-left: none; border-top: var(--border-width-default) solid var(--border); }
+  .cpub-ce-settings-body { overflow: visible; }
 }
 @media (max-width: 768px) {
-  .cpub-contest-edit { padding: 16px; }
-  .cpub-form-row { grid-template-columns: 1fr; }
+  .cpub-ce-topbar { padding: 0 10px; }
+  .cpub-ce-topbar-divider { display: none; }
+  .cpub-ce-title-input { max-width: none; }
+  .cpub-ce-center { padding: 12px; }
 }
 </style>
