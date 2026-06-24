@@ -392,8 +392,17 @@ a minute (`curl deveco.io/api/content?limit=5`, today's timestamp).
 | @commonpub/auth | 0.8.0 | | @commonpub/docs | 0.6.3 |
 | @commonpub/server | **2.92.0** | | @commonpub/learning | 0.5.2 |
 | @commonpub/ui | 0.13.1 | | @commonpub/test-utils | **0.5.8** |
-| @commonpub/layer | **0.86.0** | | @commonpub/theme-studio | 0.6.1 |
+| @commonpub/layer | **0.86.3** | | @commonpub/theme-studio | 0.6.1 |
 | create-commonpub (crates.io) | **0.5.18** (pins ^0.48/^2.92/^0.86/config ^0.23 — current) | | | |
+
+**Session 223 (2026-06-24):** more live-feedback polish on top of 222, all visually verified + rolled to 3.
+**layer 0.86.1** = video/embed 16:9 via `aspect-ratio` (prose `:deep(iframe){height:auto}` was collapsing
+the iframe). **0.86.2/0.86.3** = readable inline `<code>`: new `--code-inline` token (theme `--teal`
+`color-mix`ed 50% toward `--text`, `@supports` + `var(--text)` fallback) — verified 6.46:1, was ~2.4:1.
+**Landmine:** `layers/base/theme/*.css` is GITIGNORED (bundle-theme copies from `packages/ui/theme/` at
+publish; the layer nuxt.config falls back to `packages/ui/theme` when the bundle is absent, e.g.
+commonpub.io). Edit theme CSS in **`packages/ui/theme/`**, NOT `layers/base/theme/` (0.86.2 edited the
+bundle, got reverted on publish → 0.86.3 fixed it in source).
 
 **Session 222 (2026-06-24):** contest-page UX from live feedback — banner/cover **Fit** fix
 (ContestBannerAdjust → explicit Fill/Fit/Zoom; Fit shows the whole image, drag works), **cover
