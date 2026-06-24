@@ -78,18 +78,22 @@ const platform = computed(() => {
 .cpub-video-label i { color: var(--accent); }
 
 .cpub-video-wrap {
-  position: relative;
-  padding-bottom: 56.25%;
-  height: 0;
-  background: var(--text);
+  display: block;
+  line-height: 0;
   border-radius: 0;
 }
 
+/* 16:9 via aspect-ratio on the iframe (not the legacy padding-bottom hack), so a
+   prose `iframe { height: auto }` rule (ProjectView/ArticleView/ExplainerView)
+   COOPERATES with the ratio instead of collapsing the iframe inside a 0-height
+   wrap and leaving black space below it. */
 .cpub-video-iframe {
-  position: absolute;
-  top: 0;
-  left: 0;
+  display: block;
   width: 100%;
-  height: 100%;
+  aspect-ratio: 16 / 9;
+  height: auto;
+  border: 0;
+  background: var(--text);
+  border-radius: 0;
 }
 </style>

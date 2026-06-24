@@ -56,17 +56,20 @@ const size = computed<EmbedSize>(() => {
 .cpub-embed-label i { color: var(--accent); }
 
 .cpub-embed-wrap {
-  position: relative;
-  padding-bottom: 56.25%;
-  height: 0;
+  display: block;
+  line-height: 0;
   border-radius: 0;
 }
 
+/* 16:9 via aspect-ratio so a prose `iframe { height: auto }` rule cooperates with
+   the ratio rather than collapsing the iframe (see BlockVideoView). */
 .cpub-embed-iframe {
-  position: absolute;
-  top: 0;
-  left: 0;
+  display: block;
   width: 100%;
-  height: 100%;
+  aspect-ratio: 16 / 9;
+  height: auto;
+  border: 0;
+  background: var(--text);
+  border-radius: 0;
 }
 </style>
