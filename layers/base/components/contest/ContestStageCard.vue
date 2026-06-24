@@ -8,6 +8,7 @@
  * submission-form builder) re-derive `useFeatures()` here rather than prop-drilling.
  */
 import type { ContestStage } from '@commonpub/schema';
+import type { BlockTuple } from '@commonpub/editor';
 import ContestStageTemplateEditor from './ContestStageTemplateEditor.vue';
 
 const props = defineProps<{
@@ -43,6 +44,10 @@ function advanceCountInput(e: Event): void {
 // (empty → undefined) so a cleared form drops the key entirely.
 function onTemplateUpdate(template: ContestStage['submissionTemplate']): void {
   setField({ submissionTemplate: template && template.length ? template : undefined });
+}
+// Same for the block intro (empty → drop the key).
+function onInstructionsUpdate(blocks: BlockTuple[]): void {
+  setField({ instructionsBlocks: blocks.length ? (blocks as ContestStage['instructionsBlocks']) : undefined });
 }
 </script>
 
@@ -157,7 +162,9 @@ function onTemplateUpdate(template: ContestStage['submissionTemplate']): void {
     <ContestStageTemplateEditor
       v-if="stage.kind === 'submission' && templatesEnabled"
       :template="stage.submissionTemplate ?? []"
+      :instructions="(stage.instructionsBlocks as BlockTuple[] | undefined)"
       @update:template="onTemplateUpdate"
+      @update:instructions="onInstructionsUpdate"
     />
 
     <div v-if="stage.kind === 'event'" class="cpub-form-row">

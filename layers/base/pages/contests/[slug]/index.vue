@@ -506,7 +506,10 @@ async function withdrawEntry(entryId: string): Promise<void> {
 .cpub-submit-footer { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 16px; border-top: var(--border-width-default) solid var(--border); }
 
 /* LAYOUT */
-.cpub-contest-main { max-width: 1100px; margin: 0 auto; padding: 32px; }
+/* Top padding intentionally tighter than the sides: the hero bar already sits
+   directly above with its own 20px bottom padding + border, so a full 32px here
+   stacked to a ~52px hero→tabs gap. ~18px lands the tabbar close under the hero. */
+.cpub-contest-main { max-width: 1100px; margin: 0 auto; padding: 18px 32px 32px; }
 
 .cpub-entries-tools { display: flex; justify-content: flex-end; margin-bottom: 12px; }
 .cpub-entries-cta { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding: 16px 20px; margin-bottom: 18px; background: var(--accent-bg); border: var(--border-width-default) solid var(--accent-border); }

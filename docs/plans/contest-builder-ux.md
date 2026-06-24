@@ -1,10 +1,26 @@
 # Plan: Contest Builder UX — surface what exists, template the start, polish the gaps
 
-> Status: **Phases 0, 1, 3 SHIPPED to all 3 instances** (session 220, 2026-06-23/24). PR #53 squash-merged
-> to `main` (`90467ebd`); `@commonpub/layer 0.84.0` published; deveco.io + heatsynclabs.io pins bumped +
-> deployed. All 3 verified live (health + `/contests` = 200; commonpub.io flags ON, deveco/heatsync OFF;
-> deveco CI typecheck green). Phases 2 (builder presets/templates/block-intro), 4 (banner zoom),
-> 5 (hero gap / export / sweep), 6 (judges showcase) remain. See "Progress" below.
+> Status: **Phases 0, 1, 3 SHIPPED to all 3 instances** (session 220). **Phases 2, 4, 5, 6 BUILT +
+> tested + typecheck-clean (session 221), pending release.** PR #53 (`90467ebd`) shipped 0/1/3;
+> `@commonpub/layer 0.84.0` published. Session 221 work is layer + a schema/server bump (migration 0032,
+> bannerMeta/coverMeta + instructionsBlocks Zod). Full layer suite **1367 green**, schema validators
+> **282 green**, reference `nuxt typecheck` clean, `pnpm build` 16/16. See "Progress" below.
+>
+> ## Progress (session 221) — P2/P4/P5/P6 BUILT
+> - **P2** field presets + whole-form templates (`utils/contestSubmissionTemplates.ts`) + block intro
+>   (`instructionsBlocks` on `ContestStage`, Zod field, markdown-authored, rendered via
+>   `BlockContentRenderer` on the public forms). Wired into `ContestStageTemplateEditor`.
+> - **P4** non-destructive banner/cover zoom: `bannerMeta`/`coverMeta jsonb` (migration 0032), Zod
+>   `contestImageMetaSchema`, server passthrough + read mapping, `ContestBannerAdjust.vue`,
+>   `utils/contestImage.ts` `imageFramingStyle` shared by editor preview + `ContestHero` + listing cards.
+> - **P5** hero→tabs gap reduced (`.cpub-contest-main` top padding 32 → 18px); CSV export button already
+>   existed (`canManage && entries.length`); missing-UI sweep found every contest endpoint already has a
+>   UI trigger (no critical gaps; bulk-PII / judge-resend noted as future enhancements).
+> - **P6** Judges Showcase: photo upload (`UPLOAD_HANDLER_KEY`), row reorder, "Import panel judges"
+>   (`CONTEST_JUDGES_KEY` loader provided by the editor), panel-vs-showcase explainer note.
+> - Also fixed the latent `seedBodyBlocks` html-legacy `content`→`source` key bug (`utils/contestBody.ts`).
+> - **Not yet released/deployed** — release chain (schema → server → layer) + migration 0032 + roll the
+>   3 instances is the remaining step (P7).
 > Authored after a 4-agent deep investigation of the contest schema/server/layer. Decisions confirmed
 > with the maintainer (see "Decisions" below).
 >

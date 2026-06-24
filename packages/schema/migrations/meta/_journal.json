@@ -225,6 +225,13 @@
       "when": 1782203304301,
       "tag": "0031_contest_phase6_drop_dead_cols",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1782267804306,
+      "tag": "0032_remarkable_starjammers",
+      "breakpoints": true
     }
   ]
 }

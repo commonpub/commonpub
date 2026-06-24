@@ -17,6 +17,19 @@ import { contestStatusEnum, judgeRoleEnum, judgingVisibilityEnum, contestVisibil
  * display as distinct named stages. Per-entry cohort/advancement + per-round
  * scoring (the Top-N cull) are Phase B2 — additive fields on this shape, no migration.
  */
+/**
+ * Non-destructive framing for a contest banner/cover image (P4). The original
+ * upload is never re-cropped; this drives the CSS render:
+ * `zoom === 0` ⇒ `object-fit: contain` (perfect fit, letterboxed);
+ * `zoom > 0`  ⇒ `object-fit: cover` + `transform: scale(1 + zoom)` +
+ *               `object-position: x% y%`. `x`/`y` are percent (0..100).
+ */
+export interface ContestImageMeta {
+  zoom: number;
+  x: number;
+  y: number;
+}
+
 export interface ContestStage {
   /** Stable id — survives reorder/duplicate/rename. */
   id: string;
@@ -64,6 +77,15 @@ export interface ContestStage {
    * DRAFT placeholder project as the entry (gated by features.contestProposals).
    */
   submissionMode?: 'attach' | 'proposal';
+  /**
+   * Optional block intro (P2) shown above the form fields on the public
+   * submission form — rich instructions (what to submit, tips, links). Stored as
+   * BlockTuple[] (`[type, attrs]`, the same shape as the contest bodies) so it
+   * renders through BlockContentRenderer; lives in the `stages` jsonb, no migration.
+   * Loosely typed (matches the `unknown[][]` the validator infers + the
+   * `descriptionBlocks` body pattern); the layer casts to BlockTuple[] at render.
+   */
+  instructionsBlocks?: unknown[][];
 }
 
 /**
@@ -147,9 +169,14 @@ export const contests = pgTable('contests', {
   showPrizes: boolean('show_prizes').default(true).notNull(),
   /** Wide hero banner shown across the top of the contest page (~4:1). */
   bannerUrl: text('banner_url'),
+  /** Non-destructive framing for `bannerUrl` (P4): zoom + object-position over the
+   *  original image, never a re-crop. Null ⇒ the legacy `cover` fit. */
+  bannerMeta: jsonb('banner_meta').$type<ContestImageMeta>(),
   /** Card/thumbnail cover image (~4:3 / 16:9). Optional — listing cards fall
    *  back to a contained `bannerUrl` then a trophy when this is unset. */
   coverImageUrl: text('cover_image_url'),
+  /** Non-destructive framing for `coverImageUrl` (P4); same shape as `bannerMeta`. */
+  coverMeta: jsonb('cover_meta').$type<ContestImageMeta>(),
   status: contestStatusEnum('status').default('upcoming').notNull(),
   /** Ordered stage timeline (Phase B1). `[]` ⇒ server synthesizes the classic
    *  Submissions → Judging → Results stages from `status` + the dates below. */

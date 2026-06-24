@@ -16,6 +16,10 @@ const emit = defineEmits<{
 
 const c = computed(() => props.contest);
 
+// Non-destructive banner framing (P4). null/absent ⇒ the legacy cover fit, so
+// existing contests look identical until an organiser adjusts framing.
+const bannerStyle = computed(() => imageFramingStyle(c.value?.bannerMeta ?? null));
+
 // Local wall-clock formatting (dates) and the live countdown are timezone- and
 // clock-dependent, so they would mismatch between the server's TZ and the viewer's
 // on hydration (and Vue won't rectify it in prod). Gate them on a client `mounted`
@@ -142,7 +146,7 @@ const entryCount = computed<number>(() => c.value?.entryCount ?? 0);
   <div class="cpub-hero">
     <!-- Slim banner band (constrained) — the hero image, not a tall block. -->
     <div v-if="c?.bannerUrl" class="cpub-hero-banner">
-      <img :src="c.bannerUrl" :alt="`${c?.title || 'Contest'} banner`" />
+      <img :src="c.bannerUrl" :alt="`${c?.title || 'Contest'} banner`" :style="bannerStyle" />
     </div>
 
     <!-- Compact bar — title + status + meta + actions in one tight, clean band
