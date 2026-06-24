@@ -4,6 +4,14 @@ const props = defineProps<{ content: Record<string, unknown> }>();
 const url = computed(() => (props.content.url as string) || '');
 const embedUrl = computed(() => toEmbedUrl(url.value));
 
+// Rendered-width preset (mirrors images). Missing ⇒ 'l' (760px, reading width),
+// so a video doesn't stretch full-bleed and dominate the column.
+type VideoSize = 's' | 'm' | 'l' | 'full';
+const size = computed<VideoSize>(() => {
+  const v = props.content.size;
+  return v === 's' || v === 'm' || v === 'l' || v === 'full' ? v : 'l';
+});
+
 const platform = computed(() => {
   const u = url.value;
   if (u.includes('youtube') || u.includes('youtu.be')) return 'YouTube';
@@ -13,7 +21,7 @@ const platform = computed(() => {
 </script>
 
 <template>
-  <div v-if="embedUrl" class="cpub-block-video">
+  <div v-if="embedUrl" class="cpub-block-video" :class="`cpub-video-size-${size}`">
     <div class="cpub-video-label">
       <i class="fa-solid fa-film"></i> {{ platform }}
     </div>
@@ -33,11 +41,20 @@ const platform = computed(() => {
 
 <style scoped>
 .cpub-block-video {
-  margin: 24px 0;
+  /* width:100% is required so max-width caps + margin:auto centers even inside the
+     flex-column block renderer (without it, an auto-margin flex item with no
+     intrinsic width shrinks to its label). */
+  width: 100%;
+  margin: 24px auto;
   border: var(--border-width-default) solid var(--border);
   overflow: hidden;
   box-shadow: var(--shadow-md);
 }
+/* Width presets (centered via margin:auto). Match the image-block caps. */
+.cpub-video-size-s { max-width: 320px; }
+.cpub-video-size-m { max-width: 540px; }
+.cpub-video-size-l { max-width: 760px; }
+.cpub-video-size-full { max-width: 100%; }
 
 .cpub-video-label {
   padding: 6px 12px;

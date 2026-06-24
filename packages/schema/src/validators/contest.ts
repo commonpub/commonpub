@@ -216,6 +216,7 @@ export const createContestSchema = z
     coverImageUrl: optionalUrl(),
     bannerMeta: contestImageMetaSchema.nullable().optional(),
     coverMeta: contestImageMetaSchema.nullable().optional(),
+    coverPlacement: z.enum(['about', 'hero']).nullable().optional(),
     showPrizes: z.boolean().optional(),
     // Optional on create — server slugifies the title when omitted.
     slug: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Lowercase letters, numbers and hyphens only').max(255).optional(),
@@ -269,6 +270,7 @@ export const updateContestSchema = z
     coverImageUrl: optionalUrl(),
     bannerMeta: contestImageMetaSchema.nullable().optional(),
     coverMeta: contestImageMetaSchema.nullable().optional(),
+    coverPlacement: z.enum(['about', 'hero']).nullable().optional(),
     showPrizes: z.boolean().optional(),
     slug: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Lowercase letters, numbers and hyphens only').max(255).optional(),
     startDate: z.string().datetime().optional(),

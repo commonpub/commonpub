@@ -64,7 +64,7 @@ const editor = useContestEditor({
 const {
   title, slugInput, slugTouched, subheading, descriptionBlocks, rulesBlocks, prizesBlocks,
   description, descriptionFormat, rules, rulesFormat, prizesDescription, prizesDescriptionFormat,
-  bannerUrl, coverImageUrl, bannerMeta, coverMeta, startDate, endDate, judgingEndDate, communityVotingEnabled,
+  bannerUrl, coverImageUrl, bannerMeta, coverMeta, coverPlacement, startDate, endDate, judgingEndDate, communityVotingEnabled,
   judgingVisibility, eligibleContentTypes, maxEntriesPerUser, visibility, visibleToRoles,
   showPrizes, prizes, criteria, stages, currentStageId,
   saving, formDirty, dateError, canSubmit, slugify, toggleType, toggleRole, addPrize, removePrize, prizeLabel, save,
@@ -262,6 +262,8 @@ const showBannerAdjust = ref(false);
 const showCoverAdjust = ref(false);
 const bannerPreviewStyle = computed(() => imageFramingStyle(bannerMeta.value));
 const coverPreviewStyle = computed(() => imageFramingStyle(coverMeta.value));
+const bannerPreviewWhole = computed(() => isWholeImage(bannerMeta.value));
+const coverPreviewWhole = computed(() => isWholeImage(coverMeta.value));
 
 // --- Right-rail collapsible sections ---
 const openSections = ref<Record<string, boolean>>({
@@ -486,8 +488,8 @@ const reviewStages = computed(() => (contest.value?.stages ?? []).filter((s) => 
           <!-- Banner + cover render inline at the top of the Overview body only. -->
           <template #overview-lead>
             <div class="cpub-ce-media">
-              <div class="cpub-ce-banner" :class="{ 'has-image': !!bannerUrl }">
-                <img v-if="bannerUrl" :src="bannerUrl" alt="Contest banner" class="cpub-ce-banner-img" :style="bannerPreviewStyle" />
+              <div class="cpub-ce-banner" :class="{ 'has-image': !!bannerUrl, 'cpub-ce-banner--whole': bannerPreviewWhole }">
+                <img v-if="bannerUrl" :src="bannerUrl" alt="Contest banner" class="cpub-ce-banner-img" :style="bannerPreviewWhole ? undefined : bannerPreviewStyle" />
                 <div v-else class="cpub-ce-media-placeholder">
                   <i class="fa-regular fa-image"></i>
                   <span>Banner image</span>
@@ -503,8 +505,8 @@ const reviewStages = computed(() => (contest.value?.stages ?? []).filter((s) => 
                 </div>
 
                 <!-- Cover thumbnail, inset over the banner's lower-left (mirrors the public hero). -->
-                <div class="cpub-ce-cover" :class="{ 'has-image': !!coverImageUrl }">
-                  <img v-if="coverImageUrl" :src="coverImageUrl" alt="Contest cover" class="cpub-ce-cover-img" :style="coverPreviewStyle" />
+                <div class="cpub-ce-cover" :class="{ 'has-image': !!coverImageUrl, 'cpub-ce-cover--whole': coverPreviewWhole }">
+                  <img v-if="coverImageUrl" :src="coverImageUrl" alt="Contest cover" class="cpub-ce-cover-img" :style="coverPreviewWhole ? undefined : coverPreviewStyle" />
                   <div v-else class="cpub-ce-media-placeholder cpub-ce-media-placeholder-sm">
                     <i class="fa-regular fa-image"></i>
                     <span>Cover</span>
@@ -524,7 +526,16 @@ const reviewStages = computed(() => (contest.value?.stages ?? []).filter((s) => 
               <ContestBannerAdjust v-if="bannerUrl && showBannerAdjust" v-model="bannerMeta" :image-url="bannerUrl" aspect="4 / 1" label="Banner" class="cpub-ce-adjust" />
               <ContestBannerAdjust v-if="coverImageUrl && showCoverAdjust" v-model="coverMeta" :image-url="coverImageUrl" aspect="4 / 3" label="Cover" class="cpub-ce-adjust" />
 
-              <p class="cpub-form-hint cpub-ce-media-hint">Banner is the wide hero (~4:1). Cover is the card thumbnail in listings (~4:3); it falls back to the banner if unset. Use Adjust to zoom and reposition without re-cropping.</p>
+              <!-- Where the cover image shows on the public page. -->
+              <label v-if="coverImageUrl" class="cpub-ce-cover-place">
+                <span class="cpub-form-label" style="margin: 0;">Show cover</span>
+                <select :value="coverPlacement ?? 'about'" class="cpub-form-input" @change="coverPlacement = (($event.target as HTMLSelectElement).value as 'about' | 'hero')">
+                  <option value="about">In the Overview "About" section</option>
+                  <option value="hero">In the hero, under the subheading</option>
+                </select>
+              </label>
+
+              <p class="cpub-form-hint cpub-ce-media-hint">Banner is the wide hero (~4:1). Cover is the card thumbnail in listings (~4:3); it falls back to the banner if unset. Use Adjust to set Fill, Fit (whole image), or Zoom without re-cropping.</p>
             </div>
           </template>
 
@@ -890,6 +901,12 @@ const reviewStages = computed(() => (contest.value?.stages ?? []).filter((s) => 
 .cpub-ce-media-btn.active { background: var(--accent-bg); color: var(--accent); border-color: var(--accent); }
 .cpub-ce-media-hint { margin: 0; }
 .cpub-ce-adjust { margin-top: 8px; padding: 10px; border: var(--border-width-default) solid var(--border); background: var(--surface2); }
+.cpub-ce-cover-place { display: flex; align-items: center; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+.cpub-ce-cover-place .cpub-form-input { width: auto; flex: 1; min-width: 220px; padding: var(--space-2) var(--space-3); border: var(--border-width-default) solid var(--border); background: var(--surface); color: var(--text); font-size: var(--text-sm); font-family: var(--font-sans); }
+/* Fit (whole image) previews: let the box grow to the image, no crop. */
+.cpub-ce-banner--whole { aspect-ratio: auto; max-height: 300px; }
+.cpub-ce-banner--whole .cpub-ce-banner-img { height: auto; max-height: 300px; object-fit: contain; }
+.cpub-ce-cover--whole .cpub-ce-cover-img { object-fit: contain; }
 .cpub-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0; }
 
 /* --- Responsive: stack the rail under the body on narrow viewports --- */

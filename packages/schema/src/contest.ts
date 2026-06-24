@@ -30,6 +30,11 @@ export interface ContestImageMeta {
   y: number;
 }
 
+/** Where the cover image renders on the public contest page (P4 follow-up).
+ *  `about` (default) = top of the Overview "About" section; `hero` = under the
+ *  subheading in the hero bar. */
+export type ContestCoverPlacement = 'about' | 'hero';
+
 export interface ContestStage {
   /** Stable id — survives reorder/duplicate/rename. */
   id: string;
@@ -177,6 +182,10 @@ export const contests = pgTable('contests', {
   coverImageUrl: text('cover_image_url'),
   /** Non-destructive framing for `coverImageUrl` (P4); same shape as `bannerMeta`. */
   coverMeta: jsonb('cover_meta').$type<ContestImageMeta>(),
+  /** Where the cover image renders on the public contest page: `about` (default —
+   *  top of the Overview "About" section) or `hero` (under the subheading in the
+   *  hero bar). Null ⇒ `about`. */
+  coverPlacement: text('cover_placement').$type<ContestCoverPlacement>(),
   status: contestStatusEnum('status').default('upcoming').notNull(),
   /** Ordered stage timeline (Phase B1). `[]` ⇒ server synthesizes the classic
    *  Submissions → Judging → Results stages from `status` + the dates below. */

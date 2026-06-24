@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { imageFramingStyle, defaultImageMeta } from '../contestImage';
+import { imageFramingStyle, defaultImageMeta, isWholeImage } from '../contestImage';
 
 describe('imageFramingStyle', () => {
   it('null/absent keeps the legacy cover fit with no transform (back-compat)', () => {
@@ -26,5 +26,14 @@ describe('imageFramingStyle', () => {
 
   it('defaultImageMeta is a centered contain', () => {
     expect(defaultImageMeta()).toEqual({ zoom: 0, x: 50, y: 50 });
+  });
+});
+
+describe('isWholeImage', () => {
+  it('is true only for Fit (zoom 0), not null/cover or zoomed', () => {
+    expect(isWholeImage(null)).toBe(false);
+    expect(isWholeImage(undefined)).toBe(false);
+    expect(isWholeImage({ zoom: 0, x: 50, y: 50 })).toBe(true);
+    expect(isWholeImage({ zoom: 0.5, x: 50, y: 50 })).toBe(false);
   });
 });

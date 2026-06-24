@@ -126,6 +126,7 @@ export function toContestDetail(row: ContestRow): ContestDetail {
     showPrizes: row.showPrizes,
     bannerMeta: row.bannerMeta ?? null,
     coverMeta: row.coverMeta ?? null,
+    coverPlacement: row.coverPlacement ?? null,
     stages: row.stages ?? [],
     currentStageId: row.currentStageId ?? null,
     prizes: row.prizes ?? null,

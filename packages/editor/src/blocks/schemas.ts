@@ -66,6 +66,9 @@ export const videoContentSchema = z.object({
   url: z.string().url(),
   platform: z.string(),
   caption: z.string().optional(),
+  // Rendered-width preset (mirrors images). Missing ⇒ the viewer's 'l' fallback,
+  // so videos render at a reading width centered, not stretched full-bleed.
+  size: z.enum(['s', 'm', 'l', 'full']).optional(),
 });
 export type VideoContent = z.infer<typeof videoContentSchema>;
 
@@ -73,6 +76,7 @@ export const embedContentSchema = z.object({
   url: z.string().url(),
   type: z.string(),
   html: z.string().optional(),
+  size: z.enum(['s', 'm', 'l', 'full']).optional(),
 });
 export type EmbedContent = z.infer<typeof embedContentSchema>;
 

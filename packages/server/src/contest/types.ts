@@ -1,4 +1,4 @@
-import type { ContestStatus, ContestStage, ContestStageSubmission, ContestImageMeta } from '@commonpub/schema';
+import type { ContestStatus, ContestStage, ContestStageSubmission, ContestImageMeta, ContestCoverPlacement } from '@commonpub/schema';
 import type { DB } from '../types.js';
 
 // Shared contest types — the single home for the contest module's interfaces so
@@ -77,6 +77,8 @@ export interface ContestDetail extends ContestListItem {
   /** Non-destructive banner framing (P4); null ⇒ the legacy cover fit.
    *  (`coverMeta` is inherited from ContestListItem.) */
   bannerMeta: ContestImageMeta | null;
+  /** Where the cover image renders on the public page; null ⇒ `about`. */
+  coverPlacement: ContestCoverPlacement | null;
   prizes: ContestPrize[] | null;
   judgingCriteria: ContestJudgingCriterion[] | null;
   judgingVisibility: ContestJudgingVisibility;
@@ -127,6 +129,7 @@ export interface CreateContestInput {
    *  legacy cover fit; `undefined` leaves it untouched on update. */
   bannerMeta?: ContestImageMeta | null;
   coverMeta?: ContestImageMeta | null;
+  coverPlacement?: ContestCoverPlacement | null;
   prizes?: ContestPrize[];
   judgingCriteria?: ContestJudgingCriterion[];
   stages?: ContestStage[];

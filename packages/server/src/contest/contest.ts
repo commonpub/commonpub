@@ -66,6 +66,7 @@ export async function createContest(
         bannerMeta: input.bannerMeta ?? null,
         coverImageUrl: input.coverImageUrl ?? null,
         coverMeta: input.coverMeta ?? null,
+        coverPlacement: input.coverPlacement ?? null,
         prizes: input.prizes ?? null,
         judgingCriteria: input.judgingCriteria ?? null,
         communityVotingEnabled: input.communityVotingEnabled ?? false,
@@ -142,6 +143,7 @@ export async function updateContest(
   if (data.bannerMeta !== undefined) updates.bannerMeta = data.bannerMeta;
   if (data.coverImageUrl !== undefined) updates.coverImageUrl = data.coverImageUrl;
   if (data.coverMeta !== undefined) updates.coverMeta = data.coverMeta;
+  if (data.coverPlacement !== undefined) updates.coverPlacement = data.coverPlacement;
   if (data.showPrizes !== undefined) updates.showPrizes = data.showPrizes;
   if (data.stages !== undefined) updates.stages = data.stages;
   if (data.currentStageId !== undefined) updates.currentStageId = data.currentStageId;

@@ -941,6 +941,12 @@ describe('createContestSchema — boundary tests', () => {
     expect(() => createContestSchema.parse({ ...validContest, coverMeta: { zoom: 0, x: 200, y: 0 } })).toThrow();
   });
 
+  it('accepts coverPlacement about/hero and rejects others', () => {
+    expect(createContestSchema.parse({ ...validContest, coverPlacement: 'hero' }).coverPlacement).toBe('hero');
+    expect(createContestSchema.parse({ ...validContest, coverPlacement: null }).coverPlacement).toBeNull();
+    expect(() => createContestSchema.parse({ ...validContest, coverPlacement: 'sidebar' })).toThrow();
+  });
+
   // Long-form fields allow genuinely large content (50k, ~16 pages) but stay
   // bounded — an unbounded field is a DoS vector at ingest + render (the cap was
   // raised from 10k after a large-blob incident; the bound itself is load-bearing).

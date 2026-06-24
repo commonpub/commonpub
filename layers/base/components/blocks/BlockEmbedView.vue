@@ -2,10 +2,16 @@
 const props = defineProps<{ content: Record<string, unknown> }>();
 
 const embedUrl = computed(() => toEmbedUrl(props.content.url as string));
+
+type EmbedSize = 's' | 'm' | 'l' | 'full';
+const size = computed<EmbedSize>(() => {
+  const v = props.content.size;
+  return v === 's' || v === 'm' || v === 'l' || v === 'full' ? v : 'l';
+});
 </script>
 
 <template>
-  <div v-if="embedUrl" class="cpub-block-embed">
+  <div v-if="embedUrl" class="cpub-block-embed" :class="`cpub-embed-size-${size}`">
     <div class="cpub-embed-label">
       <i class="fa-solid fa-globe"></i> Embed
     </div>
@@ -17,11 +23,17 @@ const embedUrl = computed(() => toEmbedUrl(props.content.url as string));
 
 <style scoped>
 .cpub-block-embed {
-  margin: 24px 0;
+  /* width:100% so max-width caps + margin:auto centers in the flex-column renderer. */
+  width: 100%;
+  margin: 24px auto;
   border: var(--border-width-default) solid var(--border);
   overflow: hidden;
   box-shadow: var(--shadow-md);
 }
+.cpub-embed-size-s { max-width: 320px; }
+.cpub-embed-size-m { max-width: 540px; }
+.cpub-embed-size-l { max-width: 760px; }
+.cpub-embed-size-full { max-width: 100%; }
 
 .cpub-embed-label {
   padding: 6px 12px;

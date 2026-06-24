@@ -19,6 +19,15 @@ const c = computed(() => props.contest);
 // Non-destructive banner framing (P4). null/absent ⇒ the legacy cover fit, so
 // existing contests look identical until an organiser adjusts framing.
 const bannerStyle = computed(() => imageFramingStyle(c.value?.bannerMeta ?? null));
+// Fit (zoom 0) shows the WHOLE banner: the band grows to the image (no crop, no
+// letterbox bars). Cover/zoom keep the slim fixed band.
+const bannerWhole = computed(() => isWholeImage(c.value?.bannerMeta ?? null));
+
+// Cover placement: `hero` renders the cover under the subheading here; otherwise it
+// stays in the Overview "About" section on the public page (default).
+const coverInHero = computed(() => c.value?.coverPlacement === 'hero' && !!c.value?.coverImageUrl);
+const coverStyle = computed(() => imageFramingStyle(c.value?.coverMeta ?? null));
+const coverWhole = computed(() => isWholeImage(c.value?.coverMeta ?? null));
 
 // Local wall-clock formatting (dates) and the live countdown are timezone- and
 // clock-dependent, so they would mismatch between the server's TZ and the viewer's
@@ -145,8 +154,8 @@ const entryCount = computed<number>(() => c.value?.entryCount ?? 0);
 <template>
   <div class="cpub-hero">
     <!-- Slim banner band (constrained) — the hero image, not a tall block. -->
-    <div v-if="c?.bannerUrl" class="cpub-hero-banner">
-      <img :src="c.bannerUrl" :alt="`${c?.title || 'Contest'} banner`" :style="bannerStyle" />
+    <div v-if="c?.bannerUrl" class="cpub-hero-banner" :class="{ 'cpub-hero-banner--whole': bannerWhole }">
+      <img :src="c.bannerUrl" :alt="`${c?.title || 'Contest'} banner`" :style="bannerWhole ? undefined : bannerStyle" />
     </div>
 
     <!-- Compact bar — title + status + meta + actions in one tight, clean band
@@ -173,6 +182,14 @@ const entryCount = computed<number>(() => c.value?.entryCount ?? 0);
 
         <h1 class="cpub-hero-title">{{ c?.title || 'Contest' }}</h1>
         <p v-if="tagline" class="cpub-hero-tagline">{{ tagline }}</p>
+        <img
+          v-if="coverInHero"
+          :src="c!.coverImageUrl!"
+          :alt="`${c?.title || 'Contest'} cover`"
+          class="cpub-hero-cover"
+          :class="{ 'cpub-hero-cover--whole': coverWhole }"
+          :style="coverWhole ? undefined : coverStyle"
+        />
 
         <div class="cpub-hero-foot">
           <div class="cpub-hero-meta">
@@ -213,6 +230,13 @@ const entryCount = computed<number>(() => c.value?.entryCount ?? 0);
   overflow: hidden;
 }
 .cpub-hero-banner img { display: block; width: 100%; height: 100%; object-fit: cover; }
+/* Fit (whole image): let the band grow to the image so nothing is cropped and there
+   are no letterbox bars (full width, natural height, capped for very tall images). */
+.cpub-hero-banner--whole { aspect-ratio: auto; max-height: none; background: transparent; }
+.cpub-hero-banner--whole img { height: auto; max-height: 70vh; object-fit: contain; }
+/* Cover image placed in the hero (under the subheading) when coverPlacement=hero. */
+.cpub-hero-cover { display: block; width: 100%; max-width: 680px; max-height: 320px; object-fit: cover; border: var(--border-width-default) solid var(--border); box-shadow: var(--shadow-md); margin: 0 0 14px; }
+.cpub-hero-cover--whole { height: auto; max-height: 420px; object-fit: contain; }
 
 /* ── COMPACT BAR ── one tight, clean band on a surface background. */
 .cpub-hero-bar { background: var(--surface); border-bottom: var(--border-width-default) solid var(--border); }
@@ -240,7 +264,7 @@ const entryCount = computed<number>(() => c.value?.entryCount ?? 0);
 .cpub-countdown-chip-muted i { color: var(--text-faint); }
 
 .cpub-hero-title { font-size: 26px; font-weight: 800; letter-spacing: -.02em; line-height: 1.15; margin: 0 0 6px; color: var(--text); }
-.cpub-hero-tagline { font-size: 13px; color: var(--text-dim); line-height: 1.55; max-width: 680px; margin: 0 0 14px; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.cpub-hero-tagline { font-size: 14px; color: var(--text-dim); line-height: 1.6; max-width: 760px; margin: 0 0 14px; }
 
 .cpub-hero-foot { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
 .cpub-hero-meta { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; font-size: 11px; color: var(--text-faint); font-family: var(--font-mono); }

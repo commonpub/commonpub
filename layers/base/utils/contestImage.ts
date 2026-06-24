@@ -33,3 +33,13 @@ function clampPct(n: number): number {
 export function defaultImageMeta(): ContestImageMeta {
   return { zoom: 0, x: 50, y: 50 };
 }
+
+/**
+ * True when the framing means "show the WHOLE image" (Fit, zoom 0). Surfaces that
+ * can grow (the hero banner band, the editor preview) render this as a natural-ratio
+ * image (no crop, no letterbox bars) rather than `contain` inside a fixed band.
+ * null/absent = the legacy cover fit, so this is false (existing banners unchanged).
+ */
+export function isWholeImage(meta: ContestImageMeta | null | undefined): boolean {
+  return !!meta && meta.zoom <= 0;
+}

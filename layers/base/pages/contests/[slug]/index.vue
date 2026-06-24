@@ -267,6 +267,30 @@ async function withdrawEntry(entryId: string): Promise<void> {
       @copy-link="copyLink"
     />
 
+    <!-- Section tabs — a prominent centered band directly under the hero. -->
+    <nav class="cpub-ctabs" aria-label="Contest sections">
+      <div class="cpub-ctabs-inner" role="tablist">
+        <button
+          v-for="tab in tabs"
+          :id="`cpub-tab-${tab.key}`"
+          :key="tab.key"
+          role="tab"
+          type="button"
+          class="cpub-ctab"
+          :class="{ 'cpub-ctab-active': activeTab === tab.key }"
+          :aria-selected="activeTab === tab.key"
+          :aria-controls="`cpub-panel-${tab.key}`"
+          :tabindex="activeTab === tab.key ? 0 : -1"
+          @click="activeTab = tab.key"
+          @keydown="onTabKey($event, tab.key)"
+        >
+          <i class="fa-solid" :class="tab.icon"></i>
+          <span class="cpub-ctab-label">{{ tab.label }}</span>
+          <span v-if="tab.count != null" class="cpub-ctab-count">{{ tab.count }}</span>
+        </button>
+      </div>
+    </nav>
+
     <!-- SUBMIT ENTRY DIALOG -->
     <div v-if="showSubmitDialog" class="cpub-submit-overlay" @click.self="showSubmitDialog = false">
       <div ref="submitDialogRef" class="cpub-submit-dialog" role="dialog" aria-modal="true" aria-label="Submit entry">
@@ -340,32 +364,19 @@ async function withdrawEntry(entryId: string): Promise<void> {
             <span>{{ visibilityNote.text }}</span>
           </div>
 
-          <!-- Tab bar -->
-          <div class="cpub-tabbar" role="tablist" aria-label="Contest sections">
-            <button
-              v-for="tab in tabs"
-              :id="`cpub-tab-${tab.key}`"
-              :key="tab.key"
-              role="tab"
-              type="button"
-              class="cpub-tab"
-              :class="{ 'cpub-tab-active': activeTab === tab.key }"
-              :aria-selected="activeTab === tab.key"
-              :aria-controls="`cpub-panel-${tab.key}`"
-              :tabindex="activeTab === tab.key ? 0 : -1"
-              @click="activeTab = tab.key"
-              @keydown="onTabKey($event, tab.key)"
-            >
-              <i class="fa-solid" :class="tab.icon"></i> {{ tab.label }}
-              <span v-if="tab.count != null" class="cpub-tab-count">{{ tab.count }}</span>
-            </button>
-          </div>
 
           <!-- OVERVIEW -->
           <div v-show="activeTab === 'overview'" id="cpub-panel-overview" role="tabpanel" aria-labelledby="cpub-tab-overview" tabindex="0">
             <div class="cpub-about-section">
               <div class="cpub-sec-head"><h2><i class="fa fa-circle-info" style="color: var(--accent);"></i> About This Contest</h2></div>
-              <img v-if="c?.coverImageUrl" :src="c.coverImageUrl" :alt="`${c?.title || 'Contest'} cover`" class="cpub-about-cover" />
+              <img
+                v-if="c?.coverImageUrl && c?.coverPlacement !== 'hero'"
+                :src="c.coverImageUrl"
+                :alt="`${c?.title || 'Contest'} cover`"
+                class="cpub-about-cover"
+                :class="{ 'cpub-about-cover--whole': isWholeImage(c?.coverMeta) }"
+                :style="isWholeImage(c?.coverMeta) ? undefined : imageFramingStyle(c?.coverMeta)"
+              />
               <div class="cpub-about-card">
                 <BlocksBlockContentRenderer
                   v-if="c?.descriptionBlocks?.length"
@@ -525,14 +536,23 @@ async function withdrawEntry(entryId: string): Promise<void> {
 .cpub-invite-text i { color: var(--accent); }
 
 /* TABS */
-.cpub-tabbar { display: flex; gap: 2px; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; border-bottom: var(--border-width-default) solid var(--border); margin-bottom: 20px; }
-.cpub-tabbar::-webkit-scrollbar { display: none; }
-.cpub-tab { display: inline-flex; align-items: center; gap: 6px; padding: 9px 14px; min-height: 40px; flex-shrink: 0; white-space: nowrap; background: none; border: none; border-bottom: 2px solid transparent; margin-bottom: -1px; font-family: var(--font-mono); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--text-faint); cursor: pointer; }
-.cpub-tab:hover { color: var(--text-dim); }
-.cpub-tab-active { color: var(--accent); border-bottom-color: var(--accent); }
-.cpub-tab i { font-size: 11px; }
-.cpub-tab-count { font-size: 9px; padding: 1px 6px; background: var(--surface2); border: var(--border-width-default) solid var(--border2); color: var(--text-dim); }
-.cpub-tab-active .cpub-tab-count { background: var(--accent-bg); border-color: var(--accent-border); color: var(--accent); }
+/* Section tabs — a prominent centered nav band directly under the hero. Larger
+   bold mono labels; the active tab gets an accent tint + thick accent underline so
+   it clearly reads as selected even when there are only a couple of tabs. */
+.cpub-ctabs { background: var(--surface); border-bottom: 2px solid var(--border); box-shadow: var(--shadow-sm); }
+.cpub-ctabs-inner { max-width: 1100px; margin: 0 auto; padding: 0 24px; display: flex; justify-content: center; flex-wrap: wrap; }
+.cpub-ctab { display: inline-flex; align-items: center; gap: 9px; padding: 17px 28px; min-height: 58px; background: none; border: none; border-bottom: 3px solid transparent; margin-bottom: -2px; font-family: var(--font-mono); font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--text-faint); cursor: pointer; transition: color .12s, background .12s; }
+.cpub-ctab:hover { color: var(--text); background: var(--surface2); }
+.cpub-ctab-active { color: var(--accent); border-bottom-color: var(--accent); background: var(--accent-bg); }
+.cpub-ctab i { font-size: 14px; }
+.cpub-ctab-count { font-size: 10px; font-weight: 700; padding: 2px 8px; background: var(--surface2); border: var(--border-width-default) solid var(--border2); color: var(--text-dim); }
+.cpub-ctab-active .cpub-ctab-count { background: var(--surface); border-color: var(--accent-border); color: var(--accent); }
+@media (max-width: 640px) {
+  .cpub-ctabs-inner { justify-content: flex-start; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+  .cpub-ctabs-inner::-webkit-scrollbar { display: none; }
+  .cpub-ctab { flex-shrink: 0; padding: 14px 18px; min-height: 50px; font-size: 12px; }
+  .cpub-ctab-label { white-space: nowrap; }
+}
 
 [role="tabpanel"]:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
 
@@ -559,6 +579,7 @@ async function withdrawEntry(entryId: string): Promise<void> {
 /* ABOUT */
 .cpub-about-section { margin-bottom: 20px; }
 .cpub-about-cover { width: 100%; max-height: 380px; object-fit: cover; display: block; border: var(--border-width-default) solid var(--border); box-shadow: var(--shadow-md); margin-bottom: 16px; }
+.cpub-about-cover--whole { height: auto; max-height: 480px; object-fit: contain; }
 .cpub-about-card { background: var(--surface); border: var(--border-width-default) solid var(--border); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow-md); font-size: 12px; color: var(--text-dim); line-height: 1.7; }
 .cpub-about-card p { margin: 0; white-space: pre-line; }
 

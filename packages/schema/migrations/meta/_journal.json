@@ -232,6 +232,13 @@
       "when": 1782267804306,
       "tag": "0032_remarkable_starjammers",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1782273345902,
+      "tag": "0033_motionless_stingray",
+      "breakpoints": true
     }
   ]
 }
