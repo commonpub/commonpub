@@ -20,6 +20,7 @@ const toast = useToast();
 const { extract: extractError } = useApiError();
 
 const template = computed(() => props.stage.submissionTemplate ?? []);
+const instructions = computed(() => (props.stage.instructionsBlocks ?? []) as [string, Record<string, unknown>][]);
 const values = ref<Record<string, string>>({});
 watch(template, (t) => {
   const next: Record<string, string> = {};
@@ -59,6 +60,7 @@ async function submit(): Promise<void> {
       <h3 class="cpub-proposal-title"><i class="fa-solid fa-clipboard-list"></i> {{ stage.name }}: submit a proposal</h3>
     </div>
     <p v-if="stage.description" class="cpub-proposal-desc">{{ stage.description }}</p>
+    <BlocksBlockContentRenderer v-if="instructions.length" :blocks="instructions" class="cpub-prose cpub-md cpub-proposal-intro" />
     <p class="cpub-proposal-desc">Submitting creates a draft project you can develop for later rounds. You can edit it any time.</p>
 
     <ContestSubmissionField
@@ -84,5 +86,6 @@ async function submit(): Promise<void> {
 .cpub-proposal-title { font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 8px; margin: 0; }
 .cpub-proposal-title i { color: var(--accent); }
 .cpub-proposal-desc { font-size: 12px; color: var(--text-dim); margin: 0 0 12px; line-height: 1.6; }
+.cpub-proposal-intro { margin: 0 0 12px; }
 .cpub-proposal-actions { display: flex; align-items: center; gap: 10px; }
 </style>

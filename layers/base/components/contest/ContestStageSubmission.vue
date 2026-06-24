@@ -28,6 +28,7 @@ const toast = useToast();
 const { extract: extractError } = useApiError();
 
 const template = computed(() => props.stage.submissionTemplate ?? []);
+const instructions = computed(() => (props.stage.instructionsBlocks ?? []) as [string, Record<string, unknown>][]);
 // Eliminated entries are out of later rounds; don't offer the form for them.
 const eligibleEntries = computed(() => props.entries.filter((e) => !e.eliminated));
 const selectedEntryId = ref<string>('');
@@ -94,6 +95,7 @@ function submittedAtLabel(iso: string): string {
       </span>
     </div>
     <p v-if="stage.description" class="cpub-stagesub-desc">{{ stage.description }}</p>
+    <BlocksBlockContentRenderer v-if="instructions.length" :blocks="instructions" class="cpub-prose cpub-md cpub-stagesub-intro" />
 
     <div v-if="eligibleEntries.length > 1" class="cpub-stagesub-field">
       <label class="cpub-stagesub-label" for="cpub-stagesub-entry">Entry</label>
@@ -134,6 +136,7 @@ function submittedAtLabel(iso: string): string {
 .cpub-stagesub-done { color: var(--green); border-color: var(--green-border); background: var(--green-bg); }
 .cpub-stagesub-todo { color: var(--text-dim); border-color: var(--border2); background: var(--surface2); }
 .cpub-stagesub-desc { font-size: 12px; color: var(--text-dim); margin: 0 0 12px; line-height: 1.6; }
+.cpub-stagesub-intro { margin: 0 0 12px; }
 .cpub-stagesub-field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
 .cpub-stagesub-label { font-size: 11px; font-weight: 600; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: .05em; color: var(--text-dim); }
 .cpub-stagesub-req { color: var(--red); }

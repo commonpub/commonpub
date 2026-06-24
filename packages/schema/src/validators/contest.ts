@@ -21,6 +21,15 @@ const userRoleSchema = z.enum(userRoleEnum.enumValues);
 // Bounded so a runaway array can't DoS; the 10MB JSON body limit is the backstop.
 const contestBlocksSchema = z.array(z.array(z.unknown())).max(1000);
 
+// Non-destructive banner/cover framing (P4): zoom + object-position over the
+// original image. zoom 0 = contain (perfect fit); x/y are percent (0..100).
+export const contestImageMetaSchema = z.object({
+  zoom: z.number().min(0).max(4),
+  x: z.number().min(0).max(100),
+  y: z.number().min(0).max(100),
+});
+export type ContestImageMetaInput = z.infer<typeof contestImageMetaSchema>;
+
 // --- Contest validators ---
 
 export const contestPrizeSchema = z
@@ -140,6 +149,10 @@ export const contestStageSchema = z.object({
   // item. `proposal` = the entrant submits the form and the server creates a
   // DRAFT placeholder project linked as the entry (gated by features.contestProposals).
   submissionMode: z.enum(['attach', 'proposal']).optional(),
+  // Submission stages (P2): an optional block intro shown above the form fields
+  // on the public submission form. BlockTuple[] (same loose shape as the contest
+  // bodies); capped at 200 blocks so a stage intro can't DoS.
+  instructionsBlocks: z.array(z.array(z.unknown())).max(200).optional(),
 });
 export type ContestStageInput = z.infer<typeof contestStageSchema>;
 
@@ -201,6 +214,8 @@ export const createContestSchema = z
     prizesBlocks: contestBlocksSchema.optional(),
     bannerUrl: optionalUrl(),
     coverImageUrl: optionalUrl(),
+    bannerMeta: contestImageMetaSchema.nullable().optional(),
+    coverMeta: contestImageMetaSchema.nullable().optional(),
     showPrizes: z.boolean().optional(),
     // Optional on create — server slugifies the title when omitted.
     slug: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Lowercase letters, numbers and hyphens only').max(255).optional(),
@@ -252,6 +267,8 @@ export const updateContestSchema = z
     prizesBlocks: contestBlocksSchema.optional(),
     bannerUrl: optionalUrl(),
     coverImageUrl: optionalUrl(),
+    bannerMeta: contestImageMetaSchema.nullable().optional(),
+    coverMeta: contestImageMetaSchema.nullable().optional(),
     showPrizes: z.boolean().optional(),
     slug: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Lowercase letters, numbers and hyphens only').max(255).optional(),
     startDate: z.string().datetime().optional(),

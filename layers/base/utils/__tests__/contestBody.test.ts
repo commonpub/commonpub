@@ -15,7 +15,8 @@ describe('seedBodyBlocks', () => {
 
   it('preserves legacy HTML verbatim in a single markdown block (lossless)', () => {
     const html = '<div style="color:#000">Hi</div>';
-    expect(seedBodyBlocks([], html, 'html')).toEqual([['markdown', { content: html }]]);
+    // The markdown block's attr key is `source` (matches MarkdownBlock + BlockMarkdownView).
+    expect(seedBodyBlocks([], html, 'html')).toEqual([['markdown', { source: html }]]);
   });
 
   it('returns [] when there are neither blocks nor legacy text', () => {

@@ -14,7 +14,7 @@
  * round-trip bug and no per-field re-conversion at save (the Phase 1 datetime fix).
  */
 import { ref, computed, watch, nextTick, type Ref, type ComputedRef } from 'vue';
-import type { ContestStage } from '@commonpub/schema';
+import type { ContestStage, ContestImageMeta } from '@commonpub/schema';
 import type { ContestTemplateSeed } from '../utils/contestTemplates';
 
 export type ContestFormat = 'markdown' | 'html';
@@ -52,6 +52,8 @@ export interface ContestEditorSource {
   prizesDescriptionFormat?: string | null;
   bannerUrl?: string | null;
   coverImageUrl?: string | null;
+  bannerMeta?: ContestImageMeta | null;
+  coverMeta?: ContestImageMeta | null;
   startDate?: string | null;
   endDate?: string | null;
   judgingEndDate?: string | null;
@@ -105,6 +107,8 @@ export interface UseContestEditor {
   prizesDescriptionFormat: Ref<ContestFormat>;
   bannerUrl: Ref<string>;
   coverImageUrl: Ref<string>;
+  bannerMeta: Ref<ContestImageMeta | null>;
+  coverMeta: Ref<ContestImageMeta | null>;
   startDate: Ref<string>;
   endDate: Ref<string>;
   judgingEndDate: Ref<string>;
@@ -172,6 +176,8 @@ export function useContestEditor(opts: UseContestEditorOptions): UseContestEdito
   const prizesDescriptionFormat = ref<ContestFormat>('markdown');
   const bannerUrl = ref('');
   const coverImageUrl = ref('');
+  const bannerMeta = ref<ContestImageMeta | null>(null);
+  const coverMeta = ref<ContestImageMeta | null>(null);
   const startDate = ref('');
   const endDate = ref('');
   const judgingEndDate = ref('');
@@ -252,6 +258,8 @@ export function useContestEditor(opts: UseContestEditorOptions): UseContestEdito
     prizesDescriptionFormat.value = asFormat(c.prizesDescriptionFormat);
     bannerUrl.value = c.bannerUrl ?? '';
     coverImageUrl.value = c.coverImageUrl ?? '';
+    bannerMeta.value = c.bannerMeta ?? null;
+    coverMeta.value = c.coverMeta ?? null;
     // ISO instants stored verbatim; CpubDateTimeField renders them in local time.
     startDate.value = c.startDate ?? '';
     endDate.value = c.endDate ?? '';
@@ -335,6 +343,9 @@ export function useContestEditor(opts: UseContestEditorOptions): UseContestEdito
       prizesDescriptionFormat: prizesDescriptionFormat.value,
       bannerUrl: bannerUrl.value || undefined,
       coverImageUrl: coverImageUrl.value || undefined,
+      // Clear the framing when the image is removed; else send it (or leave as-is).
+      bannerMeta: bannerUrl.value ? (bannerMeta.value ?? undefined) : null,
+      coverMeta: coverImageUrl.value ? (coverMeta.value ?? undefined) : null,
       startDate: startDate.value || undefined,
       endDate: endDate.value || undefined,
       judgingEndDate: judgingEndDate.value || undefined,
@@ -389,7 +400,7 @@ export function useContestEditor(opts: UseContestEditorOptions): UseContestEdito
   // Any post-hydration edit flips the dirty flag (drives the topbar "unsaved" cue).
   watch(
     [title, slugInput, subheading, description, descriptionBlocks, rulesBlocks, prizesBlocks, rules,
-      descriptionFormat, rulesFormat, prizesDescriptionFormat, bannerUrl, coverImageUrl, startDate, endDate,
+      descriptionFormat, rulesFormat, prizesDescriptionFormat, bannerUrl, coverImageUrl, bannerMeta, coverMeta, startDate, endDate,
       judgingEndDate, communityVotingEnabled, judgingVisibility, eligibleContentTypes, maxEntriesPerUser,
       visibility, visibleToRoles, showPrizes, prizesDescription, prizes, criteria, stages, currentStageId],
     () => { if (!hydrating) formDirty.value = true; },
@@ -403,7 +414,7 @@ export function useContestEditor(opts: UseContestEditorOptions): UseContestEdito
 
   return {
     title, slugInput, slugTouched, subheading, description, descriptionBlocks, rulesBlocks, prizesBlocks,
-    rules, descriptionFormat, rulesFormat, prizesDescriptionFormat, bannerUrl, coverImageUrl, startDate,
+    rules, descriptionFormat, rulesFormat, prizesDescriptionFormat, bannerUrl, coverImageUrl, bannerMeta, coverMeta, startDate,
     endDate, judgingEndDate, communityVotingEnabled, judgingVisibility, eligibleContentTypes, maxEntriesPerUser,
     visibility, visibleToRoles, showPrizes, prizesDescription, prizes, criteria, stages, currentStageId,
     saving, formDirty, dateError, canSubmit,

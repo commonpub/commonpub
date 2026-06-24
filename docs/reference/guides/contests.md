@@ -493,7 +493,44 @@ ContestEditor (ClientOnly, layout:false, cpub-ce-layout, height:100vh)
 - **Autosave** for draft contests via `useEditorAutosave` (silent save + rename-in-place
   + hydrate guard); published/upcoming keep save-on-action.
 - **Stages editor** offers the Phase 4 field-type builder (see
-  [Submission forms](#submission-forms--field-types)).
+  [Submission forms](#submission-forms--field-types)). Since **session 220** Stages is a
+  4th **center tab** (not the rail): the stage list, per-stage submission-form builder, and
+  advancement live full-width in `ContestBodyCanvas`'s `stages` form tab.
+
+### Builder upgrades (session 221, P2)
+
+The per-stage submission-form builder (`ContestStageTemplateEditor.vue`) gained, all
+layer-side over the existing `submissionTemplate`:
+
+- **Field presets** — an "Add field" menu seeds a configured field in one click (Short text,
+  Long text, Link, Email, Number, Dropdown, Checkbox, Date, plus **Mailing address** +
+  **Agreement** when `contestPii` is on). Keys are derived from the label + uniquified.
+- **Whole-form templates** — "Use a template" fills a stage's form from *Standard proposal*,
+  *Hardware / shipping* (address + shipping agreement), *Minimal*, or *Blank*; replacing a
+  non-empty form prompts first. Pure data in `utils/contestSubmissionTemplates.ts`.
+- **Block intro** — an optional rich intro per submission stage, authored as markdown +
+  live-previewed, stored as `instructionsBlocks` (BlockTuple[]) inside the `stages` jsonb (no
+  migration; a Zod field on `contestStageSchema`). Rendered above the fields on the public
+  `ContestProposalForm` / `ContestStageSubmission` via `BlockContentRenderer`.
+
+### Banner / cover zoom (session 221, P4)
+
+Non-destructive framing: `bannerMeta`/`coverMeta jsonb` on `contests` (migration **0032**),
+shape `{ zoom, x, y }`. `ContestBannerAdjust.vue` (zoom slider + drag-to-reposition) sits over
+the inline banner/cover in the Overview lead. Render parity across the editor preview,
+`ContestHero`, and the listing-card cover is guaranteed by the shared
+`utils/contestImage.ts` `imageFramingStyle`: **null ⇒ legacy `cover`** (existing contests
+unchanged), **zoom 0 ⇒ `contain`** (perfect fit), **zoom > 0 ⇒ `cover` + `scale(1+zoom)` +
+`object-position`**. The original upload is never re-cropped.
+
+### Judges Showcase de-friction (session 221, P6)
+
+The editorial `judgesShowcase` block (`JudgesShowcaseBlock.vue`) now uploads judge photos via
+`UPLOAD_HANDLER_KEY` (URL still accepted), reorders rows, and offers **"Import panel judges"**
+— seeds rows from the real scoring panel (name + account avatar) via a `CONTEST_JUDGES_KEY`
+loader the editor provides. The block stays the *curated public face*; the scoring panel
+(People rail, `contest_judges`) stays the accounts that actually score — a note in the block
+explains the split.
 
 ---
 

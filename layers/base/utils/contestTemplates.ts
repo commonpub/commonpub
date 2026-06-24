@@ -87,6 +87,9 @@ export function standardContestTemplate(opts: StandardTemplateOptions): ContestT
       description: 'Entrants submit a proposal for review.',
       submissionMode: opts.proposals ? 'proposal' : 'attach',
       submissionTemplate: standardSubmissionTemplate(opts),
+      instructionsBlocks: markdownToBlockTuples(
+        'Tell us about your idea. Be concrete about what you will build and why it matters. You can edit your proposal until the round closes.',
+      ) as ContestStage['instructionsBlocks'],
     },
     {
       id: newStageId(),

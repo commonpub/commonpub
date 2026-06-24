@@ -933,6 +933,14 @@ describe('createContestSchema — boundary tests', () => {
     ).toThrow();
   });
 
+  // --- P4: non-destructive banner/cover framing ---
+  it('accepts valid bannerMeta/coverMeta and rejects out-of-range values', () => {
+    expect(createContestSchema.parse({ ...validContest, bannerMeta: { zoom: 0.5, x: 20, y: 80 } }).bannerMeta).toEqual({ zoom: 0.5, x: 20, y: 80 });
+    expect(createContestSchema.parse({ ...validContest, bannerMeta: null }).bannerMeta).toBeNull();
+    expect(() => createContestSchema.parse({ ...validContest, coverMeta: { zoom: -1, x: 0, y: 0 } })).toThrow();
+    expect(() => createContestSchema.parse({ ...validContest, coverMeta: { zoom: 0, x: 200, y: 0 } })).toThrow();
+  });
+
   // Long-form fields allow genuinely large content (50k, ~16 pages) but stay
   // bounded — an unbounded field is a DoS vector at ingest + render (the cap was
   // raised from 10k after a large-blob incident; the bound itself is load-bearing).
@@ -1106,6 +1114,14 @@ describe('submissionTemplateFieldSchema + stage submissionTemplate', () => {
 
     const dup = { ...stage, submissionTemplate: [field, { ...field, label: 'Again' }] };
     expect(contestStageSchema.safeParse(dup).success).toBe(false);
+  });
+
+  // --- P2: per-stage block intro ---
+  it('accepts a stage with instructionsBlocks (BlockTuple[]) and caps the count', () => {
+    const stage = { id: 's1', name: 'Proposals', kind: 'submission', instructionsBlocks: [['heading', { text: 'Hi' }], ['paragraph', { text: 'Tell us.' }]] };
+    expect(contestStageSchema.safeParse(stage).success).toBe(true);
+    const tooMany = { ...stage, instructionsBlocks: Array.from({ length: 201 }, () => ['paragraph', {}]) };
+    expect(contestStageSchema.safeParse(tooMany).success).toBe(false);
   });
 
   // --- Phase 4 field types ---

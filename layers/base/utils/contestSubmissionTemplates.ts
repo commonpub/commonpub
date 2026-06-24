@@ -1,0 +1,165 @@
+import type { ContestSubmissionTemplateField } from '@commonpub/schema';
+import { fieldKeyFromLabel } from './contestStages';
+
+/**
+ * Field presets + whole-form templates for the submission-form builder (P2). Pure
+ * data + helpers so they unit-test in isolation; the builder UI
+ * (ContestStageTemplateEditor) appends a preset or replaces the whole form via the
+ * `templatePreset*`/template builders here. Keys are derived from the label and
+ * uniquified against the existing template so two "Email" fields don't collide
+ * (template field keys must be unique — `contestStageSchema`).
+ *
+ * Address/Agreement presets + the address/shipping templates are PII-gated
+ * (`features.contestPii`): the agreement/address field types are only offered in
+ * the builder when that flag is on, so the UI hides them otherwise. The pure
+ * builders take an explicit `{ pii }` so they degrade the same way in isolation.
+ */
+type TemplateField = ContestSubmissionTemplateField;
+
+/** Default terms an organiser can keep or edit; shared by the preset + template. */
+export const RULES_AGREEMENT_TERMS =
+  'By entering, I confirm this submission is my own original work and I agree to the contest rules and code of conduct.';
+
+/** Make `base` unique within `taken` by appending `_2`, `_3`, … */
+function uniqueKey(taken: Set<string>, base: string): string {
+  if (!taken.has(base)) return base;
+  let n = 2;
+  while (taken.has(`${base}_${n}`)) n += 1;
+  return `${base}_${n}`;
+}
+
+/** Stamp keys on a set of keyless fields, keeping them unique among themselves. */
+function withKeys(fields: Array<Omit<TemplateField, 'key'> & { key?: string }>): TemplateField[] {
+  const taken = new Set<string>();
+  return fields.map((f) => {
+    const key = uniqueKey(taken, f.key || fieldKeyFromLabel(f.label));
+    taken.add(key);
+    return { ...f, key };
+  });
+}
+
+// ─── One-click field presets (the "Add field" menu) ───
+
+export interface FieldPreset {
+  id: string;
+  /** Menu label. */
+  label: string;
+  /** FontAwesome icon (no `fa-solid` prefix). */
+  icon: string;
+  /** Requires `features.contestPii` (agreement/address field types). */
+  pii?: boolean;
+  /** The field this preset seeds (key derived from the label at add time). */
+  field: Omit<TemplateField, 'key'>;
+}
+
+export const FIELD_PRESETS: FieldPreset[] = [
+  { id: 'text', label: 'Short text', icon: 'fa-font', field: { label: 'Short answer', type: 'text', required: false } },
+  { id: 'textarea', label: 'Long text', icon: 'fa-align-left', field: { label: 'Details', type: 'textarea', required: false } },
+  { id: 'url', label: 'Link (URL)', icon: 'fa-link', field: { label: 'Link', type: 'url', required: false, help: 'Include the full https:// address.' } },
+  { id: 'email', label: 'Email', icon: 'fa-envelope', field: { label: 'Email address', type: 'email', required: false } },
+  { id: 'number', label: 'Number', icon: 'fa-hashtag', field: { label: 'Number', type: 'number', required: false } },
+  { id: 'select', label: 'Dropdown', icon: 'fa-list', field: { label: 'Choose one', type: 'select', required: false, options: [{ value: '', label: '' }] } },
+  { id: 'checkbox', label: 'Checkbox', icon: 'fa-square-check', field: { label: 'Confirm', type: 'checkbox', required: false } },
+  { id: 'date', label: 'Date', icon: 'fa-calendar', field: { label: 'Date', type: 'date', required: false } },
+  {
+    id: 'address',
+    label: 'Mailing address',
+    icon: 'fa-location-dot',
+    pii: true,
+    field: { label: 'Mailing address', type: 'address', required: false, pii: true, help: 'Stored privately. Only staff with PII access and the entrant can read it.' },
+  },
+  {
+    id: 'agreement',
+    label: 'Agreement',
+    icon: 'fa-file-signature',
+    pii: true,
+    field: { label: 'Agreement', type: 'agreement', required: true, mustAccept: true, terms: RULES_AGREEMENT_TERMS },
+  },
+];
+
+/** Presets offered for the builder, gated by whether PII field types are enabled. */
+export function availableFieldPresets(pii: boolean): FieldPreset[] {
+  return pii ? FIELD_PRESETS : FIELD_PRESETS.filter((p) => !p.pii);
+}
+
+/** Append a preset field, deriving a unique machine key from its label. */
+export function templatePresetAdded(t: TemplateField[], preset: FieldPreset): TemplateField[] {
+  const taken = new Set(t.map((f) => f.key));
+  const key = uniqueKey(taken, fieldKeyFromLabel(preset.field.label));
+  return [...t, { ...preset.field, key }];
+}
+
+// ─── Whole-form templates (the "Start from template" picker) ───
+
+export interface SubmissionFormTemplate {
+  id: string;
+  label: string;
+  description: string;
+  /** Requires `features.contestPii` to seed its address/agreement fields. */
+  pii?: boolean;
+  /** Build the field array; flag-adaptive so it degrades when PII is off. */
+  build(opts: { pii: boolean }): TemplateField[];
+}
+
+const SHIPPING_AGREEMENT_TERMS =
+  'If selected, I agree to provide a valid shipping address and accept responsibility for any hardware sent to me.';
+
+export const SUBMISSION_FORM_TEMPLATES: SubmissionFormTemplate[] = [
+  {
+    id: 'standard',
+    label: 'Standard proposal',
+    description: 'Name, summary, description, approach (and a rules agreement when PII is on).',
+    build({ pii }): TemplateField[] {
+      const fields: Array<Omit<TemplateField, 'key'>> = [
+        { label: 'Project name', type: 'text', required: true },
+        { label: 'One-line summary', type: 'text', required: true, help: 'A single sentence describing your idea.' },
+        { label: 'Description', type: 'textarea', required: true, help: 'What you are building and the problem it solves.' },
+        { label: 'Approach', type: 'textarea', required: false, help: 'How you plan to build it (optional).' },
+      ];
+      if (pii) fields.push({ label: 'Contest rules', type: 'agreement', required: true, terms: RULES_AGREEMENT_TERMS, mustAccept: true });
+      return withKeys(fields);
+    },
+  },
+  {
+    id: 'hardware',
+    label: 'Hardware / shipping',
+    description: 'Standard proposal plus a mailing address and a shipping agreement (PII).',
+    pii: true,
+    build({ pii }): TemplateField[] {
+      const fields: Array<Omit<TemplateField, 'key'>> = [
+        { label: 'Project name', type: 'text', required: true },
+        { label: 'One-line summary', type: 'text', required: true, help: 'A single sentence describing your idea.' },
+        { label: 'Description', type: 'textarea', required: true, help: 'What you are building and the problem it solves.' },
+      ];
+      if (pii) {
+        fields.push({ label: 'Mailing address', type: 'address', required: true, pii: true, help: 'Stored privately. Only staff with PII access and the entrant can read it.' });
+        fields.push({ label: 'Shipping agreement', type: 'agreement', required: true, terms: SHIPPING_AGREEMENT_TERMS, mustAccept: true });
+      }
+      return withKeys(fields);
+    },
+  },
+  {
+    id: 'minimal',
+    label: 'Minimal',
+    description: 'Just a project name and a link.',
+    build(): TemplateField[] {
+      return withKeys([
+        { label: 'Project name', type: 'text', required: true },
+        { label: 'Link', type: 'url', required: false, help: 'Include the full https:// address.' },
+      ]);
+    },
+  },
+  {
+    id: 'blank',
+    label: 'Blank',
+    description: 'Start with no fields.',
+    build(): TemplateField[] {
+      return [];
+    },
+  },
+];
+
+/** Templates offered for the builder, gated by whether PII field types are enabled. */
+export function availableFormTemplates(pii: boolean): SubmissionFormTemplate[] {
+  return pii ? SUBMISSION_FORM_TEMPLATES : SUBMISSION_FORM_TEMPLATES.filter((t) => !t.pii);
+}

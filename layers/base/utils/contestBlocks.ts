@@ -19,6 +19,16 @@ export const CONTEST_RUBRIC_KEY: InjectionKey<Ref<ContestRubricCriterion[]>> = S
  *  "pull from schedule" seed. Absent (null) outside the contest editor. */
 export const CONTEST_SCHEDULE_KEY: InjectionKey<Ref<RoadmapItem[]>> = Symbol('contestSchedule');
 
+/** A panel judge as the Judges Showcase block cares about it (for "Import panel
+ *  judges": seed showcase rows from the real scoring panel). */
+export interface ContestPanelJudge { name: string; avatarUrl?: string; title?: string; link?: string }
+
+/** ContestEditor `provide`s an async loader for the contest's scoring-panel
+ *  judges under this key, so the Judges Showcase block can offer a one-click
+ *  "import panel judges" seed (name + account avatar). Resolves to [] in create
+ *  mode (no slug yet); absent (null) outside the contest editor. */
+export const CONTEST_JUDGES_KEY: InjectionKey<() => Promise<ContestPanelJudge[]>> = Symbol('contestJudges');
+
 /** A stage as the roadmap cares about it (structural subset of ContestStage). */
 export interface RoadmapStageSource { name: string; kind?: string; startsAt?: string; endsAt?: string; description?: string }
 /** The three core schedule dates, when there are no custom stages. */

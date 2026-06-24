@@ -64,7 +64,7 @@ const editor = useContestEditor({
 const {
   title, slugInput, slugTouched, subheading, descriptionBlocks, rulesBlocks, prizesBlocks,
   description, descriptionFormat, rules, rulesFormat, prizesDescription, prizesDescriptionFormat,
-  bannerUrl, coverImageUrl, startDate, endDate, judgingEndDate, communityVotingEnabled,
+  bannerUrl, coverImageUrl, bannerMeta, coverMeta, startDate, endDate, judgingEndDate, communityVotingEnabled,
   judgingVisibility, eligibleContentTypes, maxEntriesPerUser, visibility, visibleToRoles,
   showPrizes, prizes, criteria, stages, currentStageId,
   saving, formDirty, dateError, canSubmit, slugify, toggleType, toggleRole, addPrize, removePrize, prizeLabel, save,
@@ -105,6 +105,20 @@ const scheduleRoadmap = computed(() => roadmapFromSchedule(stages.value, { start
 provide(CONTEST_SCHEDULE_KEY, scheduleRoadmap);
 const { uploadFile } = useFileUpload();
 provide(UPLOAD_HANDLER_KEY, (file: File) => uploadFile<{ url: string; width?: number | null; height?: number | null }>(file, 'content'));
+// Feed the Judges Showcase block a loader for the real scoring panel, so it can
+// offer "Import panel judges" (name + account avatar). Empty in create mode (no
+// slug yet). Maps the judges API row shape to the showcase's curated-row shape.
+provide(CONTEST_JUDGES_KEY, async () => {
+  if (!slug.value) return [];
+  const rows = await $fetch<Array<{ userName: string; userAvatar?: string | null; userUsername: string; role: string }>>(
+    `/api/contests/${slug.value}/judges`,
+  );
+  return rows.map((r) => ({
+    name: r.userName,
+    avatarUrl: r.userAvatar ?? undefined,
+    link: r.userUsername ? `/u/${r.userUsername}` : undefined,
+  }));
+});
 
 // Editor -> model write-back: each body's blocks flow into the composable's
 // descriptionBlocks/rulesBlocks/prizesBlocks refs (read by buildPayload).
@@ -242,6 +256,12 @@ function uploadMedia(event: Event, target: Ref<string>, purpose: string): void {
 function onBannerUpload(e: Event): void { uploadMedia(e, bannerUrl, 'banner'); }
 function onCoverUpload(e: Event): void { uploadMedia(e, coverImageUrl, 'cover'); }
 function onBannerUrl(): void { const url = window.prompt('Enter banner image URL:'); if (url) bannerUrl.value = url; }
+// Non-destructive framing (P4): toggle the zoom/reposition panels per image; the
+// inline previews mirror the public hero via the shared imageFramingStyle util.
+const showBannerAdjust = ref(false);
+const showCoverAdjust = ref(false);
+const bannerPreviewStyle = computed(() => imageFramingStyle(bannerMeta.value));
+const coverPreviewStyle = computed(() => imageFramingStyle(coverMeta.value));
 
 // --- Right-rail collapsible sections ---
 const openSections = ref<Record<string, boolean>>({
@@ -467,7 +487,7 @@ const reviewStages = computed(() => (contest.value?.stages ?? []).filter((s) => 
           <template #overview-lead>
             <div class="cpub-ce-media">
               <div class="cpub-ce-banner" :class="{ 'has-image': !!bannerUrl }">
-                <img v-if="bannerUrl" :src="bannerUrl" alt="Contest banner" class="cpub-ce-banner-img" />
+                <img v-if="bannerUrl" :src="bannerUrl" alt="Contest banner" class="cpub-ce-banner-img" :style="bannerPreviewStyle" />
                 <div v-else class="cpub-ce-media-placeholder">
                   <i class="fa-regular fa-image"></i>
                   <span>Banner image</span>
@@ -478,12 +498,13 @@ const reviewStages = computed(() => (contest.value?.stages ?? []).filter((s) => 
                     <input type="file" accept="image/*" class="cpub-sr-only" aria-label="Upload banner image" @change="onBannerUpload">
                   </label>
                   <button type="button" class="cpub-ce-media-btn" @click="onBannerUrl"><i class="fa-solid fa-link"></i> URL</button>
+                  <button v-if="bannerUrl" type="button" class="cpub-ce-media-btn" :class="{ active: showBannerAdjust }" @click="showBannerAdjust = !showBannerAdjust"><i class="fa-solid fa-crop-simple"></i> Adjust</button>
                   <button v-if="bannerUrl" type="button" class="cpub-ce-media-btn" @click="bannerUrl = ''"><i class="fa-solid fa-trash"></i> Remove</button>
                 </div>
 
                 <!-- Cover thumbnail, inset over the banner's lower-left (mirrors the public hero). -->
                 <div class="cpub-ce-cover" :class="{ 'has-image': !!coverImageUrl }">
-                  <img v-if="coverImageUrl" :src="coverImageUrl" alt="Contest cover" class="cpub-ce-cover-img" />
+                  <img v-if="coverImageUrl" :src="coverImageUrl" alt="Contest cover" class="cpub-ce-cover-img" :style="coverPreviewStyle" />
                   <div v-else class="cpub-ce-media-placeholder cpub-ce-media-placeholder-sm">
                     <i class="fa-regular fa-image"></i>
                     <span>Cover</span>
@@ -493,11 +514,17 @@ const reviewStages = computed(() => (contest.value?.stages ?? []).filter((s) => 
                       <i class="fa-solid fa-arrow-up-from-bracket"></i>
                       <input type="file" accept="image/*" class="cpub-sr-only" aria-label="Upload cover image" @change="onCoverUpload">
                     </label>
+                    <button v-if="coverImageUrl" type="button" class="cpub-ce-media-btn cpub-ce-media-btn-icon" :class="{ active: showCoverAdjust }" title="Adjust cover framing" @click="showCoverAdjust = !showCoverAdjust"><i class="fa-solid fa-crop-simple"></i></button>
                     <button v-if="coverImageUrl" type="button" class="cpub-ce-media-btn cpub-ce-media-btn-icon" title="Remove cover" @click="coverImageUrl = ''"><i class="fa-solid fa-trash"></i></button>
                   </div>
                 </div>
               </div>
-              <p class="cpub-form-hint cpub-ce-media-hint">Banner is the wide hero (~4:1). Cover is the card thumbnail in listings (~4:3); it falls back to the banner if unset.</p>
+
+              <!-- Non-destructive framing panels (P4) -->
+              <ContestBannerAdjust v-if="bannerUrl && showBannerAdjust" v-model="bannerMeta" :image-url="bannerUrl" aspect="4 / 1" label="Banner" class="cpub-ce-adjust" />
+              <ContestBannerAdjust v-if="coverImageUrl && showCoverAdjust" v-model="coverMeta" :image-url="coverImageUrl" aspect="4 / 3" label="Cover" class="cpub-ce-adjust" />
+
+              <p class="cpub-form-hint cpub-ce-media-hint">Banner is the wide hero (~4:1). Cover is the card thumbnail in listings (~4:3); it falls back to the banner if unset. Use Adjust to zoom and reposition without re-cropping.</p>
             </div>
           </template>
 
@@ -860,7 +887,9 @@ const reviewStages = computed(() => (contest.value?.stages ?? []).filter((s) => 
 .cpub-ce-media-btn:hover { background: var(--surface2); }
 .cpub-ce-media-btn.primary:hover { opacity: 0.9; background: var(--accent); }
 .cpub-ce-media-btn-icon { padding: 5px 7px; }
+.cpub-ce-media-btn.active { background: var(--accent-bg); color: var(--accent); border-color: var(--accent); }
 .cpub-ce-media-hint { margin: 0; }
+.cpub-ce-adjust { margin-top: 8px; padding: 10px; border: var(--border-width-default) solid var(--border); background: var(--surface2); }
 .cpub-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0; }
 
 /* --- Responsive: stack the rail under the body on narrow viewports --- */

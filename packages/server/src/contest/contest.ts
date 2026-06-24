@@ -63,7 +63,9 @@ export async function createContest(
         // Only keep currentStageId if it references a stage that actually exists.
         currentStageId: input.currentStageId && (input.stages ?? []).some((s) => s.id === input.currentStageId) ? input.currentStageId : null,
         bannerUrl: input.bannerUrl ?? null,
+        bannerMeta: input.bannerMeta ?? null,
         coverImageUrl: input.coverImageUrl ?? null,
+        coverMeta: input.coverMeta ?? null,
         prizes: input.prizes ?? null,
         judgingCriteria: input.judgingCriteria ?? null,
         communityVotingEnabled: input.communityVotingEnabled ?? false,
@@ -137,7 +139,9 @@ export async function updateContest(
   if (data.rulesBlocks !== undefined) updates.rulesBlocks = data.rulesBlocks;
   if (data.prizesBlocks !== undefined) updates.prizesBlocks = data.prizesBlocks;
   if (data.bannerUrl !== undefined) updates.bannerUrl = data.bannerUrl;
+  if (data.bannerMeta !== undefined) updates.bannerMeta = data.bannerMeta;
   if (data.coverImageUrl !== undefined) updates.coverImageUrl = data.coverImageUrl;
+  if (data.coverMeta !== undefined) updates.coverMeta = data.coverMeta;
   if (data.showPrizes !== undefined) updates.showPrizes = data.showPrizes;
   if (data.stages !== undefined) updates.stages = data.stages;
   if (data.currentStageId !== undefined) updates.currentStageId = data.currentStageId;

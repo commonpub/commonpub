@@ -65,6 +65,7 @@ const canCreateContest = computed(() => {
             :alt="contest.title"
             class="cpub-contest-cover"
             :class="{ 'cpub-contest-cover--contain': !contest.coverImageUrl && !!contest.bannerUrl }"
+            :style="contest.coverImageUrl ? imageFramingStyle(contest.coverMeta) : undefined"
             loading="lazy"
           />
           <template v-else>

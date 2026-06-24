@@ -15,11 +15,11 @@ export function seedBodyBlocks(
   if (Array.isArray(blocks) && blocks.length) return blocks as BlockTuple[];
   const text = (legacy ?? '').trim();
   if (!text) return [];
-  if (legacyFormat === 'html') return [['markdown', { content: text }]];
+  if (legacyFormat === 'html') return [['markdown', { source: text }]];
   try {
     const parsed = markdownToBlockTuples(text);
-    return parsed.length ? parsed : [['markdown', { content: text }]];
+    return parsed.length ? parsed : [['markdown', { source: text }]];
   } catch {
-    return [['markdown', { content: text }]];
+    return [['markdown', { source: text }]];
   }
 }
