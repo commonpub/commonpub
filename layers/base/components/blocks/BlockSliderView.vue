@@ -214,21 +214,21 @@ const stateIcons: Record<string, string> = {
 .cpub-slider-output.state-low {
   background: var(--yellow-bg);
   border: var(--border-width-default) solid var(--yellow-border);
-  color: var(--yellow);
+  color: var(--yellow-text);
 }
 
 .cpub-slider-output.state-ok,
 .cpub-slider-output.state-good {
   background: var(--green-bg);
   border: var(--border-width-default) solid var(--green-border);
-  color: var(--green);
+  color: var(--green-text);
 }
 
 .cpub-slider-output.state-high,
 .cpub-slider-output.state-danger {
   background: var(--red-bg);
   border: var(--border-width-default) solid var(--red-border);
-  color: var(--red);
+  color: var(--red-text);
 }
 
 .cpub-slider-output i { font-size: 13px; flex-shrink: 0; }

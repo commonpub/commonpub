@@ -34,7 +34,7 @@ onMounted(() => {
   border: var(--border-width-default) solid var(--green);
   margin: 24px 0;
   font-size: 13px;
-  color: var(--green);
+  color: var(--green-text);
   opacity: 0;
   transform: translateY(8px);
   transition: opacity 0.4s ease, transform 0.4s ease;

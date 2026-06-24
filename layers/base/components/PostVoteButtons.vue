@@ -92,8 +92,8 @@ async function vote(direction: VoteDirection): Promise<void> {
 .cpub-vote-btn:hover:not(:disabled) { color: var(--text); background: var(--surface2); }
 .cpub-vote-btn:disabled { opacity: 0.3; cursor: default; }
 .cpub-vote-btn.active { color: var(--accent); }
-.cpub-vote-up.active { color: var(--green, var(--accent)); }
-.cpub-vote-down.active { color: var(--red, var(--accent)); }
+.cpub-vote-up.active { color: var(--green-text, var(--accent)); }
+.cpub-vote-down.active { color: var(--red-text, var(--accent)); }
 
 .cpub-vote-score {
   font-family: var(--font-mono);
@@ -103,6 +103,6 @@ async function vote(direction: VoteDirection): Promise<void> {
   min-width: 20px;
   text-align: center;
 }
-.cpub-vote-score.positive { color: var(--green, var(--accent)); }
-.cpub-vote-score.negative { color: var(--red); }
+.cpub-vote-score.positive { color: var(--green-text, var(--accent)); }
+.cpub-vote-score.negative { color: var(--red-text); }
 </style>

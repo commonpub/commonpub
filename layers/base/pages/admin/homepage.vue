@@ -289,8 +289,8 @@ const { layoutEngine } = useFeatures();
 .cpub-section-actions { display: flex; gap: 6px; flex-shrink: 0; }
 .cpub-section-action { background: none; border: none; color: var(--text-faint); cursor: pointer; font-size: 12px; padding: 4px 6px; }
 .cpub-section-action:hover { color: var(--accent); }
-.cpub-section-action--active { color: var(--green); }
-.cpub-section-action--danger:hover { color: var(--red); }
+.cpub-section-action--active { color: var(--green-text); }
+.cpub-section-action--danger:hover { color: var(--red-text); }
 
 .cpub-section-editor { width: 100%; padding: 12px 0 0; border-top: var(--border-width-default) solid var(--border2); margin-top: 8px; }
 .cpub-editor-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); }
@@ -302,7 +302,7 @@ const { layoutEngine } = useFeatures();
 .cpub-editor-textarea { font-size: 12px; font-family: var(--font-mono); padding: 8px 10px; border: var(--border-width-default) solid var(--border); background: var(--bg); color: var(--text); outline: none; resize: vertical; }
 
 .cpub-sections-footer { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-4); margin-top: var(--space-4); background: var(--yellow-bg, var(--surface2)); border: var(--border-width-default) solid var(--yellow, var(--border)); }
-.cpub-sections-footer-text { font-family: var(--font-mono); font-size: 11px; font-weight: 600; color: var(--yellow, var(--text-dim)); flex: 1; }
+.cpub-sections-footer-text { font-family: var(--font-mono); font-size: 11px; font-weight: 600; color: var(--yellow-text, var(--text-dim)); flex: 1; }
 
 @media (max-width: 768px) {
   .cpub-admin-header { flex-direction: column; }
@@ -324,7 +324,7 @@ const { layoutEngine } = useFeatures();
   border: 1px solid var(--yellow, var(--border));
   margin-bottom: var(--space-4);
 }
-.cpub-admin-homepage-deprecation i { color: var(--yellow, var(--text-dim)); font-size: var(--text-lg); margin-top: 2px; }
+.cpub-admin-homepage-deprecation i { color: var(--yellow-text, var(--text-dim)); font-size: var(--text-lg); margin-top: 2px; }
 .cpub-admin-homepage-deprecation p { margin: 0 0 var(--space-1) 0; color: var(--text); }
 .cpub-admin-homepage-deprecation-link {
   display: inline-flex; align-items: center; gap: var(--space-1);

@@ -95,7 +95,7 @@ useSeoMeta({
   align-items: center;
   justify-content: center;
   font-size: 28px;
-  color: var(--yellow);
+  color: var(--yellow-text);
 }
 
 .cert-eyebrow {
@@ -137,14 +137,14 @@ useSeoMeta({
   right: 16px;
   font-size: 11px;
   font-family: var(--font-mono);
-  color: var(--green);
+  color: var(--green-text);
   display: flex;
   align-items: center;
   gap: 4px;
 }
 
 .cert-not-found { text-align: center; padding: 64px 0; color: var(--text-dim); }
-.cert-not-found-icon { font-size: 40px; color: var(--red); margin-bottom: 16px; }
+.cert-not-found-icon { font-size: 40px; color: var(--red-text); margin-bottom: 16px; }
 .cert-not-found h1 { font-size: 20px; margin-bottom: 8px; }
 .cert-not-found p { font-size: 13px; }
 

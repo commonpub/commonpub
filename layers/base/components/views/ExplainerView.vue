@@ -515,7 +515,7 @@ onUnmounted(() => { document.removeEventListener('keydown', onKeydown); });
 .cpub-toc-item.active button { background: var(--accent-bg); border-left-color: var(--accent); color: var(--accent); font-weight: 500; }
 .cpub-toc-item.completed button { color: var(--text-dim); }
 .cpub-toc-icon { width: 14px; font-size: 10px; flex-shrink: 0; text-align: center; }
-.cpub-toc-item.completed .cpub-toc-icon { color: var(--green); }
+.cpub-toc-item.completed .cpub-toc-icon { color: var(--green-text); }
 .cpub-toc-item.active .cpub-toc-icon { color: var(--accent); }
 .cpub-toc-num { font-family: var(--font-mono); font-size: 9px; color: var(--text-faint); flex-shrink: 0; }
 .cpub-toc-item.active .cpub-toc-num { color: var(--accent-border); }
@@ -716,7 +716,7 @@ onUnmounted(() => { document.removeEventListener('keydown', onKeydown); });
   border: var(--border-width-default) solid var(--green);
   margin-top: 24px;
   font-size: 13px;
-  color: var(--green);
+  color: var(--green-text);
   opacity: 0;
   transform: translateY(8px);
   transition: opacity 0.4s ease, transform 0.4s ease;

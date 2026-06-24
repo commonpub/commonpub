@@ -400,7 +400,7 @@ const blockCount = computed(() => props.blockEditor.blocks.value.length);
 .cpub-ee-section-title { font-size: 12px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cpub-ee-section-meta { font-size: 10px; font-family: var(--font-mono); color: var(--text-faint); display: flex; align-items: center; gap: 6px; }
 .cpub-ee-section-interactive-badge { display: inline-flex; align-items: center; gap: 3px; color: var(--accent); font-weight: 600; }
-.cpub-ee-section-no-interactive { color: var(--yellow); font-style: italic; }
+.cpub-ee-section-no-interactive { color: var(--yellow-text); font-style: italic; }
 
 /* Empty state */
 .cpub-ee-structure-empty {

@@ -80,7 +80,7 @@ const { hubs: hubsEnabled, learning: learningEnabled, contests: contestsEnabled,
   background-size: 32px 32px; opacity: 0.2;
 }
 .cpub-about-hero-inner { position: relative; z-index: 1; max-width: 600px; margin: 0 auto; }
-.cpub-about-badge { font-family: var(--font-mono); font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; padding: 4px 12px; border: var(--border-width-default) solid var(--green); background: var(--green-bg); color: var(--green); display: inline-flex; align-items: center; gap: 6px; margin-bottom: 16px; }
+.cpub-about-badge { font-family: var(--font-mono); font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; padding: 4px 12px; border: var(--border-width-default) solid var(--green); background: var(--green-bg); color: var(--green-text); display: inline-flex; align-items: center; gap: 6px; margin-bottom: 16px; }
 .cpub-about-title { font-size: 36px; font-weight: 700; margin-bottom: 12px; letter-spacing: -0.02em; }
 .cpub-about-subtitle { font-size: 15px; color: var(--text-dim); line-height: 1.6; }
 

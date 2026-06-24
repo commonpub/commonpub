@@ -107,6 +107,6 @@ useFocusTrap(dialogRef, () => open.value, close);
   border: var(--border-width-default) solid var(--border);
   background: var(--surface); color: var(--text);
 }
-.cpub-rfd-error { font-size: 11px; color: var(--red, #ef4444); margin: 0; }
+.cpub-rfd-error { font-size: 11px; color: var(--red-text, #ef4444); margin: 0; }
 .cpub-rfd-actions { display: flex; justify-content: flex-end; gap: 8px; }
 </style>

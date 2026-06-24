@@ -55,7 +55,7 @@ async function handleSubmit(): Promise<void> {
 
     <template v-if="success">
       <div class="cpub-reset-success">
-        <i class="fa-solid fa-check-circle" style="font-size: 24px; color: var(--green); margin-bottom: 12px;"></i>
+        <i class="fa-solid fa-check-circle" style="font-size: 24px; color: var(--green-text); margin-bottom: 12px;"></i>
         <p class="cpub-reset-success-text">Your password has been reset successfully.</p>
       </div>
       <NuxtLink to="/auth/login" class="cpub-back-link">
@@ -65,7 +65,7 @@ async function handleSubmit(): Promise<void> {
 
     <template v-else-if="tokenError">
       <div class="cpub-reset-error-state">
-        <i class="fa-solid fa-circle-xmark" style="font-size: 24px; color: var(--red); margin-bottom: 12px;"></i>
+        <i class="fa-solid fa-circle-xmark" style="font-size: 24px; color: var(--red-text); margin-bottom: 12px;"></i>
         <p class="cpub-reset-success-text">This reset link is invalid or has expired.</p>
       </div>
       <NuxtLink to="/auth/forgot-password" class="cpub-back-link">
@@ -123,7 +123,7 @@ async function handleSubmit(): Promise<void> {
 .cpub-reset-success-text { font-size: 13px; color: var(--text-dim); line-height: 1.6; }
 .cpub-back-link { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--accent); text-decoration: none; justify-content: center; margin-top: var(--space-4); }
 .cpub-back-link:hover { text-decoration: underline; }
-.cpub-form-error { padding: var(--space-3); background: var(--red-bg); color: var(--red); border: var(--border-width-default) solid var(--red); border-radius: var(--radius); font-size: 12px; }
+.cpub-form-error { padding: var(--space-3); background: var(--red-bg); color: var(--red-text); border: var(--border-width-default) solid var(--red); border-radius: var(--radius); font-size: 12px; }
 .cpub-field { display: flex; flex-direction: column; gap: 4px; }
 .cpub-field-label { font-size: 12px; font-weight: 500; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-dim); }
 .cpub-field-input { padding: 8px 12px; border: var(--border-width-default) solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--text); font-size: 13px; font-family: var(--font-sans); outline: none; width: 100%; transition: border-color 0.15s; }

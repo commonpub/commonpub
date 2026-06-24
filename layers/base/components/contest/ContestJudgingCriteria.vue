@@ -14,7 +14,7 @@ const hasWeights = computed(() => props.criteria.some((c) => (c.weight ?? 0) > 0
 <template>
   <div v-if="criteria.length > 0" class="cpub-criteria-section" :class="{ 'cpub-criteria-compact': compact }">
     <div v-if="!compact" class="cpub-sec-head">
-      <h2><i class="fa-solid fa-list-check" style="color: var(--teal);"></i> Judging Criteria</h2>
+      <h2><i class="fa-solid fa-list-check" style="color: var(--teal-text);"></i> Judging Criteria</h2>
       <span v-if="hasWeights" class="cpub-sec-sub">{{ totalWeight }} pts total</span>
     </div>
     <div class="cpub-criteria-card">

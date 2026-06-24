@@ -120,7 +120,7 @@ function pullFromSchedule(): void {
 .cpub-rmedit-move:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
 .cpub-rmedit-move:disabled { opacity: 0.4; cursor: not-allowed; }
 .cpub-rmedit-remove { background: none; border: var(--border-width-default) solid var(--border); color: var(--text-faint); cursor: pointer; font-size: 11px; padding: 0 8px; flex-shrink: 0; }
-.cpub-rmedit-remove:hover { border-color: var(--red-border); color: var(--red); }
+.cpub-rmedit-remove:hover { border-color: var(--red-border); color: var(--red-text); }
 
 .cpub-rmedit-empty { padding: 20px; text-align: center; font-size: 12px; color: var(--text-faint); cursor: pointer; border: var(--border-width-default) dashed var(--border2); }
 .cpub-rmedit-empty:hover { color: var(--accent); border-color: var(--accent); background: var(--accent-bg); }

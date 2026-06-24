@@ -292,7 +292,7 @@ function groupValue(field: AutoFormField): Record<string, unknown> {
   color: var(--text-dim);
   font-weight: var(--font-weight-semibold);
 }
-.cpub-autoform-required { color: var(--red); margin-left: 2px; }
+.cpub-autoform-required { color: var(--red-text); margin-left: 2px; }
 .cpub-autoform-count {
   color: var(--text-faint);
   font-weight: var(--font-weight-normal);
@@ -326,7 +326,7 @@ function groupValue(field: AutoFormField): Record<string, unknown> {
 }
 .cpub-autoform-error {
   font-size: var(--text-xs);
-  color: var(--red);
+  color: var(--red-text);
   margin: 0;
 }
 .cpub-autoform-unsupported {
@@ -395,7 +395,7 @@ function groupValue(field: AutoFormField): Record<string, unknown> {
   cursor: pointer;
   font-size: var(--text-xs);
 }
-.cpub-autoform-array-remove:hover { color: var(--red); border-color: var(--red); }
+.cpub-autoform-array-remove:hover { color: var(--red-text); border-color: var(--red); }
 .cpub-autoform-array-remove:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 .cpub-autoform-array-add {

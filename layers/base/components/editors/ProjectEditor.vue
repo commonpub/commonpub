@@ -469,7 +469,7 @@ const blockCount = computed(() => props.blockEditor.blocks.value.length);
 .cpub-pe-checklist { display: flex; flex-direction: column; gap: 5px; }
 .cpub-pe-check-item { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--text-faint); }
 .cpub-pe-check-item.pass { color: var(--text); }
-.cpub-pe-checklist-summary { margin-top: 8px; font-family: var(--font-mono); font-size: 10px; color: var(--green); }
+.cpub-pe-checklist-summary { margin-top: 8px; font-family: var(--font-mono); font-size: 10px; color: var(--green-text); }
 
 /* Cover image */
 .cpub-pe-cover {

@@ -187,7 +187,7 @@ async function importPanelJudges(): Promise<void> {
 .cpub-jedit-iconbtn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
 .cpub-jedit-iconbtn:disabled { opacity: .4; cursor: not-allowed; }
 .cpub-jedit-remove { background: none; border: var(--border-width-default) solid var(--border); color: var(--text-faint); cursor: pointer; font-size: 11px; padding: 0 8px; flex-shrink: 0; }
-.cpub-jedit-remove:hover { border-color: var(--red-border); color: var(--red); }
+.cpub-jedit-remove:hover { border-color: var(--red-border); color: var(--red-text); }
 
 .cpub-jedit-avatar-row { display: flex; gap: 6px; align-items: center; }
 .cpub-jedit-avatar-row .cpub-jedit-input { flex: 1; }

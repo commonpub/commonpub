@@ -515,7 +515,7 @@ async function onRefreshGallery(): Promise<void> {
   cursor: pointer;
 }
 
-.cpub-post-error { font-size: 0.75rem; color: var(--red); background: var(--red-bg); border: var(--border-width-default) solid var(--red-border); border-radius: 8px; padding: 8px 12px; margin-bottom: 12px; }
+.cpub-post-error { font-size: 0.75rem; color: var(--red-text); background: var(--red-bg); border: var(--border-width-default) solid var(--red-border); border-radius: 8px; padding: 8px 12px; margin-bottom: 12px; }
 
 /* Member badge */
 .cpub-member-badge {
@@ -524,7 +524,7 @@ async function onRefreshGallery(): Promise<void> {
   gap: 4px;
   font-size: 0.6875rem;
   font-weight: 600;
-  color: var(--green);
+  color: var(--green-text);
   background: var(--green-bg);
   padding: 4px 12px;
   border: var(--border-width-default) solid var(--green-border);

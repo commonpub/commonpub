@@ -66,19 +66,19 @@ const { toasts, dismiss } = useToast();
 .cpub-toast--success {
   border-color: var(--green);
   background: var(--green-bg);
-  color: var(--green);
+  color: var(--green-text);
 }
 
 .cpub-toast--error {
   border-color: var(--red);
   background: var(--red-bg);
-  color: var(--red);
+  color: var(--red-text);
 }
 
 .cpub-toast--info {
   border-color: var(--accent);
   background: var(--accent-bg);
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .cpub-toast-icon {

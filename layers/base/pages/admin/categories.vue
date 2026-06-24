@@ -243,11 +243,11 @@ async function deleteCategory(cat: Category): Promise<void> {
 .cpub-admin-actions { display: flex; gap: 6px; }
 .cpub-admin-action { background: none; border: none; color: var(--text-faint); cursor: pointer; font-size: 12px; padding: 4px 6px; }
 .cpub-admin-action:hover { color: var(--accent); }
-.cpub-admin-action--danger:hover { color: var(--red); }
+.cpub-admin-action--danger:hover { color: var(--red-text); }
 
 .cpub-cat-name { display: flex; align-items: center; gap: 6px; font-weight: 500; }
 .cpub-cat-type { font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; padding: 2px 8px; }
-.cpub-cat-system { color: var(--teal); background: var(--teal-bg, var(--surface2)); border: var(--border-width-default) solid var(--teal-border, var(--border2)); }
+.cpub-cat-system { color: var(--teal-text); background: var(--teal-bg, var(--surface2)); border: var(--border-width-default) solid var(--teal-border, var(--border2)); }
 .cpub-cat-custom { color: var(--text-dim); background: var(--surface2); border: var(--border-width-default) solid var(--border2); }
 
 .cpub-empty { color: var(--text-faint); text-align: center; padding: var(--space-10) 0; }

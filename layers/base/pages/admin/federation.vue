@@ -726,7 +726,7 @@ async function refederate(): Promise<void> {
 }
 .cpub-fed-btn-sm:hover { border-color: var(--accent); color: var(--accent); }
 .cpub-fed-btn-sm:disabled { opacity: 0.5; cursor: not-allowed; }
-.cpub-fed-btn-danger:hover { border-color: var(--red); color: var(--red); }
+.cpub-fed-btn-danger:hover { border-color: var(--red); color: var(--red-text); }
 
 .cpub-fed-activity-list {
   border: var(--border-width-default) solid var(--border); overflow: hidden;
@@ -751,9 +751,9 @@ async function refederate(): Promise<void> {
 .cpub-fed-status.delivered, .cpub-fed-status.processed, .cpub-fed-status.active { color: var(--accent); border-color: var(--accent-border); background: var(--accent-bg); }
 .cpub-fed-status.pending { color: var(--text-dim); }
 .cpub-fed-status.paused { color: var(--text-dim); background: var(--surface2); }
-.cpub-fed-status.failed { color: var(--red); border-color: var(--red); }
+.cpub-fed-status.failed { color: var(--red-text); border-color: var(--red); }
 .cpub-fed-time { font-family: var(--font-mono); font-size: 10px; color: var(--text-faint); white-space: nowrap; }
-.cpub-fed-error { font-size: 10px; color: var(--red); font-family: var(--font-mono); cursor: help; }
+.cpub-fed-error { font-size: 10px; color: var(--red-text); font-family: var(--font-mono); cursor: help; }
 .cpub-fed-info-text { font-size: 0.75rem; color: var(--text-dim); margin-top: 12px; }
 .cpub-fed-info-text code { font-family: var(--font-mono); background: var(--surface2); padding: 1px 4px; }
 

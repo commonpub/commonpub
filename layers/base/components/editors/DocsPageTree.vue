@@ -574,10 +574,10 @@ onUnmounted(() => {
 }
 
 .cpub-tree-context-danger {
-  color: var(--red);
+  color: var(--red-text);
 }
 
 .cpub-tree-context-danger i {
-  color: var(--red);
+  color: var(--red-text);
 }
 </style>

@@ -697,8 +697,8 @@ async function handleUrlImport(result: ImportedContent): Promise<void> {
   flex-shrink: 0;
 }
 
-.cpub-autosave-status--saved { color: var(--green); }
-.cpub-autosave-status--error { color: var(--red); }
+.cpub-autosave-status--saved { color: var(--green-text); }
+.cpub-autosave-status--error { color: var(--red-text); }
 
 .cpub-topbar-undo-redo {
   display: flex;
@@ -785,13 +785,13 @@ async function handleUrlImport(result: ImportedContent): Promise<void> {
   box-shadow: var(--shadow-md);
 }
 .cpub-topbar-btn-primary:hover { box-shadow: var(--shadow-sm); }
-.cpub-topbar-btn-import { border-color: var(--teal); color: var(--teal); }
+.cpub-topbar-btn-import { border-color: var(--teal); color: var(--teal-text); }
 .cpub-topbar-btn-import:hover { background: var(--teal-bg, var(--surface2)); }
 
 .cpub-editor-error {
   padding: 10px 16px;
   background: var(--red-bg);
-  color: var(--red);
+  color: var(--red-text);
   border-bottom: var(--border-width-default) solid var(--red);
   font-size: 12px;
   font-family: var(--font-mono);

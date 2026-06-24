@@ -841,7 +841,7 @@ async function onConflictForceSave(): Promise<void> {
   flex-shrink: 0;
 }
 .cpub-admin-layouts-editor-thrash-icon {
-  color: var(--yellow);
+  color: var(--yellow-text);
   font-size: var(--text-lg);
   flex-shrink: 0;
 }
@@ -894,7 +894,7 @@ async function onConflictForceSave(): Promise<void> {
 }
 .cpub-admin-layouts-editor-thrash-btn--primary:hover { filter: brightness(1.1); background: var(--accent); }
 .cpub-admin-layouts-editor-thrash-btn--danger {
-  color: var(--red);
+  color: var(--red-text);
   border-color: var(--red);
 }
 .cpub-admin-layouts-editor-thrash-btn--danger:hover {

@@ -60,7 +60,7 @@ useFocusTrap(dialogRef, () => props.show, () => emit('dismiss'));
   font-family: var(--font-mono);
   font-size: 1.125rem;
   font-weight: 700;
-  color: var(--red);
+  color: var(--red-text);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -96,7 +96,7 @@ useFocusTrap(dialogRef, () => props.show, () => emit('dismiss'));
 }
 .cpub-publish-errors-list li::before {
   content: '\2022';
-  color: var(--red);
+  color: var(--red-text);
   font-weight: 700;
 }
 

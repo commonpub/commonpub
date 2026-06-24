@@ -352,5 +352,5 @@ const sortedLayouts = computed<LayoutRecord[]>(() => {
 }
 .cpub-admin-layouts-btn:hover { background: var(--surface2); }
 .cpub-admin-layouts-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.cpub-admin-layouts-btn--danger:hover { color: var(--red); border-color: var(--red); }
+.cpub-admin-layouts-btn--danger:hover { color: var(--red-text); border-color: var(--red); }
 </style>

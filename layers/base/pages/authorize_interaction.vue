@@ -140,7 +140,7 @@ useSeoMeta({
   font-size: 14px;
 }
 .cpub-authorize-error {
-  color: var(--red, #ef4444);
+  color: var(--red-text, #ef4444);
   font-size: 14px;
 }
 .cpub-authorize-desc {
@@ -177,7 +177,7 @@ useSeoMeta({
   border: var(--border-width-default) solid var(--border);
 }
 .cpub-authorize-success {
-  color: var(--green, #22c55e);
+  color: var(--green-text, #22c55e);
   font-size: 14px;
   font-weight: 600;
 }

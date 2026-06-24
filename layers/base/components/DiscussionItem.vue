@@ -161,7 +161,7 @@ const lastReplyFormatted = computed((): string | null => {
   font-weight: var(--font-weight-semibold);
   text-transform: uppercase;
   letter-spacing: var(--tracking-wide);
-  color: var(--green);
+  color: var(--green-text);
   background: var(--green-bg);
   border: var(--border-width-default) solid var(--green-border);
 }

@@ -264,7 +264,7 @@ async function resetOverride(key: string): Promise<void> {
 }
 
 .cpub-flag-badge--override { color: var(--accent); background: var(--accent-bg); border: var(--border-width-default) solid var(--accent-border); }
-.cpub-flag-badge--pending { color: var(--yellow); background: var(--yellow-bg); border: var(--border-width-default) solid var(--yellow); }
+.cpub-flag-badge--pending { color: var(--yellow-text); background: var(--yellow-bg); border: var(--border-width-default) solid var(--yellow); }
 
 .cpub-flag-reset {
   background: none;
@@ -330,7 +330,7 @@ async function resetOverride(key: string): Promise<void> {
   font-family: var(--font-mono);
   font-size: 11px;
   font-weight: 600;
-  color: var(--yellow, var(--text-dim));
+  color: var(--yellow-text, var(--text-dim));
   flex: 1;
 }
 

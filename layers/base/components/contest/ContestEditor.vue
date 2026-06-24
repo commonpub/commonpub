@@ -768,7 +768,7 @@ const reviewStages = computed(() => (contest.value?.stages ?? []).filter((s) => 
 .cpub-ce-dirty i { font-size: 6px; }
 .cpub-ce-autosave { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-faint); white-space: nowrap; }
 .cpub-ce-autosave i { font-size: 9px; }
-.cpub-ce-autosave-err { color: var(--red); }
+.cpub-ce-autosave-err { color: var(--red-text); }
 .cpub-ce-topbar-spacer { flex: 1; }
 .cpub-ce-topbar-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 .cpub-ce-topbar-btn {
@@ -799,11 +799,11 @@ const reviewStages = computed(() => (contest.value?.stages ?? []).filter((s) => 
 }
 .cpub-ce-status-item:hover { background: var(--surface2); border-color: var(--border2); color: var(--text); }
 .cpub-ce-status-item i { width: 14px; text-align: center; font-size: 11px; }
-.cpub-ce-status-go { color: var(--green); }
-.cpub-ce-status-warn { color: var(--yellow); }
-.cpub-ce-status-danger { color: var(--red); }
+.cpub-ce-status-go { color: var(--green-text); }
+.cpub-ce-status-warn { color: var(--yellow-text); }
+.cpub-ce-status-danger { color: var(--red-text); }
 .cpub-ce-status-empty { font-size: 11px; color: var(--text-dim); margin: 0; padding: 8px 10px; display: flex; align-items: center; gap: 6px; }
-.cpub-ce-status-empty i { color: var(--green); }
+.cpub-ce-status-empty i { color: var(--green-text); }
 
 /* 3-panel shell */
 .cpub-ce-shell { display: flex; flex: 1; overflow: hidden; }
@@ -818,12 +818,12 @@ const reviewStages = computed(() => (contest.value?.stages ?? []).filter((s) => 
 /* --- Status badge (also used in the topbar) --- */
 .cpub-status-badge { font-size: 10px; font-family: var(--font-mono); text-transform: uppercase; padding: 2px 8px; border: var(--border-width-default) solid; flex-shrink: 0; }
 .cpub-status-draft { color: var(--text-faint); border-color: var(--border2); background: var(--surface2); border-style: dashed; }
-.cpub-status-upcoming { color: var(--yellow); border-color: var(--yellow-border); background: var(--yellow-bg); }
-.cpub-status-active { color: var(--green); border-color: var(--green-border); background: var(--green-bg); }
-.cpub-status-paused { color: var(--yellow); border-color: var(--yellow-border); background: var(--yellow-bg); }
+.cpub-status-upcoming { color: var(--yellow-text); border-color: var(--yellow-border); background: var(--yellow-bg); }
+.cpub-status-active { color: var(--green-text); border-color: var(--green-border); background: var(--green-bg); }
+.cpub-status-paused { color: var(--yellow-text); border-color: var(--yellow-border); background: var(--yellow-bg); }
 .cpub-status-judging { color: var(--accent); border-color: var(--accent-border); background: var(--accent-bg); }
 .cpub-status-completed { color: var(--text-faint); border-color: var(--border2); background: var(--surface2); }
-.cpub-status-cancelled { color: var(--red); border-color: var(--red-border); background: var(--red-bg); }
+.cpub-status-cancelled { color: var(--red-text); border-color: var(--red-border); background: var(--red-bg); }
 
 /* --- Form fields inside the rail (carried over verbatim) --- */
 .cpub-form-field { display: flex; flex-direction: column; gap: var(--space-1); margin-bottom: var(--space-3); }
@@ -834,7 +834,7 @@ const reviewStages = computed(() => (contest.value?.stages ?? []).filter((s) => 
   background: var(--surface); color: var(--text); font-size: var(--text-sm); font-family: var(--font-sans);
 }
 .cpub-form-input:focus { border-color: var(--accent); outline: none; box-shadow: var(--shadow-accent); }
-.cpub-form-error { font-size: 12px; color: var(--red); margin-top: 8px; }
+.cpub-form-error { font-size: 12px; color: var(--red-text); margin-top: 8px; }
 .cpub-form-check { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-dim); cursor: pointer; }
 .cpub-form-check input { width: 14px; height: 14px; flex-shrink: 0; }
 .cpub-type-options { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 6px; }
@@ -846,14 +846,14 @@ const reviewStages = computed(() => (contest.value?.stages ?? []).filter((s) => 
 .cpub-prize-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
 .cpub-prize-label { font-size: 11px; font-weight: 700; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent); }
 .cpub-prize-remove { background: none; border: none; color: var(--text-faint); cursor: pointer; font-size: 12px; }
-.cpub-prize-remove:hover { color: var(--red); }
+.cpub-prize-remove:hover { color: var(--red-text); }
 
 /* Stages tab (center) — the form tab gets a little breathing room. */
 .cpub-ce-stages-tab { display: flex; flex-direction: column; gap: 4px; }
 
 /* Danger zone */
-.cpub-danger-label { font-size: 13px; font-weight: 600; margin: 0 0 2px; color: var(--red); }
-.cpub-danger-btn { color: var(--red); border-color: var(--red-border); margin-top: 6px; }
+.cpub-danger-label { font-size: 13px; font-weight: 600; margin: 0 0 2px; color: var(--red-text); }
+.cpub-danger-btn { color: var(--red-text); border-color: var(--red-border); margin-top: 6px; }
 .cpub-danger-btn:hover:not(:disabled) { background: var(--red-bg); }
 
 .cpub-not-found { text-align: center; padding: 64px; color: var(--text-dim); display: flex; flex-direction: column; align-items: center; gap: 12px; }

@@ -135,7 +135,7 @@ function updateField(key: string, value: unknown): void {
 .cpub-starter-error {
   padding: 10px 14px;
   background: var(--red-bg);
-  color: var(--red);
+  color: var(--red-text);
   border: var(--border-width-default) solid var(--red);
   font-size: 0.8125rem;
   font-family: var(--font-mono);
@@ -154,7 +154,7 @@ function updateField(key: string, value: unknown): void {
   letter-spacing: 0.06em;
 }
 
-.cpub-starter-required { color: var(--red); }
+.cpub-starter-required { color: var(--red-text); }
 
 .cpub-starter-input {
   padding: 10px 14px;

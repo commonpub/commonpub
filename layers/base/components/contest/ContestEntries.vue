@@ -91,7 +91,7 @@ function entryLink(entry: Serialized<ContestEntryItem>): string {
 <template>
   <div class="cpub-entries-section">
     <div class="cpub-sec-head">
-      <h2><i class="fa fa-box-open" style="color: var(--teal);"></i> Submitted Entries</h2>
+      <h2><i class="fa fa-box-open" style="color: var(--teal-text);"></i> Submitted Entries</h2>
       <span class="cpub-sec-sub">{{ entries.length }} entries</span>
     </div>
     <div v-if="entries.length" class="cpub-entry-grid">
@@ -172,12 +172,12 @@ function entryLink(entry: Serialized<ContestEntryItem>): string {
 .cpub-entry-grid-pat { position: absolute; inset: 0; background-image: linear-gradient(var(--border2) 1px, transparent 1px), linear-gradient(90deg, var(--border2) 1px, transparent 1px); background-size: 20px 20px; opacity: .3; }
 .cpub-entry-icon { position: relative; z-index: 1; font-size: 22px; opacity: .65; color: var(--accent); }
 .cpub-entry-rank { position: absolute; top: 8px; left: 8px; z-index: 2; font-size: 10px; font-family: var(--font-mono); font-weight: 700; padding: 2px 7px; border-radius: var(--radius); }
-.cpub-rank-1 { background: var(--yellow-bg); color: var(--yellow); border: var(--border-width-default) solid var(--yellow); }
+.cpub-rank-1 { background: var(--yellow-bg); color: var(--yellow-text); border: var(--border-width-default) solid var(--yellow); }
 .cpub-rank-2 { background: var(--surface2); color: var(--text-faint); border: var(--border-width-default) solid var(--text-faint); }
 .cpub-rank-3 { background: var(--surface2); color: var(--bronze); border: var(--border-width-default) solid var(--bronze); }
 .cpub-rank-other { background: var(--surface2); color: var(--text-dim); border: var(--border-width-default) solid var(--border); }
 .cpub-entry-cohort { position: absolute; top: 8px; right: 8px; z-index: 2; font-size: 9px; font-family: var(--font-mono); font-weight: 700; text-transform: uppercase; letter-spacing: .05em; padding: 2px 7px; border-radius: var(--radius); display: inline-flex; align-items: center; gap: 4px; }
-.cpub-cohort-in { background: var(--green-bg); color: var(--green); border: var(--border-width-default) solid var(--green-border); }
+.cpub-cohort-in { background: var(--green-bg); color: var(--green-text); border: var(--border-width-default) solid var(--green-border); }
 .cpub-cohort-out { background: var(--surface2); color: var(--text-faint); border: var(--border-width-default) solid var(--border2); }
 .cpub-entry-cohort i { font-size: 8px; }
 .cpub-entry-out { opacity: .6; }
@@ -202,12 +202,12 @@ function entryLink(entry: Serialized<ContestEntryItem>): string {
   background: var(--surface); color: var(--text-dim); cursor: pointer;
   transition: all 0.15s;
 }
-.cpub-entry-vote-btn:hover:not(:disabled) { border-color: var(--red); color: var(--red); }
-.cpub-entry-vote-btn.voted { color: var(--red); border-color: var(--red); }
+.cpub-entry-vote-btn:hover:not(:disabled) { border-color: var(--red); color: var(--red-text); }
+.cpub-entry-vote-btn.voted { color: var(--red-text); border-color: var(--red); }
 .cpub-entry-vote-btn:disabled { opacity: 0.4; cursor: default; }
 .cpub-entry-vote-btn i { font-size: 10px; }
 
-.cpub-withdraw-btn { display: flex; align-items: center; justify-content: center; gap: 4px; font-size: 10px; font-family: var(--font-mono); padding: 4px 10px; min-height: 28px; border-radius: var(--radius); border: var(--border-width-default) solid var(--red-border); background: var(--surface); color: var(--red); cursor: pointer; margin-left: auto; }
+.cpub-withdraw-btn { display: flex; align-items: center; justify-content: center; gap: 4px; font-size: 10px; font-family: var(--font-mono); padding: 4px 10px; min-height: 28px; border-radius: var(--radius); border: var(--border-width-default) solid var(--red-border); background: var(--surface); color: var(--red-text); cursor: pointer; margin-left: auto; }
 .cpub-withdraw-btn:hover { background: var(--red-bg); }
 
 .cpub-empty-state { text-align: center; padding: 32px 0; }

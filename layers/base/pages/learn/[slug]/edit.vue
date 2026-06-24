@@ -224,7 +224,7 @@ async function handlePublish(): Promise<void> {
           >
             <i class="fa-solid fa-rocket"></i> {{ publishing ? 'Publishing...' : 'Publish' }}
           </button>
-          <button class="cpub-btn" style="color: var(--red); border-color: var(--red-border);" @click="deletePath">
+          <button class="cpub-btn" style="color: var(--red-text); border-color: var(--red-border);" @click="deletePath">
             <i class="fa-solid fa-trash"></i>
           </button>
         </div>
@@ -360,7 +360,7 @@ async function handlePublish(): Promise<void> {
 
 .cpub-status-badge { font-size: 10px; font-family: var(--font-mono); text-transform: uppercase; padding: 2px 8px; letter-spacing: 0.06em; }
 .cpub-status-draft { background: var(--surface3); color: var(--text-faint); border: var(--border-width-default) solid var(--border2); }
-.cpub-status-published { background: var(--green-bg); color: var(--green); border: var(--border-width-default) solid var(--green-border); }
+.cpub-status-published { background: var(--green-bg); color: var(--green-text); border: var(--border-width-default) solid var(--green-border); }
 
 .cpub-meta-section { background: var(--surface); border: var(--border-width-default) solid var(--border); padding: 16px 20px; margin-bottom: 24px; box-shadow: var(--shadow-md); }
 .cpub-meta-section-title { font-size: 13px; font-weight: 700; margin-bottom: 12px; }
@@ -387,7 +387,7 @@ async function handlePublish(): Promise<void> {
 .cpub-lesson-grip { color: var(--text-faint); font-size: 10px; cursor: grab; }
 .cpub-lesson-type-badge { font-size: 9px; font-family: var(--font-mono); text-transform: uppercase; padding: 1px 6px; border: var(--border-width-default) solid var(--border2); color: var(--text-faint); background: var(--surface2); }
 .cpub-lesson-title { font-size: 13px; color: var(--text); flex: 1; }
-.cpub-lesson-empty-badge { font-size: 9px; font-family: var(--font-mono); color: var(--yellow); background: var(--yellow-bg); border: var(--border-width-default) solid var(--yellow-border); padding: 1px 6px; text-transform: uppercase; }
+.cpub-lesson-empty-badge { font-size: 9px; font-family: var(--font-mono); color: var(--yellow-text); background: var(--yellow-bg); border: var(--border-width-default) solid var(--yellow-border); padding: 1px 6px; text-transform: uppercase; }
 .cpub-lesson-edit-btn { font-size: 10px; color: var(--text-faint); padding: 3px 6px; border: var(--border-width-default) solid var(--border2); text-decoration: none; }
 .cpub-lesson-edit-btn:hover { color: var(--accent); border-color: var(--accent); }
 
@@ -402,7 +402,7 @@ async function handlePublish(): Promise<void> {
 .cpub-link-btn { padding: 6px 10px; background: var(--surface2); color: var(--text-dim); border: var(--border-width-default) solid var(--border); font-size: 10px; font-family: var(--font-mono); cursor: pointer; display: flex; align-items: center; gap: 5px; margin-left: 4px; }
 .cpub-link-btn:hover { border-color: var(--accent); color: var(--accent); }
 .cpub-link-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.cpub-lesson-linked-badge { font-size: 9px; color: var(--teal); display: flex; align-items: center; flex-shrink: 0; }
+.cpub-lesson-linked-badge { font-size: 9px; color: var(--teal-text); display: flex; align-items: center; flex-shrink: 0; }
 
 .cpub-empty-modules { text-align: center; padding: 32px; color: var(--text-faint); font-size: 13px; }
 

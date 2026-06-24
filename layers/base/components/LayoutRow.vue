@@ -760,7 +760,7 @@ const isOver = computed<boolean>(() => isDragOver.value !== undefined);
   opacity: 1;
 }
 .cpub-layout-row-remove:hover {
-  color: var(--red);
+  color: var(--red-text);
   border-color: var(--red);
   background: var(--red-bg, var(--surface));
 }

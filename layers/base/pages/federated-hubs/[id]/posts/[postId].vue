@@ -324,7 +324,7 @@ useHead({
   padding: 4px 8px; border: var(--border-width-default) solid var(--border); transition: all 0.1s;
 }
 .cpub-post-action-btn:hover:not(:disabled) { color: var(--accent); border-color: var(--accent-border); }
-.cpub-post-action-btn.active { color: var(--red); border-color: var(--red); }
+.cpub-post-action-btn.active { color: var(--red-text); border-color: var(--red); }
 .cpub-post-action-btn:disabled { opacity: 0.5; cursor: default; }
 
 /* Reply form */

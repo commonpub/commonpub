@@ -481,7 +481,7 @@ useJsonLd({
 
 .cpub-tag-teal {
   border-color: var(--teal-border);
-  color: var(--teal);
+  color: var(--teal-text);
   background: var(--teal-bg);
 }
 
@@ -523,8 +523,8 @@ useJsonLd({
 }
 
 .cpub-eng-btn:hover { background: var(--surface2); color: var(--text); }
-.cpub-eng-btn.liked { color: var(--red); border-color: var(--border); background: var(--red-bg); }
-.cpub-eng-btn.bookmarked { color: var(--yellow); border-color: var(--border); background: var(--yellow-bg); }
+.cpub-eng-btn.liked { color: var(--red-text); border-color: var(--border); background: var(--red-bg); }
+.cpub-eng-btn.bookmarked { color: var(--yellow-text); border-color: var(--border); background: var(--yellow-bg); }
 
 .cpub-eng-sep {
   width: 2px;

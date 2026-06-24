@@ -566,13 +566,13 @@ async function deleteItem(id: string, title: string): Promise<void> {
 }
 
 .cpub-dash-action-btn--warn:hover {
-  color: var(--yellow);
+  color: var(--yellow-text);
   border-color: var(--yellow);
   background: var(--yellow-bg);
 }
 
 .cpub-dash-action-btn--danger:hover {
-  color: var(--red);
+  color: var(--red-text);
   border-color: var(--red);
   background: var(--red-bg);
 }
@@ -594,7 +594,7 @@ async function deleteItem(id: string, title: string): Promise<void> {
 .cpub-dash-badge--green {
   border-color: var(--green-border);
   background: var(--green-bg);
-  color: var(--green);
+  color: var(--green-text);
 }
 
 .cpub-dash-empty {

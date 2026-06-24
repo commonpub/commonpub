@@ -265,9 +265,9 @@ function getDifficultyClass(d: string | null): string {
 .cpub-path-header-row { display: flex; gap: 16px; }
 .cpub-path-header-info { flex: 1; }
 .cpub-path-difficulty { font-family: var(--font-mono); font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; padding: 2px 8px; border: var(--border-width-default) solid; display: inline-block; margin-bottom: 8px; }
-.diff-beginner { color: var(--green); border-color: var(--green-border); background: var(--green-bg); }
-.diff-intermediate { color: var(--yellow); border-color: var(--yellow-border); background: var(--yellow-bg); }
-.diff-advanced { color: var(--red); border-color: var(--red-border); background: var(--red-bg); }
+.diff-beginner { color: var(--green-text); border-color: var(--green-border); background: var(--green-bg); }
+.diff-intermediate { color: var(--yellow-text); border-color: var(--yellow-border); background: var(--yellow-bg); }
+.diff-advanced { color: var(--red-text); border-color: var(--red-border); background: var(--red-bg); }
 .cpub-path-draft { font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; padding: 2px 8px; background: var(--surface3); color: var(--text-faint); border: var(--border-width-default) solid var(--border2); display: inline-block; margin-left: 8px; margin-bottom: 8px; }
 .cpub-path-title { font-size: 26px; font-weight: 700; margin-bottom: 8px; line-height: 1.2; letter-spacing: -0.02em; }
 .cpub-path-desc { font-size: 14px; color: var(--text-dim); line-height: 1.6; margin-bottom: 12px; }
@@ -280,7 +280,7 @@ function getDifficultyClass(d: string | null): string {
 .cpub-continue-btn { padding: 10px 22px; background: var(--green); color: var(--color-text-inverse); border: var(--border-width-default) solid var(--border); font-size: 13px; font-weight: 600; text-decoration: none; box-shadow: var(--shadow-md); display: inline-flex; align-items: center; gap: 6px; }
 .cpub-continue-btn:hover { box-shadow: var(--shadow-sm); transform: translate(1px, 1px); }
 .cpub-unenroll-btn { padding: 6px 14px; background: var(--surface); border: var(--border-width-default) solid var(--border); color: var(--text-dim); font-size: 12px; cursor: pointer; }
-.cpub-unenroll-btn:hover { color: var(--red); border-color: var(--red); }
+.cpub-unenroll-btn:hover { color: var(--red-text); border-color: var(--red); }
 .cpub-edit-link { padding: 6px 14px; border: var(--border-width-default) solid var(--border2); font-size: 12px; color: var(--text-dim); text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
 .cpub-edit-link:hover { color: var(--accent); border-color: var(--accent); }
 

@@ -805,7 +805,7 @@ async function handleSave(): Promise<void> {
 }
 
 .cpub-btn-danger:hover {
-  color: var(--red);
+  color: var(--red-text);
   border-color: var(--red);
 }
 

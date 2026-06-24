@@ -474,7 +474,7 @@ const isOwner = computed(() => user.value?.id === path.value?.author?.id);
 .lesson-quiz { margin-bottom: 24px; }
 .quiz-card { border: var(--border-width-default) solid var(--border); padding: 20px; margin-bottom: 16px; background: var(--surface); box-shadow: var(--shadow-md); }
 .quiz-header { margin-bottom: 12px; }
-.quiz-badge { font-size: 9px; font-family: var(--font-mono); letter-spacing: 0.08em; color: var(--yellow); background: var(--yellow-bg); border: var(--border-width-default) solid var(--yellow-border); padding: 3px 8px; }
+.quiz-badge { font-size: 9px; font-family: var(--font-mono); letter-spacing: 0.08em; color: var(--yellow-text); background: var(--yellow-bg); border: var(--border-width-default) solid var(--yellow-border); padding: 3px 8px; }
 .quiz-question { font-size: 16px; font-weight: 600; margin-bottom: 16px; line-height: 1.5; }
 .quiz-options { display: flex; flex-direction: column; gap: 8px; }
 .quiz-option { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; background: var(--surface); border: var(--border-width-default) solid var(--border); cursor: pointer; text-align: left; font-family: inherit; font-size: 13px; }
@@ -483,12 +483,12 @@ const isOwner = computed(() => user.value?.id === path.value?.author?.id);
 .quiz-option.selected-wrong { background: var(--red-bg); border-color: var(--red); cursor: default; }
 .quiz-option.answered { cursor: default; }
 .quiz-option-key { font-family: var(--font-mono); font-size: 11px; font-weight: 700; color: var(--text-faint); width: 18px; flex-shrink: 0; }
-.quiz-option.selected-correct .quiz-option-key { color: var(--green); }
-.quiz-option.selected-wrong .quiz-option-key { color: var(--red); }
+.quiz-option.selected-correct .quiz-option-key { color: var(--green-text); }
+.quiz-option.selected-wrong .quiz-option-key { color: var(--red-text); }
 .quiz-option-text { flex: 1; color: var(--text-dim); line-height: 1.5; }
 .quiz-option-indicator { font-size: 12px; flex-shrink: 0; }
-.quiz-option.selected-correct .quiz-option-indicator { color: var(--green); }
-.quiz-option.selected-wrong .quiz-option-indicator { color: var(--red); }
+.quiz-option.selected-correct .quiz-option-indicator { color: var(--green-text); }
+.quiz-option.selected-wrong .quiz-option-indicator { color: var(--red-text); }
 .quiz-option.selected-pending { background: var(--accent-bg); border-color: var(--accent); }
 .quiz-option.selected-pending .quiz-option-key { color: var(--accent); }
 .quiz-option.selected-pending .quiz-option-text { color: var(--text); }
@@ -500,11 +500,11 @@ const isOwner = computed(() => user.value?.id === path.value?.author?.id);
 .quiz-signin-hint { font-size: 12px; color: var(--text-faint); font-family: var(--font-mono); }
 .quiz-score { text-align: center; padding: 20px; border: var(--border-width-default) solid var(--green); background: var(--green-bg); }
 .quiz-score.passed { border-color: var(--green); background: var(--green-bg); }
-.quiz-score.passed .quiz-score-value, .quiz-score.passed .quiz-score-label { color: var(--green); }
+.quiz-score.passed .quiz-score-value, .quiz-score.passed .quiz-score-label { color: var(--green-text); }
 .quiz-score.failed { border-color: var(--red); background: var(--red-bg); }
-.quiz-score.failed .quiz-score-value, .quiz-score.failed .quiz-score-label { color: var(--red); }
-.quiz-score-value { font-size: 28px; font-weight: 700; font-family: var(--font-mono); color: var(--green); }
-.quiz-score-label { font-size: 11px; font-family: var(--font-mono); color: var(--green); text-transform: uppercase; letter-spacing: 0.08em; }
+.quiz-score.failed .quiz-score-value, .quiz-score.failed .quiz-score-label { color: var(--red-text); }
+.quiz-score-value { font-size: 28px; font-weight: 700; font-family: var(--font-mono); color: var(--green-text); }
+.quiz-score-label { font-size: 11px; font-family: var(--font-mono); color: var(--green-text); text-transform: uppercase; letter-spacing: 0.08em; }
 .quiz-retry-btn { margin-top: 12px; padding: 8px 16px; background: var(--surface); color: var(--text); border: var(--border-width-default) solid var(--border); font-size: 12px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font-family: inherit; }
 .quiz-retry-btn:hover { background: var(--surface2); }
 
@@ -517,7 +517,7 @@ const isOwner = computed(() => user.value?.id === path.value?.author?.id);
 .lesson-complete-btn { padding: 10px 20px; background: var(--accent); color: var(--color-text-inverse); border: var(--border-width-default) solid var(--border); font-size: 13px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: var(--shadow-md); }
 .lesson-complete-btn:hover { box-shadow: var(--shadow-sm); transform: translate(1px, 1px); }
 .lesson-complete-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.lesson-completed-badge { display: inline-flex; align-items: center; gap: 6px; color: var(--green); font-size: 14px; font-weight: 600; }
+.lesson-completed-badge { display: inline-flex; align-items: center; gap: 6px; color: var(--green-text); font-size: 14px; font-weight: 600; }
 
 .lesson-nav-footer { display: flex; justify-content: space-between; gap: 16px; }
 .lesson-nav-btn { display: flex; flex-direction: column; gap: 4px; padding: 12px 16px; border: var(--border-width-default) solid var(--border); background: var(--surface); text-decoration: none; max-width: 48%; box-shadow: var(--shadow-md); transition: box-shadow 0.15s, transform 0.15s; }

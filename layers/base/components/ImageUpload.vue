@@ -229,7 +229,7 @@ function clearImage(): void {
 
 .cpub-img-remove {
   font-size: 0.6875rem;
-  color: var(--red);
+  color: var(--red-text);
   background: none;
   border: none;
   cursor: pointer;
@@ -244,6 +244,6 @@ function clearImage(): void {
 
 .cpub-img-error {
   font-size: 0.6875rem;
-  color: var(--red);
+  color: var(--red-text);
 }
 </style>

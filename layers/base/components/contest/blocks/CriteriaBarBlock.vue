@@ -111,7 +111,7 @@ function useRubric(): void {
 .cpub-cbedit-swatch { width: 18px; height: 18px; border: var(--border-width-default) solid var(--border2); cursor: pointer; padding: 0; }
 .cpub-cbedit-swatch-on { outline: 2px solid var(--text); outline-offset: 1px; }
 .cpub-cbedit-remove { background: none; border: var(--border-width-default) solid var(--border); color: var(--text-faint); cursor: pointer; font-size: 11px; padding: 4px 8px; }
-.cpub-cbedit-remove:hover { border-color: var(--red-border); color: var(--red); }
+.cpub-cbedit-remove:hover { border-color: var(--red-border); color: var(--red-text); }
 .cpub-cbedit-empty { padding: 16px; text-align: center; font-size: 12px; color: var(--text-faint); cursor: pointer; border: var(--border-width-default) dashed var(--border2); }
 .cpub-cbedit-empty:hover { color: var(--accent); border-color: var(--accent); background: var(--accent-bg); }
 .cpub-cbedit-check { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-dim); cursor: pointer; }

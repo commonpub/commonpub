@@ -152,7 +152,7 @@ useSeoMeta({
 }
 .cpub-fed-banner-follow:hover { opacity: 0.9; }
 .cpub-fed-banner-follow:disabled { opacity: 0.6; cursor: default; }
-.cpub-fed-banner-followed { margin-left: auto; font-size: 11px; color: var(--green, #22c55e); font-weight: 600; display: flex; align-items: center; gap: 4px; }
+.cpub-fed-banner-followed { margin-left: auto; font-size: 11px; color: var(--green-text, #22c55e); font-weight: 600; display: flex; align-items: center; gap: 4px; }
 .cpub-fed-banner-link:hover { text-decoration: underline; }
 
 /* Fallback for non-CommonPub content */

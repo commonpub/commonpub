@@ -583,7 +583,7 @@ const canvasMaxWidth = computed(() => {
 .cpub-ae-assets-drop-sub { font-size: 10px; color: var(--text-faint); font-family: var(--font-mono); }
 .cpub-ae-assets-error {
   margin: 4px 8px 8px; padding: 6px 10px; font-size: 10px; font-family: var(--font-mono);
-  color: var(--red); background: var(--red-bg); border: var(--border-width-default) solid var(--red);
+  color: var(--red-text); background: var(--red-bg); border: var(--border-width-default) solid var(--red);
   display: flex; align-items: center; gap: 6px;
 }
 .cpub-ae-assets-list { padding: 8px 12px; }

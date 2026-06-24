@@ -201,7 +201,7 @@ onBeforeUnmount(() => {
 }
 .cpub-admin-layouts-conflict-icon {
   font-size: var(--text-xl);
-  color: var(--red);
+  color: var(--red-text);
 }
 .cpub-admin-layouts-conflict-title {
   font-size: var(--text-lg);
@@ -259,7 +259,7 @@ onBeforeUnmount(() => {
   color: var(--surface);
 }
 .cpub-admin-layouts-conflict-btn--danger {
-  color: var(--red);
+  color: var(--red-text);
   border-color: var(--red);
 }
 .cpub-admin-layouts-conflict-btn--danger:hover { background: var(--red); color: var(--surface); }

@@ -321,7 +321,7 @@ function stripHtml(html: string): string {
 }
 .cpub-remote-profile__dm-sent {
   font-size: var(--font-size-sm);
-  color: var(--green);
+  color: var(--green-text);
   font-weight: 600;
   margin-bottom: var(--space-4);
 }

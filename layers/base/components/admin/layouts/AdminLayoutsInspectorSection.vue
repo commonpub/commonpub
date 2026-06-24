@@ -164,7 +164,7 @@ function onUpdate(value: Record<string, unknown>): void {
   background: var(--yellow-bg);
   border-color: var(--yellow-border);
 }
-.cpub-inspector-section-unknown i { color: var(--yellow); margin-top: 2px; }
+.cpub-inspector-section-unknown i { color: var(--yellow-text); margin-top: 2px; }
 .cpub-inspector-section-unknown code {
   font-family: var(--font-mono);
   background: var(--surface);

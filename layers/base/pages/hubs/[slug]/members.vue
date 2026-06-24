@@ -236,15 +236,15 @@ async function unbanMember(userId: string, username: string): Promise<void> {
 .member-role-select { padding: 3px 6px; border: var(--border-width-default) solid var(--border2); background: var(--surface); color: var(--text-dim); font-size: 10px; font-family: var(--font-mono); text-transform: capitalize; cursor: pointer; }
 .member-role-select:focus { border-color: var(--accent); outline: none; }
 .member-kick-btn { background: none; border: var(--border-width-default) solid var(--border2); color: var(--text-faint); cursor: pointer; font-size: 10px; padding: 3px 6px; }
-.member-kick-btn:hover { color: var(--red); border-color: var(--red); }
+.member-kick-btn:hover { color: var(--red-text); border-color: var(--red); }
 .member-ban-btn { background: none; border: var(--border-width-default) solid var(--border2); color: var(--text-faint); cursor: pointer; font-size: 10px; padding: 3px 6px; }
-.member-ban-btn:hover { color: var(--red); border-color: var(--red); }
+.member-ban-btn:hover { color: var(--red-text); border-color: var(--red); }
 
 .members-empty { text-align: center; padding: 48px 0; color: var(--text-faint); }
 
 .requests-section { margin-bottom: 28px; }
 .requests-title { font-size: 13px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-dim); margin-bottom: 10px; }
-.member-deny-btn:hover { color: var(--red); border-color: var(--red); }
+.member-deny-btn:hover { color: var(--red-text); border-color: var(--red); }
 
 .bans-section { margin-top: 28px; }
 .bans-title { font-size: 13px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-dim); margin-bottom: 10px; }

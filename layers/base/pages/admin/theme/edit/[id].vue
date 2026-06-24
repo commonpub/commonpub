@@ -774,7 +774,7 @@ onBeforeUnmount(() => {
   padding: var(--space-3) var(--space-4);
   background: var(--red-bg);
   border-bottom: var(--border-width-default) solid var(--red);
-  color: var(--red);
+  color: var(--red-text);
   font-size: var(--text-sm);
   display: flex;
   align-items: center;

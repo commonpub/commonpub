@@ -111,7 +111,7 @@ const hasData = computed(() => fieldRows.value.length > 0 || props.agreements.le
 .cpub-epd-agree { border: var(--border-width-default) solid var(--border); background: var(--surface); padding: 10px 12px; }
 .cpub-epd-agree-top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
 .cpub-epd-agree-label { font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; }
-.cpub-epd-agree-label i { color: var(--green); font-size: 11px; }
+.cpub-epd-agree-label i { color: var(--green-text); font-size: 11px; }
 .cpub-epd-agree-when { font-size: 10px; color: var(--text-faint); font-family: var(--font-mono); }
 .cpub-epd-terms { margin: 8px 0 4px; }
 .cpub-epd-terms summary { font-size: 11px; color: var(--accent); cursor: pointer; }

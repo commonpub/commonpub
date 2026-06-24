@@ -208,11 +208,11 @@ async function deleteUser(userId: string, username: string): Promise<void> {
 .admin-role-select { padding: 3px 6px; border: var(--border-width-default) solid var(--border2); background: var(--surface); color: var(--text-dim); font-size: 11px; font-family: var(--font-mono); text-transform: capitalize; cursor: pointer; }
 .admin-role-select:focus { border-color: var(--accent); outline: none; }
 .admin-status-btn { font-size: 10px; font-family: var(--font-mono); text-transform: uppercase; padding: 2px 8px; cursor: pointer; border: var(--border-width-default) solid; background: none; }
-.status-active { color: var(--green); border-color: var(--green-border); background: var(--green-bg); }
-.status-suspended { color: var(--red); border-color: var(--red-border); background: var(--red-bg); }
+.status-active { color: var(--green-text); border-color: var(--green-border); background: var(--green-bg); }
+.status-suspended { color: var(--red-text); border-color: var(--red-border); background: var(--red-bg); }
 .admin-status-btn:hover { opacity: 0.8; }
 .admin-delete-btn { background: none; border: none; color: var(--text-faint); cursor: pointer; font-size: 12px; padding: 4px 6px; }
-.admin-delete-btn:hover { color: var(--red); }
+.admin-delete-btn:hover { color: var(--red-text); }
 .admin-roles-btn { font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em; padding: 3px 8px; border: var(--border-width-default) solid var(--border2); background: var(--surface); color: var(--text-dim); cursor: pointer; }
 .admin-roles-btn:hover { border-color: var(--accent); color: var(--text); }
 .admin-roles-row td { background: var(--surface2); }

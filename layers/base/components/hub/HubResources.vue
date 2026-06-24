@@ -258,7 +258,7 @@ async function handleDelete(id: string): Promise<void> {
 }
 
 .cpub-resource-delete:hover {
-  color: var(--red);
+  color: var(--red-text);
 }
 
 @media (max-width: 640px) {

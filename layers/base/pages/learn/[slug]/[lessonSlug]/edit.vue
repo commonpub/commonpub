@@ -279,7 +279,7 @@ const videoEmbedUrl = computed(() => {
 
     <!-- LINKED CONTENT -->
     <section v-if="lesson.contentItemId" class="lesson-section">
-      <h2 class="lesson-section-title"><i class="fa-solid fa-link" style="color: var(--teal); margin-right: 6px;"></i>Linked Content</h2>
+      <h2 class="lesson-section-title"><i class="fa-solid fa-link" style="color: var(--teal-text); margin-right: 6px;"></i>Linked Content</h2>
       <div class="linked-content-info">
         <div class="linked-content-card">
           <span class="cpub-lesson-type-badge" style="margin-right: 8px;">{{ lesson.type }}</span>
@@ -289,7 +289,7 @@ const videoEmbedUrl = computed(() => {
           <NuxtLink :to="`/u/${(lessonData?.linkedContent as any)?.author?.username ?? ''}/${lesson.type}/${lessonData?.linkedContent?.slug || ''}/edit`" class="cpub-btn cpub-btn-sm">
             <i class="fa-solid fa-pen"></i> Edit Content
           </NuxtLink>
-          <button class="cpub-btn cpub-btn-sm" style="color: var(--red); border-color: var(--red-border);" @click="unlinkContent">
+          <button class="cpub-btn cpub-btn-sm" style="color: var(--red-text); border-color: var(--red-border);" @click="unlinkContent">
             <i class="fa-solid fa-link-slash"></i> Unlink
           </button>
         </div>

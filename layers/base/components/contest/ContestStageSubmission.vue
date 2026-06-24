@@ -133,13 +133,13 @@ function submittedAtLabel(iso: string): string {
 .cpub-stagesub-title { font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 8px; margin: 0; }
 .cpub-stagesub-title i { color: var(--accent); }
 .cpub-stagesub-badge { margin-left: auto; display: inline-flex; align-items: center; gap: 5px; font-size: 10px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: .05em; padding: 3px 8px; border: var(--border-width-default) solid; }
-.cpub-stagesub-done { color: var(--green); border-color: var(--green-border); background: var(--green-bg); }
+.cpub-stagesub-done { color: var(--green-text); border-color: var(--green-border); background: var(--green-bg); }
 .cpub-stagesub-todo { color: var(--text-dim); border-color: var(--border2); background: var(--surface2); }
 .cpub-stagesub-desc { font-size: 12px; color: var(--text-dim); margin: 0 0 12px; line-height: 1.6; }
 .cpub-stagesub-intro { margin: 0 0 12px; }
 .cpub-stagesub-field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
 .cpub-stagesub-label { font-size: 11px; font-weight: 600; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: .05em; color: var(--text-dim); }
-.cpub-stagesub-req { color: var(--red); }
+.cpub-stagesub-req { color: var(--red-text); }
 .cpub-stagesub-input { width: 100%; padding: var(--space-2) var(--space-3); border: var(--border-width-default) solid var(--border); background: var(--surface); color: var(--text); font-size: var(--text-sm); font-family: var(--font-sans); }
 .cpub-stagesub-input:focus { border-color: var(--accent); outline: none; box-shadow: var(--shadow-accent); }
 .cpub-stagesub-textarea { resize: vertical; }

@@ -144,7 +144,7 @@ async function removeStakeholder(userId: string): Promise<void> {
 .cpub-sh-role { font-size: 11px; padding: 4px 6px; border: var(--border-width-default) solid var(--border); background: var(--bg); color: var(--text); outline: none; flex-shrink: 0; }
 .cpub-sh-role:focus { border-color: var(--accent); }
 .cpub-sh-remove { background: none; border: none; color: var(--text-faint); cursor: pointer; font-size: 12px; padding: 6px; min-height: 28px; }
-.cpub-sh-remove:hover { color: var(--red); }
+.cpub-sh-remove:hover { color: var(--red-text); }
 .cpub-sh-empty { font-size: 12px; color: var(--text-faint); font-style: italic; margin-bottom: 12px; }
 .cpub-sh-search { position: relative; }
 .cpub-sh-search-row { display: flex; gap: 8px; }

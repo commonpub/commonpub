@@ -289,10 +289,10 @@ function formatDate(dateStr: string): string {
 .cpub-live-item-top { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 6px; }
 .cpub-live-thumb { width: 56px; height: 38px; border-radius: var(--radius); border: var(--border-width-default) solid var(--border); background: var(--red-bg); display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; position: relative; overflow: hidden; }
 .cpub-live-thumb-bg { position: absolute; inset: 0; background: var(--red-bg); }
-.cpub-live-thumb-icon { position: relative; z-index: 1; color: var(--red); }
+.cpub-live-thumb-icon { position: relative; z-index: 1; color: var(--red-text); }
 .cpub-live-title { font-size: 12px; font-weight: 600; line-height: 1.3; transition: color .1s; }
 .cpub-live-meta { display: flex; align-items: center; gap: 8px; font-size: 10px; font-family: var(--font-mono); color: var(--text-faint); }
-.cpub-live-viewers { display: flex; align-items: center; gap: 4px; color: var(--red); }
+.cpub-live-viewers { display: flex; align-items: center; gap: 4px; color: var(--red-text); }
 .cpub-live-viewers::before { content: ''; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--red); animation: cpub-livepulse 1.5s infinite; }
 
 /* PLAYLISTS */
@@ -318,7 +318,7 @@ function formatDate(dateStr: string): string {
 .cpub-creator-subs { font-size: 10px; font-family: var(--font-mono); color: var(--text-faint); }
 .cpub-creator-sub-btn { font-size: 10px; font-family: var(--font-mono); padding: 5px 12px; border-radius: var(--radius); border: var(--border-width-default) solid var(--border); background: var(--surface); color: var(--text-dim); cursor: pointer; white-space: nowrap; }
 .cpub-creator-sub-btn:hover { background: var(--surface2); }
-.cpub-subbed { border-color: var(--green); color: var(--green); background: var(--green-bg); }
+.cpub-subbed { border-color: var(--green); color: var(--green-text); background: var(--green-bg); }
 
 /* PAGINATION (page-specific) */
 .cpub-page-info { font-size: 11px; font-family: var(--font-mono); color: var(--text-dim); }

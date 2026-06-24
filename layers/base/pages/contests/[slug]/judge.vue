@@ -413,8 +413,8 @@ async function submitScore(entryId: string): Promise<void> {
 .cpub-judge-progress-fill { height: 100%; background: var(--accent); transition: width 0.3s ease; }
 
 .cpub-judge-alert { padding: 10px 14px; font-size: 12px; border: var(--border-width-default) solid; margin-bottom: 16px; }
-.cpub-judge-alert--error { background: var(--red-bg); color: var(--red); border-color: var(--red); }
-.cpub-judge-alert--success { background: var(--green-bg); color: var(--green); border-color: var(--green); }
+.cpub-judge-alert--error { background: var(--red-bg); color: var(--red-text); border-color: var(--red); }
+.cpub-judge-alert--success { background: var(--green-bg); color: var(--green-text); border-color: var(--green); }
 
 .cpub-judge-empty { text-align: center; padding: 48px 0; color: var(--text-faint); font-size: 13px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
 .cpub-judge-empty i { font-size: 24px; }
@@ -471,8 +471,8 @@ async function submitScore(entryId: string): Promise<void> {
 }
 .cpub-judge-feedback:focus { border-color: var(--accent); }
 .cpub-judge-save-status { display: flex; align-items: center; gap: 5px; margin: 2px 0 0; font-size: 11px; font-family: var(--font-mono); }
-.cpub-judge-save-status.is-ok { color: var(--green); }
-.cpub-judge-save-status.is-err { color: var(--red); }
+.cpub-judge-save-status.is-ok { color: var(--green-text); }
+.cpub-judge-save-status.is-err { color: var(--red-text); }
 .cpub-judge-save-status.is-muted { color: var(--text-faint); }
 .cpub-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 

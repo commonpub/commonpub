@@ -216,8 +216,8 @@ const contrastReadout = computed<{ ratio: string; band: string; ok: boolean } | 
 .cpub-sheet-contrast-tag { font-family: var(--font-mono); font-size: var(--text-label); letter-spacing: var(--tracking-wide); text-transform: uppercase; color: var(--text-dim); }
 .cpub-sheet-contrast-val { font-family: var(--font-mono); font-size: var(--text-base); font-weight: var(--font-weight-bold); }
 .cpub-sheet-badge { font-family: var(--font-mono); font-size: var(--text-label); font-weight: var(--font-weight-bold); text-transform: uppercase; padding: 2px 8px; border: var(--border-width-thin) solid; }
-.cpub-sheet-badge.ok { color: var(--green); border-color: var(--green); }
-.cpub-sheet-badge.err { color: var(--red); border-color: var(--red); }
+.cpub-sheet-badge.ok { color: var(--green-text); border-color: var(--green); }
+.cpub-sheet-badge.err { color: var(--red-text); border-color: var(--red); }
 
 .cpub-sheet-roles { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); margin-bottom: var(--space-5); }
 .cpub-sheet-role { border: var(--border-width-thin) solid var(--border2); border-left: var(--border-width-thick) solid var(--accent); padding: var(--space-4); background: var(--surface); }

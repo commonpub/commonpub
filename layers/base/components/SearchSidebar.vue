@@ -124,7 +124,7 @@ const { hubs: hubsEnabled } = useFeatures();
   font-size: 10px; font-family: var(--font-mono); display: flex; align-items: center; gap: 3px;
 }
 
-.trend-up { color: var(--green); }
+.trend-up { color: var(--green-text); }
 .trend-down { color: var(--text-faint); }
 
 .cpub-tag-cloud { display: flex; flex-wrap: wrap; gap: 6px; }

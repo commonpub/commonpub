@@ -77,7 +77,7 @@ function medalColor(rank: number): string {
         <i class="fa-solid fa-arrow-left"></i> Back to contest
       </NuxtLink>
       <h1 class="cpub-results-title">
-        <i class="fa-solid fa-ranking-star" style="color: var(--yellow);"></i>
+        <i class="fa-solid fa-ranking-star" style="color: var(--yellow-text);"></i>
         {{ contest?.title || 'Contest' }}, Results
       </h1>
     </header>
@@ -200,7 +200,7 @@ function medalColor(rank: number): string {
 .cpub-podium-author:hover { color: var(--accent); }
 .cpub-podium-score { font-size: 11px; font-family: var(--font-mono); color: var(--text-faint); margin-bottom: 6px; }
 .cpub-podium-prize { font-size: 11px; font-family: var(--font-mono); color: var(--accent); display: flex; align-items: center; justify-content: center; gap: 4px; }
-.cpub-podium-prize-val { font-weight: 700; color: var(--yellow); }
+.cpub-podium-prize-val { font-weight: 700; color: var(--yellow-text); }
 
 /* LEADERBOARD */
 .cpub-leaderboard { margin-bottom: 32px; }
@@ -215,11 +215,11 @@ function medalColor(rank: number): string {
 .cpub-lb-top3 { background: var(--surface2); }
 .cpub-lb-rank { font-family: var(--font-mono); font-weight: 700; display: flex; align-items: center; gap: 6px; }
 .cpub-lb-score { font-family: var(--font-mono); font-weight: 600; color: var(--accent); }
-.cpub-lb-votes { font-family: var(--font-mono); color: var(--red); }
+.cpub-lb-votes { font-family: var(--font-mono); color: var(--red-text); }
 .cpub-lb-votes i { font-size: 10px; }
 
 .cpub-community-choice { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 12px 16px; margin-bottom: 24px; background: var(--red-bg); border: var(--border-width-default) solid var(--red-border); }
-.cpub-cc-label { font-family: var(--font-mono); font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--red); display: flex; align-items: center; gap: 5px; }
+.cpub-cc-label { font-family: var(--font-mono); font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--red-text); display: flex; align-items: center; gap: 5px; }
 .cpub-cc-title { font-size: 14px; font-weight: 600; color: var(--text); text-decoration: none; }
 .cpub-cc-title:hover { color: var(--accent); }
 .cpub-cc-meta { font-size: 11px; color: var(--text-dim); font-family: var(--font-mono); }

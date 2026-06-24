@@ -38,7 +38,7 @@ function prizeIcon(prize: Prize): string {
 <template>
   <div class="cpub-prizes-section">
     <div class="cpub-sec-head">
-      <h2><i class="fa fa-trophy" style="color: var(--yellow);"></i> Prizes</h2>
+      <h2><i class="fa fa-trophy" style="color: var(--yellow-text);"></i> Prizes</h2>
     </div>
     <BlocksBlockContentRenderer
       v-if="blocks?.length"
@@ -75,19 +75,19 @@ function prizeIcon(prize: Prize): string {
 .cpub-prize-gold { box-shadow: var(--shadow-accent); }
 
 .cpub-prize-rank { font-size: 11px; font-family: var(--font-mono); font-weight: 600; letter-spacing: .08em; margin-bottom: 8px; }
-.cpub-prize-rank-gold { color: var(--yellow); }
+.cpub-prize-rank-gold { color: var(--yellow-text); }
 .cpub-prize-rank-silver { color: var(--silver); }
 .cpub-prize-rank-bronze { color: var(--bronze); }
 .cpub-prize-rank-default { color: var(--text-dim); }
 
 .cpub-prize-icon { font-size: 28px; margin-bottom: 8px; }
-.cpub-prize-icon-gold { color: var(--yellow); }
+.cpub-prize-icon-gold { color: var(--yellow-text); }
 .cpub-prize-icon-silver { color: var(--silver); }
 .cpub-prize-icon-bronze { color: var(--bronze); }
 .cpub-prize-icon-default { color: var(--text-dim); }
 
 .cpub-prize-amount { font-size: 24px; font-weight: 800; font-family: var(--font-mono); margin-bottom: 4px; }
-.cpub-prize-amount-gold { color: var(--yellow); }
+.cpub-prize-amount-gold { color: var(--yellow-text); }
 .cpub-prize-amount-silver { color: var(--silver); }
 .cpub-prize-amount-bronze { color: var(--bronze); }
 .cpub-prize-amount-default { color: var(--text-dim); }

@@ -105,7 +105,7 @@ function optionClass(idx: number): string {
   font-family: var(--font-mono);
   font-size: 9px;
   letter-spacing: 0.08em;
-  color: var(--yellow);
+  color: var(--yellow-text);
   background: var(--yellow-bg);
   border: var(--border-width-default) solid var(--yellow-border);
   padding: 3px 8px;
@@ -184,9 +184,9 @@ function optionClass(idx: number): string {
   margin-top: 1px;
 }
 
-.cpub-quiz-option.selected-correct .cpub-quiz-option-key { color: var(--green); }
-.cpub-quiz-option.selected-wrong .cpub-quiz-option-key { color: var(--red); }
-.cpub-quiz-option.reveal-correct .cpub-quiz-option-key { color: var(--green); }
+.cpub-quiz-option.selected-correct .cpub-quiz-option-key { color: var(--green-text); }
+.cpub-quiz-option.selected-wrong .cpub-quiz-option-key { color: var(--red-text); }
+.cpub-quiz-option.reveal-correct .cpub-quiz-option-key { color: var(--green-text); }
 
 .cpub-quiz-option-text {
   font-size: 13px;
@@ -195,8 +195,8 @@ function optionClass(idx: number): string {
   flex: 1;
 }
 
-.cpub-quiz-option.selected-correct .cpub-quiz-option-text { color: var(--green); }
-.cpub-quiz-option.selected-wrong .cpub-quiz-option-text { color: var(--red); }
+.cpub-quiz-option.selected-correct .cpub-quiz-option-text { color: var(--green-text); }
+.cpub-quiz-option.selected-wrong .cpub-quiz-option-text { color: var(--red-text); }
 
 .cpub-quiz-option-indicator {
   font-size: 12px;
@@ -212,9 +212,9 @@ function optionClass(idx: number): string {
   opacity: 1;
 }
 
-.cpub-quiz-option.selected-correct .cpub-quiz-option-indicator { color: var(--green); }
-.cpub-quiz-option.selected-wrong .cpub-quiz-option-indicator { color: var(--red); }
-.cpub-quiz-option.reveal-correct .cpub-quiz-option-indicator { color: var(--green); }
+.cpub-quiz-option.selected-correct .cpub-quiz-option-indicator { color: var(--green-text); }
+.cpub-quiz-option.selected-wrong .cpub-quiz-option-indicator { color: var(--red-text); }
+.cpub-quiz-option.reveal-correct .cpub-quiz-option-indicator { color: var(--green-text); }
 
 .cpub-quiz-feedback {
   margin-top: 14px;
@@ -228,12 +228,12 @@ function optionClass(idx: number): string {
 .cpub-quiz-feedback.correct {
   background: var(--green-bg);
   border: var(--border-width-default) solid var(--green-border);
-  color: var(--green);
+  color: var(--green-text);
 }
 
 .cpub-quiz-feedback.wrong {
   background: var(--red-bg);
   border: var(--border-width-default) solid var(--red-border);
-  color: var(--red);
+  color: var(--red-text);
 }
 </style>

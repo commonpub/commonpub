@@ -242,18 +242,18 @@ const entryCount = computed<number>(() => c.value?.entryCount ?? 0);
 .cpub-hero-bar { background: var(--surface); border-bottom: var(--border-width-default) solid var(--border); }
 .cpub-hero-bar-inner { max-width: 1100px; margin: 0 auto; padding: 20px 32px; }
 
-.cpub-cancelled-banner { background: var(--red-bg); border: var(--border-width-default) solid var(--red-border); color: var(--red); padding: 10px 14px; font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
+.cpub-cancelled-banner { background: var(--red-bg); border: var(--border-width-default) solid var(--red-border); color: var(--red-text); padding: 10px 14px; font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
 
 .cpub-hero-top { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
 .cpub-contest-badge { font-size: 9px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; font-family: var(--font-mono); color: var(--accent); background: var(--accent-bg); border: var(--border-width-default) solid var(--accent); padding: 3px 10px; border-radius: var(--radius); display: inline-flex; align-items: center; gap: 5px; }
 .cpub-contest-badge i { font-size: 8px; }
 .cpub-status-pill { font-size: 9px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; font-family: var(--font-mono); padding: 3px 10px; border-radius: var(--radius); border: var(--border-width-default) solid var(--border2); color: var(--text-dim); }
-.cpub-status-pill[data-status="active"] { color: var(--green); border-color: var(--green-border); background: var(--green-bg); }
+.cpub-status-pill[data-status="active"] { color: var(--green-text); border-color: var(--green-border); background: var(--green-bg); }
 .cpub-status-pill[data-status="judging"] { color: var(--accent); border-color: var(--accent-border); background: var(--accent-bg); }
-.cpub-status-pill[data-status="upcoming"] { color: var(--yellow); border-color: var(--yellow-border); background: var(--yellow-bg); }
-.cpub-status-pill[data-status="paused"] { color: var(--yellow); border-color: var(--yellow-border); background: var(--yellow-bg); }
+.cpub-status-pill[data-status="upcoming"] { color: var(--yellow-text); border-color: var(--yellow-border); background: var(--yellow-bg); }
+.cpub-status-pill[data-status="paused"] { color: var(--yellow-text); border-color: var(--yellow-border); background: var(--yellow-bg); }
 .cpub-status-pill[data-status="draft"] { color: var(--text-faint); border-color: var(--border2); border-style: dashed; }
-.cpub-status-pill[data-status="completed"], .cpub-status-pill[data-status="cancelled"] { color: var(--red); border-color: var(--red-border); background: var(--red-bg); }
+.cpub-status-pill[data-status="completed"], .cpub-status-pill[data-status="cancelled"] { color: var(--red-text); border-color: var(--red-border); background: var(--red-bg); }
 .cpub-stage-chip { font-size: 9px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; font-family: var(--font-mono); padding: 3px 10px; border-radius: var(--radius); border: var(--border-width-default) solid var(--accent-border); color: var(--accent); background: var(--accent-bg); display: inline-flex; align-items: center; gap: 5px; }
 .cpub-stage-chip i { font-size: 8px; }
 
@@ -270,7 +270,7 @@ const entryCount = computed<number>(() => c.value?.entryCount ?? 0);
 .cpub-hero-meta { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; font-size: 11px; color: var(--text-faint); font-family: var(--font-mono); }
 .cpub-hero-meta-item { display: flex; align-items: center; gap: 6px; }
 .cpub-hero-cta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.cpub-btn-cancel { color: var(--red); border-color: var(--red-border); }
+.cpub-btn-cancel { color: var(--red-text); border-color: var(--red-border); }
 .cpub-btn-cancel:hover { background: var(--red-bg); }
 
 .cpub-admin-controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 14px; padding: 10px 14px; background: var(--accent-bg); border: var(--border-width-default) solid var(--accent-border); }

@@ -119,7 +119,7 @@ async function onFile(i: number, event: Event): Promise<void> {
 .cpub-spedit-upload { flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; width: 30px; border: var(--border-width-default) solid var(--border); background: var(--surface2); color: var(--text-dim); cursor: pointer; }
 .cpub-spedit-upload:hover { border-color: var(--accent); color: var(--accent); }
 .cpub-spedit-remove { background: none; border: var(--border-width-default) solid var(--border); color: var(--text-faint); cursor: pointer; font-size: 11px; padding: 0 8px; flex-shrink: 0; align-self: stretch; }
-.cpub-spedit-remove:hover { border-color: var(--red-border); color: var(--red); }
+.cpub-spedit-remove:hover { border-color: var(--red-border); color: var(--red-text); }
 
 .cpub-spedit-empty { padding: 20px; text-align: center; font-size: 12px; color: var(--text-faint); cursor: pointer; border: var(--border-width-default) dashed var(--border2); }
 .cpub-spedit-empty:hover { color: var(--accent); border-color: var(--accent); background: var(--accent-bg); }

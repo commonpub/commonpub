@@ -178,9 +178,9 @@ watch(contestPii, (on) => { if (on) void loadPrivate(); }, { immediate: true });
 .cpub-ed-av-init { display: inline-flex; align-items: center; justify-content: center; background: var(--surface3); color: var(--text-faint); font-size: 8px; }
 .cpub-ed-date { color: var(--text-faint); }
 .cpub-ed-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 9px; text-transform: uppercase; letter-spacing: .05em; padding: 2px 7px; border: var(--border-width-default) solid var(--border2); background: var(--surface2); color: var(--text-dim); }
-.cpub-ed-in { color: var(--green); border-color: var(--green-border); background: var(--green-bg); }
+.cpub-ed-in { color: var(--green-text); border-color: var(--green-border); background: var(--green-bg); }
 .cpub-ed-out { color: var(--text-faint); }
-.cpub-ed-rank { color: var(--yellow); border-color: var(--yellow); background: var(--yellow-bg); }
+.cpub-ed-rank { color: var(--yellow-text); border-color: var(--yellow); background: var(--yellow-bg); }
 .cpub-ed-score { color: var(--accent); border-color: var(--accent-border); background: var(--accent-bg); }
 
 .cpub-ed-sechead { font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 8px; margin: 0 0 14px; }

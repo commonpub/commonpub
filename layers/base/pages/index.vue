@@ -527,13 +527,13 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
   padding: 3px 9px;
   background: var(--yellow-bg);
   border: var(--border-width-default) solid var(--yellow);
-  color: var(--yellow);
+  color: var(--yellow-text);
 }
 
 .cpub-hero-badge-live {
   background: var(--green-bg);
   border-color: var(--green);
-  color: var(--green);
+  color: var(--green-text);
   display: flex;
   align-items: center;
   gap: 5px;
@@ -674,7 +674,7 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--teal);
+  color: var(--teal-text);
   display: flex;
   align-items: center;
   gap: 6px;
@@ -741,7 +741,7 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
   z-index: 1;
   font-size: 48px;
   opacity: 0.2;
-  color: var(--teal);
+  color: var(--teal-text);
 }
 
 .cpub-thumb-overlay {
@@ -760,7 +760,7 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
 .cpub-badge-featured {
   background: var(--yellow-bg);
   border: var(--border-width-default) solid var(--yellow);
-  color: var(--yellow);
+  color: var(--yellow-text);
   font-size: 9px;
   font-family: var(--font-mono);
   text-transform: uppercase;
@@ -1066,7 +1066,7 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
   flex-shrink: 0;
   border: var(--border-width-default) solid var(--teal);
   background: var(--teal-bg);
-  color: var(--teal);
+  color: var(--teal-text);
   overflow: hidden;
 }
 .cpub-hub-icon-img {
@@ -1116,7 +1116,7 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
   padding: 4px 10px;
   background: var(--green-bg);
   border: var(--border-width-default) solid var(--green-border);
-  color: var(--green);
+  color: var(--green-text);
   font-size: 10px;
   font-family: var(--font-mono);
   flex-shrink: 0;

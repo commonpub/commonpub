@@ -344,7 +344,7 @@ async function handleReport(): Promise<void> {
         <!-- Certificates -->
         <template v-if="learningData?.certificates?.length">
           <div class="cpub-sec-head">
-            <h2><i class="fa-solid fa-medal" style="color: var(--yellow); margin-right: 6px"></i>Certificates</h2>
+            <h2><i class="fa-solid fa-medal" style="color: var(--yellow-text); margin-right: 6px"></i>Certificates</h2>
           </div>
           <div class="cpub-cert-list">
             <NuxtLink
@@ -411,7 +411,7 @@ async function handleReport(): Promise<void> {
             <!-- Info -->
             <div style="margin-bottom: 32px">
               <div class="cpub-sec-head">
-                <h2><i class="fa-solid fa-circle-info" style="color: var(--teal); margin-right: 6px"></i>Details</h2>
+                <h2><i class="fa-solid fa-circle-info" style="color: var(--teal-text); margin-right: 6px"></i>Details</h2>
               </div>
               <div class="cpub-about-details">
                 <div v-if="p.location" class="cpub-about-detail"><i class="fa-solid fa-location-dot"></i> {{ p.location }}</div>
@@ -424,7 +424,7 @@ async function handleReport(): Promise<void> {
             <!-- Skills -->
             <div class="cpub-skills-section">
               <div class="cpub-sec-head">
-                <h2><i class="fa-solid fa-microchip" style="color: var(--teal); margin-right: 6px"></i>Skills</h2>
+                <h2><i class="fa-solid fa-microchip" style="color: var(--teal-text); margin-right: 6px"></i>Skills</h2>
               </div>
               <div v-if="p.skills?.length" class="cpub-tag-row" style="flex-wrap: wrap; gap: 6px;">
                 <span v-for="skill in p.skills" :key="skill" class="cpub-tag">{{ skill }}</span>
@@ -437,7 +437,7 @@ async function handleReport(): Promise<void> {
             <!-- Experience -->
             <div v-if="p.experience?.length" class="cpub-experience-section">
               <div class="cpub-sec-head">
-                <h2><i class="fa-solid fa-briefcase" style="color: var(--purple); margin-right: 6px"></i>Experience</h2>
+                <h2><i class="fa-solid fa-briefcase" style="color: var(--purple-text); margin-right: 6px"></i>Experience</h2>
               </div>
               <div class="cpub-experience-list">
                 <div v-for="(exp, idx) in p.experience" :key="idx" class="cpub-experience-item">
@@ -845,7 +845,7 @@ async function handleReport(): Promise<void> {
 .cpub-cert-list { display: flex; flex-direction: column; gap: 8px; }
 .cpub-cert-card-profile { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border: var(--border-width-default) solid var(--border); background: var(--surface); text-decoration: none; color: var(--text); box-shadow: var(--shadow-md); transition: box-shadow 0.15s, transform 0.15s; }
 .cpub-cert-card-profile:hover { box-shadow: var(--shadow-sm); transform: translate(1px, 1px); }
-.cpub-cert-card-badge { width: 40px; height: 40px; border-radius: 50%; border: var(--border-width-default) solid var(--yellow); background: var(--yellow-bg); display: flex; align-items: center; justify-content: center; font-size: 18px; color: var(--yellow); flex-shrink: 0; }
+.cpub-cert-card-badge { width: 40px; height: 40px; border-radius: 50%; border: var(--border-width-default) solid var(--yellow); background: var(--yellow-bg); display: flex; align-items: center; justify-content: center; font-size: 18px; color: var(--yellow-text); flex-shrink: 0; }
 .cpub-cert-card-info { flex: 1; }
 .cpub-cert-card-path { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
 .cpub-cert-card-date { font-size: 11px; font-family: var(--font-mono); color: var(--text-faint); }

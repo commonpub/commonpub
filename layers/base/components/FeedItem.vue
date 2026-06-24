@@ -121,7 +121,7 @@ const formattedDate = computed((): string => {
   font-size: var(--text-label);
   text-transform: uppercase;
   letter-spacing: var(--tracking-widest);
-  color: var(--accent);
+  color: var(--accent-text);
   border-bottom: var(--border-width-default) solid var(--accent-border);
 }
 
@@ -148,25 +148,25 @@ const formattedDate = computed((): string => {
 }
 
 .cpub-feed-badge-accent {
-  color: var(--accent);
+  color: var(--accent-text);
   background: var(--accent-bg);
   border-color: var(--accent-border);
 }
 
 .cpub-feed-badge-yellow {
-  color: var(--yellow);
+  color: var(--yellow-text);
   background: var(--yellow-bg);
   border-color: var(--yellow-border);
 }
 
 .cpub-feed-badge-purple {
-  color: var(--purple);
+  color: var(--purple-text);
   background: var(--purple-bg);
   border-color: var(--purple-border);
 }
 
 .cpub-feed-badge-red {
-  color: var(--red);
+  color: var(--red-text);
   background: var(--red-bg);
   border-color: var(--red-border);
 }
@@ -279,12 +279,12 @@ const formattedDate = computed((): string => {
   transition: all 0.12s;
 }
 .cpub-feed-stat-btn:hover {
-  color: var(--accent);
+  color: var(--accent-text);
   background: var(--accent-bg);
   border-color: var(--accent-border);
 }
 .cpub-feed-stat-voted {
-  color: var(--accent);
+  color: var(--accent-text);
   border-color: var(--accent-border);
 }
 </style>

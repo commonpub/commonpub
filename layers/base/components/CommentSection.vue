@@ -440,7 +440,7 @@ async function deleteComment(id: string): Promise<void> {
 }
 
 .cpub-comment-delete:hover {
-  color: var(--red);
+  color: var(--red-text);
 }
 
 .cpub-comments-empty {
@@ -457,7 +457,7 @@ async function deleteComment(id: string): Promise<void> {
 
 .cpub-reply-sent {
   font-size: 12px;
-  color: var(--green, #22c55e);
+  color: var(--green-text, #22c55e);
   display: flex;
   align-items: center;
   gap: 6px;

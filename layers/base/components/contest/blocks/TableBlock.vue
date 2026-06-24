@@ -94,7 +94,7 @@ function removeRow(r: number): void {
 .cpub-tedit-grid td { padding: 0 4px 4px 0; }
 .cpub-tedit-grid td .cpub-tedit-input { min-width: 120px; }
 .cpub-tedit-del { background: none; border: var(--border-width-default) solid var(--border); color: var(--text-faint); cursor: pointer; font-size: 10px; padding: 4px 6px; margin-top: 3px; }
-.cpub-tedit-del:hover:not(:disabled) { border-color: var(--red-border); color: var(--red); }
+.cpub-tedit-del:hover:not(:disabled) { border-color: var(--red-border); color: var(--red-text); }
 .cpub-tedit-del:disabled { opacity: 0.35; cursor: not-allowed; }
 .cpub-tedit-rowspacer { width: 28px; }
 .cpub-tedit-rowdel { width: 28px; text-align: center; }

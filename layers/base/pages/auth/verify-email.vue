@@ -43,7 +43,7 @@ if (!token.value) {
 
     <!-- Success -->
     <div v-else-if="status === 'success'" class="verify-status">
-      <i class="fa-solid fa-check-circle" style="font-size: 24px; color: var(--green); margin-bottom: 12px;"></i>
+      <i class="fa-solid fa-check-circle" style="font-size: 24px; color: var(--green-text); margin-bottom: 12px;"></i>
       <p class="verify-text">Your email has been verified successfully!</p>
       <NuxtLink to="/auth/login" class="verify-link">
         <i class="fa-solid fa-arrow-right"></i> Continue to login
@@ -52,7 +52,7 @@ if (!token.value) {
 
     <!-- Error -->
     <div v-else-if="status === 'error'" class="verify-status">
-      <i class="fa-solid fa-circle-xmark" style="font-size: 24px; color: var(--red); margin-bottom: 12px;"></i>
+      <i class="fa-solid fa-circle-xmark" style="font-size: 24px; color: var(--red-text); margin-bottom: 12px;"></i>
       <p class="verify-text">{{ errorMessage }}</p>
       <NuxtLink to="/auth/login" class="verify-link">
         <i class="fa-solid fa-arrow-left"></i> Back to login
@@ -61,7 +61,7 @@ if (!token.value) {
 
     <!-- No token -->
     <div v-else class="verify-status">
-      <i class="fa-solid fa-circle-exclamation" style="font-size: 24px; color: var(--yellow); margin-bottom: 12px;"></i>
+      <i class="fa-solid fa-circle-exclamation" style="font-size: 24px; color: var(--yellow-text); margin-bottom: 12px;"></i>
       <p class="verify-text">No verification token found. Please check the link in your email.</p>
       <NuxtLink to="/auth/login" class="verify-link">
         <i class="fa-solid fa-arrow-left"></i> Back to login

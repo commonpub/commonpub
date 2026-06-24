@@ -316,7 +316,7 @@ const editingId = ref<string | null>(null);
 .cpub-nav-actions { display: flex; gap: 6px; flex-shrink: 0; }
 .cpub-nav-action { background: none; border: none; color: var(--text-faint); cursor: pointer; font-size: 12px; padding: 4px 6px; }
 .cpub-nav-action:hover { color: var(--accent); }
-.cpub-nav-action--danger:hover { color: var(--red); }
+.cpub-nav-action--danger:hover { color: var(--red-text); }
 
 .cpub-nav-editor { width: 100%; padding: 12px 0 0; border-top: var(--border-width-default) solid var(--border2); margin-top: 8px; }
 .cpub-editor-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); }
@@ -337,7 +337,7 @@ const editingId = ref<string | null>(null);
 .cpub-children-empty { font-size: 12px; color: var(--text-faint); font-style: italic; }
 
 .cpub-nav-footer { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-4); margin-top: var(--space-4); background: var(--yellow-bg, var(--surface2)); border: var(--border-width-default) solid var(--yellow, var(--border)); }
-.cpub-nav-footer-text { font-family: var(--font-mono); font-size: 11px; font-weight: 600; color: var(--yellow, var(--text-dim)); flex: 1; }
+.cpub-nav-footer-text { font-family: var(--font-mono); font-size: 11px; font-weight: 600; color: var(--yellow-text, var(--text-dim)); flex: 1; }
 
 @media (max-width: 768px) {
   .cpub-admin-header { flex-direction: column; }

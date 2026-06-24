@@ -159,9 +159,9 @@ const roleLabels: Record<string, string> = {
 .cpub-judge-avatar-sm { width: 20px; height: 20px; font-size: 8px; }
 .cpub-judge-name { font-size: 12px; font-weight: 600; }
 .cpub-judge-role { font-family: var(--font-mono); font-size: 9px; text-transform: uppercase; color: var(--text-faint); }
-.cpub-judge-pending { font-family: var(--font-mono); font-size: 9px; color: var(--yellow, var(--text-faint)); }
+.cpub-judge-pending { font-family: var(--font-mono); font-size: 9px; color: var(--yellow-text, var(--text-faint)); }
 .cpub-judge-remove { background: none; border: none; color: var(--text-faint); cursor: pointer; font-size: 10px; padding: 4px; }
-.cpub-judge-remove:hover { color: var(--red); }
+.cpub-judge-remove:hover { color: var(--red-text); }
 
 .cpub-judges-empty { font-size: 12px; color: var(--text-faint); font-style: italic; margin-bottom: 12px; }
 

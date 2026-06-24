@@ -199,7 +199,7 @@ function onInstructionsUpdate(blocks: BlockTuple[]): void {
 .cpub-stage-iconbtn { background: var(--surface); border: var(--border-width-default) solid var(--border); color: var(--text-dim); cursor: pointer; width: 26px; height: 26px; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; }
 .cpub-stage-iconbtn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
 .cpub-stage-iconbtn:disabled { opacity: .4; cursor: not-allowed; }
-.cpub-stage-del:hover { border-color: var(--red-border); color: var(--red); }
+.cpub-stage-del:hover { border-color: var(--red-border); color: var(--red-text); }
 .cpub-stage-kind-help { font-size: 11px; color: var(--text-faint); line-height: 1.5; margin: 0 0 4px; display: flex; gap: 6px; }
 .cpub-stage-kind-help i { color: var(--accent); margin-top: 2px; flex-shrink: 0; }
 .cpub-stage-criteria { border: var(--border-width-default) dashed var(--border2); padding: 10px; margin-top: 4px; background: var(--surface); }

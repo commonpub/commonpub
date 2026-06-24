@@ -308,7 +308,7 @@ function handleMastodonLogin(): void {
 .form-error {
   padding: var(--space-3);
   background: var(--red-bg);
-  color: var(--red);
+  color: var(--red-text);
   border: var(--border-width-default) solid var(--red);
   border-radius: var(--radius);
   font-size: 12px;

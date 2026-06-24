@@ -145,7 +145,7 @@ async function handleDeleteAccount(): Promise<void> {
 .cpub-danger-title {
   font-size: 14px;
   font-weight: 600;
-  color: var(--red);
+  color: var(--red-text);
   margin-bottom: var(--space-2);
 }
 
@@ -163,7 +163,7 @@ async function handleDeleteAccount(): Promise<void> {
 
 .cpub-btn-danger {
   background: var(--red-bg);
-  color: var(--red);
+  color: var(--red-text);
   border-color: var(--red);
 }
 

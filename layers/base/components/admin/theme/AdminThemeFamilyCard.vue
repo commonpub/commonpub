@@ -247,7 +247,7 @@ function badge(family: ThemeFamilyView): { label: string; tone: 'builtin' | 'reg
   color: var(--text-dim);
 }
 .tag-custom { color: var(--accent); border-color: var(--accent-border); background: var(--accent-bg); }
-.tag-registered { color: var(--purple); border-color: var(--purple-border); background: var(--purple-bg); }
+.tag-registered { color: var(--purple-text); border-color: var(--purple-border); background: var(--purple-bg); }
 
 .theme-family-active {
   margin-left: auto;
@@ -277,7 +277,7 @@ function badge(family: ThemeFamilyView): { label: string; tone: 'builtin' | 'reg
 }
 
 .theme-family-action-danger {
-  color: var(--red);
+  color: var(--red-text);
   border-color: var(--red-border);
 }
 .theme-family-action-danger:hover { background: var(--red-bg); }

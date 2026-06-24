@@ -68,6 +68,6 @@ function onInput(e: Event): void {
   gap: var(--space-1);
 }
 .cpub-datetime-req {
-  color: var(--red);
+  color: var(--red-text);
 }
 </style>

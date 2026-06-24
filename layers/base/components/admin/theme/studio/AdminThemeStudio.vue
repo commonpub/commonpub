@@ -722,7 +722,7 @@ function finishWith(apply: boolean): void {
 .cpub-studio-foot { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-3) var(--space-4); border-top: var(--border-width-default) solid var(--border); }
 .cpub-studio-audit { display: flex; gap: 4px; margin-left: auto; }
 .cpub-studio-chip { font-family: var(--font-mono); font-size: 9px; font-weight: var(--font-weight-bold); letter-spacing: var(--tracking-wide); text-transform: uppercase; padding: 2px 6px; border: var(--border-width-thin) solid; }
-.cpub-studio-chip.ok { color: var(--green); border-color: var(--green); }
-.cpub-studio-chip.bad { color: var(--red); border-color: var(--red); }
+.cpub-studio-chip.ok { color: var(--green-text); border-color: var(--green); }
+.cpub-studio-chip.bad { color: var(--red-text); border-color: var(--red); }
 .cpub-studio-foot .cpub-btn-primary { margin-left: var(--space-2); }
 </style>

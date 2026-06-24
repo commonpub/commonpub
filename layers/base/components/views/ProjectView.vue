@@ -533,7 +533,7 @@ async function handleBuild(): Promise<void> {
   opacity: 0.22;
   font-family: var(--font-mono);
   font-size: 11px;
-  color: var(--teal);
+  color: var(--teal-text);
   letter-spacing: 0.05em;
 }
 
@@ -576,7 +576,7 @@ async function handleBuild(): Promise<void> {
 .cpub-badge-featured {
   background: var(--yellow-bg);
   border: var(--border-width-default) solid var(--border);
-  color: var(--yellow);
+  color: var(--yellow-text);
   box-shadow: var(--shadow-sm);
 }
 
@@ -730,11 +730,11 @@ async function handleBuild(): Promise<void> {
 }
 
 .cpub-engage-btn:hover { color: var(--text); background: var(--surface2); }
-.cpub-engage-btn.liked { color: var(--red); background: var(--red-bg); }
+.cpub-engage-btn.liked { color: var(--red-text); background: var(--red-bg); }
 .cpub-engage-btn.bookmarked { color: var(--accent); background: var(--accent-bg); }
 
 .cpub-engage-btn-green {
-  color: var(--green);
+  color: var(--green-text);
   background: var(--green-bg);
 }
 
@@ -1153,7 +1153,7 @@ async function handleBuild(): Promise<void> {
 .cpub-bom-summary-row:last-child { border-bottom: none; }
 .cpub-bom-label { color: var(--text-dim); }
 .cpub-bom-val { font-family: var(--font-mono); color: var(--text); font-weight: 600; }
-.cpub-bom-green { color: var(--green); }
+.cpub-bom-green { color: var(--green-text); }
 
 /* Hub card */
 .cpub-hub-card-inner {
@@ -1170,7 +1170,7 @@ async function handleBuild(): Promise<void> {
   align-items: center;
   justify-content: center;
   font-size: 18px;
-  color: var(--purple);
+  color: var(--purple-text);
   margin: 0 auto 10px;
 }
 

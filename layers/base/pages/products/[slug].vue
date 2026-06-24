@@ -149,7 +149,7 @@ useSeoMeta({
 .product-header { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
 .product-header-main { flex: 1; min-width: 0; }
 .product-header-actions { display: flex; gap: 8px; flex-shrink: 0; }
-.cpub-product-delete:hover { color: var(--red); border-color: var(--red); }
+.cpub-product-delete:hover { color: var(--red-text); border-color: var(--red); }
 .product-icon { width: 56px; height: 56px; border: var(--border-width-default) solid var(--border); background: var(--accent-bg); display: flex; align-items: center; justify-content: center; font-size: 24px; color: var(--accent); }
 .product-name { font-size: 24px; font-weight: 700; letter-spacing: -0.02em; }
 .product-category { font-size: 11px; font-family: var(--font-mono); color: var(--text-faint); text-transform: capitalize; }

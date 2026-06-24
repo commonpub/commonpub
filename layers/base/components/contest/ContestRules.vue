@@ -17,7 +17,7 @@ defineProps<{
 <template>
   <div class="cpub-rules-section">
     <div class="cpub-sec-head">
-      <h2><i class="fa fa-file-lines" style="color: var(--purple);"></i> Rules</h2>
+      <h2><i class="fa fa-file-lines" style="color: var(--purple-text);"></i> Rules</h2>
     </div>
     <div class="cpub-rules-card">
       <BlocksBlockContentRenderer

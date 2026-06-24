@@ -162,7 +162,7 @@ function moveTab(i: number, dir: -1 | 1): void {
 .cpub-tabsedit-mbtn { width: 26px; height: 26px; background: var(--surface2); border: var(--border-width-default) solid var(--border2); color: var(--text-faint); cursor: pointer; font-size: 10px; display: inline-flex; align-items: center; justify-content: center; }
 .cpub-tabsedit-mbtn:hover:not(:disabled) { color: var(--text); }
 .cpub-tabsedit-mbtn:disabled { opacity: 0.35; cursor: not-allowed; }
-.cpub-tabsedit-mbtn--danger:hover:not(:disabled) { color: var(--red); border-color: var(--red-border); background: var(--red-bg); }
+.cpub-tabsedit-mbtn--danger:hover:not(:disabled) { color: var(--red-text); border-color: var(--red-border); background: var(--red-bg); }
 .cpub-tabsedit-empty { padding: 18px; text-align: center; font-size: 12px; color: var(--text-faint); cursor: pointer; margin: 12px 14px; border: var(--border-width-default) dashed var(--border2); }
 .cpub-tabsedit-empty:hover { color: var(--accent); border-color: var(--accent); background: var(--accent-bg); }
 </style>

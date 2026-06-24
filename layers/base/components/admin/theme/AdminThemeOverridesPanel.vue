@@ -193,7 +193,7 @@ function looksLikeColor(value: string): boolean {
   flex-shrink: 0;
 }
 .admin-override-remove { flex-shrink: 0; padding: var(--space-1); color: var(--text-faint); }
-.admin-override-remove:hover { color: var(--red); }
+.admin-override-remove:hover { color: var(--red-text); }
 
 .admin-override-add {
   display: flex;

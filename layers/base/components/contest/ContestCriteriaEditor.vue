@@ -74,6 +74,6 @@ function remove(i: number): void {
 .cpub-criteria-main .cpub-input { flex: 1; }
 .cpub-criteria-pts { max-width: 80px; flex: none !important; text-align: center; }
 .cpub-criteria-del { background: var(--surface); border: var(--border-width-default) solid var(--border); color: var(--text-faint); cursor: pointer; font-size: 11px; padding: 0 9px; flex-shrink: 0; }
-.cpub-criteria-del:hover { border-color: var(--red-border); color: var(--red); }
+.cpub-criteria-del:hover { border-color: var(--red-border); color: var(--red-text); }
 .cpub-criteria-desc { font-size: var(--text-xs); }
 </style>

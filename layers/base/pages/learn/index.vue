@@ -270,7 +270,7 @@ const activeDifficultyFilter = ref('');
 .cpub-path-meta-item { font-size: 11px; font-family: var(--font-mono); color: var(--text-faint); display: flex; align-items: center; gap: 5px; }
 .cpub-path-courses-preview { display: flex; gap: 6px; margin-top: 12px; padding-top: 12px; border-top: var(--border-width-default) solid var(--border2); overflow-x: auto; }
 .cpub-path-course-pill { font-size: 10px; font-family: var(--font-mono); padding: 3px 10px; border-radius: 0; border: var(--border-width-default) solid var(--border); background: var(--surface2); color: var(--text-dim); white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; }
-.cpub-pill-done { border-color: var(--green-border); color: var(--green); background: var(--green-bg); }
+.cpub-pill-done { border-color: var(--green-border); color: var(--green-text); background: var(--green-bg); }
 .cpub-path-aside { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; flex-shrink: 0; }
 .cpub-path-aside-meta { font-size: 11px; font-family: var(--font-mono); color: var(--text-faint); }
 
@@ -281,16 +281,16 @@ const activeDifficultyFilter = ref('');
 .cpub-course-cover { height: 120px; position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden; background: var(--surface3); border-bottom: var(--border-width-default) solid var(--border); }
 .cpub-course-cover-icon { font-size: 28px; position: relative; z-index: 1; color: var(--text-dim); }
 .cpub-course-cover-price { position: absolute; top: 10px; right: 10px; z-index: 2; font-size: 11px; font-family: var(--font-mono); padding: 3px 8px; border-radius: 0; background: var(--surface); border: var(--border-width-default) solid var(--border); }
-.cpub-price-free { color: var(--green); border-color: var(--green); }
+.cpub-price-free { color: var(--green-text); border-color: var(--green); }
 .cpub-price-paid { color: var(--text); }
 .cpub-course-body { padding: 14px; flex: 1; display: flex; flex-direction: column; }
 .cpub-course-title { font-size: 13px; font-weight: 600; margin-bottom: 6px; line-height: 1.35; }
 .cpub-course-instructor { font-size: 11px; color: var(--text-dim); margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
 .cpub-instructor-dot { width: 16px; height: 16px; border-radius: 50%; background: var(--surface3); border: var(--border-width-default) solid var(--border); font-size: 8px; display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); color: var(--text-faint); flex-shrink: 0; }
 .cpub-course-stars { display: flex; align-items: center; gap: 3px; margin-bottom: 8px; }
-.cpub-star { color: var(--yellow); font-size: 10px; }
+.cpub-star { color: var(--yellow-text); font-size: 10px; }
 .cpub-star-empty { color: var(--border2); }
-.cpub-star-score { font-size: 11px; font-family: var(--font-mono); color: var(--yellow); margin-left: 2px; }
+.cpub-star-score { font-size: 11px; font-family: var(--font-mono); color: var(--yellow-text); margin-left: 2px; }
 .cpub-star-count { font-size: 10px; color: var(--text-faint); font-family: var(--font-mono); margin-left: 2px; }
 .cpub-course-meta-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
 .cpub-course-meta-item { font-size: 10px; font-family: var(--font-mono); color: var(--text-faint); display: flex; align-items: center; gap: 4px; }
@@ -345,7 +345,7 @@ const activeDifficultyFilter = ref('');
 .cpub-sb-tag:hover { border-color: var(--border); color: var(--text-dim); background: var(--surface3); }
 .cpub-cert-grid { display: flex; flex-direction: column; gap: 8px; }
 .cpub-cert-item { background: var(--surface2); border: var(--border-width-default) solid var(--border); border-radius: var(--radius); padding: 10px 12px; display: flex; align-items: center; gap: 10px; box-shadow: var(--shadow-sm); }
-.cpub-cert-badge { width: 32px; height: 32px; border-radius: 50%; border: var(--border-width-default) solid var(--yellow); background: var(--yellow-bg); display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; color: var(--yellow); }
+.cpub-cert-badge { width: 32px; height: 32px; border-radius: 50%; border: var(--border-width-default) solid var(--yellow); background: var(--yellow-bg); display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; color: var(--yellow-text); }
 .cpub-cert-info { flex: 1; }
 .cpub-cert-name { font-size: 11px; font-weight: 600; color: var(--text); margin-bottom: 2px; }
 .cpub-cert-date { font-size: 10px; font-family: var(--font-mono); color: var(--text-faint); }
@@ -357,7 +357,7 @@ const activeDifficultyFilter = ref('');
 .cpub-my-path-title { font-size: 13px; font-weight: 600; color: var(--text); text-decoration: none; }
 .cpub-my-path-title:hover { color: var(--accent); }
 .cpub-my-path-status { font-size: 10px; font-family: var(--font-mono); padding: 2px 8px; border: var(--border-width-default) solid var(--border); color: var(--text-dim); }
-.cpub-my-path-status.draft { color: var(--yellow); border-color: var(--yellow-border); background: var(--yellow-bg); }
+.cpub-my-path-status.draft { color: var(--yellow-text); border-color: var(--yellow-border); background: var(--yellow-bg); }
 .cpub-my-path-meta { display: flex; gap: 12px; font-size: 11px; font-family: var(--font-mono); color: var(--text-faint); }
 
 /* EMPTY STATE (page-specific) */

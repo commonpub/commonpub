@@ -446,7 +446,7 @@ const VIEWPORTS: Array<{ value: 'mobile' | 'tablet' | 'desktop'; icon: string; l
 .cpub-admin-layouts-toolbar-indicator[data-tone='neutral'] { color: var(--text-dim); }
 .cpub-admin-layouts-toolbar-indicator[data-tone='pending'] { color: var(--text-dim); }
 .cpub-admin-layouts-toolbar-indicator[data-tone='success'] { color: var(--accent); }
-.cpub-admin-layouts-toolbar-indicator[data-tone='error'] { color: var(--red); }
+.cpub-admin-layouts-toolbar-indicator[data-tone='error'] { color: var(--red-text); }
 
 .cpub-admin-layouts-toolbar-actions { display: inline-flex; gap: var(--space-2); }
 

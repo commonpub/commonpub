@@ -139,13 +139,13 @@ const joinedFormatted = computed((): string => {
 }
 
 .cpub-member-role-owner {
-  color: var(--red);
+  color: var(--red-text);
   background: var(--red-bg);
   border-color: var(--red-border);
 }
 
 .cpub-member-role-mod {
-  color: var(--purple);
+  color: var(--purple-text);
   background: var(--purple-bg);
   border-color: var(--purple-border);
 }

@@ -528,7 +528,7 @@ const sortOptions = [
   align-items: center;
   justify-content: center;
   font-size: 14px;
-  color: var(--green);
+  color: var(--green-text);
   margin-bottom: 10px;
 }
 

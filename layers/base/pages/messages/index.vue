@@ -427,7 +427,7 @@ async function startConversation(): Promise<void> {
 .cpub-new-msg-error {
   padding: 8px 10px;
   background: var(--red-bg);
-  color: var(--red);
+  color: var(--red-text);
   border: var(--border-width-default) solid var(--red);
   font-size: 12px;
   border-radius: var(--radius);
@@ -463,7 +463,7 @@ async function startConversation(): Promise<void> {
 }
 
 .cpub-new-msg-chip-remove:hover {
-  color: var(--red);
+  color: var(--red-text);
 }
 
 .cpub-new-msg-hint {

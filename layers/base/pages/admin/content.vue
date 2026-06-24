@@ -279,20 +279,20 @@ async function setCategory(id: string, categoryId: string | null): Promise<void>
 .cpub-admin-num { font-family: var(--font-mono); font-size: 11px; color: var(--text-faint); }
 .cpub-admin-date { font-family: var(--font-mono); font-size: 11px; color: var(--text-faint); }
 .cpub-status-badge { font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; padding: 2px 8px; }
-.cpub-status-published { color: var(--green); background: var(--green-bg); border: var(--border-width-default) solid var(--green-border); }
+.cpub-status-published { color: var(--green-text); background: var(--green-bg); border: var(--border-width-default) solid var(--green-border); }
 .cpub-status-draft { color: var(--text-dim); background: var(--surface2); border: var(--border-width-default) solid var(--border2); }
 .cpub-admin-actions { display: flex; gap: 6px; }
 .cpub-admin-action { background: none; border: none; color: var(--text-faint); cursor: pointer; font-size: 12px; padding: 4px 6px; }
 .cpub-admin-action:hover { color: var(--accent); }
-.cpub-admin-action--active { color: var(--teal); }
-.cpub-admin-action--active-star { color: var(--yellow, #e6b800); }
-.cpub-admin-action--danger:hover { color: var(--red); }
+.cpub-admin-action--active { color: var(--teal-text); }
+.cpub-admin-action--active-star { color: var(--yellow-text, #e6b800); }
+.cpub-admin-action--danger:hover { color: var(--red-text); }
 .cpub-admin-federated-tag { font-family: var(--font-mono); font-size: 9px; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.04em; display: flex; align-items: center; gap: 3px; }
 .cpub-row-selected { background: var(--accent-bg); }
 .cpub-admin-badges { display: flex; gap: 4px; margin-top: 2px; }
 .cpub-mini-badge { font-family: var(--font-mono); font-size: 9px; display: inline-flex; align-items: center; gap: 3px; }
-.cpub-mini-badge--editorial { color: var(--teal); }
-.cpub-mini-badge--featured { color: var(--yellow, #e6b800); }
+.cpub-mini-badge--editorial { color: var(--teal-text); }
+.cpub-mini-badge--featured { color: var(--yellow-text, #e6b800); }
 .cpub-cat-select {
   font-family: var(--font-mono);
   font-size: 10px;

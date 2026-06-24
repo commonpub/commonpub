@@ -62,5 +62,5 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
 .cpub-hub-members { font-family: var(--font-mono); font-size: 10px; color: var(--text-faint); }
 .cpub-btn-join { font-family: var(--font-mono); font-size: 9px; text-transform: uppercase; letter-spacing: 0.06em; padding: 3px 10px; border: var(--border-width-default) solid var(--accent); color: var(--accent); background: none; cursor: pointer; }
 .cpub-btn-join:hover { background: var(--accent-bg); }
-.cpub-btn-joined { font-family: var(--font-mono); font-size: 9px; text-transform: uppercase; letter-spacing: 0.06em; padding: 3px 10px; border: var(--border-width-default) solid var(--green-border); color: var(--green); background: var(--green-bg); cursor: default; display: flex; align-items: center; gap: 3px; }
+.cpub-btn-joined { font-family: var(--font-mono); font-size: 9px; text-transform: uppercase; letter-spacing: 0.06em; padding: 3px 10px; border: var(--border-width-default) solid var(--green-border); color: var(--green-text); background: var(--green-bg); cursor: default; display: flex; align-items: center; gap: 3px; }
 </style>

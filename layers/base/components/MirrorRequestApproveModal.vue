@@ -160,6 +160,6 @@ async function reject(): Promise<void> {
 .cpub-fed-btn-sm { padding: 4px 10px; font-family: var(--font-mono); font-size: 10px; font-weight: 600; text-transform: uppercase; cursor: pointer; background: transparent; border: var(--border-width-default) solid var(--border); color: var(--text-dim); }
 .cpub-fed-btn-sm:hover { border-color: var(--accent); color: var(--accent); }
 .cpub-fed-btn-sm:disabled { opacity: 0.5; cursor: not-allowed; }
-.cpub-fed-btn-danger { color: var(--red); border-color: var(--red); }
-.cpub-fed-btn-danger:hover { border-color: var(--red); color: var(--red); background: var(--surface2); }
+.cpub-fed-btn-danger { color: var(--red-text); border-color: var(--red); }
+.cpub-fed-btn-danger:hover { border-color: var(--red); color: var(--red-text); background: var(--surface2); }
 </style>

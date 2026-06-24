@@ -141,7 +141,7 @@ async function handleSubmit(): Promise<void> {
 .form-error {
   padding: var(--space-3);
   background: var(--red-bg);
-  color: var(--red);
+  color: var(--red-text);
   border: var(--border-width-default) solid var(--red);
   border-radius: var(--radius);
   font-size: 12px;
@@ -251,7 +251,7 @@ async function handleSubmit(): Promise<void> {
 
 .register-success-icon {
   font-size: 36px;
-  color: var(--green);
+  color: var(--green-text);
   margin-bottom: 16px;
 }
 

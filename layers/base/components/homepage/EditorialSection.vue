@@ -24,7 +24,7 @@ const { data: editorialPicks } = await useFetch<PaginatedResponse<Serialized<Con
 <style scoped>
 .cpub-editorial-section { margin-bottom: 24px; }
 .cpub-editorial-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-.cpub-editorial-heading { font-family: var(--font-mono); font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--teal); display: flex; align-items: center; gap: 6px; }
+.cpub-editorial-heading { font-family: var(--font-mono); font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--teal-text); display: flex; align-items: center; gap: 6px; }
 .cpub-editorial-heading i { font-size: 10px; }
 .cpub-editorial-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--cpub-card-min, 260px), 1fr)); gap: var(--cpub-card-gap, 20px); }
 .cpub-editorial-single { grid-template-columns: 1fr; max-width: 400px; }

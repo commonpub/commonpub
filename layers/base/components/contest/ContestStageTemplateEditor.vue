@@ -337,7 +337,7 @@ function toggleIntro(): void {
 
 .cpub-stage-iconbtn { background: var(--surface); border: var(--border-width-default) solid var(--border); color: var(--text-dim); cursor: pointer; width: 26px; height: 26px; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; }
 .cpub-stage-iconbtn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
-.cpub-stage-del:hover { border-color: var(--red-border); color: var(--red); }
+.cpub-stage-del:hover { border-color: var(--red-border); color: var(--red-text); }
 
 .cpub-stage-criteria { border: var(--border-width-default) dashed var(--border2); padding: 10px; margin-top: 4px; background: var(--surface); }
 .cpub-stage-criteria-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }

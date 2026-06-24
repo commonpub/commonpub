@@ -965,13 +965,13 @@ watch(site, (s) => {
 }
 
 .cpub-docs-status-draft {
-  color: var(--yellow, #d4a017);
+  color: var(--yellow-text, #d4a017);
   background: var(--yellow-bg, rgba(245, 158, 11, 0.08));
   border: var(--border-width-default) solid var(--yellow-border, rgba(245, 158, 11, 0.25));
 }
 
 .cpub-docs-status-published {
-  color: var(--green, #2a9d5c);
+  color: var(--green-text, #2a9d5c);
   background: var(--green-bg, rgba(34, 197, 94, 0.08));
   border: var(--border-width-default) solid var(--green-border, rgba(34, 197, 94, 0.25));
 }
@@ -1005,7 +1005,7 @@ watch(site, (s) => {
 }
 
 .cpub-docs-unpublish-btn:hover {
-  color: var(--yellow, #d4a017);
+  color: var(--yellow-text, #d4a017);
   border-color: var(--yellow, #d4a017);
 }
 
@@ -1268,7 +1268,7 @@ watch(site, (s) => {
 }
 
 .cpub-settings-danger .cpub-settings-section-title {
-  color: var(--red, #e04030);
+  color: var(--red-text, #e04030);
 }
 
 .cpub-settings-danger-text {
@@ -1278,7 +1278,7 @@ watch(site, (s) => {
 }
 
 .cpub-btn-danger {
-  color: var(--red, #e04030);
+  color: var(--red-text, #e04030);
   border-color: var(--red, #e04030);
 }
 

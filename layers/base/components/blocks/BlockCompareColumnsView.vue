@@ -70,15 +70,15 @@ const toneIcon = (tone: CompareTone): string =>
   display: flex; align-items: center; gap: 8px; margin: 0 0 12px;
   font-size: var(--text-sm); font-weight: 700;
 }
-.cpub-cmp-positive .cpub-cmp-col-head { color: var(--green); }
-.cpub-cmp-negative .cpub-cmp-col-head { color: var(--red); }
+.cpub-cmp-positive .cpub-cmp-col-head { color: var(--green-text); }
+.cpub-cmp-negative .cpub-cmp-col-head { color: var(--red-text); }
 .cpub-cmp-neutral .cpub-cmp-col-head { color: var(--accent); }
 
 .cpub-cmp-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
 .cpub-cmp-item { display: flex; gap: 9px; font-size: var(--text-sm); line-height: 1.55; color: var(--text-dim); }
 .cpub-cmp-item-icon { flex-shrink: 0; margin-top: 3px; font-size: 12px; }
-.cpub-cmp-positive .cpub-cmp-item-icon { color: var(--green); }
-.cpub-cmp-negative .cpub-cmp-item-icon { color: var(--red); }
+.cpub-cmp-positive .cpub-cmp-item-icon { color: var(--green-text); }
+.cpub-cmp-negative .cpub-cmp-item-icon { color: var(--red-text); }
 .cpub-cmp-neutral .cpub-cmp-item-icon { color: var(--accent); }
 
 .cpub-cmp-note {

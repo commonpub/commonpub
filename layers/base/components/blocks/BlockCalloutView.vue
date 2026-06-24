@@ -51,9 +51,9 @@ const config = computed(() => variantConfig[variant.value] ?? variantConfig.info
 }
 
 .cpub-callout--info .cpub-callout-icon { color: var(--accent); }
-.cpub-callout--tip .cpub-callout-icon { color: var(--green); }
-.cpub-callout--warning .cpub-callout-icon { color: var(--yellow); }
-.cpub-callout--danger .cpub-callout-icon { color: var(--red); }
+.cpub-callout--tip .cpub-callout-icon { color: var(--green-text); }
+.cpub-callout--warning .cpub-callout-icon { color: var(--yellow-text); }
+.cpub-callout--danger .cpub-callout-icon { color: var(--red-text); }
 
 .cpub-callout-body { flex: 1; min-width: 0; }
 
@@ -67,9 +67,9 @@ const config = computed(() => variantConfig[variant.value] ?? variantConfig.info
 }
 
 .cpub-callout--info .cpub-callout-label { color: var(--accent); }
-.cpub-callout--tip .cpub-callout-label { color: var(--green); }
-.cpub-callout--warning .cpub-callout-label { color: var(--yellow); }
-.cpub-callout--danger .cpub-callout-label { color: var(--red); }
+.cpub-callout--tip .cpub-callout-label { color: var(--green-text); }
+.cpub-callout--warning .cpub-callout-label { color: var(--yellow-text); }
+.cpub-callout--danger .cpub-callout-label { color: var(--red-text); }
 
 .cpub-callout-text {
   font-size: 14px;

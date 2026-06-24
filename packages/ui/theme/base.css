@@ -116,6 +116,27 @@
      the readable fallback. */
   --code-inline: var(--text);
 
+  /* === READABLE SEMANTIC TEXT COLORS ===
+     The raw vivid semantics (--green/--yellow/--red/--teal/--purple/--pink/--accent)
+     fail WCAG AA as small TEXT on light surfaces (≈2-4:1 — e.g. --yellow ≈2.2:1,
+     --green ≈2.3:1 on white). These -text variants mix the vivid toward --text so
+     they read ≥4.5:1 on light AND dark (the mix targets the theme's own --text, so
+     a single definition adapts per theme — deveco's green, dark mode's light text).
+     Use these for any vivid color applied as TEXT; keep the raw --vivid for fills,
+     borders, and icons over the dark badge overlay. The @supports block (after
+     :root) upgrades them to color-mix; the raw vivid is the no-color-mix fallback
+     (<5% of browsers) = today's behavior, so there is never a regression.
+     Per-color mix % is tuned to clear 4.5:1 on the lightest surface (white). */
+  --green-text: var(--green);
+  --yellow-text: var(--yellow);
+  --red-text: var(--red);
+  --teal-text: var(--teal);
+  --purple-text: var(--purple);
+  --pink-text: var(--pink);
+  /* Distinct from --color-accent-text (= white, for text ON an accent fill).
+     --accent-text is the accent usable AS text on a light surface. */
+  --accent-text: var(--accent);
+
   /* Code block tokens (GitHub Dark defaults — overridable by themes) */
   --code-bg: #0d1117;
   --code-text: #e6edf3;
@@ -321,6 +342,16 @@
 @supports (color: color-mix(in srgb, red, white)) {
   :root {
     --code-inline: color-mix(in srgb, var(--teal), var(--text) 50%);
+    /* Mix % tuned per color so each clears ≥4.5:1 on white/--surface2/own *-bg
+       (verified empirically). Mixing toward --text only lightens vivids on dark
+       themes, so the same values pass there too (6.9-10.8:1). */
+    --green-text: color-mix(in srgb, var(--green), var(--text) 50%);
+    --yellow-text: color-mix(in srgb, var(--yellow), var(--text) 50%);
+    --red-text: color-mix(in srgb, var(--red), var(--text) 25%);
+    --teal-text: color-mix(in srgb, var(--teal), var(--text) 45%);
+    --purple-text: color-mix(in srgb, var(--purple), var(--text) 20%);
+    --pink-text: color-mix(in srgb, var(--pink), var(--text) 30%);
+    --accent-text: color-mix(in srgb, var(--accent), var(--text) 40%);
   }
 }
 

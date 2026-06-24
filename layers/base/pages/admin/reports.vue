@@ -117,7 +117,7 @@ watch(statusFilter, () => {
       <button v-if="statusFilter === 'pending'" class="cpub-btn cpub-btn-sm" @click="bulkAction('reviewed')">
         <i class="fa-solid fa-eye" /> Mark Reviewed
       </button>
-      <button class="cpub-btn cpub-btn-sm" style="color: var(--green); border-color: var(--green-border);" @click="bulkAction('resolved')">
+      <button class="cpub-btn cpub-btn-sm" style="color: var(--green-text); border-color: var(--green-border);" @click="bulkAction('resolved')">
         <i class="fa-solid fa-check" /> Resolve
       </button>
       <button class="cpub-btn cpub-btn-sm" @click="bulkAction('dismissed')">
@@ -149,7 +149,7 @@ watch(statusFilter, () => {
           <button v-if="report.status === 'pending'" class="cpub-btn cpub-btn-sm" @click="resolveReport(report.id, 'reviewed')">
             <i class="fa-solid fa-eye" /> Mark Reviewed
           </button>
-          <button class="cpub-btn cpub-btn-sm" style="color: var(--green); border-color: var(--green-border);" @click="resolveReport(report.id, 'resolved')">
+          <button class="cpub-btn cpub-btn-sm" style="color: var(--green-text); border-color: var(--green-border);" @click="resolveReport(report.id, 'resolved')">
             <i class="fa-solid fa-check" /> Resolve
           </button>
           <button class="cpub-btn cpub-btn-sm" @click="resolveReport(report.id, 'dismissed')">
@@ -183,9 +183,9 @@ watch(statusFilter, () => {
 .cpub-report-checkbox { display: flex; align-items: center; cursor: pointer; }
 .cpub-report-checkbox input { cursor: pointer; accent-color: var(--accent); }
 .cpub-report-status { font-size: 10px; font-family: var(--font-mono); font-weight: 600; text-transform: uppercase; padding: 2px 8px; }
-.cpub-status-pending { background: var(--yellow-bg); color: var(--yellow); border: var(--border-width-default) solid var(--yellow-border); }
+.cpub-status-pending { background: var(--yellow-bg); color: var(--yellow-text); border: var(--border-width-default) solid var(--yellow-border); }
 .cpub-status-reviewed { background: var(--blue-bg, var(--accent-bg)); color: var(--blue, var(--accent)); border: var(--border-width-default) solid var(--blue-border, var(--accent-border)); }
-.cpub-status-resolved { background: var(--green-bg); color: var(--green); border: var(--border-width-default) solid var(--green-border); }
+.cpub-status-resolved { background: var(--green-bg); color: var(--green-text); border: var(--border-width-default) solid var(--green-border); }
 .cpub-status-dismissed { background: var(--surface2); color: var(--text-faint); border: var(--border-width-default) solid var(--border2); }
 .cpub-report-type { font-size: 10px; font-family: var(--font-mono); color: var(--accent); background: var(--accent-bg); padding: 2px 6px; border: var(--border-width-default) solid var(--accent-border); }
 .cpub-report-date { font-size: 11px; color: var(--text-faint); margin-left: auto; font-family: var(--font-mono); }

@@ -290,7 +290,7 @@ select.cpub-field-input {
 }
 
 .cpub-invite-exhausted {
-  color: var(--red);
+  color: var(--red-text);
 }
 
 .cpub-invite-actions {
@@ -300,7 +300,7 @@ select.cpub-field-input {
 }
 
 .cpub-invite-revoke:hover {
-  color: var(--red);
+  color: var(--red-text);
   border-color: var(--red);
 }
 

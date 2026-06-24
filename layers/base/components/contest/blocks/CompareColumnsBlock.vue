@@ -116,7 +116,7 @@ function removeItem(ci: number, ii: number): void {
 .cpub-cmpedit-remove,
 .cpub-cmpedit-itemremove { background: none; border: var(--border-width-default) solid var(--border); color: var(--text-faint); cursor: pointer; font-size: 11px; padding: 0 8px; flex-shrink: 0; }
 .cpub-cmpedit-remove:hover,
-.cpub-cmpedit-itemremove:hover { border-color: var(--red-border); color: var(--red); }
+.cpub-cmpedit-itemremove:hover { border-color: var(--red-border); color: var(--red-text); }
 .cpub-cmpedit-itemadd { align-self: flex-start; font-family: var(--font-mono); font-size: 10px; padding: 3px 8px; background: transparent; border: var(--border-width-default) solid var(--border2); color: var(--text-dim); cursor: pointer; display: flex; align-items: center; gap: 4px; }
 .cpub-cmpedit-itemadd:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-bg); }
 

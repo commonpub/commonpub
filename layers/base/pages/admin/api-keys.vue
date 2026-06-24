@@ -449,7 +449,7 @@ function fmtErrorRate(rate: number): string {
   border: var(--border-width-default) solid var(--border); font-family: inherit;
 }
 .cpub-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.cpub-form-error { color: var(--red); font-size: 12px; margin: 8px 0; }
+.cpub-form-error { color: var(--red-text); font-size: 12px; margin: 8px 0; }
 .cpub-form-actions { display: flex; justify-content: flex-end; gap: 10px; }
 
 .cpub-scope-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 6px; }
@@ -472,7 +472,7 @@ function fmtErrorRate(rate: number): string {
 .cpub-btn-primary { background: var(--accent); color: var(--color-text-inverse); border-color: var(--accent); }
 .cpub-btn-link { background: none; border: none; color: var(--text-dim); cursor: pointer; padding: 4px 8px; font-size: 12px; }
 .cpub-btn-link:hover { color: var(--text); }
-.cpub-btn-danger { color: var(--red); }
+.cpub-btn-danger { color: var(--red-text); }
 
 .cpub-key-table {
   width: 100%; border-collapse: collapse;
@@ -493,9 +493,9 @@ function fmtErrorRate(rate: number): string {
 }
 
 .cpub-key-badge { font-family: var(--font-mono); font-size: 10px; padding: 2px 8px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
-.cpub-key-badge-green { background: var(--green-bg); color: var(--green); border: var(--border-width-default) solid var(--green); }
-.cpub-key-badge-yellow { background: var(--yellow-bg); color: var(--yellow); border: var(--border-width-default) solid var(--yellow); }
-.cpub-key-badge-red { background: var(--red-bg); color: var(--red); border: var(--border-width-default) solid var(--red); }
+.cpub-key-badge-green { background: var(--green-bg); color: var(--green-text); border: var(--border-width-default) solid var(--green); }
+.cpub-key-badge-yellow { background: var(--yellow-bg); color: var(--yellow-text); border: var(--border-width-default) solid var(--yellow); }
+.cpub-key-badge-red { background: var(--red-bg); color: var(--red-text); border: var(--border-width-default) solid var(--red); }
 
 .cpub-key-actions { display: flex; gap: 8px; }
 .cpub-key-usage-row td { background: var(--surface2); padding: 16px; }
