@@ -18,9 +18,9 @@ import type { H3Event } from 'h3';
 import {
   createTestDB,
   createTestUser,
-} from '../../../../../../../packages/server/src/__tests__/helpers/testdb';
+} from '../../../../../../packages/server/src/__tests__/helpers/testdb';
 import { contentItems, contentVersions } from '@commonpub/schema';
-import type { DB } from '../../../../../../../packages/server/src/types';
+import type { DB } from '../../../../../../packages/server/src/types';
 
 interface HttpError extends Error {
   statusCode: number;
@@ -64,7 +64,7 @@ let currentUser: TestUser | null;
   };
 }
 
-const handlerMod = await import('../versions.get');
+const handlerMod = await import('../[id]/versions.get');
 const handler = handlerMod.default as (event: H3Event) => Promise<unknown>;
 const fakeEvent = {} as H3Event;
 
