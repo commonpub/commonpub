@@ -1,5 +1,9 @@
 # Session 219 — kickoff / handoff: contest editor shell + content blocks (consolidated)
 
+> **SUPERSEDED — SHIPPED.** This branch was squash-merged to `main` (PR #52) and the whole accumulated
+> backlog was published + deployed to all 3 instances in session 219. The "what remains is the release"
+> framing below is historical. Current state + next steps: **`docs/sessions/220-kickoff.md`**.
+
 Paste-ready handoff for whoever continues the `contest-editor-shell` branch. The build is
 **done and green**; what remains is the **release** (your go-ahead) + a few optional follow-ups.
 Full chronological log: `docs/sessions/218-contest-editor-shell-build.md`. Plan:
