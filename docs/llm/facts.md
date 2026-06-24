@@ -23,17 +23,21 @@ codebase-analysis/       raw inventory (generated — trust over older docs)
 12 packages on npm as `@commonpub/*`:
 schema, server, config, protocol, auth, ui, editor, explainer, learning, docs, infra, test-utils.
 
-## Latest published versions (refreshed session 203, 2026-06-18 — defer to `docs/STATUS.md` for LIVE)
+## Latest published versions (refreshed session 224, 2026-06-24 — defer to `docs/STATUS.md` for LIVE)
 
-- schema 0.45.0, server 2.89.0, config 0.22.1, layer 0.82.0
-- ui 0.13.1, theme-studio 0.6.1, protocol 0.13.0, editor 0.7.12, explainer 0.7.15
-- learning 0.5.2, docs 0.6.3, auth 0.8.0, infra 0.8.0, test-utils 0.5.6
-- create-commonpub 0.5.16 (crates.io — `cargo install create-commonpub`)
+- schema 0.48.0, server 2.92.0, config 0.23.0, layer 0.86.4
+- ui 0.13.1, theme-studio 0.6.1, protocol 0.14.0, editor 0.9.0, explainer 0.8.0
+- learning 0.5.2, docs 0.6.3, auth 0.8.0, infra 0.9.0, test-utils 0.5.8
+- create-commonpub 0.5.18 (crates.io — `cargo install create-commonpub`)
 - (Always `npm view @commonpub/<pkg> version` / `cargo search` before trusting this — it drifts.)
+- Theme has readable `--*-text` tokens (session 224): each vivid semantic
+  (`--green/--yellow/--red/--teal/--purple/--pink/--accent`) color-mixed toward
+  `--text` so it reads >=4.5:1 as small text on light AND dark; use these (not the
+  raw vivid) for any colored TEXT. Raw vivid stays for fills/borders/dark-overlay badges.
 
 All three instances (commonpub.io / deveco.io / heatsynclabs.io) are LIVE + healthy.
 commonpub.io builds from the workspace `main`; deveco.io + heatsynclabs.io pin the npm layer
-at `^0.82.0` (rolled in lockstep; verify with `npm view`). deveco registers its brand theme pair
+at `^0.86.4` (rolled in lockstep; verify with `npm view`). deveco registers its brand theme pair
 (`deveco`/`deveco-dark`) + `config.defaultTheme: 'deveco'` — no longer riding the stoa
 fallback (session 196).
 deveco keeps a CUSTOM `layouts/default.vue` + `pages/index.vue` (its nav is now

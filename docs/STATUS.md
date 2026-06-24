@@ -392,8 +392,15 @@ a minute (`curl deveco.io/api/content?limit=5`, today's timestamp).
 | @commonpub/auth | 0.8.0 | | @commonpub/docs | 0.6.3 |
 | @commonpub/server | **2.92.0** | | @commonpub/learning | 0.5.2 |
 | @commonpub/ui | 0.13.1 | | @commonpub/test-utils | **0.5.8** |
-| @commonpub/layer | **0.86.3** | | @commonpub/theme-studio | 0.6.1 |
+| @commonpub/layer | **0.86.4** | | @commonpub/theme-studio | 0.6.1 |
 | create-commonpub (crates.io) | **0.5.18** (pins ^0.48/^2.92/^0.86/config ^0.23 — current) | | | |
+
+**Session 224 (2026-06-24):** theme-wide contrast a11y pass — readable `--*-text` tokens (each vivid
+semantic `color-mix`ed toward `--text`, >=4.5:1 small text on light AND dark, browser-verified
+5.07-12.82:1). Swept `color: var(--vivid)` → `--vivid-text` across ~110 components/pages (fills/borders
++ dark-overlay badges keep raw vivid; accent stays brand/link except named status cases). **layer 0.86.4**
+only (theme bundled at publish), rolled to all 3 (deveco/heatsync pins → `^0.86.4`). Log:
+`docs/sessions/224-theme-contrast-a11y.md`.
 
 **Session 223 (2026-06-24):** more live-feedback polish on top of 222, all visually verified + rolled to 3.
 **layer 0.86.1** = video/embed 16:9 via `aspect-ratio` (prose `:deep(iframe){height:auto}` was collapsing

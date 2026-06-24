@@ -60,6 +60,8 @@ Phase B1, session 189; `0017_exotic_lyja` = `contest_status` enum `+draft,+pause
 | 0029 | `lame_phantom_reporter` | `contests.prizes_blocks` jsonb (BlockTuple[]) — block-edited Prizes tab. Contest Phase 2e. Branch `contests`. |
 | 0030 | `contest_phase4_pii_agreements` | `contest_agreement_acceptances` + `contest_entry_private_fields` tables (PII partitioned out of the public `stageSubmissions`) + idempotent `contest.pii` staff grant. Contest Phase 4. Branch `contests`. |
 | 0031 | `contest_phase6_drop_dead_cols` | DROP the dead `contests.content_format` (superseded by per-field `*_format`) + `contests.judges` (judges live in `contestJudges`). Enum `contest_content_format` retained. Contest Phase 6. Branch `contests`. |
+| 0032 | `remarkable_starjammers` | Additive `contests.banner_meta` + `cover_meta` jsonb — non-destructive banner/cover framing (zoom/offset/fit), shared `imageFramingStyle`. Contest builder UX P4. Session 221. |
+| 0033 | `motionless_stingray` | Additive `contests.cover_placement` (`about`\|`hero`) — where the cover lead image renders. Session 222. |
 
 ## Files
 
