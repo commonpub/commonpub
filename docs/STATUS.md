@@ -386,14 +386,21 @@ a minute (`curl deveco.io/api/content?limit=5`, today's timestamp).
 ### Published versions (verified 2026-06-23 — session 219 "get all current" release)
 | Package | Version | | Package | Version |
 |---|---|---|---|---|
-| @commonpub/schema | **0.47.0** | | @commonpub/infra | **0.9.0** |
-| @commonpub/config | **0.23.0** | | @commonpub/editor | **0.8.0** |
+| @commonpub/schema | **0.48.0** | | @commonpub/infra | **0.9.0** |
+| @commonpub/config | **0.23.0** | | @commonpub/editor | **0.9.0** |
 | @commonpub/protocol | **0.14.0** | | @commonpub/explainer | **0.8.0** |
 | @commonpub/auth | 0.8.0 | | @commonpub/docs | 0.6.3 |
-| @commonpub/server | **2.91.0** | | @commonpub/learning | 0.5.2 |
+| @commonpub/server | **2.92.0** | | @commonpub/learning | 0.5.2 |
 | @commonpub/ui | 0.13.1 | | @commonpub/test-utils | **0.5.8** |
-| @commonpub/layer | **0.85.0** | | @commonpub/theme-studio | 0.6.1 |
-| create-commonpub (crates.io) | **0.5.17** (pins ^0.47/^2.91/^0.85/config ^0.23 — current) | | | |
+| @commonpub/layer | **0.86.0** | | @commonpub/theme-studio | 0.6.1 |
+| create-commonpub (crates.io) | **0.5.18** (pins ^0.48/^2.92/^0.86/config ^0.23 — current) | | | |
+
+**Session 222 (2026-06-24):** contest-page UX from live feedback — banner/cover **Fit** fix
+(ContestBannerAdjust → explicit Fill/Fit/Zoom; Fit shows the whole image, drag works), **cover
+placement** (`coverPlacement` about/hero, **migration 0033**), **tabs** redesigned to a centered nav band,
+**subheading** unclamped, **video/embed size** control (S/M/L/Full). Published **schema 0.48.0 / editor
+0.9.0 / server 2.92.0 / layer 0.86.0**, create-commonpub **0.5.18**. All changes visually verified locally
+(seeded contest + Playwright) before shipping. Rolled to all 3.
 
 **Session 221 (2026-06-24):** contest builder UX **Phases 2/4/5/6** shipped to all 3.
 Published **schema 0.47.0 / server 2.91.0 / layer 0.85.0** (config unchanged); **migration 0032**
