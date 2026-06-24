@@ -386,14 +386,22 @@ a minute (`curl deveco.io/api/content?limit=5`, today's timestamp).
 ### Published versions (verified 2026-06-23 — session 219 "get all current" release)
 | Package | Version | | Package | Version |
 |---|---|---|---|---|
-| @commonpub/schema | **0.46.0** | | @commonpub/infra | **0.9.0** |
+| @commonpub/schema | **0.47.0** | | @commonpub/infra | **0.9.0** |
 | @commonpub/config | **0.23.0** | | @commonpub/editor | **0.8.0** |
 | @commonpub/protocol | **0.14.0** | | @commonpub/explainer | **0.8.0** |
 | @commonpub/auth | 0.8.0 | | @commonpub/docs | 0.6.3 |
-| @commonpub/server | **2.90.0** | | @commonpub/learning | 0.5.2 |
+| @commonpub/server | **2.91.0** | | @commonpub/learning | 0.5.2 |
 | @commonpub/ui | 0.13.1 | | @commonpub/test-utils | **0.5.8** |
-| @commonpub/layer | **0.83.2** | | @commonpub/theme-studio | 0.6.1 |
-| create-commonpub (crates.io) | **0.5.16** (pins ^0.45/^2.89/^0.82 — STALE, bump to ^0.46/^2.90/^0.83) | | | |
+| @commonpub/layer | **0.85.0** | | @commonpub/theme-studio | 0.6.1 |
+| create-commonpub (crates.io) | **0.5.17** (pins ^0.47/^2.91/^0.85/config ^0.23 — current) | | | |
+
+**Session 221 (2026-06-24):** contest builder UX **Phases 2/4/5/6** shipped to all 3.
+Published **schema 0.47.0 / server 2.91.0 / layer 0.85.0** (config unchanged); **migration 0032**
+(additive `contests.banner_meta` + `cover_meta` jsonb) applied on all 3 via hard-fail `db-migrate.mjs`.
+create-commonpub bumped to **0.5.17**. P2 = field presets + whole-form templates + per-stage block
+intro (`instructionsBlocks`); P4 = non-destructive banner/cover zoom (`bannerMeta`/`coverMeta`, shared
+`imageFramingStyle`); P5 = hero→tabs gap; P6 = Judges Showcase upload/reorder/import-panel. All 3
+verified live (health + /contests + /api/contests = 200; commonpub.io flags ON, deveco/heatsync OFF).
 
 **Session 219 (2026-06-23):** published the 9 changed packages above (everything that had
 moved on main since the 2026-06-17 publish) and **rolled all 3 instances to current** —
