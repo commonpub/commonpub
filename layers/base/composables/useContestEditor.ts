@@ -15,6 +15,7 @@
  */
 import { ref, computed, watch, nextTick, type Ref, type ComputedRef } from 'vue';
 import type { ContestStage } from '@commonpub/schema';
+import type { ContestTemplateSeed } from '../utils/contestTemplates';
 
 export type ContestFormat = 'markdown' | 'html';
 export type ContestVisibility = 'public' | 'unlisted' | 'private';
@@ -133,6 +134,9 @@ export interface UseContestEditor {
   prizeLabel: (prize: ContestPrizeRow) => string;
   // lifecycle
   hydrate: (c: ContestEditorSource) => void;
+  /** Seed a starter template (create mode) into the stage/rubric/body refs without
+   *  marking the form dirty. Only the provided fields are applied. */
+  applyTemplate: (seed: ContestTemplateSeed) => void;
   buildPayload: () => Record<string, unknown>;
   /** Persist the form. `silent` (autosave) skips the success toast + navigation +
    *  refresh, renames in place via `onRenamed`, and rethrows on failure so the
@@ -279,6 +283,27 @@ export function useContestEditor(opts: UseContestEditorOptions): UseContestEdito
     void nextTick(() => { hydrating = false; });
   }
 
+  // Seed a starter template into the stage/rubric/body refs (create mode). Guarded
+  // by `hydrating` so an untouched template doesn't flip `formDirty` — a freshly
+  // seeded create page should read "no unsaved changes". The orchestrator reseeds
+  // the body block editors afterward (their own `syncingBodies` guard suppresses the
+  // write-back), so seeding the body refs here is enough.
+  function applyTemplate(seed: ContestTemplateSeed): void {
+    hydrating = true;
+    stages.value = seed.stages;
+    currentStageId.value = seed.currentStageId;
+    criteria.value = seed.judgingCriteria.map((cr) => ({
+      label: cr.label,
+      weight: cr.weight ?? undefined,
+      description: cr.description ?? undefined,
+    }));
+    descriptionBlocks.value = seed.descriptionBlocks;
+    rulesBlocks.value = seed.rulesBlocks;
+    prizesBlocks.value = seed.prizesBlocks;
+    formDirty.value = false;
+    void nextTick(() => { hydrating = false; });
+  }
+
   function buildPayload(): Record<string, unknown> {
     const prizeData = prizes.value
       .filter((p) => p.title.trim() || p.description.trim() || p.category.trim() || (typeof p.place === 'number' && p.place > 0))
@@ -383,6 +408,6 @@ export function useContestEditor(opts: UseContestEditorOptions): UseContestEdito
     visibility, visibleToRoles, showPrizes, prizesDescription, prizes, criteria, stages, currentStageId,
     saving, formDirty, dateError, canSubmit,
     slugify: slugifyContest, toggleType, toggleRole, addPrize, removePrize, prizeLabel,
-    hydrate, buildPayload, save,
+    hydrate, applyTemplate, buildPayload, save,
   };
 }
