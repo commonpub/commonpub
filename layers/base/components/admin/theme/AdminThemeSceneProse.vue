@@ -119,7 +119,7 @@
   color: var(--text-dim);
   background: var(--accent-bg);
 }
-.scene-prose-code-inline { font-family: var(--font-mono); font-size: 0.9em; padding: 1px 6px; background: var(--surface2); border: var(--border-width-thin) solid var(--border2); color: var(--accent); }
+.scene-prose-code-inline { font-family: var(--font-mono); font-size: 0.9em; padding: 1px 6px; background: var(--surface2); border: var(--border-width-thin) solid var(--border2); color: var(--code-inline); }
 .scene-prose-pre {
   background: var(--code-bg);
   color: var(--code-text);

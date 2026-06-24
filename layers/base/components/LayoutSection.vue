@@ -640,7 +640,7 @@ function onHandlePointerDown(e: PointerEvent): void {
   gap: 4px;
   align-items: center;
 }
-.cpub-layout-section-placeholder code { color: var(--accent); }
+.cpub-layout-section-placeholder code { color: var(--code-inline); }
 .cpub-layout-section-placeholder-hint {
   font-size: var(--text-xs);
   color: var(--text-faint);

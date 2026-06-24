@@ -696,7 +696,7 @@ onUnmounted(() => { document.removeEventListener('keydown', onKeydown); });
   background: var(--surface2);
   border: var(--border-width-default) solid var(--border);
   padding: 1px 6px;
-  color: var(--accent);
+  color: var(--code-inline);
 }
 
 .cpub-empty-section {

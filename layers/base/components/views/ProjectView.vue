@@ -926,7 +926,7 @@ async function handleBuild(): Promise<void> {
   background: var(--surface2);
   padding: 2px 5px;
   border: var(--border-width-default) solid var(--border2);
-  color: var(--accent);
+  color: var(--code-inline);
 }
 
 .cpub-prose :deep(pre code) {

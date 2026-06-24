@@ -205,7 +205,7 @@ export function digestFor(body: string): string {
 .scene-muted { font-size: var(--text-sm); color: var(--text-dim); margin: 0; }
 .scene-faint { font-size: var(--text-sm); color: var(--text-faint); margin: 0; }
 .scene-mono-label { font-family: var(--font-mono); font-size: var(--text-label); letter-spacing: var(--tracking-wide); text-transform: uppercase; color: var(--text-dim); margin: 0; }
-.scene-inline-code { font-family: var(--font-mono); font-size: 0.9em; padding: 1px 6px; background: var(--surface2); color: var(--accent); border: var(--border-width-thin) solid var(--border2); }
+.scene-inline-code { font-family: var(--font-mono); font-size: 0.9em; padding: 1px 6px; background: var(--surface2); color: var(--code-inline); border: var(--border-width-thin) solid var(--border2); }
 
 /* Buttons */
 .scene-btn {
