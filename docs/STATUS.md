@@ -383,20 +383,34 @@ a minute (`curl deveco.io/api/content?limit=5`, today's timestamp).
 
 ## 📌 Reference
 
-### Published versions (verified 2026-06-17)
+### Published versions (verified 2026-06-23 — session 219 "get all current" release)
 | Package | Version | | Package | Version |
 |---|---|---|---|---|
-| @commonpub/schema | **0.45.0** | | @commonpub/infra | 0.8.0 |
-| @commonpub/config | 0.22.1 | | @commonpub/editor | 0.7.12 |
-| @commonpub/protocol | 0.13.0 | | @commonpub/explainer | 0.7.15 |
+| @commonpub/schema | **0.46.0** | | @commonpub/infra | **0.9.0** |
+| @commonpub/config | **0.23.0** | | @commonpub/editor | **0.8.0** |
+| @commonpub/protocol | **0.14.0** | | @commonpub/explainer | **0.8.0** |
 | @commonpub/auth | 0.8.0 | | @commonpub/docs | 0.6.3 |
-| @commonpub/server | **2.89.0** | | @commonpub/learning | 0.5.2 |
-| @commonpub/ui | 0.13.1 | | @commonpub/test-utils | 0.5.6 |
-| @commonpub/layer | **0.82.0** | | @commonpub/theme-studio | 0.6.1 |
-| create-commonpub (crates.io) | **0.5.16** (pins ^0.45/^2.89/^0.82) | | | |
+| @commonpub/server | **2.90.0** | | @commonpub/learning | 0.5.2 |
+| @commonpub/ui | 0.13.1 | | @commonpub/test-utils | **0.5.8** |
+| @commonpub/layer | **0.83.2** | | @commonpub/theme-studio | 0.6.1 |
+| create-commonpub (crates.io) | **0.5.16** (pins ^0.45/^2.89/^0.82 — STALE, bump to ^0.46/^2.90/^0.83) | | | |
 
-Latest migration: **0027** (session 204) — but applied on **commonpub.io ONLY** (via main); deveco/
-heatsync are still effectively at **0025** until the packages are published + rolled. **0027**
+**Session 219 (2026-06-23):** published the 9 changed packages above (everything that had
+moved on main since the 2026-06-17 publish) and **rolled all 3 instances to current** —
+commonpub.io (local layer, main), deveco.io + heatsynclabs.io (pins → schema ^0.46.0 /
+config ^0.23.0 / server ^2.90.0 / layer ^0.83.2). Both consumer deploys applied **migrations
+0026–0031** via hard-fail `db-migrate.mjs` = success (incl. **destructive 0031** dropping the
+dead `contests.content_format` + `contests.judges` columns). All 3 verified live (health +
+homepage + /contests = 200). Packaging gotcha hit + fixed: pnpm's publish packer cannot exclude
+test files under a Nuxt bracketed route dir (`server/api/content/[id]/__tests__/`) via ANY glob —
+the fix is to RELOCATE the test to a bracket-free `__tests__` (layer 0.83.0/0.83.1 leaked it →
+deveco CI typecheck red; 0.83.2 clean). `pnpm pack` (NOT `npm pack`) is the reliable leak detector.
+**Follow-up:** bump create-commonpub pins + republish to crates.io.
+
+Latest migration: **0031** (session 211) — **applied on ALL 3** as of session 219 (deveco/heatsync
+rolled from 0025 → 0031 in one deploy). **0031** `contest_phase6_drop_dead_cols` (DROP dead
+`contests.content_format` + `contests.judges`) · **0030** `contest_phase4_pii_agreements` (PII +
+agreement partition tables) · **0028/0029** contest block-body columns + `prizesBlocks`. **0027**
 `audit204_indexes_dedup` (hot-read composite indexes on `content_items` + new `processed_activities`
 inbox-replay-dedup and `digest_runs` multi-replica-claim tables). **0026** `remote_like_count` (column
 on `content_items`/`hub_posts` + backfill so reconcile-counters can't wipe federated likes). Both
