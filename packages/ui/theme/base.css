@@ -108,6 +108,14 @@
 
   --color-text-inverse: #ffffff;
 
+  /* Inline-code text. The raw --teal fails WCAG AA as small text on the light
+     --surface2 chip (≈2.4:1 on base, worse on vivid themes). --code-inline is the
+     theme's teal mixed toward --text so it stays branded yet readable; it adapts
+     per theme (deveco's green, dark mode's light text) via the inner var()
+     resolution. The @supports block (after :root) upgrades it to color-mix; this is
+     the readable fallback. */
+  --code-inline: var(--text);
+
   /* Code block tokens (GitHub Dark defaults — overridable by themes) */
   --code-bg: #0d1117;
   --code-text: #e6edf3;
@@ -303,6 +311,17 @@
 
   /* === FOCUS === */
   --focus-ring: var(--shadow-accent);
+}
+
+/* Branded-but-readable inline code: mix the theme's --teal ~50% toward --text so it
+   reads at ~6:1 on light themes and adapts on dark (mixes toward the light --text).
+   One definition adapts to every theme because the inner var()s resolve at the
+   inline-code element. ~95% browser support; older browsers keep the readable
+   --text fallback declared in :root above. */
+@supports (color: color-mix(in srgb, red, white)) {
+  :root {
+    --code-inline: color-mix(in srgb, var(--teal), var(--text) 50%);
+  }
 }
 
 /* === BASE STYLES === */
