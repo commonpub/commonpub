@@ -303,3 +303,42 @@ describe('useContestEditor — silent save (autosave)', () => {
     expect(toast).not.toHaveBeenCalled();
   });
 });
+
+describe('useContestEditor — applyTemplate (create-mode seeding)', () => {
+  it('seeds stages, rubric, and body blocks without flagging the form dirty', async () => {
+    const { opts } = makeOpts({ mode: 'create' });
+    const e = useContestEditor(opts);
+    e.applyTemplate({
+      stages: [{ id: 's1', name: 'Proposals', kind: 'submission' }],
+      currentStageId: null,
+      judgingCriteria: [{ label: 'Innovation', weight: 40 }],
+      descriptionBlocks: [['markdown', { content: '## About' }]],
+      rulesBlocks: [['markdown', { content: '## Rules' }]],
+      prizesBlocks: [],
+    });
+    expect(e.stages.value).toHaveLength(1);
+    expect(e.criteria.value[0]?.label).toBe('Innovation');
+    expect(e.descriptionBlocks.value).toHaveLength(1);
+    await nextTick();
+    // A freshly seeded create page must read "no unsaved changes".
+    expect(e.formDirty.value).toBe(false);
+  });
+
+  it('re-arms dirty tracking after seeding (a later edit marks dirty)', async () => {
+    const { opts } = makeOpts({ mode: 'create' });
+    const e = useContestEditor(opts);
+    e.applyTemplate({
+      stages: [{ id: 's1', name: 'Proposals', kind: 'submission' }],
+      currentStageId: null,
+      judgingCriteria: [],
+      descriptionBlocks: [],
+      rulesBlocks: [],
+      prizesBlocks: [],
+    });
+    await nextTick();
+    expect(e.formDirty.value).toBe(false);
+    e.title.value = 'My contest';
+    await nextTick();
+    expect(e.formDirty.value).toBe(true);
+  });
+});

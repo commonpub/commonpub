@@ -14,7 +14,6 @@
  */
 import type { Ref } from 'vue';
 import { EditorBlocks, EditorSection, useBlockEditor, BLOCK_COMPONENTS_KEY, UPLOAD_HANDLER_KEY, type BlockTypeGroup } from '@commonpub/editor/vue';
-import type { Serialized, ContestEntryItem } from '@commonpub/server';
 import type { ContestEditorSource } from '../../composables/useContestEditor';
 import JudgesShowcaseBlock from './blocks/JudgesShowcaseBlock.vue';
 import HtmlBlock from './blocks/HtmlBlock.vue';
@@ -25,6 +24,7 @@ import SponsorsBlock from './blocks/SponsorsBlock.vue';
 import CompareColumnsBlock from './blocks/CompareColumnsBlock.vue';
 import RoadmapBlock from './blocks/RoadmapBlock.vue';
 import { CONTEST_SCHEDULE_KEY, roadmapFromSchedule } from '../../utils/contestBlocks';
+import { standardContestTemplate } from '../../utils/contestTemplates';
 
 const props = defineProps<{ mode: 'create' | 'edit' }>();
 
@@ -70,6 +70,13 @@ const {
   saving, formDirty, dateError, canSubmit, slugify, toggleType, toggleRole, addPrize, removePrize, prizeLabel, save,
 } = editor;
 
+// Contest builder feature flags (drive the submission-form field types + the
+// new-contest template's proposal-vs-attach choice). Reactive; hydrate from
+// /api/features after mount.
+const { features } = useFeatures();
+const proposalsEnabled = computed(() => features.value.contestProposals === true);
+const piiEnabled = computed(() => features.value.contestPii === true);
+
 // --- Hoisted body block editors (the one refactor: a single left palette inserts
 // into the CURRENTLY-active body, so the three useBlockEditor instances live here
 // where the palette lives, not inside per-body components). ---
@@ -78,10 +85,15 @@ const overviewEditor = useBlockEditor(seedBodyBlocks(descriptionBlocks.value, de
 const rulesEditor = useBlockEditor(seedBodyBlocks(rulesBlocks.value, rules.value, rulesFormat.value), blockDefaults);
 const prizesEditor = useBlockEditor(seedBodyBlocks(prizesBlocks.value, prizesDescription.value, prizesDescriptionFormat.value), blockDefaults);
 
-type BodyTab = 'overview' | 'rules' | 'prizes';
+type BodyTab = 'overview' | 'rules' | 'prizes' | 'stages';
 const activeTab = ref<BodyTab>('overview');
 const bodyMode = ref<'write' | 'preview' | 'code'>('write');
-const activeBodyEditor = computed(() => ({ overview: overviewEditor, rules: rulesEditor, prizes: prizesEditor })[activeTab.value] ?? overviewEditor);
+// The Stages tab has no block editor; it falls back to overview (the palette is
+// hidden there anyway, so nothing inserts into it).
+const activeBodyEditor = computed(() => {
+  const map: Partial<Record<BodyTab, typeof overviewEditor>> = { overview: overviewEditor, rules: rulesEditor, prizes: prizesEditor };
+  return map[activeTab.value] ?? overviewEditor;
+});
 
 // Contest-specific edit block + image upload, provided once for all three bodies.
 provide(BLOCK_COMPONENTS_KEY, { judgesShowcase: JudgesShowcaseBlock, html: HtmlBlock, criteriaBar: CriteriaBarBlock, table: TableBlock, tabs: TabsBlock, sponsors: SponsorsBlock, compareColumns: CompareColumnsBlock, roadmap: RoadmapBlock });
@@ -240,15 +252,9 @@ function toggleSection(key: string): void {
   openSections.value[key] = !openSections.value[key];
 }
 
-// Edit-only advancement state (operates on real entries, not the editable model).
-const advancing = ref<string | null>(null);
-const advanceN = ref<Record<string, number>>({});
-const advanceMode = ref<Record<string, 'topN' | 'manual'>>({});
-const manualPick = ref<Record<string, string[]>>({});
 const deleting = ref(false);
 
-// Hydrate the form model when the contest loads (edit), and pre-fill each review
-// stage's advancement cut from its persisted advanceCount.
+// Hydrate the form model when the contest loads (edit).
 watch(contest, (c) => {
   if (!c) return;
   // Never clobber unsaved edits with a refetch (e.g. an autosave rename swaps the
@@ -256,11 +262,20 @@ watch(contest, (c) => {
   if (formDirty.value) return;
   editor.hydrate(c as ContestEditorSource);
   reseedBodies();
-  advanceN.value = {};
-  for (const s of stages.value) {
-    if (s.kind === 'review' && typeof s.advanceCount === 'number') advanceN.value[s.id] = s.advanceCount;
-  }
 }, { immediate: true });
+
+// Create mode: seed the standard starter template (a Proposals stage with a form +
+// rules agreement, a Judging stage, a Results stage, a default rubric, and starter
+// Overview/Rules copy) so a new contest doesn't start blank. Flag-adaptive: proposal
+// mode + the agreement field only seed where those builder features are on; else it
+// degrades to an attach-mode entry stage. Runs once on mount (client-only editor, so
+// the feature flags are already SSR-primed). reseedBodies() pushes the seeded body
+// blocks into the hoisted block editors.
+onMounted(() => {
+  if (props.mode !== 'create') return;
+  editor.applyTemplate(standardContestTemplate({ proposals: proposalsEnabled.value, pii: piiEnabled.value }));
+  reseedBodies();
+});
 
 async function handleDelete(): Promise<void> {
   if (!confirm('Permanently delete this contest? All entries, judges, and reviewers are removed. This cannot be undone.')) return;
@@ -335,55 +350,10 @@ onUnmounted(() => {
   document.removeEventListener('keydown', onStatusDocKey);
 });
 
-// Advancement cuts operate on the PERSISTED stages (contest.value), not the
-// editable `stages` ref, since they act on real entries.
+// Advancement (ContestAdvancementPanel, in the Stages tab) operates on the
+// PERSISTED review stages (contest.value), not the editable `stages` ref, since it
+// acts on real entries.
 const reviewStages = computed(() => (contest.value?.stages ?? []).filter((s) => s.kind === 'review'));
-const { data: entriesData, refresh: refreshEntries } = useLazyFetch<{ items: Serialized<ContestEntryItem>[] }>(
-  () => `/api/contests/${slug.value}/entries`,
-  { immediate: props.mode === 'edit' },
-);
-const eligibleEntries = computed(() => (entriesData.value?.items ?? []).filter((e) => !e.eliminated));
-
-function toggleManual(stageId: string, entryId: string): void {
-  const cur = manualPick.value[stageId] ?? [];
-  manualPick.value[stageId] = cur.includes(entryId) ? cur.filter((x) => x !== entryId) : [...cur, entryId];
-}
-async function advanceStageManual(stageId: string): Promise<void> {
-  const ids = manualPick.value[stageId] ?? [];
-  if (!ids.length) { toast.error('Select at least one entry to advance.'); return; }
-  if (!confirm(`Advance the ${ids.length} selected ${ids.length === 1 ? 'entry' : 'entries'}? The rest of the cohort is marked "not advanced" and drops out of later judging + final results.`)) return;
-  advancing.value = stageId;
-  try {
-    const r = await $fetch<{ advancedCount: number; eliminatedCount: number }>(`/api/contests/${slug.value}/advance`, {
-      method: 'POST',
-      body: { reviewStageId: stageId, mode: 'manual', advancedEntryIds: ids },
-    });
-    toast.success(`${r.advancedCount} advanced, ${r.eliminatedCount} not advanced.`);
-    await Promise.all([refresh(), refreshEntries()]);
-  } catch (err: unknown) {
-    toast.error(extractError(err));
-  } finally {
-    advancing.value = null;
-  }
-}
-async function advanceStage(stageId: string): Promise<void> {
-  const topN = advanceN.value[stageId];
-  if (!topN || topN < 1) { toast.error('Enter how many entries advance.'); return; }
-  if (!confirm(`Advance the top ${topN} entries from this stage? Entries below the cut are marked "not advanced" and drop out of later judging + final results. You can re-run this.`)) return;
-  advancing.value = stageId;
-  try {
-    const r = await $fetch<{ advancedCount: number; eliminatedCount: number }>(`/api/contests/${slug.value}/advance`, {
-      method: 'POST',
-      body: { reviewStageId: stageId, mode: 'topN', topN },
-    });
-    toast.success(`${r.advancedCount} advanced, ${r.eliminatedCount} not advanced.`);
-    await Promise.all([refresh(), refreshEntries()]);
-  } catch (err: unknown) {
-    toast.error(extractError(err));
-  } finally {
-    advancing.value = null;
-  }
-}
 </script>
 
 <template>
@@ -477,8 +447,9 @@ async function advanceStage(stageId: string): Promise<void> {
     </header>
 
     <div class="cpub-ce-shell">
-      <!-- LEFT: block palette — inserts into the currently-active body. -->
-      <aside class="cpub-ce-library" aria-label="Block palette">
+      <!-- LEFT: block palette — inserts into the currently-active body. Hidden on
+           the Stages tab (a form, not a block body), giving the editor more room. -->
+      <aside v-show="activeTab !== 'stages'" class="cpub-ce-library" aria-label="Block palette">
         <EditorBlocks :groups="contestBlockGroups" :block-editor="activeBodyEditor" />
       </aside>
 
@@ -529,12 +500,33 @@ async function advanceStage(stageId: string): Promise<void> {
               <p class="cpub-form-hint cpub-ce-media-hint">Banner is the wide hero (~4:1). Cover is the card thumbnail in listings (~4:3); it falls back to the banner if unset.</p>
             </div>
           </template>
+
+          <!-- Stages tab: the public timeline + per-stage submission forms, plus the
+               edit-only Top-N/manual advancement (which acts on real entries). -->
+          <template #stages>
+            <div class="cpub-ce-stages-tab">
+              <p class="cpub-form-hint">Stages are the public timeline (Submissions → Judging → Results, or your own rounds). Each <strong>Submissions</strong> stage carries a submission form; each <strong>Judging</strong> stage its own rubric + Top-N cut. The <strong>Status</strong> control (top bar) is what's actually open now; mark a stage <strong>Current</strong> to point judges + the countdown at it.</p>
+              <ContestStagesEditor
+                v-model="stages"
+                v-model:current-stage-id="currentStageId"
+                :start-date="startDate"
+                :end-date="endDate"
+                :judging-end-date="judgingEndDate"
+              />
+              <ContestAdvancementPanel
+                v-if="mode === 'edit' && reviewStages.length"
+                :slug="slug"
+                :review-stages="reviewStages"
+                @advanced="refresh()"
+              />
+            </div>
+          </template>
         </ContestBodyCanvas>
-        <p class="cpub-form-hint cpub-ce-body-hint">
+        <p v-if="activeTab !== 'stages'" class="cpub-form-hint cpub-ce-body-hint">
           The <strong>Overview</strong>, <strong>Rules</strong>, and <strong>Prizes</strong> bodies are blocks
           (headings, lists, images, callouts, and the <strong>Judges Showcase</strong>), like the project and blog
-          editors. Add blocks from the palette on the left. Stages, judging, and the rest live in the settings rail.
-          Legacy text converts to blocks on first edit.
+          editors. Add blocks from the palette on the left. The <strong>Stages</strong> tab holds the timeline +
+          submission forms; judging, prizes, and access live in the settings rail. Legacy text converts to blocks on first edit.
         </p>
       </div>
 
@@ -565,51 +557,6 @@ async function advanceStage(stageId: string): Promise<void> {
               <CpubDateTimeField label="Judging End Date" :model-value="judgingEndDate" :min="endDate || undefined" @update:model-value="judgingEndDate = $event ?? ''" />
             </div>
             <p v-if="dateError" class="cpub-form-error" role="alert">{{ dateError }}</p>
-          </EditorSection>
-
-          <EditorSection title="Stages" icon="fa-diagram-project" :open="openSections.stages" @toggle="toggleSection('stages')">
-            <p class="cpub-form-hint">Optional. The standard flow (Submissions → Judging → Results) is derived from the schedule. Add custom stages for multi-round contests, proposal rounds, a Top-N selection, a build sprint, or a showcase event.</p>
-            <p class="cpub-form-hint">How the pieces fit: <strong>Stages</strong> are the public timeline. The <strong>Status</strong> control is what's actually open now. <strong>Advancement</strong> (below) runs each review round's Top-N cut. Mark a stage <strong>Current</strong> to point judges + the countdown at it.</p>
-            <ContestStagesEditor
-              v-model="stages"
-              v-model:current-stage-id="currentStageId"
-              :start-date="startDate"
-              :end-date="endDate"
-              :judging-end-date="judgingEndDate"
-            />
-            <div v-if="mode === 'edit' && reviewStages.length" class="cpub-advance-section">
-              <h3 class="cpub-form-subtitle">Advancement</h3>
-              <p class="cpub-form-hint">After judging a review stage, advance the top entries to the next stage. Entries below the cut are marked "not advanced". Re-running re-computes the cut. (Save any stage changes above first.)</p>
-              <div v-for="rs in reviewStages" :key="rs.id" class="cpub-advance-block">
-                <div class="cpub-advance-row">
-                  <span class="cpub-advance-name"><i class="fa-solid fa-gavel"></i> {{ rs.name }}</span>
-                  <div class="cpub-advance-mode">
-                    <label class="cpub-form-check"><input type="radio" :name="`mode-${rs.id}`" :checked="(advanceMode[rs.id] ?? 'topN') === 'topN'" @change="advanceMode[rs.id] = 'topN'" /> <span>Top N</span></label>
-                    <label class="cpub-form-check"><input type="radio" :name="`mode-${rs.id}`" :checked="advanceMode[rs.id] === 'manual'" @change="advanceMode[rs.id] = 'manual'" /> <span>Pick manually</span></label>
-                  </div>
-                </div>
-                <div v-if="(advanceMode[rs.id] ?? 'topN') === 'topN'" class="cpub-advance-ctl">
-                  <label class="cpub-form-label" :for="`adv-${rs.id}`">Advance top</label>
-                  <input :id="`adv-${rs.id}`" v-model.number="advanceN[rs.id]" type="number" min="1" class="cpub-form-input cpub-advance-n" placeholder="50" />
-                  <button type="button" class="cpub-btn cpub-btn-sm" :disabled="advancing === rs.id" @click="advanceStage(rs.id)">
-                    <i class="fa-solid fa-arrow-up-right-dots"></i> {{ advancing === rs.id ? 'Advancing…' : 'Advance' }}
-                  </button>
-                </div>
-                <div v-else class="cpub-advance-manual">
-                  <p v-if="!eligibleEntries.length" class="cpub-form-hint" style="margin: 0;">No entries in the current cohort to pick from yet.</p>
-                  <template v-else>
-                    <label v-for="e in eligibleEntries" :key="e.id" class="cpub-advance-pick">
-                      <input type="checkbox" :checked="(manualPick[rs.id] ?? []).includes(e.id)" @change="toggleManual(rs.id, e.id)" />
-                      <span class="cpub-advance-pick-title">{{ e.contentTitle }}</span>
-                      <span v-if="e.score != null" class="cpub-advance-pick-score">{{ e.score }}</span>
-                    </label>
-                    <button type="button" class="cpub-btn cpub-btn-sm" :disabled="advancing === rs.id || !(manualPick[rs.id] ?? []).length" @click="advanceStageManual(rs.id)">
-                      <i class="fa-solid fa-arrow-up-right-dots"></i> {{ advancing === rs.id ? 'Advancing…' : `Advance ${(manualPick[rs.id] ?? []).length} selected` }}
-                    </button>
-                  </template>
-                </div>
-              </div>
-            </div>
           </EditorSection>
 
           <EditorSection title="Entries" icon="fa-inbox" :open="openSections.entries" @toggle="toggleSection('entries')">
@@ -863,22 +810,8 @@ async function advanceStage(stageId: string): Promise<void> {
 .cpub-prize-remove { background: none; border: none; color: var(--text-faint); cursor: pointer; font-size: 12px; }
 .cpub-prize-remove:hover { color: var(--red); }
 
-/* Advancement (edit-only, inside the Stages section) */
-.cpub-advance-section { margin-top: 16px; padding-top: 12px; border-top: var(--border-width-default) solid var(--border2); }
-.cpub-advance-block { padding: 12px 0; border-top: var(--border-width-default) solid var(--border); }
-.cpub-advance-block:first-of-type { border-top: 0; }
-.cpub-advance-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-.cpub-advance-name { font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; }
-.cpub-advance-name i { color: var(--accent); font-size: 11px; }
-.cpub-advance-mode { display: inline-flex; gap: 12px; }
-.cpub-advance-ctl { display: inline-flex; align-items: center; gap: 8px; margin-top: 10px; }
-.cpub-advance-ctl .cpub-form-label { margin: 0; }
-.cpub-advance-n { width: 80px; }
-.cpub-advance-manual { margin-top: 10px; display: flex; flex-direction: column; gap: 4px; }
-.cpub-advance-pick { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-dim); padding: 4px 8px; border: var(--border-width-default) solid var(--border); background: var(--surface2); cursor: pointer; }
-.cpub-advance-pick-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.cpub-advance-pick-score { font-family: var(--font-mono); font-size: 11px; color: var(--accent); flex-shrink: 0; }
-.cpub-advance-manual .cpub-btn { align-self: flex-start; margin-top: 6px; }
+/* Stages tab (center) — the form tab gets a little breathing room. */
+.cpub-ce-stages-tab { display: flex; flex-direction: column; gap: 4px; }
 
 /* Danger zone */
 .cpub-danger-label { font-size: 13px; font-weight: 600; margin: 0 0 2px; color: var(--red); }

@@ -109,23 +109,20 @@ export function blankTemplateField(): ContestSubmissionTemplateField {
   return { key: '', label: '', type: 'text', required: false };
 }
 
-function withTemplate(stages: ContestStage[], i: number, template: ContestSubmissionTemplateField[]): ContestStage[] {
-  return stages.map((s, idx) => (idx === i ? { ...s, submissionTemplate: template.length ? template : undefined } : s));
+type FieldType = ContestSubmissionTemplateField['type'];
+type TemplateField = ContestSubmissionTemplateField;
+
+// ─── Array-level template ops (operate on ONE stage's submissionTemplate) ───
+// The extracted ContestStageTemplateEditor works on a plain field array; the
+// stage-indexed `withTemplate*` wrappers below delegate to these so both surfaces
+// share one implementation (and the existing unit tests still exercise it).
+
+export function templateFieldAdded(t: TemplateField[]): TemplateField[] {
+  return [...t, blankTemplateField()];
 }
 
-export function withTemplateFieldAdded(stages: ContestStage[], i: number): ContestStage[] {
-  const cur = stages[i]?.submissionTemplate ?? [];
-  return withTemplate(stages, i, [...cur, blankTemplateField()]);
-}
-
-export function withTemplateFieldSet(
-  stages: ContestStage[],
-  i: number,
-  fi: number,
-  patch: Partial<ContestSubmissionTemplateField>,
-): ContestStage[] {
-  const cur = (stages[i]?.submissionTemplate ?? []).map((f, idx) => (idx === fi ? { ...f, ...patch } : f));
-  return withTemplate(stages, i, cur);
+export function templateFieldSet(t: TemplateField[], fi: number, patch: Partial<TemplateField>): TemplateField[] {
+  return t.map((f, idx) => (idx === fi ? { ...f, ...patch } : f));
 }
 
 /**
@@ -134,27 +131,16 @@ export function withTemplateFieldSet(
  * organizer edited by hand is left alone — once entrants have submitted, keys
  * are what artifact values hang off, so they must stay stable.
  */
-export function withTemplateFieldLabelChanged(
-  stages: ContestStage[],
-  i: number,
-  fi: number,
-  label: string,
-): ContestStage[] {
-  const field = stages[i]?.submissionTemplate?.[fi];
-  if (!field) return stages;
+export function templateFieldLabelChanged(t: TemplateField[], fi: number, label: string): TemplateField[] {
+  const field = t[fi];
+  if (!field) return t;
   const tracksLabel = !field.key || field.key === fieldKeyFromLabel(field.label);
-  const patch: Partial<ContestSubmissionTemplateField> = tracksLabel
-    ? { label, key: fieldKeyFromLabel(label) }
-    : { label };
-  return withTemplateFieldSet(stages, i, fi, patch);
+  return templateFieldSet(t, fi, tracksLabel ? { label, key: fieldKeyFromLabel(label) } : { label });
 }
 
-export function withTemplateFieldRemoved(stages: ContestStage[], i: number, fi: number): ContestStage[] {
-  const cur = (stages[i]?.submissionTemplate ?? []).filter((_, idx) => idx !== fi);
-  return withTemplate(stages, i, cur);
+export function templateFieldRemoved(t: TemplateField[], fi: number): TemplateField[] {
+  return t.filter((_, idx) => idx !== fi);
 }
-
-type FieldType = ContestSubmissionTemplateField['type'];
 
 /**
  * Change a template field's type AND normalize the type-specific ancillary props
@@ -163,15 +149,10 @@ type FieldType = ContestSubmissionTemplateField['type'];
  * `mustAccept`; entering `select` seeds one blank option; entering `agreement`
  * defaults `mustAccept` true.
  */
-export function withTemplateFieldTypeChanged(
-  stages: ContestStage[],
-  i: number,
-  fi: number,
-  type: FieldType,
-): ContestStage[] {
-  const field = stages[i]?.submissionTemplate?.[fi];
-  if (!field) return stages;
-  const patch: Partial<ContestSubmissionTemplateField> = { type };
+export function templateFieldTypeChanged(t: TemplateField[], fi: number, type: FieldType): TemplateField[] {
+  const field = t[fi];
+  if (!field) return t;
+  const patch: Partial<TemplateField> = { type };
   patch.options = type === 'select' ? (field.options?.length ? field.options : [{ value: '', label: '' }]) : undefined;
   if (type === 'agreement') {
     patch.mustAccept = field.mustAccept ?? true;
@@ -181,13 +162,64 @@ export function withTemplateFieldTypeChanged(
     patch.mustAccept = undefined;
   }
   if (type === 'address') patch.pii = true;
-  return withTemplateFieldSet(stages, i, fi, patch);
+  return templateFieldSet(t, fi, patch);
+}
+
+export function templateOptionAdded(t: TemplateField[], fi: number): TemplateField[] {
+  const field = t[fi];
+  if (!field) return t;
+  return templateFieldSet(t, fi, { options: [...(field.options ?? []), { value: '', label: '' }] });
+}
+
+export function templateOptionSet(
+  t: TemplateField[],
+  fi: number,
+  oi: number,
+  patch: Partial<{ value: string; label: string }>,
+): TemplateField[] {
+  const field = t[fi];
+  if (!field) return t;
+  const options = (field.options ?? []).map((o, idx) => (idx === oi ? { ...o, ...patch } : o));
+  return templateFieldSet(t, fi, { options });
+}
+
+export function templateOptionRemoved(t: TemplateField[], fi: number, oi: number): TemplateField[] {
+  const field = t[fi];
+  if (!field) return t;
+  return templateFieldSet(t, fi, { options: (field.options ?? []).filter((_, idx) => idx !== oi) });
+}
+
+// ─── Stage-indexed wrappers (delegate to the array-level ops above) ───
+
+function withTemplate(stages: ContestStage[], i: number, template: TemplateField[]): ContestStage[] {
+  return stages.map((s, idx) => (idx === i ? { ...s, submissionTemplate: template.length ? template : undefined } : s));
+}
+
+export function withTemplateFieldAdded(stages: ContestStage[], i: number): ContestStage[] {
+  return withTemplate(stages, i, templateFieldAdded(stages[i]?.submissionTemplate ?? []));
+}
+
+export function withTemplateFieldSet(stages: ContestStage[], i: number, fi: number, patch: Partial<TemplateField>): ContestStage[] {
+  return withTemplate(stages, i, templateFieldSet(stages[i]?.submissionTemplate ?? [], fi, patch));
+}
+
+export function withTemplateFieldLabelChanged(stages: ContestStage[], i: number, fi: number, label: string): ContestStage[] {
+  if (!stages[i]?.submissionTemplate?.[fi]) return stages;
+  return withTemplate(stages, i, templateFieldLabelChanged(stages[i]!.submissionTemplate!, fi, label));
+}
+
+export function withTemplateFieldRemoved(stages: ContestStage[], i: number, fi: number): ContestStage[] {
+  return withTemplate(stages, i, templateFieldRemoved(stages[i]?.submissionTemplate ?? [], fi));
+}
+
+export function withTemplateFieldTypeChanged(stages: ContestStage[], i: number, fi: number, type: FieldType): ContestStage[] {
+  if (!stages[i]?.submissionTemplate?.[fi]) return stages;
+  return withTemplate(stages, i, templateFieldTypeChanged(stages[i]!.submissionTemplate!, fi, type));
 }
 
 export function withTemplateOptionAdded(stages: ContestStage[], i: number, fi: number): ContestStage[] {
-  const field = stages[i]?.submissionTemplate?.[fi];
-  if (!field) return stages;
-  return withTemplateFieldSet(stages, i, fi, { options: [...(field.options ?? []), { value: '', label: '' }] });
+  if (!stages[i]?.submissionTemplate?.[fi]) return stages;
+  return withTemplate(stages, i, templateOptionAdded(stages[i]!.submissionTemplate!, fi));
 }
 
 export function withTemplateOptionSet(
@@ -197,16 +229,13 @@ export function withTemplateOptionSet(
   oi: number,
   patch: Partial<{ value: string; label: string }>,
 ): ContestStage[] {
-  const field = stages[i]?.submissionTemplate?.[fi];
-  if (!field) return stages;
-  const options = (field.options ?? []).map((o, idx) => (idx === oi ? { ...o, ...patch } : o));
-  return withTemplateFieldSet(stages, i, fi, { options });
+  if (!stages[i]?.submissionTemplate?.[fi]) return stages;
+  return withTemplate(stages, i, templateOptionSet(stages[i]!.submissionTemplate!, fi, oi, patch));
 }
 
 export function withTemplateOptionRemoved(stages: ContestStage[], i: number, fi: number, oi: number): ContestStage[] {
-  const field = stages[i]?.submissionTemplate?.[fi];
-  if (!field) return stages;
-  return withTemplateFieldSet(stages, i, fi, { options: (field.options ?? []).filter((_, idx) => idx !== oi) });
+  if (!stages[i]?.submissionTemplate?.[fi]) return stages;
+  return withTemplate(stages, i, templateOptionRemoved(stages[i]!.submissionTemplate!, fi, oi));
 }
 
 /** Human label for each template field type (for the editor dropdown). */

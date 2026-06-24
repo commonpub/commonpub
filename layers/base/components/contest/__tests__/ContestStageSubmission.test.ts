@@ -10,7 +10,7 @@
  * harness doesn't provide — stub them on globalThis before rendering.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, fireEvent } from '@testing-library/vue';
+import { render, fireEvent, cleanup } from '@testing-library/vue';
 import axe from 'axe-core';
 import ContestStageSubmission from '../ContestStageSubmission.vue';
 import ContestSubmissionField from '../ContestSubmissionField.vue';
@@ -80,6 +80,10 @@ describe('ContestStageSubmission — rendering', () => {
     const { container } = mount();
     expect(container.textContent).toContain('Not submitted yet');
 
+    // Two mounts in one test: tear the first down so the duplicate `id-prefix`
+    // ids (cpub-stagesub-*) don't collide in document.body and shadow the second
+    // form's inputs (otherwise the second `querySelector` resolves to null).
+    cleanup();
     const { container: done } = mount({
       entries: [makeEntry({
         stageSubmissions: [{ stageId: 'proto', fields: { repo_url: 'https://github.com/x/y' }, submittedAt: '2026-06-01T12:00:00.000Z' }],

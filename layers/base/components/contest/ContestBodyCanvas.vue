@@ -13,7 +13,9 @@
  */
 import { BlockCanvas, type BlockEditor, type BlockTypeGroup } from '@commonpub/editor/vue';
 
-type BodyTab = 'overview' | 'rules' | 'prizes';
+// 'stages' is a FORM tab (not a block body): it renders the `#stages` slot and has
+// no Write/Preview/Code mode. The three block tabs share one BlockCanvas.
+type BodyTab = 'overview' | 'rules' | 'prizes' | 'stages';
 type BodyMode = 'write' | 'preview' | 'code';
 
 const props = defineProps<{
@@ -32,7 +34,10 @@ const TABS: { key: BodyTab; label: string; icon: string }[] = [
   { key: 'overview', label: 'Overview', icon: 'fa-circle-info' },
   { key: 'rules', label: 'Rules', icon: 'fa-file-lines' },
   { key: 'prizes', label: 'Prizes', icon: 'fa-trophy' },
+  { key: 'stages', label: 'Stages', icon: 'fa-diagram-project' },
 ];
+// Block tabs share the canvas + the Write/Preview/Code switch; 'stages' is a form.
+const isBlockTab = computed(() => props.activeTab !== 'stages');
 const MODES: { key: BodyMode; label: string; icon: string }[] = [
   { key: 'write', label: 'Write', icon: 'fa-pen' },
   { key: 'preview', label: 'Preview', icon: 'fa-eye' },
@@ -86,7 +91,7 @@ function onTabKey(e: KeyboardEvent, key: BodyTab): void {
           <i class="fa-solid" :class="t.icon"></i> {{ t.label }}
         </button>
       </div>
-      <div class="cpub-cbc-mode" role="group" aria-label="Body view mode">
+      <div v-if="isBlockTab" class="cpub-cbc-mode" role="group" aria-label="Body view mode">
         <button
           v-for="m in MODES"
           :key="m.key"
@@ -102,18 +107,22 @@ function onTabKey(e: KeyboardEvent, key: BodyTab): void {
     </div>
 
     <div class="cpub-cbc-panel" role="tabpanel" tabindex="0" :aria-labelledby="`cpub-cbc-tab-${activeTab}`">
-      <!-- Overview-only lead (inline banner + cover); the parent fills the slot. -->
-      <div v-if="activeTab === 'overview' && mode === 'write'" class="cpub-cbc-lead">
-        <slot name="overview-lead" />
-      </div>
-      <!-- One canvas, keyed by tab so each body gets a clean canvas instance; the
-           underlying block state persists in the parent's hoisted editors. -->
-      <BlockCanvas v-show="mode === 'write'" :key="activeTab" :block-editor="editor" :block-types="groups" />
-      <div v-if="mode === 'preview'" class="cpub-cbc-preview">
-        <BlocksBlockContentRenderer v-if="previewBlocks.length" :blocks="previewBlocks" class="cpub-prose cpub-md" />
-        <p v-else class="cpub-cbc-empty">Nothing to preview yet. Switch to Write and add some blocks.</p>
-      </div>
-      <pre v-else-if="mode === 'code'" class="cpub-cbc-code" aria-label="Block content as JSON"><code>{{ codeJson }}</code></pre>
+      <!-- Stages: a form tab (timeline + submission forms + advancement). -->
+      <slot v-if="activeTab === 'stages'" name="stages" />
+      <template v-else>
+        <!-- Overview-only lead (inline banner + cover); the parent fills the slot. -->
+        <div v-if="activeTab === 'overview' && mode === 'write'" class="cpub-cbc-lead">
+          <slot name="overview-lead" />
+        </div>
+        <!-- One canvas, keyed by tab so each body gets a clean canvas instance; the
+             underlying block state persists in the parent's hoisted editors. -->
+        <BlockCanvas v-show="mode === 'write'" :key="activeTab" :block-editor="editor" :block-types="groups" />
+        <div v-if="mode === 'preview'" class="cpub-cbc-preview">
+          <BlocksBlockContentRenderer v-if="previewBlocks.length" :blocks="previewBlocks" class="cpub-prose cpub-md" />
+          <p v-else class="cpub-cbc-empty">Nothing to preview yet. Switch to Write and add some blocks.</p>
+        </div>
+        <pre v-else-if="mode === 'code'" class="cpub-cbc-code" aria-label="Block content as JSON"><code>{{ codeJson }}</code></pre>
+      </template>
     </div>
   </div>
 </template>

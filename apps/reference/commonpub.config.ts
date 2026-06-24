@@ -15,6 +15,12 @@ export default defineCommonPubConfig({
     docs: true,
     video: true,
     contests: true,
+    // Surface the contest submission-form builder on the reference instance:
+    // proposal-mode entries + the agreement/address (PII) field types. Other
+    // operators stay opt-in (the @commonpub/config + layer defaults are OFF).
+    // PII *read* access is always gated server-side by the `contest.pii` permission.
+    contestProposals: true,
+    contestPii: true,
     learning: true,
     explainers: true,
     editorial: true,
