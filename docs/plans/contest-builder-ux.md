@@ -1,8 +1,10 @@
 # Plan: Contest Builder UX — surface what exists, template the start, polish the gaps
 
-> Status: **Phases 0, 1, 3 IMPLEMENTED + verified** (session 220, 2026-06-23) — on `main`, NOT
-> committed/published/deployed yet. Phases 2 (builder presets/templates/block-intro), 4 (banner zoom),
-> 5 (hero gap / export / sweep), 6 (judges showcase), 7 (release) remain. See "Progress" below.
+> Status: **Phases 0, 1, 3 SHIPPED to all 3 instances** (session 220, 2026-06-23/24). PR #53 squash-merged
+> to `main` (`90467ebd`); `@commonpub/layer 0.84.0` published; deveco.io + heatsynclabs.io pins bumped +
+> deployed. All 3 verified live (health + `/contests` = 200; commonpub.io flags ON, deveco/heatsync OFF;
+> deveco CI typecheck green). Phases 2 (builder presets/templates/block-intro), 4 (banner zoom),
+> 5 (hero gap / export / sweep), 6 (judges showcase) remain. See "Progress" below.
 > Authored after a 4-agent deep investigation of the contest schema/server/layer. Decisions confirmed
 > with the maintainer (see "Decisions" below).
 >

@@ -1,7 +1,11 @@
 # Session 220 — Contest builder UX: flags on, Stages tab, standard template
 
 Plan: `docs/plans/contest-builder-ux.md` (authored + Phases 0/1/3 implemented this session).
-**State: on `main`, working tree dirty, NOT committed / published / deployed.**
+**State: SHIPPED to all 3 instances.** PR #53 → `main` (`90467ebd`); `@commonpub/layer 0.84.0` published;
+deveco.io (`38d7f5a`) + heatsynclabs.io (`fb1d743`) layer pin → `^0.84.0` + deployed. All 3 verified
+live: health + `/contests` = 200; commonpub.io flags ON (`/api/features` proposals+pii true),
+deveco/heatsync OFF (operator opt-in); deveco CI `nuxt typecheck` green; full suite (server 1490, layer
+1322) + `pnpm build` + create→edit Playwright round-trip all green; adversarial diff audit GO.
 
 ## What was done
 
