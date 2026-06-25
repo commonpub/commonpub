@@ -383,17 +383,29 @@ a minute (`curl deveco.io/api/content?limit=5`, today's timestamp).
 
 ## 📌 Reference
 
-### Published versions (verified 2026-06-25 — session 225 contest entry-flow release)
+### Published versions (verified 2026-06-25 — session 226 contest P2 + UX polish release)
 | Package | Version | | Package | Version |
 |---|---|---|---|---|
 | @commonpub/schema | **0.49.0** | | @commonpub/infra | **0.9.0** |
 | @commonpub/config | **0.23.0** | | @commonpub/editor | **0.9.0** |
 | @commonpub/protocol | **0.14.0** | | @commonpub/explainer | **0.8.0** |
 | @commonpub/auth | 0.8.0 | | @commonpub/docs | 0.6.3 |
-| @commonpub/server | **2.93.0** | | @commonpub/learning | 0.5.2 |
+| @commonpub/server | **2.94.0** | | @commonpub/learning | 0.5.2 |
 | @commonpub/ui | 0.13.1 | | @commonpub/test-utils | **0.5.8** |
-| @commonpub/layer | **0.86.6** | | @commonpub/theme-studio | 0.6.1 |
-| create-commonpub (crates.io) | **0.5.18** (pins ^0.48/^2.92/^0.86/config ^0.23 — ⚠️ STALE: schema now 0.49.0, server 2.93.0; bump when next publishing the CLI) | | | |
+| @commonpub/layer | **0.86.7** | | @commonpub/theme-studio | 0.6.1 |
+| create-commonpub (crates.io) | **0.5.19** (pins ^0.49/^2.94/^0.86.7/config ^0.23 — current as of session 226) | | | |
+
+**Session 226 (2026-06-25) — SHIPPED + ROLLED to all 3.** Contest P2 fixes + UX polish,
+**server 2.94.0 / layer 0.86.7** (no schema bump, no migration; latest stays 0034).
+Task A: race-safe contest votes (`onConflictDoNothing` — was an unhandled 500 on concurrent
+votes); `listContestEntries` hides draft proposal placeholders from non-privileged callers
+(viewer still sees their own → `myEntries` intact; count mirrors the filter); `email` fields
+default to PII (explicit `pii:false` opts out), `address` stays always-PII. Task B: contest
+subheading 5-line clamp, tab-band `focusTab` guard + `scrollIntoView`, submit-dialog
+`aria-labelledby`, ContestBannerAdjust `:focus-visible` + zero-rect drag guard. Server suite
+1497 / layer 1405 / typecheck 28/28; verified locally vs real Postgres + live route. CLI
+**create-commonpub 0.5.19** (crates.io). PR #55 (main), PR #56 (CLI bump). Detail:
+`docs/sessions/226-contest-p2-and-ux-polish.md`.
 
 **Session 225 (2026-06-25) — SHIPPED + ROLLED to all 3** (commonpub.io, deveco.io, heatsynclabs.io;
 all health 200, heatsync entries route 200 = migration 0034 live). Contest entry-flow fixes:
