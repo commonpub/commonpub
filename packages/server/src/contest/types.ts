@@ -181,6 +181,15 @@ export interface ContestEntryItem {
   contentTitle: string;
   contentSlug: string;
   contentType: string;
+  /**
+   * Backing content status (`published`/`draft`/`archived`/...). Drives the
+   * entry-detail route's draft gate (a draft placeholder is 404'd for
+   * non-owner/non-privileged viewers) and lets the client suppress the dead
+   * "View the project" link when the content isn't public. Present on
+   * `getContestEntry`; omitted by the public listing (which already filters
+   * drafts out).
+   */
+  contentStatus?: string;
   contentCoverImageUrl: string | null;
   authorName: string;
   authorUsername: string;

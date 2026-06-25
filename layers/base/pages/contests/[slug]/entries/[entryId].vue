@@ -53,8 +53,18 @@ const artifactTimeline = computed(() => {
     });
 });
 
+const { user } = useAuth();
+
 const contentLink = computed(() =>
   entry.value ? `/u/${entry.value.authorUsername}/${entry.value.contentType}/${entry.value.contentSlug}` : '#',
+);
+
+// "View the project" points at the public content page, which only resolves for
+// PUBLISHED content (a draft is author-only). Show it when the content is public
+// or the viewer is the entrant (who can open their own draft); hide it for a
+// privileged viewer looking at someone else's draft placeholder (dead link).
+const showProjectLink = computed(
+  () => entry.value?.contentStatus === 'published' || (!!user.value?.id && user.value.id === entry.value?.userId),
 );
 
 function fmtDate(iso: string): string {
@@ -119,7 +129,7 @@ watch(contestPii, (on) => { if (on) void loadPrivate(); }, { immediate: true });
             <span v-if="entry.rank" class="cpub-ed-badge cpub-ed-rank">#{{ entry.rank }}</span>
             <span v-if="entry.score != null" class="cpub-ed-badge cpub-ed-score">Score {{ entry.score }}</span>
           </div>
-          <NuxtLink :to="contentLink" class="cpub-btn cpub-btn-sm" style="margin-top: 10px;">
+          <NuxtLink v-if="showProjectLink" :to="contentLink" class="cpub-btn cpub-btn-sm" style="margin-top: 10px;">
             <i class="fa-solid fa-arrow-up-right-from-square"></i> View the project
           </NuxtLink>
         </div>

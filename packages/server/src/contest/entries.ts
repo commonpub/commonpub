@@ -157,6 +157,7 @@ export async function getContestEntry(db: DB, entryId: string): Promise<ContestE
         title: contentItems.title,
         slug: contentItems.slug,
         type: contentItems.type,
+        status: contentItems.status,
         coverImageUrl: contentItems.coverImageUrl,
       },
       author: {
@@ -187,6 +188,7 @@ export async function getContestEntry(db: DB, entryId: string): Promise<ContestE
     contentTitle: row.content.title,
     contentSlug: row.content.slug,
     contentType: row.content.type,
+    contentStatus: row.content.status,
     contentCoverImageUrl: row.content.coverImageUrl,
     authorName: row.author.displayName ?? row.author.username,
     authorUsername: row.author.username,

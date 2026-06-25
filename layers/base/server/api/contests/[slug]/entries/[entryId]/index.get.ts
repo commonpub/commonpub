@@ -33,6 +33,16 @@ export default defineEventHandler(async (event): Promise<ContestEntryItem> => {
       (await isContestJudge(db, contest.id, user.id));
   }
   const isEntrant = !!user && user.id === entry.userId;
+
+  // Draft gate (mirrors the listing's `onlyPublishedContent` filter): a proposal
+  // DRAFT placeholder must not be openable by direct URL — 404 it for anyone but
+  // the entrant or a privileged viewer. Without this, a non-owner who guessed a
+  // draft entryId could read its artifacts/title via the detail route even though
+  // the entries listing hides it.
+  if (entry.contentStatus !== 'published' && !privileged && !isEntrant) {
+    throw createError({ statusCode: 404, statusMessage: 'Entry not found' });
+  }
+
   const config = useConfig();
   const artifactsOn = (config.features as unknown as Record<string, boolean>).contestStageSubmissions !== false;
 

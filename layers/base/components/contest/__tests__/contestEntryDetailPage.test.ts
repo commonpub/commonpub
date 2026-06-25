@@ -78,15 +78,20 @@ function makeEntry(overrides: Record<string, unknown> = {}) {
     contentTitle: 'Solar Mesh Node',
     contentSlug: 'solar-mesh-node',
     contentType: 'project',
+    contentStatus: 'published',
     contentCoverImageUrl: null,
     authorName: 'Ada Maker',
     authorUsername: 'ada',
     authorAvatarUrl: null,
+    ...overrides,
   };
 }
 
 let contestData: Record<string, unknown> | null = makeContest();
 let entryData: Record<string, unknown> | null = makeEntry();
+// The signed-in viewer (null = anonymous). Drives the "View the project" link's
+// entrant exemption when the backing content isn't published.
+let authUserId: string | null = null;
 
 Object.assign(globalThis, {
   useRoute: () => ({ params: { slug: 'resilient', entryId: 'e1' } }),
@@ -96,6 +101,7 @@ Object.assign(globalThis, {
   })),
   useSeoMeta: () => {},
   useSiteName: () => 'Test',
+  useAuth: () => ({ user: ref(authUserId ? { id: authUserId } : null) }),
   // PII viewer gate: default OFF so the client-only /private fetch never fires in
   // these tests (the viewer has its own dedicated test).
   useFeatures: () => ({ contestPii: ref(false) }),
@@ -110,7 +116,14 @@ function mount() {
 beforeEach(() => {
   contestData = makeContest();
   entryData = makeEntry();
+  authUserId = null;
 });
+
+function projectLink(container: Element): HTMLAnchorElement | undefined {
+  return Array.from(container.querySelectorAll('a')).find((a) => a.textContent?.includes('View the project')) as
+    | HTMLAnchorElement
+    | undefined;
+}
 
 describe('entry detail page', () => {
   it('shows the content summary with author, status badges, and a project link', () => {
@@ -122,6 +135,24 @@ describe('entry detail page', () => {
     expect(container.textContent).toContain('Score 88');
     const projectLink = Array.from(container.querySelectorAll('a')).find((a) => a.textContent?.includes('View the project'));
     expect(projectLink?.getAttribute('href')).toBe('/u/ada/project/solar-mesh-node');
+  });
+
+  it('hides the dead "View the project" link when a draft entry is viewed by a non-entrant', () => {
+    // A privileged viewer (judge/admin) can reach a draft placeholder's detail,
+    // but the public content page is author-only — so the link would 404. Suppress it.
+    entryData = makeEntry({ contentStatus: 'draft' });
+    authUserId = 'someone-else';
+    const { container } = mount();
+    expect(projectLink(container)).toBeUndefined();
+    // The detail page itself still renders.
+    expect(container.querySelector('.cpub-ed-title')?.textContent).toBe('Solar Mesh Node');
+  });
+
+  it('keeps the link for the entrant viewing their OWN draft (authors can open their drafts)', () => {
+    entryData = makeEntry({ contentStatus: 'draft' });
+    authUserId = 'u1'; // the entry owner
+    const { container } = mount();
+    expect(projectLink(container)?.getAttribute('href')).toBe('/u/ada/project/solar-mesh-node');
   });
 
   it('renders the artifact timeline in stage order with template labels', () => {
