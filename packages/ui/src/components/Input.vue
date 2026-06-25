@@ -114,7 +114,7 @@ function onInput(event: Event): void {
 
 .cpub-input-group__error {
   font-size: var(--text-sm);
-  color: var(--red);
+  color: var(--red-text);
   margin: 0;
 }
 

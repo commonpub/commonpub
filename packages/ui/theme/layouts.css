@@ -270,12 +270,12 @@
 }
 
 .cpub-badge-accent { background: var(--accent-bg); color: var(--accent); border-color: var(--accent-border); }
-.cpub-badge-green { background: var(--green-bg); color: var(--green); border-color: var(--green-border); }
-.cpub-badge-yellow { background: var(--yellow-bg); color: var(--yellow); border-color: var(--yellow-border); }
-.cpub-badge-red { background: var(--red-bg); color: var(--red); border-color: var(--red-border); }
-.cpub-badge-purple { background: var(--purple-bg); color: var(--purple); border-color: var(--purple-border); }
-.cpub-badge-teal { background: var(--teal-bg); color: var(--teal); border-color: var(--teal-border); }
-.cpub-badge-pink { background: var(--pink-bg); color: var(--pink); border-color: var(--pink-border); }
+.cpub-badge-green { background: var(--green-bg); color: var(--green-text); border-color: var(--green-border); }
+.cpub-badge-yellow { background: var(--yellow-bg); color: var(--yellow-text); border-color: var(--yellow-border); }
+.cpub-badge-red { background: var(--red-bg); color: var(--red-text); border-color: var(--red-border); }
+.cpub-badge-purple { background: var(--purple-bg); color: var(--purple-text); border-color: var(--purple-border); }
+.cpub-badge-teal { background: var(--teal-bg); color: var(--teal-text); border-color: var(--teal-border); }
+.cpub-badge-pink { background: var(--pink-bg); color: var(--pink-text); border-color: var(--pink-border); }
 
 /* ─── CARD ─── */
 .cpub-card {

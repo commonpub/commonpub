@@ -127,7 +127,7 @@ function onChange(event: Event): void {
 
 .cpub-select-group__error {
   font-size: var(--text-sm);
-  color: var(--red);
+  color: var(--red-text);
   margin: 0;
 }
 </style>

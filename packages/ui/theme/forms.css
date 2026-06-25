@@ -114,7 +114,7 @@
 
 .cpub-form-error {
   font-size: var(--text-xs);
-  color: var(--red);
+  color: var(--red-text);
   margin-top: var(--space-1);
 }
 

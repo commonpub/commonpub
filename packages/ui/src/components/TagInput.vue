@@ -125,7 +125,7 @@ function focusInput(): void {
 }
 
 .cpub-tag-input__remove:hover {
-  color: var(--red);
+  color: var(--red-text);
 }
 
 .cpub-tag-input__remove:focus-visible {

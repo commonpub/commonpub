@@ -69,11 +69,11 @@
 }
 
 .cpub-tag-accent { border-color: var(--accent-border); color: var(--accent); background: var(--accent-bg); }
-.cpub-tag-green { border-color: var(--green-border); color: var(--green); background: var(--green-bg); }
-.cpub-tag-red { border-color: var(--red-border); color: var(--red); background: var(--red-bg); }
-.cpub-tag-yellow { border-color: var(--yellow-border); color: var(--yellow); background: var(--yellow-bg); }
-.cpub-tag-purple { border-color: var(--purple-border); color: var(--purple); background: var(--purple-bg); }
-.cpub-tag-teal { border-color: var(--teal-border); color: var(--teal); background: var(--teal-bg); }
+.cpub-tag-green { border-color: var(--green-border); color: var(--green-text); background: var(--green-bg); }
+.cpub-tag-red { border-color: var(--red-border); color: var(--red-text); background: var(--red-bg); }
+.cpub-tag-yellow { border-color: var(--yellow-border); color: var(--yellow-text); background: var(--yellow-bg); }
+.cpub-tag-purple { border-color: var(--purple-border); color: var(--purple-text); background: var(--purple-bg); }
+.cpub-tag-teal { border-color: var(--teal-border); color: var(--teal-text); background: var(--teal-bg); }
 
 .cpub-tag-row { display: flex; gap: 6px; flex-wrap: wrap; }
 
@@ -218,7 +218,7 @@
 .cpub-form-error {
   padding: 10px 14px;
   background: var(--red-bg);
-  color: var(--red);
+  color: var(--red-text);
   border: var(--border-width-default) solid var(--red);
   font-size: 12px;
   font-family: var(--font-mono);
@@ -306,7 +306,7 @@
 .cpub-fetch-error {
   text-align: center;
   padding: 48px 16px;
-  color: var(--red);
+  color: var(--red-text);
   font-size: 13px;
   font-family: var(--font-mono);
 }
@@ -327,7 +327,7 @@
 
 /* ─── DELETE BUTTON ─── */
 .cpub-delete-btn { background: none; border: none; color: var(--text-faint); cursor: pointer; padding: 4px 6px; font-size: 12px; }
-.cpub-delete-btn:hover { color: var(--red); }
+.cpub-delete-btn:hover { color: var(--red-text); }
 .cpub-delete-btn-sm { font-size: 10px; padding: 2px 4px; }
 
 /* ─── DIVIDERS ─── */

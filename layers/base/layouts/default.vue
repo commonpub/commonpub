@@ -429,7 +429,7 @@ const userUsername = computed(() => user.value?.username ?? '');
 .cpub-btn-new:hover { box-shadow: var(--shadow-md); transform: translate(-1px, -1px); }
 
 .cpub-avatar-btn { background: none; border: none; padding: 0; cursor: pointer; }
-.cpub-user-avatar { width: 28px; height: 28px; border-radius: 50%; background: var(--purple-bg); border: var(--border-width-default) solid var(--purple); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: var(--purple); font-family: var(--font-mono); overflow: hidden; }
+.cpub-user-avatar { width: 28px; height: 28px; border-radius: 50%; background: var(--purple-bg); border: var(--border-width-default) solid var(--purple); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: var(--purple-text); font-family: var(--font-mono); overflow: hidden; }
 .cpub-user-avatar-img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
 .cpub-user-menu-wrapper { position: relative; }
 .cpub-user-dropdown { position: absolute; top: calc(100% + 6px); right: 0; min-width: 180px; background: var(--surface); border: var(--border-width-default) solid var(--border); box-shadow: var(--shadow-md); z-index: 200; display: flex; flex-direction: column; padding: 4px 0; -webkit-backdrop-filter: var(--surface-backdrop, none); backdrop-filter: var(--surface-backdrop, none); }

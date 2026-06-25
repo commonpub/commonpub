@@ -62,32 +62,32 @@ const props = withDefaults(defineProps<Props>(), {
 
 .cpub-badge--green {
   background-color: var(--green-bg);
-  color: var(--green);
+  color: var(--green-text);
 }
 
 .cpub-badge--red {
   background-color: var(--red-bg);
-  color: var(--red);
+  color: var(--red-text);
 }
 
 .cpub-badge--yellow {
   background-color: var(--yellow-bg);
-  color: var(--yellow);
+  color: var(--yellow-text);
 }
 
 .cpub-badge--purple {
   background-color: var(--purple-bg);
-  color: var(--purple);
+  color: var(--purple-text);
 }
 
 .cpub-badge--teal {
   background-color: var(--teal-bg);
-  color: var(--teal);
+  color: var(--teal-text);
 }
 
 .cpub-badge--pink {
   background-color: var(--pink-bg);
-  color: var(--pink);
+  color: var(--pink-text);
 }
 
 .cpub-badge--outline {

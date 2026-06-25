@@ -28,7 +28,7 @@
 .cpub-ep-chip-wrap:focus-within { border-color: var(--accent); }
 .cpub-ep-chip { display: inline-flex; align-items: center; gap: 3px; padding: 1px 6px; font-size: 10px; font-family: var(--font-mono); background: var(--surface2); border: var(--border-width-default) solid var(--border2); color: var(--text-dim); }
 .cpub-ep-chip-x { cursor: pointer; color: var(--text-faint); }
-.cpub-ep-chip-x:hover { color: var(--red); }
+.cpub-ep-chip-x:hover { color: var(--red-text); }
 .cpub-ep-chip-input { background: transparent; border: none; outline: none; font-size: 11px; color: var(--text); font-family: var(--font-mono); min-width: 60px; flex: 1; }
 .cpub-ep-chip-input::placeholder { color: var(--text-faint); }
 

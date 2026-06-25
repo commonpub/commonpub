@@ -294,7 +294,7 @@
   border: var(--border-width-default) solid var(--green-border);
   background: var(--green-bg);
   font-weight: var(--font-weight-medium);
-  color: var(--green);
+  color: var(--green-text);
   text-align: center;
 }
 
