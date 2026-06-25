@@ -51,6 +51,26 @@ lockfiles refreshed to the resolved 0.86.4). All 3 `/api/health` 200.
 - `codebase-analysis/02-schema-inventory.md`: added migrations **0032** (banner_meta/cover_meta) +
   **0033** (cover_placement).
 
+## Deep audit + extension — layer 0.86.5 (same session)
+After 0.86.4 a deep adversarial audit of the 110-file sweep ran:
+- **Bad-conversion check (the dangerous case):** found ZERO converted `--*-text` sitting on a solid/dark
+  background. Same-line and cross-rule/ancestor checks: every solid-vivid/dark bg in a changed file is a
+  button (`--color-text-inverse`/white text), a decorative dot/bar/switch (no text), or a separate toast
+  (`admin-theme-toast` = white on solid green/red). Dark-overlay badges (ContentCard/EditorialBadge) +
+  `.cpub-code-body` (`color:--surface`) confirmed untouched.
+- **Coverage gaps found + fixed (→ 0.86.5):** the sweep only covered `components/`+`pages/`. Missed:
+  (1) the **bundled theme CSS** the layer loads via `uiTheme()` — `.cpub-tag-*` (components.css),
+  `.cpub-badge-*` (layouts.css), `.cpub-form-error`/`.cpub-fetch-error`/`.cpub-delete-btn:hover`,
+  `.cpub-checkpoint` (prose.css), `.cpub-ep-chip-x:hover` (editor-panels.css), forms.css error — all
+  global utility classes on light `*-bg`; (2) `layouts/default.vue` `.cpub-user-avatar` purple initials;
+  (3) dormant `@commonpub/ui` Badge/Input/Select/Textarea/TagInput (NOT rendered by the layer — fixed in
+  source, ui NOT republished, rides next ui release); (4) **deveco** `pages/index.vue` (`.de-hub-icon`,
+  `.de-btn-joined`, dead `.de-badge-featured`) + **heatsync** `HeroSection.vue` hero badges — forked
+  homepage components on each consumer (the `--*-text` tokens already resolve there since they pin the
+  layer). DevEcoLogo teal LEFT (logotype — WCAG 1.4.3 exempts logos).
+- agora/stoa palette CSS only define tokens (no vivid body text) ✓; `apps/reference` overrides clean ✓.
+- **Released layer 0.86.5** (theme bundled), all 3 rolled to `^0.86.5` with the fork fixes in the same push.
+
 ## Remaining (next session) — from the session 223 audit
 - **C. Test coverage:** the new contest fields still have no dedicated tests (bannerMeta/coverMeta/
   coverPlacement hydrate+buildPayload, instructionsBlocks public render, video/embed size cap +

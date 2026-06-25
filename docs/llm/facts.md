@@ -25,7 +25,7 @@ schema, server, config, protocol, auth, ui, editor, explainer, learning, docs, i
 
 ## Latest published versions (refreshed session 224, 2026-06-24 — defer to `docs/STATUS.md` for LIVE)
 
-- schema 0.48.0, server 2.92.0, config 0.23.0, layer 0.86.4
+- schema 0.48.0, server 2.92.0, config 0.23.0, layer 0.86.5
 - ui 0.13.1, theme-studio 0.6.1, protocol 0.14.0, editor 0.9.0, explainer 0.8.0
 - learning 0.5.2, docs 0.6.3, auth 0.8.0, infra 0.9.0, test-utils 0.5.8
 - create-commonpub 0.5.18 (crates.io — `cargo install create-commonpub`)
