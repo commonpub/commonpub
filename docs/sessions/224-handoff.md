@@ -77,3 +77,5 @@ None of session 220-222's new contest fields have a dedicated test:
 release (**layer 0.86.6** → roll all 3) once done. Release chain for B: layer-only (theme/components
 bundled) → bump + `pnpm run publish:layer` → deveco/heatsync pins `^0.86.6` + both lockfiles → push +
 curl-verify.
+
+> **Paste-ready kickoff prompt for the next agent: `docs/sessions/225-kickoff.md`.**
