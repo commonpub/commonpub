@@ -10,9 +10,18 @@ import type { AgreementAcceptanceInput, PartitionedSubmission } from './types.js
 const ACCEPTANCE_VALUES = new Set(['true', 'on', '1', 'yes', 'accepted', 'checked']);
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-/** A field whose value is personal data — stored in the private table, not the artifact. */
+/**
+ * A field whose value is personal data — stored in the private table, not the
+ * public artifact. `address` is structured personal data and is ALWAYS PII.
+ * `email` defaults to PII too (an entrant's contact email in the public artifact is
+ * an operator footgun), but an operator who genuinely wants a public contact email
+ * can opt out with an explicit `pii: false`. Any field can be flagged with `pii: true`.
+ */
 function isPiiField(f: ContestSubmissionTemplateField): boolean {
-  return f.type === 'address' || f.pii === true;
+  if (f.type === 'address') return true;
+  if (f.pii === true) return true;
+  if (f.type === 'email') return f.pii !== false; // default-PII, explicit opt-out
+  return false;
 }
 
 /** sha-256 hex of an agreement's terms text (integrity check vs the snapshot). */

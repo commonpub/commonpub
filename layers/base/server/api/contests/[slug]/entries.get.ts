@@ -47,6 +47,11 @@ export default defineEventHandler(async (event): Promise<{ items: ContestEntryIt
     includeJudgeScores: privileged && query.includeJudgeScores,
     includeStageSubmissions: privileged && artifactsOn,
     stageSubmissionsViewerId: artifactsOn ? user?.id : undefined,
+    // Non-privileged viewers don't see draft proposal placeholders (the public
+    // entries list + their dead "View the project" link). The viewer still sees
+    // their OWN draft entry so the submit-form gating (myEntries) stays correct.
+    onlyPublishedContent: !privileged,
+    viewerId: user?.id,
     revealScores: shouldRevealScores(contest.judgingVisibility, contest.status, privileged),
   });
 });

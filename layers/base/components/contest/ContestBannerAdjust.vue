@@ -76,6 +76,9 @@ function onPointerDown(e: PointerEvent): void {
 function onPointerMove(e: PointerEvent): void {
   if (!dragging.value || !boxRef.value || !meta.value) return;
   const rect = boxRef.value.getBoundingClientRect();
+  // A zero-size rect (element not laid out, e.g. display:none mid-drag) would make
+  // the normalized delta explode against the Math.max(1, …) floor — skip the frame.
+  if (rect.width === 0 || rect.height === 0) return;
   const dx = ((e.clientX - startX) / Math.max(1, rect.width)) * 100;
   const dy = ((e.clientY - startY) / Math.max(1, rect.height)) * 100;
   meta.value = { zoom: meta.value.zoom, x: clamp(startPosX - dx), y: clamp(startPosY - dy) };
@@ -144,6 +147,7 @@ onUnmounted(() => {
 .cpub-ba-mode { display: inline-flex; align-items: center; gap: 5px; padding: 5px 12px; background: transparent; border: none; border-right: var(--border-width-default) solid var(--border); cursor: pointer; font-size: var(--text-xs); font-family: var(--font-mono); text-transform: uppercase; letter-spacing: .04em; color: var(--text-faint); }
 .cpub-ba-mode:last-child { border-right: none; }
 .cpub-ba-mode:hover { background: var(--surface2); color: var(--text-dim); }
+.cpub-ba-mode:focus-visible { outline: var(--border-width-default) solid var(--accent); outline-offset: -2px; color: var(--text-dim); }
 .cpub-ba-mode-active { background: var(--accent-bg); color: var(--accent); }
 .cpub-ba-box { position: relative; width: 100%; overflow: hidden; border: var(--border-width-default) solid var(--border); background: var(--surface2); touch-action: none; }
 .cpub-ba-drag { cursor: grab; }
