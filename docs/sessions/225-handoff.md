@@ -1,4 +1,4 @@
-# Session 225 — handoff (contest entry-flow bug FIXED + Task C tests done; NOT committed/shipped)
+# Session 225 — handoff (contest entry-flow bug + withdraw-orphan FIXED; SHIPPED to all 3)
 
 Paste-ready handoff for a fresh context. Session 225 fixed a user-reported proposal-entry bug, fixed the P1
 proposal-withdraw orphan, completed Task C (contest-field tests), ran an extreme adversarial audit of every
@@ -15,7 +15,7 @@ contest entry/submission flow, and **SHIPPED + ROLLED the fixes to all 3 instanc
 - **Reference config has `contestProposals: true`** (so the proposal form is live there); the flag DEFAULTS
   to `false` (a "proposal" stage degrades to attach-mode when off). `contestStageSubmissions` defaults true.
 
-## What shipped to the working tree (verified, not yet committed)
+## What shipped (live on all 3 — layer 0.86.6 / server 2.93.0 / schema 0.49.0)
 
 ### Bug fix — hero "Submit Entry" now reaches the proposal form (`pages/contests/[slug]/index.vue`)
 - `onHeroSubmitEntry()` routes form-based stages (proposal / per-stage-with-entry) to the **Entries tab** +
@@ -60,7 +60,7 @@ contest entry/submission flow, and **SHIPPED + ROLLED the fixes to all 3 instanc
 - **P3:** maxEntries TOCTOU (count outside tx); eliminated entries still votable (by-design?); proposal-form
   SSR flash before lazy entries load.
 
-### B — contest UX polish (still pending from 224-handoff; bundle into layer 0.86.6)
+### B — contest UX polish (still pending from 224-handoff; bundle into the next layer release, 0.86.7)
 - **Subheading** clamp (`ContestHero.vue` `.cpub-hero-tagline` ~L267: `-webkit-line-clamp:5`/`max-height`).
 - **Tab-band a11y** (`pages/contests/[slug]/index.vue`): guard `onTabKey`/`focusTab` when the active tab is
   removed; `scrollIntoView` the active tab after arrow-nav at 640px.
@@ -87,3 +87,10 @@ Agreement-terms block editing; bulk PII review UI; judge-invite-resend; stage-ad
   also hit `packages/ui/theme/*.css` + `layouts/` + deveco/heatsync forks (session-224 lesson).
 - `listContestEntries` returns DRAFT-content entries (innerJoin, no status filter) — so a proposal's own
   draft entry IS in `myEntries` (the form gating is correct), but it's also PUBLIC (P2 above).
+- **Release order that worked this session:** schema → server → layer (poll `npm view` between each) → PR +
+  squash-merge to main (commonpub.io canary, hard-fail smoke) → deveco/heatsync pin bumps + BOTH lockfiles →
+  push → curl-verify. `^0.86.5` already allows `0.86.6` (patch); `^0.48.0` does NOT cross to `0.49.0` (0.x
+  minor) — hand-edit. `^2.92.0` does allow `2.93.0` (≥1.0 caret). schema package ships `migrations/`, so
+  consumers get 0034 via their `db-migrate` (hard-fail) on deploy.
+
+> **Paste-ready kickoff prompt for the next agent: `docs/sessions/226-kickoff.md`.**
