@@ -6,6 +6,7 @@ import {
   createContest,
   transitionContestStatus,
   listContestEntries,
+  getContestEntry,
   submitContestEntry,
   withdrawContestEntry,
   submitStageArtifact,
@@ -244,6 +245,25 @@ describe('contest proposals (form-first)', () => {
     await publishContent(db, res.contentId, entrant.id);
     const pubAfter = await listContestEntries(db, contest.id, { onlyPublishedContent: true });
     expect(pubAfter.items.map((e) => e.id)).toContain(res.entryId);
+  });
+
+  it('getContestEntry surfaces the backing contentStatus (the entry-detail route draft gate)', async () => {
+    const contest = await createContest(db, proposalContestInput('detail-status'));
+    await transitionContestStatus(db, contest.id, organizerId, 'active');
+    const entrant = await createTestUser(db, { username: `prop-detailstatus-${Date.now()}` });
+    const res = await submitContestProposal(db, { contestId: contest.id, stageId: 'prop', fields: goodForm(), userId: entrant.id });
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+
+    // The proposal placeholder starts as a DRAFT — the route uses this to 404 the
+    // detail for a non-owner/non-privileged viewer (the list already hides it).
+    const draft = await getContestEntry(db, res.entryId);
+    expect(draft!.contentStatus).toBe('draft');
+
+    // Once published it flips, so the route stops gating + the client shows the link.
+    await publishContent(db, res.contentId, entrant.id);
+    const published = await getContestEntry(db, res.entryId);
+    expect(published!.contentStatus).toBe('published');
   });
 
   it('rejects an unaccepted agreement and creates NO placeholder (validation precedes creation)', async () => {
