@@ -286,9 +286,11 @@ export async function withdrawContestEntry(
     .select({
       entry: contestEntries,
       contestStatus: contests.status,
+      contentStatus: contentItems.status,
     })
     .from(contestEntries)
     .innerJoin(contests, eq(contestEntries.contestId, contests.id))
+    .innerJoin(contentItems, eq(contestEntries.contentId, contentItems.id))
     .where(eq(contestEntries.id, entryId))
     .limit(1);
 
@@ -300,15 +302,31 @@ export async function withdrawContestEntry(
     return { withdrawn: false, error: 'Can only withdraw from active contests' };
   }
 
-  // Atomic: delete + the denormalized entryCount decrement commit together, so
-  // a mid-operation failure can't leave entryCount overcounting (mirrors the
-  // transactional insert in submitContestEntry).
+  // A proposal-created draft placeholder (never developed into a published entry)
+  // is litter once its entry is withdrawn — archive it so it doesn't orphan a stub
+  // project in the entrant's drafts. A placeholder the entrant DEVELOPED and
+  // published (status no longer 'draft') is their real entry and is left as-is, as
+  // is any normal attached project (placeholder === false).
+  const archivePlaceholder = row.entry.placeholder && row.contentStatus === 'draft';
+
+  // Atomic: delete + the denormalized entryCount decrement (+ the placeholder
+  // archive) commit together, so a mid-operation failure can't leave entryCount
+  // overcounting or orphan the stub (mirrors the transactional insert in
+  // submitContestEntry).
   await db.transaction(async (tx) => {
     await tx.delete(contestEntries).where(eq(contestEntries.id, entryId));
     await tx
       .update(contests)
       .set({ entryCount: sql`GREATEST(${contests.entryCount} - 1, 0)` })
       .where(eq(contests.id, row.entry.contestId));
+    if (archivePlaceholder) {
+      // Soft-delete (archive), matching deleteContent — kept inline to stay in the
+      // withdraw transaction. Scoped to the owner as defense in depth.
+      await tx
+        .update(contentItems)
+        .set({ status: 'archived', deletedAt: new Date(), updatedAt: new Date() })
+        .where(and(eq(contentItems.id, row.entry.contentId), eq(contentItems.authorId, userId)));
+    }
   });
 
   return { withdrawn: true };

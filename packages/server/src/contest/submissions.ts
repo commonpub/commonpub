@@ -275,6 +275,9 @@ export async function submitContestProposal(db: DB, args: SubmitProposalArgs): P
           contestId,
           contentId: placeholder.id,
           userId,
+          // Mark this entry as backed by an auto-created draft placeholder so a
+          // later withdraw can clean up the stub (see withdrawContestEntry).
+          placeholder: true,
           stageSubmissions: [{ stageId, fields: artifact, submittedAt: new Date().toISOString() }],
         })
         .onConflictDoNothing()
