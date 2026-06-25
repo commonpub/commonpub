@@ -1,5 +1,9 @@
 # Session 225 — kickoff prompt
 
+> **Session 225 is complete.** Outcome + next steps: `docs/sessions/225-handoff.md` (full log:
+> `docs/sessions/225-contest-entry-flow-audit.md`). TL;DR: Task C tests done + a user-reported proposal-entry
+> bug fixed (verified) + a deep entry-flow audit; all uncommitted/unshipped, layer still 0.86.5.
+
 Paste the block below as the opening message to a fresh agent.
 
 ---

@@ -1,0 +1,1 @@
+ALTER TABLE "contest_entries" ADD COLUMN "placeholder" boolean DEFAULT false NOT NULL;

@@ -300,6 +300,15 @@ export const contestEntries = pgTable('contest_entries', {
    * content-only entry). Upserted by stage while that stage is open.
    */
   stageSubmissions: jsonb('stage_submissions').$type<ContestStageSubmission[]>().default([]).notNull(),
+  /**
+   * True when this entry's content is a DRAFT placeholder auto-created by the
+   * form-first proposal flow (`submitContestProposal`) rather than a real project
+   * the entrant attached. On withdraw, a placeholder whose content is still a
+   * draft is archived along with the entry, so abandoned proposals don't orphan a
+   * stub project in the entrant's drafts list. A developed+published placeholder
+   * (status no longer `draft`) is the entrant's real entry and is left untouched.
+   */
+  placeholder: boolean('placeholder').default(false).notNull(),
   submittedAt: timestamp('submitted_at', { withTimezone: true }).defaultNow().notNull(),
 }, (t) => [
   unique('contest_entries_user_content').on(t.contestId, t.userId, t.contentId),

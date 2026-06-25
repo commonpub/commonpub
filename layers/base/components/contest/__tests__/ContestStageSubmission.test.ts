@@ -48,10 +48,12 @@ function makeEntry(overrides: Record<string, unknown> = {}) {
   };
 }
 
+const introStub = { props: ['blocks'], template: '<div class="intro-stub" :data-count="blocks.length" />' };
+
 function mount(props: Record<string, unknown> = {}) {
   return render(ContestStageSubmission, {
     props: { contestSlug: 'resilient', stage: STAGE, entries: [makeEntry()], ...props },
-    global: { components: { ContestSubmissionField } },
+    global: { components: { ContestSubmissionField }, stubs: { BlocksBlockContentRenderer: introStub } },
   });
 }
 
@@ -91,6 +93,23 @@ describe('ContestStageSubmission — rendering', () => {
     });
     expect(done.textContent).toContain('Submitted');
     expect((done.querySelector('#cpub-stagesub-repo_url') as HTMLInputElement).value).toBe('https://github.com/x/y');
+  });
+
+  it('renders the form-instructions blocks above the fields when the stage carries them', () => {
+    const { container } = mount({
+      stage: { ...STAGE, instructionsBlocks: [['markdown', { content: 'Read the brief first.' }]] },
+    });
+    const intro = container.querySelector('.intro-stub');
+    expect(intro).toBeTruthy();
+    expect(intro?.getAttribute('data-count')).toBe('1');
+    // Intro precedes the first submission field in document order.
+    const firstField = container.querySelector('[id^="cpub-stagesub-"]');
+    expect(intro!.compareDocumentPosition(firstField!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('omits the instructions block when the stage has no instructionsBlocks', () => {
+    const { container } = mount();
+    expect(container.querySelector('.intro-stub')).toBeNull();
   });
 
   it('renders nothing when every entry is eliminated (cohort gate, client side)', () => {

@@ -7,6 +7,7 @@ import {
   transitionContestStatus,
   listContestEntries,
   submitContestEntry,
+  withdrawContestEntry,
   submitStageArtifact,
   validateSubmissionFields,
   hashTerms,
@@ -235,6 +236,67 @@ describe('contest proposals (form-first)', () => {
     expect(second.ok).toBe(false);
     if (!second.ok) expect(second.error).toMatch(/limit/i);
     expect(await countUserContent(db, entrant.id)).toBe(afterFirst); // cap checked before createContent
+  });
+
+  it('withdraw archives a pristine proposal placeholder draft (no orphan stub)', async () => {
+    const contest = await createContest(db, proposalContestInput('wd-draft'));
+    await transitionContestStatus(db, contest.id, organizerId, 'active');
+    const entrant = await createTestUser(db, { username: `prop-wd-draft-${Date.now()}` });
+    const res = await submitContestProposal(db, { contestId: contest.id, stageId: 'prop', fields: goodForm(), userId: entrant.id });
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+
+    const wd = await withdrawContestEntry(db, res.entryId, entrant.id);
+    expect(wd.withdrawn).toBe(true);
+
+    // Entry gone, entryCount decremented back to 0.
+    const [entry] = await db.select().from(contestEntries).where(eq(contestEntries.id, res.entryId));
+    expect(entry).toBeUndefined();
+    const [c] = await db.select({ n: contests.entryCount }).from(contests).where(eq(contests.id, contest.id));
+    expect(c!.n).toBe(0);
+
+    // The abandoned draft placeholder is archived (not left as an orphan stub).
+    const [content] = await db.select().from(contentItems).where(eq(contentItems.id, res.contentId));
+    expect(content!.status).toBe('archived');
+    expect(content!.deletedAt).not.toBeNull();
+  });
+
+  it('withdraw KEEPS a placeholder the entrant developed + published', async () => {
+    const contest = await createContest(db, proposalContestInput('wd-pub'));
+    await transitionContestStatus(db, contest.id, organizerId, 'active');
+    const entrant = await createTestUser(db, { username: `prop-wd-pub-${Date.now()}` });
+    const res = await submitContestProposal(db, { contestId: contest.id, stageId: 'prop', fields: goodForm(), userId: entrant.id });
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+
+    // The entrant develops the placeholder into a real, published project.
+    await publishContent(db, res.contentId, entrant.id);
+
+    const wd = await withdrawContestEntry(db, res.entryId, entrant.id);
+    expect(wd.withdrawn).toBe(true);
+
+    // The real project survives the withdraw (status stays published, not archived).
+    const [content] = await db.select().from(contentItems).where(eq(contentItems.id, res.contentId));
+    expect(content!.status).toBe('published');
+    expect(content!.deletedAt).toBeNull();
+  });
+
+  it('withdraw leaves an ATTACHED (non-placeholder) project untouched', async () => {
+    const contest = await createContest(db, proposalContestInput('wd-attach'));
+    await transitionContestStatus(db, contest.id, organizerId, 'active');
+    const entrant = await createTestUser(db, { username: `prop-wd-attach-${Date.now()}` });
+    const project = await createContent(db, entrant.id, { type: 'project', title: 'My real project' });
+    await publishContent(db, project.id, entrant.id);
+    const entry = await submitContestEntry(db, contest.id, project.id, entrant.id);
+    expect(entry).not.toBeNull();
+
+    const wd = await withdrawContestEntry(db, entry!.id, entrant.id);
+    expect(wd.withdrawn).toBe(true);
+
+    // An attached project is the entrant's own work — never archived on withdraw.
+    const [content] = await db.select().from(contentItems).where(eq(contentItems.id, project.id));
+    expect(content!.status).toBe('published');
+    expect(content!.deletedAt).toBeNull();
   });
 });
 

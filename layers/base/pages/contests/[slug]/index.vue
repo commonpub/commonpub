@@ -204,6 +204,24 @@ function onProposalSubmitted(projectSlug: string, contentType: string): void {
   }
 }
 
+// The hero "Submit Entry" button. Form-based entry (a proposal draft, or a
+// per-stage submission for an existing entry) lives on the Entries tab, not the
+// attach-a-project dialog, so for those stages send the entrant there and scroll
+// to the form. The attach-an-existing-project option is also on that tab, so the
+// dialog is only the right destination when there is no form-based path.
+function onHeroSubmitEntry(): void {
+  if (currentProposalStage.value || (currentSubmissionStage.value && myEntries.value.length)) {
+    activeTab.value = 'entries';
+    if (typeof document !== 'undefined') {
+      nextTick(() => {
+        document.querySelector('.cpub-proposal, .cpub-stagesub')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    }
+    return;
+  }
+  showSubmitDialog.value = true;
+}
+
 // Restrict the submit picker to the contest's eligible content types (if set).
 const eligibleTypes = computed<string[]>(() => (c.value?.eligibleContentTypes as string[] | undefined) ?? []);
 const submittableContent = computed(() => {
@@ -262,7 +280,7 @@ async function withdrawEntry(entryId: string): Promise<void> {
       :is-admin="isAdmin"
       :is-authenticated="isAuthenticated"
       :transitioning="transitioning"
-      @submit-entry="showSubmitDialog = true"
+      @submit-entry="onHeroSubmitEntry"
       @transition="transitionStatus"
       @copy-link="copyLink"
     />
@@ -416,20 +434,15 @@ async function withdrawEntry(entryId: string): Promise<void> {
               :stage="currentProposalStage"
               @submitted="onProposalSubmitted"
             />
-            <!-- Proposal mode + anonymous: prompt to log in. -->
-            <div v-else-if="currentProposalStage && !isAuthenticated" class="cpub-entries-cta">
+            <!-- Attach an existing published project. Available for every active
+                 contest, INCLUDING proposal mode, so entrants can choose either
+                 path: fill the form to start a draft, or enter a finished project. -->
+            <div v-if="c?.status === 'active'" class="cpub-entries-cta">
               <div class="cpub-entries-cta-text">
-                <p class="cpub-entries-cta-title"><i class="fa-solid fa-clipboard-list"></i> Submit a proposal</p>
-                <p class="cpub-entries-cta-sub">Log in to submit a proposal for this contest.</p>
-              </div>
-              <NuxtLink :to="`/auth/login?redirect=/contests/${slug}`" class="cpub-btn cpub-btn-primary cpub-btn-lg">
-                <i class="fa-solid fa-right-to-bracket"></i> Log in to enter
-              </NuxtLink>
-            </div>
-            <!-- Attach mode (no proposal stage): the classic enter-with-a-project CTA. -->
-            <div v-if="c?.status === 'active' && !currentProposalStage" class="cpub-entries-cta">
-              <div class="cpub-entries-cta-text">
-                <p class="cpub-entries-cta-title"><i class="fa-solid fa-trophy"></i> Enter this contest</p>
+                <p class="cpub-entries-cta-title">
+                  <i class="fa-solid fa-trophy"></i>
+                  {{ (currentProposalStage || currentSubmissionStage) ? 'Enter with an existing project' : 'Enter this contest' }}
+                </p>
                 <p class="cpub-entries-cta-sub">Submit one of your published projects, or start a new one.</p>
               </div>
               <button v-if="isAuthenticated" class="cpub-btn cpub-btn-primary cpub-btn-lg" @click="showSubmitDialog = true">

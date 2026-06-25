@@ -127,6 +127,87 @@ describe('useContestEditor — hydrate', () => {
   });
 });
 
+describe('useContestEditor — image meta (hydrate)', () => {
+  it('maps bannerMeta, coverMeta, and coverPlacement from the source', () => {
+    const { opts } = makeOpts();
+    const e = useContestEditor(opts);
+    e.hydrate({
+      title: 'Framed',
+      bannerUrl: 'https://x/banner.png',
+      bannerMeta: { zoom: 0.5, x: 25, y: 75 },
+      coverImageUrl: 'https://x/cover.png',
+      coverMeta: { zoom: 0, x: 50, y: 50 },
+      coverPlacement: 'hero',
+    });
+    expect(e.bannerMeta.value).toEqual({ zoom: 0.5, x: 25, y: 75 });
+    expect(e.coverMeta.value).toEqual({ zoom: 0, x: 50, y: 50 });
+    expect(e.coverPlacement.value).toBe('hero');
+  });
+
+  it('defaults the three framing fields to null when absent', () => {
+    const { opts } = makeOpts();
+    const e = useContestEditor(opts);
+    e.hydrate({ title: 'Plain' });
+    expect(e.bannerMeta.value).toBeNull();
+    expect(e.coverMeta.value).toBeNull();
+    expect(e.coverPlacement.value).toBeNull();
+  });
+});
+
+describe('useContestEditor — image meta (buildPayload clear-on-remove)', () => {
+  it('sends the framing meta when the image is present', () => {
+    const { opts } = makeOpts();
+    const e = useContestEditor(opts);
+    e.title.value = 'C';
+    e.bannerUrl.value = 'https://x/banner.png';
+    e.bannerMeta.value = { zoom: 1, x: 10, y: 20 };
+    e.coverImageUrl.value = 'https://x/cover.png';
+    e.coverMeta.value = { zoom: 0, x: 50, y: 50 };
+    e.coverPlacement.value = 'about';
+    const p = e.buildPayload();
+    expect(p.bannerMeta).toEqual({ zoom: 1, x: 10, y: 20 });
+    expect(p.coverMeta).toEqual({ zoom: 0, x: 50, y: 50 });
+    expect(p.coverPlacement).toBe('about');
+  });
+
+  it('clears bannerMeta to null when the banner image is removed (meta lingers)', () => {
+    const { opts } = makeOpts();
+    const e = useContestEditor(opts);
+    e.title.value = 'C';
+    e.bannerUrl.value = ''; // removed
+    e.bannerMeta.value = { zoom: 1, x: 10, y: 20 }; // stale framing left over
+    const p = e.buildPayload();
+    expect(p.bannerMeta).toBeNull();
+  });
+
+  it('clears coverMeta AND coverPlacement to null when the cover image is removed', () => {
+    const { opts } = makeOpts();
+    const e = useContestEditor(opts);
+    e.title.value = 'C';
+    e.coverImageUrl.value = ''; // removed
+    e.coverMeta.value = { zoom: 0.3, x: 40, y: 60 };
+    e.coverPlacement.value = 'hero';
+    const p = e.buildPayload();
+    expect(p.coverMeta).toBeNull();
+    expect(p.coverPlacement).toBeNull();
+  });
+
+  it('omits the framing (undefined) when the image is present but unframed', () => {
+    const { opts } = makeOpts();
+    const e = useContestEditor(opts);
+    e.title.value = 'C';
+    e.bannerUrl.value = 'https://x/banner.png';
+    e.bannerMeta.value = null; // never adjusted -> leave server value as-is
+    e.coverImageUrl.value = 'https://x/cover.png';
+    e.coverMeta.value = null;
+    e.coverPlacement.value = null;
+    const p = e.buildPayload();
+    expect(p.bannerMeta).toBeUndefined();
+    expect(p.coverMeta).toBeUndefined();
+    expect(p.coverPlacement).toBeUndefined();
+  });
+});
+
 describe('useContestEditor — buildPayload', () => {
   it('passes ISO dates through and gates visibleToRoles on private', () => {
     const { opts } = makeOpts();

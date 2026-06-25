@@ -239,6 +239,13 @@
       "when": 1782273345902,
       "tag": "0033_motionless_stingray",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1782370187327,
+      "tag": "0034_friendly_annihilus",
+      "breakpoints": true
     }
   ]
 }
