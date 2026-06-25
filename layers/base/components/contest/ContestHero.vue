@@ -264,7 +264,7 @@ const entryCount = computed<number>(() => c.value?.entryCount ?? 0);
 .cpub-countdown-chip-muted i { color: var(--text-faint); }
 
 .cpub-hero-title { font-size: 26px; font-weight: 800; letter-spacing: -.02em; line-height: 1.15; margin: 0 0 6px; color: var(--text); }
-.cpub-hero-tagline { font-size: 14px; color: var(--text-dim); line-height: 1.6; max-width: 760px; margin: 0 0 14px; }
+.cpub-hero-tagline { font-size: 14px; color: var(--text-dim); line-height: 1.6; max-width: 760px; margin: 0 0 14px; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 5; line-clamp: 5; overflow: hidden; }
 
 .cpub-hero-foot { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
 .cpub-hero-meta { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; font-size: 11px; color: var(--text-faint); font-family: var(--font-mono); }

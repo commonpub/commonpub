@@ -95,9 +95,16 @@ watch(
 
 // WAI-ARIA tabs keyboard pattern (arrow keys + Home/End, roving focus).
 function focusTab(key: string): void {
+  // The tab set is dynamic (entries/judges/etc. come and go) — never rove onto a
+  // tab that's no longer present, or activeTab would point at a vanished panel.
+  if (!tabs.value.some((t) => t.key === key)) return;
   activeTab.value = key;
   nextTick(() => {
-    if (typeof document !== 'undefined') document.getElementById(`cpub-tab-${key}`)?.focus();
+    if (typeof document === 'undefined') return;
+    const el = document.getElementById(`cpub-tab-${key}`);
+    el?.focus();
+    // Keep the focused tab on-screen when the band scrolls horizontally (<=640px).
+    el?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
   });
 }
 function onTabKey(e: KeyboardEvent, key: string): void {
@@ -311,9 +318,9 @@ async function withdrawEntry(entryId: string): Promise<void> {
 
     <!-- SUBMIT ENTRY DIALOG -->
     <div v-if="showSubmitDialog" class="cpub-submit-overlay" @click.self="showSubmitDialog = false">
-      <div ref="submitDialogRef" class="cpub-submit-dialog" role="dialog" aria-modal="true" aria-label="Submit entry">
+      <div ref="submitDialogRef" class="cpub-submit-dialog" role="dialog" aria-modal="true" aria-labelledby="cpub-submit-title">
         <div class="cpub-submit-header">
-          <h2>Submit Entry</h2>
+          <h2 id="cpub-submit-title">Submit Entry</h2>
           <button class="cpub-submit-close" aria-label="Close" @click="showSubmitDialog = false"><i class="fa-solid fa-times"></i></button>
         </div>
         <div class="cpub-submit-body">

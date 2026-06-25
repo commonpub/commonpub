@@ -236,15 +236,18 @@ export async function voteOnContestEntry(
     return { voted: false, error: 'Contest is not accepting votes' };
   }
 
-  const [existing] = await db
-    .select({ id: contestEntryVotes.id })
-    .from(contestEntryVotes)
-    .where(and(eq(contestEntryVotes.entryId, entryId), eq(contestEntryVotes.userId, userId)))
-    .limit(1);
+  // Insert the vote, leaning on the (entryId, userId) unique constraint to reject a
+  // duplicate. A prior check-then-insert was racy: two concurrent votes could both
+  // pass a SELECT-not-found check and then one hit the unique constraint, throwing an
+  // unhandled 500 instead of a clean "Already voted". onConflictDoNothing().returning()
+  // collapses both cases — a conflict returns no row.
+  const [inserted] = await db
+    .insert(contestEntryVotes)
+    .values({ entryId, userId })
+    .onConflictDoNothing()
+    .returning({ id: contestEntryVotes.id });
 
-  if (existing) return { voted: false, error: 'Already voted' };
-
-  await db.insert(contestEntryVotes).values({ entryId, userId });
+  if (!inserted) return { voted: false, error: 'Already voted' };
   return { voted: true };
 }
 

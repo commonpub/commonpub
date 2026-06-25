@@ -1,4 +1,4 @@
-import { eq, and, desc, sql } from 'drizzle-orm';
+import { eq, and, or, desc, sql } from 'drizzle-orm';
 import { contests, contestEntries, users, contentItems } from '@commonpub/schema';
 import type { DB } from '../types.js';
 import { normalizePagination, countRows } from '../query.js';
@@ -34,11 +34,31 @@ export async function listContestEntries(
     /** Additionally include per-stage artifacts on this user's OWN entries
      *  (the entrant always sees what they submitted). */
     stageSubmissionsViewerId?: string;
+    /**
+     * Hide entries whose backing content isn't published (a proposal DRAFT
+     * placeholder must not be listed publicly — its "View the project" link 404s
+     * for non-owners). Set for non-privileged callers; privileged callers
+     * (owner/admin/judge) see the full field including drafts. The `viewerId`
+     * always sees their OWN entries regardless of content status, so an entrant's
+     * draft proposal stays in their `myEntries` (the submit-form gating relies on it).
+     */
+    onlyPublishedContent?: boolean;
+    /** The viewer, whose own entries stay visible under `onlyPublishedContent`. */
+    viewerId?: string;
   } = {},
 ): Promise<{ items: ContestEntryItem[]; total: number }> {
   const revealScores = opts.revealScores ?? true;
   const { limit, offset } = normalizePagination(opts);
-  const where = eq(contestEntries.contestId, contestId);
+  // Public callers only see entries backed by published content; the viewer always
+  // sees their own. Privileged callers omit `onlyPublishedContent` → no filter.
+  const contentVisible = opts.onlyPublishedContent
+    ? (opts.viewerId
+        ? or(eq(contentItems.status, 'published'), eq(contestEntries.userId, opts.viewerId))
+        : eq(contentItems.status, 'published'))
+    : undefined;
+  const where = contentVisible
+    ? and(eq(contestEntries.contestId, contestId), contentVisible)
+    : eq(contestEntries.contestId, contestId);
   // `rank`: ranked entries first (1,2,3…), unranked last; ties broken by score
   // then recency. `recent`: submission order (default).
   const order =
@@ -74,7 +94,16 @@ export async function listContestEntries(
       .orderBy(...order)
       .limit(limit)
       .offset(offset),
-    countRows(db, contestEntries, where),
+    // The count must mirror the visibility filter. When it references
+    // contentItems.status, the count needs the same join (countRows is join-less).
+    contentVisible
+      ? db
+          .select({ count: sql<number>`count(*)::int` })
+          .from(contestEntries)
+          .innerJoin(contentItems, eq(contestEntries.contentId, contentItems.id))
+          .where(where)
+          .then((r) => r[0]?.count ?? 0)
+      : countRows(db, contestEntries, where),
   ]);
 
   const items = rows.map((row) => {

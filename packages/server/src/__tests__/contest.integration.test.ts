@@ -913,6 +913,34 @@ describe('contest integration', () => {
     expect(votes.find((x) => x.entryId === entry!.id)!.count).toBe(0);
   });
 
+  it('community voting: two concurrent votes resolve cleanly (no unhandled 500 from the unique constraint)', async () => {
+    const voter = await createTestUser(db, { username: `race-voter-${Date.now()}` });
+    const contest = await createContest(db, {
+      ...makeContestInput({ title: 'Vote Race Contest' }),
+      communityVotingEnabled: true,
+    });
+    await transitionContestStatus(db, contest.id, organizerId, 'active');
+    const content = await createContent(db, participantId, { type: 'project', title: 'Raced Entry' });
+    await publishContent(db, content.id, participantId);
+    const entry = await submitContestEntry(db, contest.id, content.id, participantId);
+
+    // Fire both votes at once. The old check-then-insert let both pass the SELECT and
+    // one hit the (entryId, userId) unique constraint → throw. onConflictDoNothing
+    // makes the loser a clean "Already voted" instead of a rejected promise.
+    const [a, b] = await Promise.all([
+      voteOnContestEntry(db, entry!.id, voter.id),
+      voteOnContestEntry(db, entry!.id, voter.id),
+    ]);
+    // Exactly one wins; neither throws.
+    expect([a.voted, b.voted].filter(Boolean)).toHaveLength(1);
+    const loser = a.voted ? b : a;
+    expect(loser.error).toMatch(/already voted/i);
+
+    // Only one vote landed.
+    const votes = await getContestEntryVotes(db, contest.id, voter.id);
+    expect(votes.find((x) => x.entryId === entry!.id)).toMatchObject({ count: 1, voted: true });
+  });
+
   it('community voting: rejected when the contest has it disabled', async () => {
     const voter = await createTestUser(db, { username: `novote-${Date.now()}` });
     const contest = await createContest(db, makeContestInput({ title: 'No Voting Contest' }));

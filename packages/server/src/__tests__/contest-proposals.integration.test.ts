@@ -60,6 +60,31 @@ describe('validateSubmissionFields (pure partition)', () => {
     if (!r.ok) expect(r.error).toMatch(/accept/i);
   });
 
+  it('treats an email field as PII by DEFAULT (no pii flag), keeping it out of the artifact', () => {
+    // Operator footgun fix: an `email` field without `pii:true` used to land the
+    // entrant's email in the PUBLIC artifact. Email is now default-PII like address.
+    const form: ContestSubmissionTemplateField[] = [
+      { key: 'title', label: 'Title', type: 'text', required: true },
+      { key: 'contact', label: 'Contact email', type: 'email', required: true }, // NO pii flag
+    ];
+    const r = validateSubmissionFields(form, { title: 'X', contact: 'me@example.com' });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.result.artifact).toEqual({ title: 'X' });
+    expect(r.result.pii).toEqual({ contact: 'me@example.com' });
+  });
+
+  it('honors an explicit pii:false opt-out for a public contact email', () => {
+    const form: ContestSubmissionTemplateField[] = [
+      { key: 'contact', label: 'Public email', type: 'email', required: true, pii: false },
+    ];
+    const r = validateSubmissionFields(form, { contact: 'team@example.com' });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.result.artifact).toEqual({ contact: 'team@example.com' });
+    expect(r.result.pii).toEqual({});
+  });
+
   it('rejects an invalid email, an out-of-set select, a bad number, and a malformed address', () => {
     const base = { title: 'X', summary: 'Y', track: 'hw', email: 'a@b.com', tos: 'true' };
     expect(validateSubmissionFields(PROPOSAL_FORM, { ...base, email: 'not-an-email' }).ok).toBe(false);
@@ -185,6 +210,40 @@ describe('contest proposals (form-first)', () => {
         expect(s.fields).not.toHaveProperty('address');
       }
     }
+  });
+
+  it('hides a draft proposal placeholder from the PUBLIC list but keeps it visible to the owner + privileged', async () => {
+    const contest = await createContest(db, proposalContestInput('draft-vis'));
+    await transitionContestStatus(db, contest.id, organizerId, 'active');
+    const entrant = await createTestUser(db, { username: `prop-draftvis-${Date.now()}` });
+    const res = await submitContestProposal(db, { contestId: contest.id, stageId: 'prop', fields: goodForm(), userId: entrant.id });
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+
+    // Public viewer (non-privileged, anonymous): the draft placeholder is hidden,
+    // so its dead "View the project" link never surfaces.
+    const pub = await listContestEntries(db, contest.id, { onlyPublishedContent: true });
+    expect(pub.items).toHaveLength(0);
+    expect(pub.total).toBe(0);
+
+    // The entrant still sees their OWN draft entry (myEntries / submit-form gating).
+    const mine = await listContestEntries(db, contest.id, { onlyPublishedContent: true, viewerId: entrant.id });
+    expect(mine.items.map((e) => e.id)).toContain(res.entryId);
+    expect(mine.total).toBe(1);
+
+    // A different signed-in non-privileged viewer does NOT see it.
+    const other = await createTestUser(db, { username: `prop-draftvis-other-${Date.now()}` });
+    const otherView = await listContestEntries(db, contest.id, { onlyPublishedContent: true, viewerId: other.id });
+    expect(otherView.items).toHaveLength(0);
+
+    // Privileged callers (owner/admin/judge) omit the filter → still see the draft.
+    const priv = await listContestEntries(db, contest.id);
+    expect(priv.items.map((e) => e.id)).toContain(res.entryId);
+
+    // Once the placeholder is developed + published, it appears publicly.
+    await publishContent(db, res.contentId, entrant.id);
+    const pubAfter = await listContestEntries(db, contest.id, { onlyPublishedContent: true });
+    expect(pubAfter.items.map((e) => e.id)).toContain(res.entryId);
   });
 
   it('rejects an unaccepted agreement and creates NO placeholder (validation precedes creation)', async () => {
