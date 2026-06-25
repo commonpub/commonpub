@@ -96,10 +96,12 @@ compensating delete. (More reachable now that the hero-CTA fix lands users on th
 - Aspect-ratio 16:9 left as a structural-class lock (jsdom can't read scoped CSS).
 - Title copy avoids an "Or" prefix to stay correct across all anon/flag/eliminated edge cases.
 
-## State at session end
-- **Nothing committed or shipped.** Published versions unchanged: layer **0.86.5**, schema **0.48.0**,
-  server **2.92.0** (all 3 instances healthy). This work needs a schema+server+layer release (below).
-- Gates green: **server 1493** tests, **layer 1405** tests, reference `nuxt typecheck` clean.
+## State at session end — SHIPPED + ROLLED to all 3 (2026-06-25)
+- **Released:** `schema 0.49.0 · server 2.93.0 · layer 0.86.6` (npm, dependency order). Migration **0034**
+  applied on all 3. PR #54 squash-merged to main. commonpub.io / deveco.io / heatsynclabs.io all health 200;
+  heatsync `/api/contests/<slug>/entries` = 200 (definitive: the `placeholder` column is live).
+- ⚠️ **create-commonpub pins are now STALE** (^0.48/^2.92 vs published 0.49.0/2.93.0) — bump on next CLI publish.
+- Gates green: **server 1493** tests, **layer 1405** tests, full `pnpm typecheck` 28/28.
 - Changed/new files:
   - `layers/base/pages/contests/[slug]/index.vue` (M — hero-CTA bug fix)
   - `packages/schema/src/contest.ts` (M — `placeholder` column) + `packages/schema/migrations/0034_friendly_annihilus.sql` (new) + journal

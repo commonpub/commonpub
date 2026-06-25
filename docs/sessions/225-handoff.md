@@ -1,19 +1,17 @@
 # Session 225 — handoff (contest entry-flow bug FIXED + Task C tests done; NOT committed/shipped)
 
 Paste-ready handoff for a fresh context. Session 225 fixed a user-reported proposal-entry bug, fixed the P1
-proposal-withdraw orphan, completed Task C (contest-field tests), and ran an extreme adversarial audit of
-every contest entry/submission flow. **Everything is uncommitted** — start by committing + running the
-release. Canonical runbook: `docs/STATUS.md`. Full session log: `docs/sessions/225-contest-entry-flow-audit.md`.
+proposal-withdraw orphan, completed Task C (contest-field tests), ran an extreme adversarial audit of every
+contest entry/submission flow, and **SHIPPED + ROLLED the fixes to all 3 instances**. Canonical runbook:
+`docs/STATUS.md`. Full session log: `docs/sessions/225-contest-entry-flow-audit.md`.
 
-## TL;DR — current state
-- **Published (unchanged this session):** `schema 0.48.0 · editor 0.9.0 · server 2.92.0 · config 0.23.0 ·
-  layer 0.86.5` · `create-commonpub 0.5.18`. Migrations through **0033**. All 3 instances healthy on
-  `^0.86.5`.
-- **Uncommitted in commonpub:** a verified hero-CTA bug fix + the P1 orphan fix (schema `placeholder` column
-  + **migration 0034** + server logic) + tests (Task C + 3 withdraw integration tests). deveco/heatsync
-  untouched. File list in the session log.
-- **Gates green:** server **1493** tests, layer **1405** tests, reference `nuxt typecheck` clean. Both
-  fixes verified end-to-end against real Postgres (integration + the live HTTP route).
+## TL;DR — current state (SHIPPED 2026-06-25)
+- **Published:** `schema 0.49.0 · server 2.93.0 · layer 0.86.6` (config 0.23.0 · editor 0.9.0 unchanged).
+  Migrations through **0034**. All 3 instances rolled + health 200 (heatsync entries route 200 = 0034 live).
+- ⚠️ **create-commonpub 0.5.18 pins are STALE** (^0.48/^2.92 vs published 0.49.0/2.93.0) — bump on next CLI
+  publish (separate crates.io chore; not an instance).
+- **Gates green:** server **1493** tests, layer **1405** tests, full `pnpm typecheck` 28/28. Both fixes
+  verified end-to-end against real Postgres (integration + the live HTTP route).
 - **Reference config has `contestProposals: true`** (so the proposal form is live there); the flag DEFAULTS
   to `false` (a "proposal" stage degrades to attach-mode when off). `contestStageSubmissions` defaults true.
 
@@ -40,19 +38,13 @@ release. Canonical runbook: `docs/STATUS.md`. Full session log: `docs/sessions/2
 
 ## Remaining work (prioritized)
 
-### Top — commit + run the release (now schema + server + layer)
-Two verified fixes + tests, all uncommitted. Suggested commits (on a branch):
-- `fix(contest): reach the proposal form from the hero Submit Entry CTA`
-- `fix(contest): archive abandoned proposal placeholders on withdraw` (schema `placeholder` + migration 0034 + server)
-- `test(contest): image-meta clear-on-remove, video/embed sizing, proposal instructions, withdraw cleanup`
+### Top — ✅ DONE: session 225 fixes shipped + rolled to all 3 (schema 0.49.0 / server 2.93.0 / layer 0.86.6).
 
-**Release** — proposed `schema 0.49.0 · server 2.93.0 · layer 0.86.6` (fold in the B polish below):
-bump + publish **schema** → **server** → `pnpm run publish:layer` (re-pins schema/server) → deveco/heatsync
-pin the new versions + BOTH lockfiles → push → each instance's deploy runs `db-migrate` (applies **0034**,
-additive/safe) → curl-verify health on all 3. (commonpub.io builds the local layer; deveco/heatsync pin
-published npm.)
+### Next up
+- **B — contest UX polish** (still pending from 224-handoff; bundle into the next layer release, see below).
+- **create-commonpub** pin bump (^0.49/^2.93) + crates.io publish (stale after this release).
 
-### NEW from the audit — fix when prioritized (all PRE-EXISTING, none are regressions)
+### From the audit — fix when prioritized (all PRE-EXISTING, none are regressions)
 - **P1 — proposal-withdraw orphan — ✅ FIXED this session** (uncommitted). `contest_entries.placeholder`
   marker column + migration 0034; `submitContestProposal` sets it; `withdrawContestEntry` archives the stub
   when `placeholder && status==='draft'` (keeps developed/published placeholders + attached projects). 3
