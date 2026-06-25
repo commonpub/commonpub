@@ -45,9 +45,9 @@ pub fn generate_hex_token(byte_len: usize) -> String {
 // alongside `@commonpub/layer` whenever server crosses minor, else pnpm hoists an
 // older server and the layer's server-subpath imports resolve to undefined.
 const COMMONPUB_CONFIG_VERSION: &str = "^0.23.0";
-const COMMONPUB_LAYER_VERSION: &str = "^0.86.0";
-const COMMONPUB_SCHEMA_VERSION: &str = "^0.48.0";
-const COMMONPUB_SERVER_VERSION: &str = "^2.92.0";
+const COMMONPUB_LAYER_VERSION: &str = "^0.86.7";
+const COMMONPUB_SCHEMA_VERSION: &str = "^0.49.0";
+const COMMONPUB_SERVER_VERSION: &str = "^2.94.0";
 
 // pnpm pin for the generated Dockerfile. `pnpm@latest` is a time-bomb:
 // pnpm ≥10.11 fails `install --frozen-lockfile` on packages with
