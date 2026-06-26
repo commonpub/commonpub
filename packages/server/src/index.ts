@@ -637,6 +637,16 @@ export {
 } from './notification/index.js';
 export type { NotificationItem, NotificationFilters, NotificationType } from './notification/index.js';
 
+// Communications — durable email outbox + unsubscribe tokens (email Phase 1)
+export {
+  enqueueEmail,
+  enqueueEmails,
+  drainEmailOutbox,
+  makeUnsubscribeToken,
+  verifyUnsubscribeToken,
+} from './comms/index.js';
+export type { OutboxMessage, EmailCategory, DrainOptions, DrainResult } from './comms/index.js';
+
 // Messaging
 export {
   listConversations,

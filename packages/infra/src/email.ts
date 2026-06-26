@@ -5,10 +5,18 @@ export interface EmailMessage {
   subject: string;
   html: string;
   text?: string;
+  /** Extra headers (e.g. List-Unsubscribe / List-Unsubscribe-Post, RFC 8058). */
+  headers?: Record<string, string>;
 }
 
 export interface EmailAdapter {
   send(message: EmailMessage): Promise<void>;
+  /**
+   * Send many messages efficiently. Providers with a batch API (Resend) use it
+   * (up to 100/call); others fall back to a sequential loop. Throwing aborts the
+   * whole call so the caller can reschedule the chunk — keep chunks <= 100.
+   */
+  sendBatch(messages: EmailMessage[]): Promise<void>;
 }
 
 /** SMTP email adapter — uses nodemailer-compatible transports */
@@ -59,7 +67,13 @@ export class SmtpEmailAdapter implements EmailAdapter {
       subject: message.subject,
       html: message.html,
       text: message.text,
+      headers: message.headers,
     });
+  }
+
+  // SMTP has no batch primitive — send sequentially.
+  async sendBatch(messages: EmailMessage[]): Promise<void> {
+    for (const m of messages) await this.send(m);
   }
 }
 
@@ -73,6 +87,17 @@ export class ResendEmailAdapter implements EmailAdapter {
     this.from = config.from;
   }
 
+  private toPayload(message: EmailMessage): Record<string, unknown> {
+    return {
+      from: this.from,
+      to: [message.to],
+      subject: message.subject,
+      html: message.html,
+      text: message.text,
+      headers: message.headers,
+    };
+  }
+
   async send(message: EmailMessage): Promise<void> {
     const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
@@ -80,18 +105,30 @@ export class ResendEmailAdapter implements EmailAdapter {
         'Authorization': `Bearer ${this.apiKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        from: this.from,
-        to: [message.to],
-        subject: message.subject,
-        html: message.html,
-        text: message.text,
-      }),
+      body: JSON.stringify(this.toPayload(message)),
     });
 
     if (!response.ok) {
       const body = await response.text();
       throw new Error(`Resend API error (${response.status}): ${body}`);
+    }
+  }
+
+  // Resend's batch endpoint accepts up to 100 messages per call.
+  async sendBatch(messages: EmailMessage[]): Promise<void> {
+    if (messages.length === 0) return;
+    const response = await fetch('https://api.resend.com/emails/batch', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${this.apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(messages.map((m) => this.toPayload(m))),
+    });
+
+    if (!response.ok) {
+      const body = await response.text();
+      throw new Error(`Resend batch API error (${response.status}): ${body}`);
     }
   }
 }
@@ -102,6 +139,10 @@ export class ConsoleEmailAdapter implements EmailAdapter {
     console.log(`[EMAIL] To: ${message.to}`);
     console.log(`[EMAIL] Subject: ${message.subject}`);
     console.log(`[EMAIL] Body: ${message.text ?? message.html.slice(0, 200)}`);
+  }
+
+  async sendBatch(messages: EmailMessage[]): Promise<void> {
+    for (const m of messages) await this.send(m);
   }
 }
 
@@ -116,7 +157,12 @@ function escapeHtml(str: string): string {
 }
 
 /** Email template builder with inline styles */
-function wrapTemplate(siteName: string, body: string): string {
+function wrapTemplate(siteName: string, body: string, opts?: { unsubscribeUrl?: string }): string {
+  // A visible one-click unsubscribe link for non-transactional mail (CAN-SPAM /
+  // GDPR). Auth mail omits it (no opts.unsubscribeUrl). Pre-escaped by the caller.
+  const unsub = opts?.unsubscribeUrl
+    ? ` <a href="${opts.unsubscribeUrl}" style="color:#888;text-decoration:underline;">Unsubscribe</a>.`
+    : '';
   return `<!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width"></head>
@@ -129,7 +175,7 @@ function wrapTemplate(siteName: string, body: string): string {
       ${body}
     </div>
     <div style="border-top:1px solid #2a2a2a;margin-top:32px;padding-top:16px;color:#666;font-size:12px;">
-      Sent by ${siteName}. You can manage your notification preferences in your settings.
+      Sent by ${siteName}. You can manage your notification preferences in your settings.${unsub}
     </div>
   </div>
 </body>
@@ -174,9 +220,11 @@ export const emailTemplates = {
     siteName: string,
     username: string,
     notifications: Array<{ text: string; url: string }>,
+    unsubscribeUrl?: string,
   ): EmailMessage & { to: '' } {
     const safeName = escapeHtml(siteName);
     const safeUsername = escapeHtml(username);
+    const safeUnsub = unsubscribeUrl ? escapeHtml(unsubscribeUrl) : undefined;
     const items = notifications
       .map((n) => `<li style="margin-bottom:8px;"><a href="${escapeHtml(n.url)}" style="color:#5b9cf6;text-decoration:none;">${escapeHtml(n.text)}</a></li>`)
       .join('');
@@ -188,7 +236,7 @@ export const emailTemplates = {
         <h2 style="color:#fff;margin:0 0 16px;">Hi ${safeUsername},</h2>
         <p>Here's what you missed:</p>
         <ul style="padding-left:20px;">${items}</ul>
-      `),
+      `, { unsubscribeUrl: safeUnsub }),
       text: notifications.map((n) => `- ${n.text}: ${n.url}`).join('\n'),
     };
   },
@@ -197,12 +245,14 @@ export const emailTemplates = {
     siteName: string,
     username: string,
     notification: { title: string; message: string; url: string },
+    unsubscribeUrl?: string,
   ): EmailMessage & { to: '' } {
     const safeName = escapeHtml(siteName);
     const safeUsername = escapeHtml(username);
     const safeTitle = escapeHtml(notification.title);
     const safeMessage = escapeHtml(notification.message);
     const safeUrl = escapeHtml(notification.url);
+    const safeUnsub = unsubscribeUrl ? escapeHtml(unsubscribeUrl) : undefined;
     return {
       to: '' as const,
       subject: `${notification.title} -- ${siteName}`,
@@ -211,7 +261,7 @@ export const emailTemplates = {
         <p><strong>${safeTitle}</strong></p>
         <p>${safeMessage}</p>
         <a href="${safeUrl}" style="display:inline-block;background:#5b9cf6;color:#000;padding:12px 24px;text-decoration:none;font-weight:600;margin:16px 0;border:2px solid #5b9cf6;">View</a>
-      `),
+      `, { unsubscribeUrl: safeUnsub }),
       text: `${notification.title}: ${notification.message}\n${notification.url}`,
     };
   },

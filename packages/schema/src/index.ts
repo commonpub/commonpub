@@ -14,6 +14,9 @@ export * from './content.js';
 // Social
 export * from './social.js';
 
+// Communications (email outbox)
+export * from './comms.js';
+
 // Hubs
 export * from './hub.js';
 

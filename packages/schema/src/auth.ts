@@ -44,6 +44,9 @@ export const users = pgTable('users', {
     comments?: boolean;
     follows?: boolean;
     mentions?: boolean;
+    /** One-click / page unsubscribe from ALL non-transactional mail (digest +
+     *  instant + broadcast). Auth mail is exempt. Set by the unsubscribe route. */
+    unsubscribedAll?: boolean;
   }>(),
   // GDPR consent (session 227). Denormalized "current acceptance" for cheap reads
   // + the future re-acceptance gate; the full history lives in `user_consents`.
