@@ -39,6 +39,7 @@ const ENV_FLAG_MAP: Record<string, string> = {
   actAsRegistry: 'FEATURE_ACT_AS_REGISTRY',
   announceToRegistry: 'FEATURE_ANNOUNCE_TO_REGISTRY',
   publicApiMetricsFederation: 'FEATURE_PUBLIC_API_METRICS_FEDERATION',
+  referralLinks: 'FEATURE_REFERRAL_LINKS',
 };
 
 /** Base config (config.ts + env overrides) — computed once at startup */

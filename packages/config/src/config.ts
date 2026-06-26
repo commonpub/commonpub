@@ -1,5 +1,5 @@
 import { configSchema } from './schema.js';
-import type { CommonPubConfig, RegisteredTheme } from './types.js';
+import type { CommonPubConfig, ReferralConfig, RegisteredTheme } from './types.js';
 
 export interface ConfigWarning {
   field: string;
@@ -30,6 +30,10 @@ export function defineCommonPubConfig(input: {
   features?: Partial<CommonPubConfig['features']>;
   auth?: Partial<CommonPubConfig['auth']>;
   federation?: Partial<CommonPubConfig['federation']>;
+  /** Referral-link operator policy (cookieless mode, default window). The zod
+   *  schema fills defaults, so this is optional; declare it to opt into
+   *  cookieless attribution or change the default window. */
+  referral?: Partial<ReferralConfig>;
   /** Code-registered themes (the zod schema always accepted these; the input
    *  type previously omitted them, so thin apps couldn't declare them
    *  without a type error). */

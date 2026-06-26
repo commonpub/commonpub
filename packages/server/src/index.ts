@@ -182,6 +182,30 @@ export {
   reorderHubResources,
 } from './hub/index.js';
 
+// Referrals (session 229 — user-owned signup attribution + onboarding actions)
+export {
+  generateReferralCode,
+  REFERRAL_CODE_ALPHABET,
+  REFERRAL_CODE_LENGTH,
+  CODE_MAX_ATTEMPTS,
+  validateReferralActions,
+  runReferralActions,
+  createReferralLink,
+  listMyReferralLinks,
+  getReferralLink,
+  updateReferralLink,
+  deleteReferralLink,
+  claimReferral,
+  resolveReferral,
+  recordReferralClick,
+} from './referral/index.js';
+export type {
+  CreateReferralLinkResult,
+  UpdateReferralLinkResult,
+  ClaimResult,
+  ResolvedReferral,
+} from './referral/index.js';
+
 // Products
 export {
   createProduct,

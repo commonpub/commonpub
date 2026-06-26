@@ -85,6 +85,10 @@ export const featureFlagsSchema = z.object({
   // granting the `read:federation` scope to a key. Has no effect unless
   // `publicApi` + `federation` are also on.
   publicApiMetricsFederation: z.boolean().default(false),
+  // Referral links (session 229). Lets users create personal signup-attribution
+  // links that run bounded onboarding actions (auto-join a hub, redirect).
+  // Default OFF. Operator policy knobs live in `config.referral`, not here.
+  referralLinks: z.boolean().default(false),
 });
 
 export const authConfigSchema = z.object({
@@ -148,6 +152,20 @@ export const docsConfigSchema = z.object({
   searchLanguage: z.string().default('english'),
 });
 
+/**
+ * Referral-link operator policy (session 229). Only active when
+ * `features.referralLinks` is on. Server-side only — not mirrored to the client
+ * runtimeConfig.
+ */
+export const referralConfigSchema = z.object({
+  // When true, the short link does NOT set a carrier cookie; attribution relies
+  // solely on the `?ref=` code the register page forwards to the claim endpoint
+  // (email-signup only). Sidesteps the ePrivacy device-storage consent gate.
+  cookieless: z.boolean().default(false),
+  // Default attribution window (days) for new links; per-link override allowed.
+  defaultAttributionWindowDays: z.number().int().min(1).max(365).default(60),
+});
+
 export const cookieDefinitionSchema = z.object({
   name: z.string().min(1),
   category: z.enum(['essential', 'functional', 'analytics']),
@@ -188,6 +206,7 @@ export const configSchema = z.object({
   // always resolve to their defaults rather than leaving `config.federation` undefined.
   federation: federationConfigSchema.default(() => federationConfigSchema.parse({})),
   docs: docsConfigSchema.default(() => docsConfigSchema.parse({})),
+  referral: referralConfigSchema.default(() => referralConfigSchema.parse({})),
   cookies: z.array(cookieDefinitionSchema).optional(),
   themes: z.array(registeredThemeSchema).optional(),
   defaultTheme: z.string().max(64).optional(),

@@ -118,6 +118,12 @@ export interface FeatureFlags {
    * the `read:federation` scope. No effect unless `publicApi` + `federation` are on.
    */
   publicApiMetricsFederation: boolean;
+  /**
+   * Enable user-owned referral links (session 229): personal signup-attribution
+   * links that run bounded onboarding actions (auto-join a hub, redirect on
+   * signup). Default OFF. Operator policy lives in `config.referral`.
+   */
+  referralLinks: boolean;
 }
 
 export interface IdentityFeatures {
@@ -227,6 +233,18 @@ export interface DocsConfig {
   searchLanguage: string;
 }
 
+/** Referral-link operator policy (session 229). Only used when `features.referralLinks` is on. */
+export interface ReferralConfig {
+  /**
+   * When true the short link sets no carrier cookie; attribution relies solely on
+   * the `?ref=` code forwarded to the claim endpoint (email-signup only). Sidesteps
+   * the ePrivacy device-storage consent gate. Default false.
+   */
+  cookieless: boolean;
+  /** Default attribution window in days for new links (per-link override allowed). Default 60. */
+  defaultAttributionWindowDays: number;
+}
+
 /**
  * Code-registered theme declared by a thin layer app in `commonpub.config.ts`.
  * The accompanying CSS file is loaded via Nuxt's `css:` array — this entry
@@ -269,6 +287,8 @@ export interface CommonPubConfig {
   federation?: FederationConfig;
   /** Docs module configuration */
   docs: DocsConfig;
+  /** Referral-link operator policy (only used when features.referralLinks is on) */
+  referral?: ReferralConfig;
   /**
    * Additional cookies used by this instance (e.g., analytics, marketing).
    * CommonPub's own cookies (session, color scheme) are registered automatically.

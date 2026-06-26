@@ -230,3 +230,15 @@ export const tagCategoryEnum = pgEnum('tag_category', [
   'topic',
   'general',
 ]);
+
+// --- Referrals ---
+// A referral link is either usable or turned off by its owner (soft state — the
+// row is kept so existing attributions still resolve to it).
+export const referralLinkStatusEnum = pgEnum('referral_link_status', ['active', 'disabled']);
+// Attribution lifecycle. v1 records `confirmed` directly on signup; `pending` +
+// `rejected` are reserved for a future verify-gate / abuse-review (see plan §10).
+export const referralAttributionStatusEnum = pgEnum('referral_attribution_status', [
+  'pending',
+  'confirmed',
+  'rejected',
+]);

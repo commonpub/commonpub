@@ -6,8 +6,9 @@
  * act), and signUp is not called while unchecked.
  *
  * Page uses Nuxt auto-imports (definePageMeta, useSeoMeta, useSiteName, useAuth,
- * useRoute, navigateTo) — stub them on globalThis. Lives under components/__tests__
- * (a bracket-free path) so the layer's files-array __tests__ exclusion packs it out.
+ * useRoute, useFeatures, navigateTo) — stub them on globalThis. Lives under
+ * components/__tests__ (a bracket-free path) so the layer's files-array __tests__
+ * exclusion packs it out.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, fireEvent } from '@testing-library/vue';
@@ -30,6 +31,7 @@ Object.assign(globalThis, {
   useSiteName: () => 'Test',
   useAuth: () => ({ signUp, user: ref(null) }),
   useRoute: () => ({ query: {} }),
+  useFeatures: () => ({ referralLinks: ref(false) }),
   navigateTo: vi.fn(async () => {}),
 });
 

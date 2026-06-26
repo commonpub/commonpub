@@ -9,6 +9,7 @@ const ROUTE_FEATURE_MAP: Record<string, string> = {
   '/contests': 'contests',
   '/events': 'events',
   '/explainer': 'explainers',
+  '/settings/referral-links': 'referralLinks',
 };
 
 export default defineEventHandler((event) => {

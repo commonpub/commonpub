@@ -7,6 +7,26 @@ useSeoMeta({
 });
 
 const { signUp } = useAuth();
+const { referralLinks: referralEnabled } = useFeatures();
+const route = useRoute();
+
+// Referral capture (session 229). `?ref=<code>` is shown as an "invited by"
+// banner; the same code is forwarded to the claim endpoint after signup. When a
+// user arrives via /r/:code without ?ref, the cookie carries the code and the
+// claim endpoint / backstop middleware picks it up server-side.
+const refCode = computed(() => {
+  const r = route.query.ref;
+  return typeof r === 'string' ? r : '';
+});
+const referral = ref<{ ownerUsername: string; ownerDisplayName: string | null; label: string | null; hubNames: string[] } | null>(null);
+
+onMounted(async () => {
+  if (!refCode.value || !referralEnabled.value) return;
+  try {
+    const res = await $fetch<{ referral: typeof referral.value }>('/api/referrals/resolve', { query: { code: refCode.value } });
+    referral.value = res?.referral ?? null;
+  } catch { /* banner is optional */ }
+});
 
 const username = ref('');
 const email = ref('');
@@ -34,9 +54,21 @@ async function handleSubmit(): Promise<void> {
       registered.value = true;
       return;
     }
-    const raw = (useRoute().query.redirect as string) || '/dashboard';
+    // Claim the referral (if any) and prefer its destination, e.g. the hub the
+    // new member was just auto-joined to. Best-effort: the backstop middleware
+    // covers a failure or a closed tab.
+    let target = (route.query.redirect as string) || '';
+    if (referralEnabled.value) {
+      try {
+        const res = await $fetch<{ destination: string | null }>('/api/referrals/claim', {
+          method: 'POST',
+          body: { code: refCode.value || undefined },
+        });
+        if (res?.destination) target = res.destination;
+      } catch { /* best-effort */ }
+    }
     // Prevent open redirect — only allow relative paths
-    const redirect = (raw.startsWith('/') && !raw.startsWith('//')) ? raw : '/dashboard';
+    const redirect = (target.startsWith('/') && !target.startsWith('//')) ? target : '/dashboard';
     await navigateTo(redirect);
     return;
   } catch (err: unknown) {
@@ -64,6 +96,16 @@ async function handleSubmit(): Promise<void> {
 
     <template v-else>
     <h1 class="register-title">Create account</h1>
+
+    <div v-if="referral" class="register-invite" role="note">
+      <i class="fa-solid fa-user-plus" aria-hidden="true"></i>
+      <span>
+        Invited by <strong>{{ referral.ownerDisplayName || referral.ownerUsername }}</strong>.
+        <template v-if="referral.hubNames.length">
+          You'll join {{ referral.hubNames.join(', ') }} when you sign up.
+        </template>
+      </span>
+    </div>
 
     <form class="register-form" @submit.prevent="handleSubmit" aria-label="Registration form">
       <div v-if="error" class="form-error" role="alert">{{ error }}</div>
@@ -140,6 +182,28 @@ async function handleSubmit(): Promise<void> {
   font-size: 18px;
   font-weight: 600;
   margin-bottom: var(--space-5);
+}
+
+.register-invite {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: var(--space-3);
+  margin-bottom: var(--space-4);
+  background: var(--accent-bg);
+  border: var(--border-width-default) solid var(--accent-border);
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.register-invite i {
+  color: var(--accent);
+  margin-top: 2px;
+}
+
+.register-invite strong {
+  color: var(--text);
 }
 
 .register-form {

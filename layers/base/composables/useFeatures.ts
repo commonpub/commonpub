@@ -56,6 +56,8 @@ export interface FeatureFlags {
   announceToRegistry: boolean;
   /** Expose federation reach metrics on the public API. Default OFF (server-gated). */
   publicApiMetricsFederation: boolean;
+  /** User-owned referral links (signup attribution + onboarding actions). Default OFF. */
+  referralLinks: boolean;
   /**
    * Cross-instance delegated authorization. All sub-flags default false.
    * Mirrors `@commonpub/config`'s `IdentityFeatures`. Phase 1b+ — see
@@ -82,6 +84,7 @@ export const DEFAULT_FLAGS: FeatureFlags = {
   actAsRegistry: false,
   announceToRegistry: true,
   publicApiMetricsFederation: false,
+  referralLinks: false,
   identity: {
     linkRemoteAccounts: false,
     signInWithRemote: false,
@@ -189,6 +192,7 @@ export function useFeatures() {
     contentImport: computed(() => flags.value.contentImport),
     layoutEngine: computed(() => flags.value.layoutEngine),
     rbac: computed(() => flags.value.rbac),
+    referralLinks: computed(() => flags.value.referralLinks),
     identity: computed(() => flags.value.identity),
   };
 }
