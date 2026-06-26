@@ -80,6 +80,21 @@ Capture (`/r/:code` → indexed `lower(code)` lookup, `click_count++`, sets `cpu
 
 Flags on these instances are NOT set via deploy env (no `FEATURE_*` in deploy.yml) — they are controlled by the **`/admin/features` DB toggle**, which needs an admin session. To turn the feature on (canary order): on **commonpub.io** first, sign in as admin → `/admin/features` → enable **referralLinks** → exercise the flow → then enable on **deveco.io** and **heatsynclabs.io**. (Their `server/utils/config.ts` ENV_FLAG_MAP lacks `referralLinks`, so the env var won't toggle them — use the admin UI. Add it to their map if env-toggle is wanted later.)
 
+## Follow-up release — terms gate fix + runtime version bump (session 229)
+
+Surfaced while enabling referrals on deveco: `requireTermsAcceptance` was ON on deveco and the operator's account had null/stale consent, so the server soft-blocked EVERY write (referral-create, follow, even disabling the feature) with no way to re-accept — because deveco OVERRIDES the default layout and its copy didn't mount `TermsReacceptanceGate`. A lockout.
+
+Shipped (server **2.102.0** · layer **0.91.0**; no schema/migration change; PR #69):
+- **Durable gate**: `TermsReacceptanceGate` now mounts via a client plugin (`layers/base/plugins/terms-gate.client.ts`, shares app context via `vnode.appContext`), immune to consumer layout/app.vue overrides; removed from the layer `default.vue`. deveco's temporary layout-mount (commit 0831139) was reverted on its roll (else double-mount).
+- **Runtime version bump (no redeploy)**: `getEffectiveTermsVersion(db, fallback)` (in `@commonpub/server`) reads `instance.termsVersion` from `instance_settings` (admin-settable), used by the gate status, the write-block middleware, consent recording, AND signup — so a bump takes effect AND re-accept records the matching version. Coerces the PGlite/Postgres jsonb scalar to a string (PGlite reads `'2'` back as number 2).
+- **Lockout escape hatch**: `/api/admin/features` is exempt from the require-terms block, so an admin can always disable the feature.
+- **Admin UI**: a "Terms Version" field in `/admin/settings` (bump = re-prompt everyone; opaque token, move forward only).
+- Fixed a vue-tsc TS2589 in `TermsReacceptanceGate.vue` (typed `$fetch` trips when the component is imported into the .ts plugin — use an untyped `$fetch` view).
+
+Verified: full suite 33 tasks / 5337 tests (+3 terms-version); Playwright+DB — fresh admin not stale → bump v2 via admin settings → stale → normal write 403 → `/api/admin/features` still 200 (escape) → plugin gate appears → "I accept" records at v2 → write 200; admin settings shows the field. All three instances rolled to layer 0.91.0.
+
+Operator note: to bump terms, set `instance.termsVersion` in `/admin/settings` (takes effect within the request, no redeploy — it reads instance_settings directly, not the 60s-cached config). Terms TEXT is still the static templated `terms.vue`/`privacy.vue` (a full DB-backed content editor was scoped out).
+
 ## Original release steps (reference — the §16 chain)
 
 1. Branch `referral-links`. Bump changed packages: schema (0.54→0.55, new tables) → config (0.26→0.27, flag + section) → server (2.100.1→2.101, referral module) → ui (only if a shared component changed — none did) → layer (0.89.1→0.90). `pnpm typecheck` (28/28) + suites green.
