@@ -646,8 +646,11 @@ export {
   verifyUnsubscribeToken,
   getEmailBranding,
   EMAIL_BRANDING_KEY,
+  sendBroadcast,
+  countBroadcastRecipients,
+  listBroadcasts,
 } from './comms/index.js';
-export type { OutboxMessage, EmailCategory, DrainOptions, DrainResult } from './comms/index.js';
+export type { OutboxMessage, EmailCategory, DrainOptions, DrainResult, SendBroadcastInput, BroadcastSummary } from './comms/index.js';
 
 // Messaging
 export {

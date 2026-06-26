@@ -260,6 +260,13 @@
       "when": 1782453901575,
       "tag": "0036_stale_toro",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1782463179403,
+      "tag": "0037_spotty_black_knight",
+      "breakpoints": true
     }
   ]
 }

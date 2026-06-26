@@ -49,6 +49,9 @@ export const featureFlagsSchema = z.object({
   // builder. Default ON — the granular token editor is unaffected when off.
   themeStudio: z.boolean().default(true),
   emailNotifications: z.boolean().default(false),
+  // Admin broadcast emails to users (email Phase 3). Default OFF; no effect unless
+  // email is actually configured + emailNotifications is on.
+  adminBroadcast: z.boolean().default(false),
   publicApi: z.boolean().default(false),
   // URL content import (importFromUrl). Default on; operators can
   // disable URL import without disabling content authoring. The import

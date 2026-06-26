@@ -52,6 +52,8 @@ export const PERMISSIONS = [
   'theme.manage',
   // Manage per-instance email branding/templates (email Phase 2).
   'email.manage',
+  // Send admin broadcast emails to users (email Phase 3).
+  'broadcast.send',
   'layout.manage',
   'navigation.manage',
   'search.manage',

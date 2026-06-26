@@ -145,22 +145,23 @@ export async function drainEmailOutbox(
 
   let sent = 0;
   let failed = 0;
+  const allClaimedIds = claimed.map((r) => r.id);
   const chunks: (typeof claimed)[] = [];
   for (let i = 0; i < claimed.length; i += batchSize) chunks.push(claimed.slice(i, i + batchSize));
 
   for (let c = 0; c < chunks.length; c++) {
     const chunk = chunks[c]!;
 
-    // Renew the lease on this chunk's rows against WALL-CLOCK time before sending,
-    // so a long multi-chunk tick can't let another replica reclaim rows we're still
-    // working. A single chunk is bounded (<= batchSize rows, each provider call
-    // capped by the HTTP timeout), so the renewed lease always outlives the chunk.
-    // Only rows still 'sending' under our claim are renewed.
-    const chunkIds = chunk.map((r) => r.id);
+    // Renew the lease on ALL still-in-flight claimed rows (not just this chunk)
+    // against wall-clock time before each chunk, so a long multi-chunk tick can't
+    // let another replica reclaim rows we haven't reached yet. The status guard
+    // skips rows already marked sent/pending, so only our outstanding work is
+    // refreshed. Each chunk's provider call is capped by the HTTP timeout, so the
+    // renewed lease always outlives the gap to the next renewal.
     await db
       .update(emailOutbox)
       .set({ lockExpiresAt: new Date(Date.now() + LOCK_TTL_MS) })
-      .where(and(inArray(emailOutbox.id, chunkIds), eq(emailOutbox.status, 'sending')));
+      .where(and(inArray(emailOutbox.id, allClaimedIds), eq(emailOutbox.status, 'sending')));
 
     // Per-message outcomes. A thrown error = transport failure where nothing was
     // accepted → treat every message as failed (retry the whole chunk). A returned

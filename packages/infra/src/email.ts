@@ -352,6 +352,39 @@ export const emailTemplates = {
     };
   },
 
+  /**
+   * Admin broadcast (email Phase 3). Body is PLAIN TEXT rendered as escaped
+   * paragraphs (no operator HTML), plus an optional themed CTA button. Honors
+   * branding + an unsubscribe link (it is bulk mail).
+   */
+  broadcast(
+    siteName: string,
+    subject: string,
+    bodyText: string,
+    opts?: { ctaLabel?: string; ctaUrl?: string; unsubscribeUrl?: string; branding?: EmailBranding },
+  ): EmailMessage & { to: '' } {
+    const safeName = escapeHtml(siteName);
+    const safeSubject = escapeHtml(subject);
+    const paragraphs = bodyText
+      .split(/\r?\n\r?\n|\r?\n/)
+      .map((p) => p.trim())
+      .filter(Boolean)
+      .map((p) => `<p>${escapeHtml(p)}</p>`)
+      .join('');
+    const cta = opts?.ctaLabel && opts?.ctaUrl ? button(escapeHtml(opts.ctaLabel), escapeHtml(opts.ctaUrl), opts.branding) : '';
+    const safeUnsub = opts?.unsubscribeUrl ? escapeHtml(opts.unsubscribeUrl) : undefined;
+    return {
+      to: '' as const,
+      subject: `${subject} -- ${siteName}`,
+      html: wrapTemplate(
+        safeName,
+        `<h2 style="color:#fff;margin:0 0 16px;">${safeSubject}</h2>${paragraphs}${cta}`,
+        { unsubscribeUrl: safeUnsub, branding: opts?.branding },
+      ),
+      text: `${bodyText}${opts?.ctaUrl ? `\n\n${opts.ctaUrl}` : ''}`,
+    };
+  },
+
   contestAnnouncement(
     siteName: string,
     contestTitle: string,
