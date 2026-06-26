@@ -18,6 +18,7 @@ const knownSettings = [
   { key: 'instance.registrationOpen', label: 'Open Registration', desc: 'Allow new user signups (true/false)' },
   { key: 'instance.maxUploadSize', label: 'Max Upload Size (MB)', desc: 'Maximum file upload size in megabytes' },
   { key: 'instance.contactEmail', label: 'Contact Email', desc: 'Admin contact email for the instance' },
+  { key: 'instance.termsVersion', label: 'Terms Version', desc: 'Bump (e.g. 1 to 2) to re-prompt everyone to re-accept the Terms. Opaque token: always move forward, never reformat. Requires the requireTermsAcceptance feature.' },
 ];
 
 function startEdit(key: string, value: string): void {
