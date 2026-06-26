@@ -20,6 +20,8 @@ export default defineEventHandler(async (event) => {
     'instance.registrationOpen': 'true',
     'instance.maxUploadSize': String(config.instance.maxUploadSize ?? 10485760),
     'instance.contactEmail': config.instance.contactEmail ?? '',
+    // Effective terms version (a stored override wins via the ...stored spread below).
+    'instance.termsVersion': config.instance.termsVersion ?? '1',
   };
 
   return { ...defaults, ...stored };

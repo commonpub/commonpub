@@ -1,6 +1,34 @@
 import { eq, and, desc } from 'drizzle-orm';
-import { users, userConsents } from '@commonpub/schema';
+import { users, userConsents, instanceSettings } from '@commonpub/schema';
 import type { DB } from '../types.js';
+
+/** instance_settings key holding a runtime terms-version override. */
+export const TERMS_VERSION_SETTING_KEY = 'instance.termsVersion';
+
+/**
+ * The EFFECTIVE terms version. An operator can bump it at runtime via the admin
+ * settings store (`instance_settings['instance.termsVersion']`, no redeploy);
+ * absent that, it falls back to the build-time `config.instance.termsVersion`.
+ * Every terms consumer (the re-accept gate `needsTermsReacceptance`, the
+ * write-block middleware, and consent recording at signup + re-accept) MUST use
+ * this same value, or a bump won't take effect and re-acceptance would record a
+ * version that never matches. Stored as a JSONB string.
+ */
+export async function getEffectiveTermsVersion(db: DB, fallback = '1'): Promise<string> {
+  const [row] = await db
+    .select({ value: instanceSettings.value })
+    .from(instanceSettings)
+    .where(eq(instanceSettings.key, TERMS_VERSION_SETTING_KEY))
+    .limit(1);
+  // Coerce string|number to string: real Postgres stores a JSONB string ("2"),
+  // but PGlite (and a numeric admin input) can read it back as the number 2.
+  // acceptedTermsVersion is always a varchar, so normalize to a string for the
+  // `!==` comparison to line up across environments.
+  const v = row?.value;
+  if (typeof v === 'string') return v.length > 0 ? v : fallback;
+  if (typeof v === 'number') return String(v);
+  return fallback;
+}
 
 export type ConsentKind = 'terms' | 'code_of_conduct' | 'privacy' | 'cookies';
 

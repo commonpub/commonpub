@@ -8,10 +8,15 @@ const { user } = useAuth();
 const show = ref(false);
 const accepting = ref(false);
 
+// Untyped view of $fetch for these two known endpoints. When this component is
+// imported into the terms-gate.client.ts plugin (a .ts file), Nuxt's typed-route
+// inference trips TS2589 ("excessively deep") on the generic $fetch form.
+const apiFetch = $fetch as unknown as (url: string, opts?: Record<string, unknown>) => Promise<unknown>;
+
 async function check(): Promise<void> {
   if (typeof window === 'undefined' || !user.value) { show.value = false; return; }
   try {
-    const r = await $fetch<{ termsReacceptanceRequired: boolean }>('/api/consent/status');
+    const r = (await apiFetch('/api/consent/status')) as { termsReacceptanceRequired: boolean };
     show.value = r.termsReacceptanceRequired;
   } catch {
     show.value = false;
@@ -21,7 +26,7 @@ async function check(): Promise<void> {
 async function accept(): Promise<void> {
   accepting.value = true;
   try {
-    await $fetch('/api/consent', { method: 'POST', body: { kind: 'terms' } });
+    await apiFetch('/api/consent', { method: 'POST', body: { kind: 'terms' } });
     show.value = false;
   } catch {
     // leave the gate up; the user can retry

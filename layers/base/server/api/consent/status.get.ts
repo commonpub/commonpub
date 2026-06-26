@@ -1,9 +1,10 @@
-import { needsTermsReacceptance } from '@commonpub/server';
+import { needsTermsReacceptance, getEffectiveTermsVersion } from '@commonpub/server';
 
 /**
  * GET /api/consent/status — whether the logged-in user must re-accept the Terms
- * (GDPR Phase 2). The server computes it (flag + stored vs current terms version)
- * so the interstitial never needs the raw versions.
+ * (GDPR Phase 2). The server computes it (flag + stored vs EFFECTIVE terms version,
+ * which honors a runtime admin bump) so the interstitial never needs the raw
+ * versions.
  */
 export default defineEventHandler(async (event): Promise<{ termsReacceptanceRequired: boolean }> => {
   const user = requireAuth(event);
@@ -11,7 +12,7 @@ export default defineEventHandler(async (event): Promise<{ termsReacceptanceRequ
   const config = useConfig();
   const required = await needsTermsReacceptance(db, user.id, {
     enabled: config.features.requireTermsAcceptance === true,
-    termsVersion: config.instance.termsVersion ?? '1',
+    termsVersion: await getEffectiveTermsVersion(db, config.instance.termsVersion ?? '1'),
   });
   return { termsReacceptanceRequired: required };
 });

@@ -1,7 +1,7 @@
 // Nitro middleware for authentication using @commonpub/auth
 import { createAuthMiddleware, type AuthLocals } from '@commonpub/auth';
 import { createAuth } from '@commonpub/auth';
-import { emailTemplates, emitHook, recordConsent, getEmailBranding } from '@commonpub/server';
+import { emailTemplates, emitHook, recordConsent, getEmailBranding, getEffectiveTermsVersion } from '@commonpub/server';
 
 let authMiddleware: ReturnType<typeof createAuthMiddleware> | null = null;
 
@@ -51,7 +51,7 @@ function getAuthMiddleware(): ReturnType<typeof createAuthMiddleware> {
         await recordConsent(db, {
           userId: user.id,
           kind: 'terms',
-          version: config.instance.termsVersion ?? '1',
+          version: await getEffectiveTermsVersion(db, config.instance.termsVersion ?? '1'),
         });
       } catch { /* swallow — registration already succeeded */ }
       await emitHook('user:registered', {

@@ -277,8 +277,8 @@ const userUsername = computed(() => user.value?.username ?? '');
 
     <!-- Cookie consent banner -->
     <CookieConsent />
-    <!-- Terms re-acceptance gate (GDPR Phase 2; inert unless required) -->
-    <TermsReacceptanceGate />
+    <!-- Terms re-acceptance gate (GDPR Phase 2) is mounted globally via the
+         terms-gate.client.ts plugin so it survives consumer layout overrides. -->
   </div>
 </template>
 
