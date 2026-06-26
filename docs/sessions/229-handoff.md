@@ -69,6 +69,13 @@ Capture (`/r/:code` → indexed `lower(code)` lookup, `click_count++`, sets `cpu
    - **heatsynclabs-io** (c6120e9): package.json + pnpm-lock.yaml + package-lock.json (both tracked).
 4. Liveness check: `/api/features` now contains the `referralLinks` key on each instance once its deploy swaps in (proves layer 0.90.0 live).
 
+### Post-deploy verification (audited after the release — all clean)
+
+- **Published tarballs contain the new code** (not just the repo): `npm pack` of `@commonpub/layer@0.90.0` includes all 10 referral files INCLUDING the bracketed-path routes (`server/routes/r/[code].get.ts`, `server/api/referrals/[id].patch.ts`, `[id].delete.ts`) — verified because this repo has a history of npm-packlist dropping/mishandling `[slug]` route dirs. `@commonpub/server@2.101.0` `dist/index.js` re-exports `claimReferral`/`recordReferralClick`/etc.; `@commonpub/schema@0.55.0` ships `dist/referral.js` + `migrations/0038_milky_red_ghost.sql`.
+- **New code live on all 3**: `/api/features` returns the `referralLinks` key (value `false`) on commonpub.io, deveco.io, heatsynclabs.io; all `/api/health` = 200.
+- **Migration 0038 applied on all 3**: each "Deploy Production" run for the release commits concluded `completed/success`, and deveco + heatsync run `db-migrate.mjs` as a HARD-FAIL gate (deveco `|| exit 1`; heatsync `DRIZZLE_MIGRATIONS_FOLDER=node_modules/@commonpub/schema/migrations`) — so the referral tables exist on every instance and enabling the flag will not 500.
+- **Git hygiene**: all three repos clean on `main`, tracking origin; no lockfile/node_modules drift.
+
 ### ENABLE step (ADMIN action — flag still OFF on all 3)
 
 Flags on these instances are NOT set via deploy env (no `FEATURE_*` in deploy.yml) — they are controlled by the **`/admin/features` DB toggle**, which needs an admin session. To turn the feature on (canary order): on **commonpub.io** first, sign in as admin → `/admin/features` → enable **referralLinks** → exercise the flow → then enable on **deveco.io** and **heatsynclabs.io**. (Their `server/utils/config.ts` ENV_FLAG_MAP lacks `referralLinks`, so the env var won't toggle them — use the admin UI. Add it to their map if env-toggle is wanted later.)
