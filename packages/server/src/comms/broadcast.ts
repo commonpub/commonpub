@@ -5,7 +5,7 @@ import type { DB } from '../types.js';
 import { emailTemplates } from '../email.js';
 import { enqueueEmails } from './outbox.js';
 import type { OutboxMessage } from './outbox.js';
-import { makeUnsubscribeToken } from './unsubscribe.js';
+import { buildUnsubscribeLinks } from './unsubscribe.js';
 import { getEmailBranding } from './branding.js';
 
 // Admin broadcast (email Phase 3). Sends an operator-composed message to a target
@@ -59,11 +59,11 @@ export async function sendBroadcast(
   const branding = await getEmailBranding(db);
 
   const messages: OutboxMessage[] = recipients.map((u) => {
-    const token = makeUnsubscribeToken(u.id, input.secret);
+    const { pageUrl, headers } = buildUnsubscribeLinks(input.siteUrl, u.id, input.secret);
     const tpl = emailTemplates.broadcast(input.siteName, input.subject, input.bodyText, {
       ctaLabel: input.ctaLabel,
       ctaUrl: input.ctaUrl,
-      unsubscribeUrl: `${input.siteUrl}/unsubscribe?token=${token}`,
+      unsubscribeUrl: pageUrl,
       branding,
     });
     return {
@@ -72,10 +72,7 @@ export async function sendBroadcast(
       subject: tpl.subject,
       html: tpl.html,
       text: tpl.text,
-      headers: {
-        'List-Unsubscribe': `<${input.siteUrl}/api/unsubscribe?token=${token}>`,
-        'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
-      },
+      headers,
       category: 'broadcast',
     };
   });

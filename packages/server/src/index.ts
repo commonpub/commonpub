@@ -304,7 +304,7 @@ export type {
 } from './admin/index.js';
 
 // Profile
-export { getUserByUsername, getUserContent, updateUserProfile, exportUserData, searchUsers, recordConsent } from './profile/index.js';
+export { getUserByUsername, getUserContent, updateUserProfile, exportUserData, searchUsers, recordConsent, needsTermsReacceptance } from './profile/index.js';
 export type { UserDataExport, UserSearchResult, ConsentKind, RecordConsentInput } from './profile/index.js';
 
 // Security
@@ -644,13 +644,14 @@ export {
   drainEmailOutbox,
   makeUnsubscribeToken,
   verifyUnsubscribeToken,
+  buildUnsubscribeLinks,
   getEmailBranding,
   EMAIL_BRANDING_KEY,
   sendBroadcast,
   countBroadcastRecipients,
   listBroadcasts,
 } from './comms/index.js';
-export type { OutboxMessage, EmailCategory, DrainOptions, DrainResult, SendBroadcastInput, BroadcastSummary } from './comms/index.js';
+export type { OutboxMessage, EmailCategory, DrainOptions, DrainResult, SendBroadcastInput, BroadcastSummary, UnsubscribeLinks } from './comms/index.js';
 
 // Messaging
 export {

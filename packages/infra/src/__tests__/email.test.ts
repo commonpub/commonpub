@@ -281,46 +281,5 @@ describe('emailTemplates.notificationDigest', () => {
   });
 });
 
-describe('emailTemplates.contestAnnouncement', () => {
-  it('returns a contest announcement email', () => {
-    const result = emailTemplates.contestAnnouncement(
-      'TestSite',
-      'Build Challenge 2026',
-      'https://example.com/contest/1',
-      'Join our latest build challenge!',
-    );
-    expect(result.subject).toContain('Build Challenge 2026');
-    expect(result.html).toContain('Build Challenge 2026');
-    expect(result.html).toContain('Join our latest build challenge!');
-    expect(result.text).toContain('https://example.com/contest/1');
-  });
-});
-
-describe('emailTemplates.certificateIssued', () => {
-  it('returns a certificate email', () => {
-    const result = emailTemplates.certificateIssued(
-      'TestSite',
-      'Electronics 101',
-      'CERT-ABC-123',
-      'https://example.com/cert/abc',
-    );
-    expect(result.subject).toContain('Certificate earned');
-    expect(result.subject).toContain('Electronics 101');
-    expect(result.html).toContain('Congratulations');
-    expect(result.html).toContain('CERT-ABC-123');
-    expect(result.html).toContain('Electronics 101');
-    expect(result.text).toContain('CERT-ABC-123');
-  });
-
-  it('escapes HTML in all fields', () => {
-    const result = emailTemplates.certificateIssued(
-      '<script>x</script>',
-      '<b>Path</b>',
-      '<code>',
-      'https://example.com',
-    );
-    expect(result.html).not.toContain('<script>x</script>');
-    expect(result.html).not.toContain('<b>Path</b>');
-    expect(result.html).toContain('&lt;b&gt;Path&lt;/b&gt;');
-  });
-});
+// contestAnnouncement + certificateIssued templates were removed (session 227) as
+// dead code with zero callers; their tests went with them.

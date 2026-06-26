@@ -95,12 +95,24 @@ export function useCookieConsent(): {
     cookies.value.some((c) => c.category !== 'essential'),
   );
 
+  // GDPR Phase 2: when a logged-in user makes a cookie choice, also record it
+  // server-side (audit trail). Best-effort + client-only; anonymous users keep the
+  // cookie-only mechanism. `useAuth` is read here in setup context so the click
+  // handlers can reference `user.value` safely.
+  const { user } = useAuth();
+  function recordCookieConsent(): void {
+    if (typeof window === 'undefined' || !user.value) return;
+    $fetch('/api/consent', { method: 'POST', body: { kind: 'cookies' } }).catch(() => {});
+  }
+
   function acceptAll(): void {
     consentCookie.value = 'all';
+    recordCookieConsent();
   }
 
   function acceptEssential(): void {
     consentCookie.value = 'essential';
+    recordCookieConsent();
   }
 
   function resetConsent(): void {

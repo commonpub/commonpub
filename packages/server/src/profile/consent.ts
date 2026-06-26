@@ -44,3 +44,25 @@ export async function recordConsent(db: DB, input: RecordConsentInput): Promise<
       .where(eq(users.id, input.userId));
   }
 }
+
+/**
+ * Whether a user must re-accept the Terms (GDPR Phase 2). True only when the
+ * `requireTermsAcceptance` feature is enabled AND the user's last-accepted terms
+ * version differs from the current instance `termsVersion` (including never having
+ * accepted). The route exposes this so the client interstitial doesn't need to see
+ * the user's stored version or the instance version.
+ */
+export async function needsTermsReacceptance(
+  db: DB,
+  userId: string,
+  opts: { enabled: boolean; termsVersion: string },
+): Promise<boolean> {
+  if (!opts.enabled) return false;
+  const [row] = await db
+    .select({ version: users.acceptedTermsVersion })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+  if (!row) return false;
+  return row.version !== opts.termsVersion;
+}

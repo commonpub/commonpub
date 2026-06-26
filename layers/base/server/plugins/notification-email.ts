@@ -15,21 +15,13 @@ import {
   emailTemplates,
   enqueueEmail,
   enqueueEmails,
-  makeUnsubscribeToken,
+  buildUnsubscribeLinks,
   getEmailBranding,
   listNotifications,
 } from '@commonpub/server';
 import type { NotificationType, OutboxMessage } from '@commonpub/server';
 import { users, digestRuns } from '@commonpub/schema';
 import { and, isNotNull, eq } from 'drizzle-orm';
-
-/** RFC 8058 one-click unsubscribe headers pointing at the POST API endpoint. */
-function unsubscribeHeaders(apiUrl: string): Record<string, string> {
-  return {
-    'List-Unsubscribe': `<${apiUrl}>`,
-    'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
-  };
-}
 
 export default defineNitroPlugin((nitro) => {
   if (process.env.NODE_ENV === 'test') return;
@@ -49,15 +41,8 @@ export default defineNitroPlugin((nitro) => {
       const siteName = config.instance.name || 'CommonPub';
       const secret = (runtimeConfig.authSecret as string) || '';
 
-      // Per-recipient unsubscribe links: a visible page link (scope choice) for the
-      // footer + an API URL for the one-click List-Unsubscribe header.
-      const unsubLinks = (userId: string): { pageUrl: string; headers: Record<string, string> } => {
-        const token = makeUnsubscribeToken(userId, secret);
-        return {
-          pageUrl: `${siteUrl}/unsubscribe?token=${token}`,
-          headers: unsubscribeHeaders(`${siteUrl}/api/unsubscribe?token=${token}`),
-        };
-      };
+      // Per-recipient unsubscribe links (shared builder owns the URL/header shape).
+      const unsubLinks = (userId: string) => buildUnsubscribeLinks(siteUrl, userId, secret);
 
       // Register instant email sender. Uses useDB() (not the passed db) because
       // createNotification() may run inside a transaction; the fire-and-forget

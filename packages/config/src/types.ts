@@ -57,6 +57,8 @@ export interface FeatureFlags {
   emailNotifications: boolean;
   /** Enable admin broadcast emails to users (email Phase 3). */
   adminBroadcast: boolean;
+  /** Require re-acceptance of the Terms when instance.termsVersion is bumped (GDPR Phase 2). */
+  requireTermsAcceptance: boolean;
   /**
    * Enable the admin-provisioned public Read API at `/api/public/v1/*`.
    * OFF by default — turning it on does not create any keys; admin must
@@ -178,6 +180,8 @@ export interface InstanceConfig {
    * a future re-acceptance gate can detect stale consent. Default '1'.
    */
   termsVersion?: string;
+  /** Cookie policy version, recorded with logged-in cookie consent (GDPR Phase 2). Default '1'. */
+  cookiePolicyVersion?: string;
 }
 
 export interface FederationConfig {

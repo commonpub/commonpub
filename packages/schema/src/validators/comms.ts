@@ -55,3 +55,8 @@ export const broadcastInputSchema = z
 
 export type BroadcastInput = z.infer<typeof broadcastInputSchema>;
 export type BroadcastAudience = z.infer<typeof broadcastAudienceSchema>;
+
+// Logged-in consent recording (GDPR Phase 2). `terms` = re-accept the Terms;
+// `cookies` = record a cookie-consent choice. The version is server-supplied.
+export const consentInputSchema = z.object({ kind: z.enum(['terms', 'cookies']) }).strict();
+export type ConsentInput = z.infer<typeof consentInputSchema>;

@@ -3,12 +3,9 @@ import { eq } from 'drizzle-orm';
 import { users } from '@commonpub/schema';
 import type { DB } from '../types.js';
 import { createTestDB, createTestUser, closeTestDB } from './helpers/testdb.js';
-import {
-  shouldEmailNotification,
-  getNotificationEmailTarget,
-  setNotificationEmailSender,
-  createNotification,
-} from '../notification/notification.js';
+import { setNotificationEmailSender, createNotification } from '../notification/notification.js';
+// shouldEmailNotification / getNotificationEmailTarget moved to emailPrefs.ts (session 227).
+import { shouldEmailNotification, getNotificationEmailTarget } from '../notification/emailPrefs.js';
 
 describe('shouldEmailNotification', () => {
   let db: DB;
