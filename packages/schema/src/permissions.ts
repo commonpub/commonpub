@@ -50,6 +50,8 @@ export const PERMISSIONS = [
   // Instance administration
   'settings.manage',
   'theme.manage',
+  // Manage per-instance email branding/templates (email Phase 2).
+  'email.manage',
   'layout.manage',
   'navigation.manage',
   'search.manage',

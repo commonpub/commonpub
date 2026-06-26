@@ -15,6 +15,32 @@ export interface EmailSendResult {
   error?: string;
 }
 
+/**
+ * Operator-customizable email branding (email Phase 2), persisted per instance in
+ * `instance_settings['email.branding']` and validated on write. All fields optional;
+ * each falls back to the built-in default. Values are escaped/validated at render so
+ * a stored value can't inject markup or arbitrary CSS.
+ */
+export interface EmailBranding {
+  /** Header band accent + action-button color. Must be #rrggbb. */
+  accentColor?: string;
+  /** Header label (defaults to the instance name). */
+  headerText?: string;
+  /** Optional logo image shown in the header (http/https only). */
+  logoUrl?: string;
+  /** Extra line appended to the footer. */
+  footerText?: string;
+}
+
+const DEFAULT_ACCENT = '#5b9cf6';
+const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;
+
+/** Validated accent color (defends the render even if a bad value slipped past write-validation). */
+function brandAccent(branding?: EmailBranding): string {
+  const c = branding?.accentColor;
+  return typeof c === 'string' && HEX_COLOR.test(c) ? c : DEFAULT_ACCENT;
+}
+
 /** Network timeout for a single provider HTTP call. Must stay well under the
  *  outbox worker's row lock TTL so a hung call can't outlive its claim. */
 export const EMAIL_HTTP_TIMEOUT_MS = 30_000;
@@ -196,34 +222,52 @@ function escapeHtml(str: string): string {
 }
 
 /** Email template builder with inline styles */
-function wrapTemplate(siteName: string, body: string, opts?: { unsubscribeUrl?: string }): string {
+function wrapTemplate(
+  siteName: string,
+  body: string,
+  opts?: { unsubscribeUrl?: string; branding?: EmailBranding },
+): string {
   // A visible one-click unsubscribe link for non-transactional mail (CAN-SPAM /
   // GDPR). Auth mail omits it (no opts.unsubscribeUrl). Pre-escaped by the caller.
   const unsub = opts?.unsubscribeUrl
     ? ` <a href="${opts.unsubscribeUrl}" style="color:#888;text-decoration:underline;">Unsubscribe</a>.`
     : '';
+  const b = opts?.branding;
+  const accent = brandAccent(b);
+  // Header: a custom logo image if set, else the (custom or default) header text.
+  const headerLabel = b?.headerText ? escapeHtml(b.headerText) : siteName;
+  const header = b?.logoUrl
+    ? `<img src="${escapeHtml(b.logoUrl)}" alt="${headerLabel}" style="max-height:40px;max-width:200px;" />`
+    : `<span style="font-family:'JetBrains Mono',monospace;font-size:14px;text-transform:uppercase;letter-spacing:2px;color:${accent};">${headerLabel}</span>`;
+  const customFooter = b?.footerText ? ` ${escapeHtml(b.footerText)}` : '';
   return `<!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width"></head>
 <body style="margin:0;padding:0;background:#0a0a0a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
   <div style="max-width:600px;margin:0 auto;padding:32px 24px;">
-    <div style="border-bottom:2px solid #5b9cf6;padding-bottom:16px;margin-bottom:24px;">
-      <span style="font-family:'JetBrains Mono',monospace;font-size:14px;text-transform:uppercase;letter-spacing:2px;color:#5b9cf6;">${siteName}</span>
+    <div style="border-bottom:2px solid ${accent};padding-bottom:16px;margin-bottom:24px;">
+      ${header}
     </div>
     <div style="color:#e0e0e0;font-size:16px;line-height:1.7;">
       ${body}
     </div>
     <div style="border-top:1px solid #2a2a2a;margin-top:32px;padding-top:16px;color:#666;font-size:12px;">
-      Sent by ${siteName}. You can manage your notification preferences in your settings.${unsub}
+      Sent by ${siteName}. You can manage your notification preferences in your settings.${unsub}${customFooter}
     </div>
   </div>
 </body>
 </html>`;
 }
 
+/** A themed action button using the branding accent. */
+function button(label: string, url: string, branding?: EmailBranding): string {
+  const accent = brandAccent(branding);
+  return `<a href="${url}" style="display:inline-block;background:${accent};color:#000;padding:12px 24px;text-decoration:none;font-weight:600;margin:16px 0;border:2px solid ${accent};">${label}</a>`;
+}
+
 /** Pre-built email templates */
 export const emailTemplates = {
-  verification(siteName: string, verifyUrl: string): EmailMessage & { to: '' } {
+  verification(siteName: string, verifyUrl: string, branding?: EmailBranding): EmailMessage & { to: '' } {
     const safeName = escapeHtml(siteName);
     const safeUrl = escapeHtml(verifyUrl);
     return {
@@ -232,14 +276,14 @@ export const emailTemplates = {
       html: wrapTemplate(safeName, `
         <h2 style="color:#fff;margin:0 0 16px;">Verify your email</h2>
         <p>Click the button below to verify your email address and activate your account.</p>
-        <a href="${safeUrl}" style="display:inline-block;background:#5b9cf6;color:#000;padding:12px 24px;text-decoration:none;font-weight:600;margin:16px 0;border:2px solid #5b9cf6;">Verify Email</a>
+        ${button('Verify Email', safeUrl, branding)}
         <p style="color:#888;font-size:14px;">If you didn't create an account, you can safely ignore this email.</p>
-      `),
+      `, { branding }),
       text: `Verify your email: ${verifyUrl}`,
     };
   },
 
-  passwordReset(siteName: string, resetUrl: string): EmailMessage & { to: '' } {
+  passwordReset(siteName: string, resetUrl: string, branding?: EmailBranding): EmailMessage & { to: '' } {
     const safeName = escapeHtml(siteName);
     const safeUrl = escapeHtml(resetUrl);
     return {
@@ -248,9 +292,9 @@ export const emailTemplates = {
       html: wrapTemplate(safeName, `
         <h2 style="color:#fff;margin:0 0 16px;">Reset your password</h2>
         <p>Click the button below to reset your password. This link expires in 1 hour.</p>
-        <a href="${safeUrl}" style="display:inline-block;background:#5b9cf6;color:#000;padding:12px 24px;text-decoration:none;font-weight:600;margin:16px 0;border:2px solid #5b9cf6;">Reset Password</a>
+        ${button('Reset Password', safeUrl, branding)}
         <p style="color:#888;font-size:14px;">If you didn't request this, you can safely ignore this email.</p>
-      `),
+      `, { branding }),
       text: `Reset your password: ${resetUrl}`,
     };
   },
@@ -260,12 +304,14 @@ export const emailTemplates = {
     username: string,
     notifications: Array<{ text: string; url: string }>,
     unsubscribeUrl?: string,
+    branding?: EmailBranding,
   ): EmailMessage & { to: '' } {
     const safeName = escapeHtml(siteName);
     const safeUsername = escapeHtml(username);
     const safeUnsub = unsubscribeUrl ? escapeHtml(unsubscribeUrl) : undefined;
+    const linkColor = brandAccent(branding);
     const items = notifications
-      .map((n) => `<li style="margin-bottom:8px;"><a href="${escapeHtml(n.url)}" style="color:#5b9cf6;text-decoration:none;">${escapeHtml(n.text)}</a></li>`)
+      .map((n) => `<li style="margin-bottom:8px;"><a href="${escapeHtml(n.url)}" style="color:${linkColor};text-decoration:none;">${escapeHtml(n.text)}</a></li>`)
       .join('');
 
     return {
@@ -275,7 +321,7 @@ export const emailTemplates = {
         <h2 style="color:#fff;margin:0 0 16px;">Hi ${safeUsername},</h2>
         <p>Here's what you missed:</p>
         <ul style="padding-left:20px;">${items}</ul>
-      `, { unsubscribeUrl: safeUnsub }),
+      `, { unsubscribeUrl: safeUnsub, branding }),
       text: notifications.map((n) => `- ${n.text}: ${n.url}`).join('\n'),
     };
   },
@@ -285,6 +331,7 @@ export const emailTemplates = {
     username: string,
     notification: { title: string; message: string; url: string },
     unsubscribeUrl?: string,
+    branding?: EmailBranding,
   ): EmailMessage & { to: '' } {
     const safeName = escapeHtml(siteName);
     const safeUsername = escapeHtml(username);
@@ -299,8 +346,8 @@ export const emailTemplates = {
         <h2 style="color:#fff;margin:0 0 16px;">Hi ${safeUsername},</h2>
         <p><strong>${safeTitle}</strong></p>
         <p>${safeMessage}</p>
-        <a href="${safeUrl}" style="display:inline-block;background:#5b9cf6;color:#000;padding:12px 24px;text-decoration:none;font-weight:600;margin:16px 0;border:2px solid #5b9cf6;">View</a>
-      `, { unsubscribeUrl: safeUnsub }),
+        ${button('View', safeUrl, branding)}
+      `, { unsubscribeUrl: safeUnsub, branding }),
       text: `${notification.title}: ${notification.message}\n${notification.url}`,
     };
   },

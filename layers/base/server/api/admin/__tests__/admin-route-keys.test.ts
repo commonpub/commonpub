@@ -48,6 +48,10 @@ const ROUTE_KEYS: Record<string, string> = {
   'features/index.put.ts': 'settings.manage',
   'settings.get.ts': 'settings.manage',
   'settings.put.ts': 'settings.manage',
+  // email branding/templates (email Phase 2)
+  'email-branding.get.ts': 'email.manage',
+  'email-branding.put.ts': 'email.manage',
+  'email-preview.post.ts': 'email.manage',
   // federation
   'federation/activity.get.ts': 'federation.manage',
   'federation/followers.get.ts': 'federation.manage',

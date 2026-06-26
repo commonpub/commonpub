@@ -6,4 +6,4 @@ export {
   emailTemplates,
   EMAIL_HTTP_TIMEOUT_MS,
 } from '@commonpub/infra/email';
-export type { EmailAdapter, EmailMessage, EmailSendResult } from '@commonpub/infra/email';
+export type { EmailAdapter, EmailMessage, EmailSendResult, EmailBranding } from '@commonpub/infra/email';

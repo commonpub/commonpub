@@ -16,6 +16,7 @@ import {
   enqueueEmail,
   enqueueEmails,
   makeUnsubscribeToken,
+  getEmailBranding,
   listNotifications,
 } from '@commonpub/server';
 import type { NotificationType, OutboxMessage } from '@commonpub/server';
@@ -74,6 +75,7 @@ export default defineNitroPlugin((nitro) => {
         if (!target) return;
 
         const { pageUrl, headers } = unsubLinks(notification.userId);
+        const branding = await getEmailBranding(freshDb);
         const template = emailTemplates.notificationInstant(
           siteName,
           target.username,
@@ -83,6 +85,7 @@ export default defineNitroPlugin((nitro) => {
             url: notification.link ? `${siteUrl}${notification.link}` : siteUrl,
           },
           pageUrl,
+          branding,
         );
         await enqueueEmail(freshDb, {
           toEmail: target.email,
@@ -159,6 +162,7 @@ export default defineNitroPlugin((nitro) => {
         ));
 
       const messages: OutboxMessage[] = [];
+      const branding = await getEmailBranding(db);
 
       for (const user of digestUsers) {
         const prefs = user.emailNotifications as { digest?: string; unsubscribedAll?: boolean } | null;
@@ -192,6 +196,7 @@ export default defineNitroPlugin((nitro) => {
             url: n.link ? `${siteUrl}${n.link}` : siteUrl,
           })),
           pageUrl,
+          branding,
         );
         messages.push({
           toEmail: user.email,

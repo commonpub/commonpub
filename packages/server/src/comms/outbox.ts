@@ -69,11 +69,6 @@ export interface DrainResult {
 }
 
 const LOCK_TTL_MS = 5 * 60 * 1000;
-// Worst-case budget for one provider call (its HTTP timeout) plus a throttle gap.
-// Used to clamp a tick's row count so the whole tick finishes before its own row
-// lock expires — otherwise a second replica could reclaim and re-send in-flight
-// rows. Slightly above the adapter's 30s HTTP timeout.
-const PER_CALL_BUDGET_MS = 35_000;
 
 /** Exponential backoff for the NEXT retry (1→2min, 2→4min, ... capped 1h). */
 function backoffMs(attempts: number): number {
@@ -91,11 +86,17 @@ function rowToMessage(row: typeof emailOutbox.$inferSelect): EmailMessage {
 }
 
 /**
- * Claim and deliver a batch of pending emails. Crash-safe: claims with
- * `FOR UPDATE SKIP LOCKED` + a lock expiry, so concurrent workers never grab the
- * same row and a crashed worker's rows are reclaimed once stale. A provider batch
- * failure reschedules the whole chunk with backoff (no mail lost) until
- * `maxAttempts`, then dead-letters it (`status='failed'`). Returns counts.
+ * Claim and deliver a batch of pending emails. Crash-safe + multi-replica-safe:
+ * claims with `FOR UPDATE SKIP LOCKED` + a lock expiry, and RENEWS that lease per
+ * chunk while it works — so a live worker's in-flight rows are never reclaimed
+ * (no matter how long the whole tick runs), while a crashed worker stops renewing
+ * and its rows are reclaimed once stale. A provider failure reschedules with
+ * backoff (no mail lost) until `maxAttempts`, then dead-letters (`status='failed'`).
+ *
+ * At-least-once: if a worker dies in the window between a provider accepting a
+ * message and this function marking the row `sent`, the row is reclaimed and
+ * re-sent (a rare duplicate). This is the standard email-queue guarantee; provider
+ * idempotency keys could tighten it to effectively-once later.
  *
  * Pure-ish: takes the db + adapter, so it's unit-testable with a mock adapter and
  * an injected clock. The Nitro plugin just calls this on an interval.
@@ -105,18 +106,19 @@ export async function drainEmailOutbox(
   adapter: EmailAdapter,
   opts: DrainOptions = {},
 ): Promise<DrainResult> {
-  const batchSize = Math.min(opts.batchSize ?? 100, 100);
+  // Floor batchSize at 1: a 0/negative step would make the chunking loop spin
+  // forever (i never advances). Cap at 100 (Resend's batch limit).
+  const batchSize = Math.max(1, Math.min(opts.batchSize ?? 100, 100));
   const maxAttempts = opts.maxAttempts ?? 6;
   const maxBatchesPerSecond = opts.maxBatchesPerSecond ?? 5;
   const now = opts.now ?? new Date();
   const sleep = opts.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
   const lockExpiry = new Date(now.getTime() + LOCK_TTL_MS);
   const gapMs = Math.ceil(1000 / Math.max(1, maxBatchesPerSecond));
-  // Clamp the tick so its worst-case duration stays under LOCK_TTL_MS: a tick must
-  // finish (and mark its rows done) before another replica could treat them as
-  // stale and reclaim them. maxChunks * per-chunk-budget < lock TTL.
-  const maxChunks = Math.max(1, Math.floor(LOCK_TTL_MS / (PER_CALL_BUDGET_MS + gapMs)));
-  const maxPerTick = Math.min(opts.maxPerTick ?? 200, maxChunks * batchSize);
+  // Plain work bound per tick (default 200). Safety against cross-replica reclaim
+  // comes from the per-chunk lease renewal below, NOT from bounding tick duration,
+  // so a large maxPerTick only makes a tick slower, never unsafe.
+  const maxPerTick = Math.max(1, opts.maxPerTick ?? 200);
 
   // Claim: pending+due rows, plus stale 'sending' rows whose lock expired (a
   // crashed worker). SKIP LOCKED so parallel workers don't collide.
@@ -148,6 +150,17 @@ export async function drainEmailOutbox(
 
   for (let c = 0; c < chunks.length; c++) {
     const chunk = chunks[c]!;
+
+    // Renew the lease on this chunk's rows against WALL-CLOCK time before sending,
+    // so a long multi-chunk tick can't let another replica reclaim rows we're still
+    // working. A single chunk is bounded (<= batchSize rows, each provider call
+    // capped by the HTTP timeout), so the renewed lease always outlives the chunk.
+    // Only rows still 'sending' under our claim are renewed.
+    const chunkIds = chunk.map((r) => r.id);
+    await db
+      .update(emailOutbox)
+      .set({ lockExpiresAt: new Date(Date.now() + LOCK_TTL_MS) })
+      .where(and(inArray(emailOutbox.id, chunkIds), eq(emailOutbox.status, 'sending')));
 
     // Per-message outcomes. A thrown error = transport failure where nothing was
     // accepted → treat every message as failed (retry the whole chunk). A returned
@@ -194,8 +207,10 @@ export async function drainEmailOutbox(
     }
 
     if (okIds.length > 0) {
-      // Guard on status='sending': if another replica reclaimed a stale row mid-tick
-      // it would no longer be 'sending' as claimed by us, so we won't stomp it sent.
+      // Guard on status='sending': a row already moved to a terminal/pending state
+      // (e.g. by a reclaiming worker after a crash) is left alone. Per-chunk lease
+      // renewal above is what actually prevents a live worker's rows from being
+      // reclaimed mid-tick; this guard is defense in depth for the crash path.
       await db
         .update(emailOutbox)
         .set({ status: 'sent', sentAt: now, lastError: null })
