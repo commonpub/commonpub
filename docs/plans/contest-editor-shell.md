@@ -1,5 +1,9 @@
 # Contest Editor — 3-panel shell redesign (match project/blog/explainer)
 
+> **Status: COMPLETE — built session 218, squash-merged (PR #52) + published + deployed to all 3 in
+> session 219** (verified by the session 228 plans audit). The HtmlBlock + tabs/table/criteriaBar
+> blocks + 3-panel ContestEditor all shipped; the 218 build-log "NOT merged" wording is stale.
+>
 > Created session 217 (2026-06-23). Branch: `contests` (the contest work is merged to main + live on
 > commonpub.io; this is the next iteration). Goal: make the contest editor FEEL like the
 > project/blog/explainer editor — **left block palette · center body with tabs · right settings rail**,

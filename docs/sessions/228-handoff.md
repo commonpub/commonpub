@@ -67,15 +67,46 @@ documented as an opaque, bump-forward-only token.
   works for ANY flag without ENV_FLAG_MAP. Also add it to `packages/test-utils/src/mockConfig.ts`
   + the `health.test.ts` FeatureFlags literal or the server build fails.
 
-## Suggested next work (pick by priority / take user direction)
-1. ~~Re-pin create-commonpub~~ — DONE (0.5.20, pins current).
-2. **Operator decision: enable email on an instance?** If yes, wire the Resend secret + flags
-   per above and smoke a real send. (Cost model + scaling: `docs/reference/email-gdpr-scaling-analysis.md`.)
-3. **GDPR/email small follow-ups** (from the analysis + audits): bulk PII review UI; the
-   digest in-memory build should paginate at scale; `pnpm pack` test-leak check in
-   `publish:layer`; email open/click analytics; specific-users broadcast picker polish.
-4. **Older backlog** (pre-email): entry-detail residuals, deferred a11y (`--accent` as small
-   nav text), maxEntries TOCTOU, federation P3 mirror round-trip live-verify.
+## Plans audit (session 228 — all 24 `docs/plans/` + 4 archived, verified vs STATUS + code)
+
+**Complete (no outstanding code):** email-comms-overhaul, gdpr-consent-hardening,
+rbac + rbac-activation-and-contest-editors, federation-discovery-and-hardening,
+federation-hardening, public-api-cors-and-metrics (Ph1-3), pagination-scalability (A-C),
+ALL six contest plans (stage-e-unification, stages-and-editor-polish, per-stage-submissions,
+elevation, editor-shell, builder-ux), theme-studio-advanced-tokens (A-D), search-overhaul,
+redis-integration (code done), and the 4 archived master/federation plans (historical).
+
+**GENUINELY PENDING engineering (never built or partially built) — the real backlog:**
+1. **Layout engine** (`layout-engine-rollout.md` + `phase-3-editor.md`) — the LARGEST. The
+   visual editor is ~80% (Phase 3e-remainder: mobile colSpan slider, rich-field pickers,
+   config-edit undo; Phase 3f inspector polish — both pending). The ROLLOUT (Phases 4-10) is
+   largely unshipped: adopt `LayoutSlot` in ~7 more routes (currently homepage-only), the
+   remaining ~8 section types, mobile editor, versioning/draft/publish UI. The engine is a
+   **commonpub.io-only canary** — deveco/heatsync run the legacy renderer (`layoutEngine` OFF).
+2. **instance-self-update.md** — ENTIRE feature un-built; status "awaiting maintainer approval."
+   No backend, no `/admin/updates` page, no scaffolder workflow. A DECISION GATE, not just dev.
+3. **monolith-splits Phases 3c / 4a / 4b** (`monolith-splits-remaining-backlog.md`):
+   3c federated-follow-from-profile UI (backend ready; needs a UI surface + a decision);
+   4a homepage 3-path consolidation (`pages/index.vue` still has 3 branches; HIGH blank-page
+   risk, needs a 2-phase deploy seeding default layouts); 4b extract `inboxHandlers.onCreate`
+   (file still ~1512 lines; needs inbound-Create integration tests first; HIGH risk).
+
+**Deferred-by-design (logged optional, NOT action items):** pagination step D (unified
+`feed_items`), public-API Phase 4 (event table), theme-studio Phase E, contest B3 teams,
+federation small polish (txn-wrap approveMirror, backfill-progress UI). Redis + Meilisearch
+are code-complete but **operator-deferred** (env vars unset; single-process + Postgres-FTS is
+the live path).
+
+**Operator actions (can't be done headlessly):** enable email (Resend secret); federation P3
+mirror Offer→Accept live round-trip; `reconcile-counters --check`; RBAC flag-flip rollout.
+
+**Doc hygiene:** three plan headers carried stale "pending release / NOT merged" text that
+the session-219/220/221 logs supersede — corrected this session (contest-builder-ux,
+contest-editor-shell; email/gdpr plans marked COMPLETE).
+
+**Small follow-ups** (from prior audits, low priority): digest in-memory build should paginate
+at scale; `pnpm pack` test-leak check in `publish:layer`; bulk PII review UI; specific-users
+broadcast picker polish; entry-detail residuals; deferred a11y (`--accent` as small nav text).
 
 ## Standing rules (unchanged)
 Test-driven; verify UI visually (run the app + screenshot/Playwright) before shipping;

@@ -1,5 +1,10 @@
 # Plan — GDPR / Consent Hardening
 
+> **Status: COMPLETE (session 227).** Phase 1 (acceptance recording + signup checkbox + export
+> completeness, migration 0035) and Phase 2 (re-acceptance gate + cookie record + server-side
+> write-enforcement middleware) SHIPPED + ROLLED to all 3. `requireTermsAcceptance` flag default OFF.
+> Detail: `docs/sessions/227-email-refactor-gdpr-phase2.md` + the GDPR-enforcement follow-up.
+
 > Created 2026-06-25 (session 227). Companion analysis:
 > `docs/reference/email-gdpr-scaling-analysis.md` §1. This plan closes the
 > site-wide consent/terms gaps. It is INDEPENDENT of the email work
