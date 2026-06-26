@@ -52,6 +52,10 @@ const ROUTE_KEYS: Record<string, string> = {
   'email-branding.get.ts': 'email.manage',
   'email-branding.put.ts': 'email.manage',
   'email-preview.post.ts': 'email.manage',
+  // admin broadcast (email Phase 3)
+  'broadcast/index.post.ts': 'broadcast.send',
+  'broadcast/index.get.ts': 'broadcast.send',
+  'broadcast/recipients.post.ts': 'broadcast.send',
   // federation
   'federation/activity.get.ts': 'federation.manage',
   'federation/followers.get.ts': 'federation.manage',

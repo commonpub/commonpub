@@ -45,3 +45,28 @@ export const emailOutboxRelations = relations(emailOutbox, ({ one }) => ({
 
 export type EmailOutboxRow = typeof emailOutbox.$inferSelect;
 export type NewEmailOutboxRow = typeof emailOutbox.$inferInsert;
+
+/**
+ * Admin broadcast audit log (email Phase 3). One row per operator-sent broadcast,
+ * recording who sent what to whom (the audience spec) and how many recipients were
+ * enqueued. The emails themselves are delivered via `email_outbox`.
+ */
+export const broadcasts = pgTable('broadcasts', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  subject: text('subject').notNull(),
+  bodyText: text('body_text').notNull(),
+  ctaLabel: text('cta_label'),
+  ctaUrl: text('cta_url'),
+  /** `'all'` | `{ role }` | `{ userIds }` — the resolved audience spec. */
+  audience: jsonb('audience').$type<unknown>().notNull(),
+  recipientCount: integer('recipient_count').notNull().default(0),
+  sentById: uuid('sent_by_id').references(() => users.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [index('idx_broadcasts_created_at').on(t.createdAt)]);
+
+export const broadcastsRelations = relations(broadcasts, ({ one }) => ({
+  sentBy: one(users, { fields: [broadcasts.sentById], references: [users.id] }),
+}));
+
+export type BroadcastRow = typeof broadcasts.$inferSelect;
+export type NewBroadcastRow = typeof broadcasts.$inferInsert;

@@ -117,7 +117,9 @@ function resetDefaults(): void {
 
       <div class="cpub-eb-preview">
         <span class="cpub-eb-label">Live preview</span>
-        <iframe v-if="previewHtml" :srcdoc="previewHtml" class="cpub-eb-frame" title="Email preview"></iframe>
+        <!-- sandbox (no allow-scripts): the preview HTML is trusted + escaped, but
+             scripts are blocked as defense in depth; inline styles/images still render. -->
+        <iframe v-if="previewHtml" :srcdoc="previewHtml" sandbox="" class="cpub-eb-frame" title="Email preview"></iframe>
         <div v-else class="cpub-eb-frame cpub-eb-frame-empty">Preview unavailable</div>
       </div>
     </div>

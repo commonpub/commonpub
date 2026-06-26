@@ -55,6 +55,8 @@ export interface FeatureFlags {
   themeStudio: boolean;
   /** Enable email notifications (instant + digest emails for likes, comments, follows, mentions) */
   emailNotifications: boolean;
+  /** Enable admin broadcast emails to users (email Phase 3). */
+  adminBroadcast: boolean;
   /**
    * Enable the admin-provisioned public Read API at `/api/public/v1/*`.
    * OFF by default — turning it on does not create any keys; admin must

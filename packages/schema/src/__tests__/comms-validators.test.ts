@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { emailBrandingSchema } from '../validators/comms.js';
+import { emailBrandingSchema, broadcastInputSchema, broadcastAudienceSchema } from '../validators/comms.js';
 
 // Email Phase 2: branding validated on write so a stored value can't inject
 // markup or arbitrary CSS into rendered emails.
@@ -38,5 +38,41 @@ describe('emailBrandingSchema', () => {
   it('enforces length caps', () => {
     expect(emailBrandingSchema.safeParse({ headerText: 'x'.repeat(81) }).success).toBe(false);
     expect(emailBrandingSchema.safeParse({ footerText: 'x'.repeat(301) }).success).toBe(false);
+  });
+});
+
+describe('broadcastAudienceSchema', () => {
+  it('accepts all / role / userIds', () => {
+    expect(broadcastAudienceSchema.safeParse('all').success).toBe(true);
+    expect(broadcastAudienceSchema.safeParse({ role: 'staff' }).success).toBe(true);
+    expect(broadcastAudienceSchema.safeParse({ userIds: ['6fc2f04e-44ee-4603-9d3c-e1c238dc4e18'] }).success).toBe(true);
+  });
+  it('rejects bad role / empty userIds / unknown shape', () => {
+    expect(broadcastAudienceSchema.safeParse({ role: 'wizard' }).success).toBe(false);
+    expect(broadcastAudienceSchema.safeParse({ userIds: [] }).success).toBe(false);
+    expect(broadcastAudienceSchema.safeParse({ userIds: ['not-a-uuid'] }).success).toBe(false);
+    expect(broadcastAudienceSchema.safeParse('everyone').success).toBe(false);
+  });
+});
+
+describe('broadcastInputSchema', () => {
+  const base = { subject: 'Hello', bodyText: 'Body', audience: 'all' as const };
+  it('accepts a minimal valid broadcast', () => {
+    expect(broadcastInputSchema.safeParse(base).success).toBe(true);
+  });
+  it('accepts a CTA with both label and http(s) url', () => {
+    expect(broadcastInputSchema.safeParse({ ...base, ctaLabel: 'Go', ctaUrl: 'https://x.com' }).success).toBe(true);
+  });
+  it('rejects a half CTA (label without url, or vice versa)', () => {
+    expect(broadcastInputSchema.safeParse({ ...base, ctaLabel: 'Go' }).success).toBe(false);
+    expect(broadcastInputSchema.safeParse({ ...base, ctaUrl: 'https://x.com' }).success).toBe(false);
+  });
+  it('rejects a non-http(s) CTA url', () => {
+    expect(broadcastInputSchema.safeParse({ ...base, ctaLabel: 'Go', ctaUrl: 'javascript:alert(1)' }).success).toBe(false);
+  });
+  it('requires non-empty subject + body and rejects unknown keys', () => {
+    expect(broadcastInputSchema.safeParse({ ...base, subject: '' }).success).toBe(false);
+    expect(broadcastInputSchema.safeParse({ ...base, bodyText: '' }).success).toBe(false);
+    expect(broadcastInputSchema.safeParse({ ...base, evil: 1 }).success).toBe(false);
   });
 });

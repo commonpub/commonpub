@@ -23,3 +23,35 @@ export const emailBrandingSchema = z
   .strict();
 
 export type EmailBrandingInput = z.infer<typeof emailBrandingSchema>;
+
+// Admin broadcast (email Phase 3). Body is PLAIN TEXT (rendered as escaped
+// paragraphs) plus an optional themed CTA button with an http(s) URL — no
+// operator-supplied HTML, so there is no injection surface.
+export const broadcastAudienceSchema = z.union([
+  z.literal('all'),
+  z.object({ role: z.enum(['member', 'pro', 'verified', 'staff', 'admin']) }).strict(),
+  z.object({ userIds: z.array(z.string().uuid()).min(1).max(1000) }).strict(),
+]);
+
+export const broadcastInputSchema = z
+  .object({
+    subject: z.string().trim().min(1).max(200),
+    bodyText: z.string().trim().min(1).max(5000),
+    ctaLabel: z.string().trim().max(60).optional(),
+    ctaUrl: z
+      .string()
+      .url()
+      .max(500)
+      .refine((u) => /^https?:\/\//i.test(u), 'Must be an http(s) URL')
+      .optional(),
+    audience: broadcastAudienceSchema,
+  })
+  .strict()
+  // A CTA needs both label and URL, or neither.
+  .refine((v) => (v.ctaLabel ? !!v.ctaUrl : !v.ctaUrl), {
+    message: 'A call-to-action needs both a label and a URL',
+    path: ['ctaUrl'],
+  });
+
+export type BroadcastInput = z.infer<typeof broadcastInputSchema>;
+export type BroadcastAudience = z.infer<typeof broadcastAudienceSchema>;

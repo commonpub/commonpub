@@ -17,6 +17,7 @@ const canReports = useCan('reports.review'); // /admin/reports
 const canAudit = useCan('audit.read'); // /admin/audit
 const canTheme = useCan('theme.manage'); // /admin/theme
 const canEmail = useCan('email.manage'); // /admin/email-templates
+const canBroadcast = useCan('broadcast.send'); // /admin/broadcast
 const canLayout = useCan('layout.manage'); // /admin/homepage + /admin/layouts
 const canNavigation = useCan('navigation.manage'); // /admin/navigation
 const canSettings = useCan('settings.manage'); // /admin/features + /admin/settings
@@ -105,6 +106,9 @@ const { desktopCollapsed, mobileOpen, toggleDesktop, toggleMobile, closeMobile }
           </NuxtLink>
           <NuxtLink v-if="canEmail" to="/admin/email-templates" class="admin-nav-link" :title="desktopCollapsed ? 'Email' : undefined" @click="closeMobile">
             <i class="fa-solid fa-envelope"></i><span class="admin-nav-label">Email</span>
+          </NuxtLink>
+          <NuxtLink v-if="canBroadcast" to="/admin/broadcast" class="admin-nav-link" :title="desktopCollapsed ? 'Broadcast' : undefined" @click="closeMobile">
+            <i class="fa-solid fa-bullhorn"></i><span class="admin-nav-label">Broadcast</span>
           </NuxtLink>
           <NuxtLink v-if="canLayout" to="/admin/homepage" class="admin-nav-link" :title="desktopCollapsed ? 'Homepage' : undefined" @click="closeMobile">
             <i class="fa-solid fa-house"></i><span class="admin-nav-label">Homepage</span>

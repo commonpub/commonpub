@@ -383,17 +383,30 @@ a minute (`curl deveco.io/api/content?limit=5`, today's timestamp).
 
 ## 📌 Reference
 
-### Published versions (verified 2026-06-26 — session 227 email Phase 2 branding)
+### Published versions (verified 2026-06-26 — session 227 email Phase 3 broadcast)
 | Package | Version | | Package | Version |
 |---|---|---|---|---|
-| @commonpub/schema | **0.52.0** | | @commonpub/infra | **0.11.0** |
-| @commonpub/config | **0.24.0** | | @commonpub/editor | **0.9.0** |
+| @commonpub/schema | **0.53.0** | | @commonpub/infra | **0.12.0** |
+| @commonpub/config | **0.25.0** | | @commonpub/editor | **0.9.0** |
 | @commonpub/protocol | **0.14.0** | | @commonpub/explainer | **0.8.0** |
 | @commonpub/auth | 0.8.0 | | @commonpub/docs | 0.6.3 |
-| @commonpub/server | **2.98.0** | | @commonpub/learning | 0.5.2 |
+| @commonpub/server | **2.99.0** | | @commonpub/learning | 0.5.2 |
 | @commonpub/ui | 0.13.1 | | @commonpub/test-utils | **0.5.8** |
-| @commonpub/layer | **0.87.0** | | @commonpub/theme-studio | 0.6.1 |
-| create-commonpub (crates.io) | **0.5.19** (pins ^0.49/^2.94/^0.86.7/config ^0.23 — STALE: re-pin to schema ^0.52 / config ^0.24 / server ^2.98 / infra ^0.11 / layer ^0.87 on next CLI bump) | | | |
+| @commonpub/layer | **0.88.0** | | @commonpub/theme-studio | 0.6.1 |
+| create-commonpub (crates.io) | **0.5.19** (pins ^0.49/^2.94/^0.86.7/config ^0.23 — STALE: re-pin to schema ^0.53 / config ^0.25 / server ^2.99 / infra ^0.12 / layer ^0.88 on next CLI bump) | | | |
+
+**Session 227 email Phase 3 + outbox fix #3 (2026-06-26) — SHIPPED + ROLLED to all 3.**
+Admin broadcast: compose + send an email to all / by-role / specific users via the durable
+outbox, with recipient count, confirm-before-send, and an audit history. **schema 0.53.0 /
+config 0.25.0 / infra 0.12.0 / server 2.99.0 / layer 0.88.0, migration 0037** (`broadcasts`
+table). New `broadcast.send` permission + `adminBroadcast` flag (default OFF). Recipients are
+always verified + not-unsubscribed (SQL filter); every email has a one-click unsubscribe;
+body is plain text + optional validated CTA (no injection surface). Bundled the audit's
+outbox fix #3 (renew ALL in-flight rows per chunk, not just the current one) + email-preview
+iframe sandbox. schema 491 / server 1521 / layer 1442 / infra 162 / typecheck 28/28;
+live-verified (targeting excludes unsubscribed+unverified, audit row, by-role count).
+adminBroadcast OFF + email OFF in prod. Detail: `docs/sessions/227-email-phase3-broadcast.md`.
+Remaining plan: GDPR Phase 2.
 
 **Session 227 email Phase 2 + outbox fix #2 (2026-06-26) — SHIPPED + ROLLED to all 3.**
 Operator-customizable email branding (accent / header text or logo / footer) persisted in
