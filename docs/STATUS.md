@@ -383,17 +383,36 @@ a minute (`curl deveco.io/api/content?limit=5`, today's timestamp).
 
 ## 📌 Reference
 
-### Published versions (verified 2026-06-25 — session 227 entry-detail draft gate release)
+### Published versions (verified 2026-06-25 — session 227 GDPR consent Phase 1 release)
 | Package | Version | | Package | Version |
 |---|---|---|---|---|
-| @commonpub/schema | **0.49.0** | | @commonpub/infra | **0.9.0** |
-| @commonpub/config | **0.23.0** | | @commonpub/editor | **0.9.0** |
+| @commonpub/schema | **0.50.0** | | @commonpub/infra | **0.9.0** |
+| @commonpub/config | **0.24.0** | | @commonpub/editor | **0.9.0** |
 | @commonpub/protocol | **0.14.0** | | @commonpub/explainer | **0.8.0** |
 | @commonpub/auth | 0.8.0 | | @commonpub/docs | 0.6.3 |
-| @commonpub/server | **2.95.0** | | @commonpub/learning | 0.5.2 |
+| @commonpub/server | **2.96.0** | | @commonpub/learning | 0.5.2 |
 | @commonpub/ui | 0.13.1 | | @commonpub/test-utils | **0.5.8** |
-| @commonpub/layer | **0.86.8** | | @commonpub/theme-studio | 0.6.1 |
-| create-commonpub (crates.io) | **0.5.19** (pins ^0.49/^2.94/^0.86.7/config ^0.23 — STALE: server/layer bumped in 227, re-pin on next CLI bump) | | | |
+| @commonpub/layer | **0.86.9** | | @commonpub/theme-studio | 0.6.1 |
+| create-commonpub (crates.io) | **0.5.19** (pins ^0.49/^2.94/^0.86.7/config ^0.23 — STALE: schema/config/server/layer all bumped in 227, re-pin to ^0.50/^0.24/^2.96/^0.86.9 on next CLI bump) | | | |
+
+**Session 227 GDPR consent Phase 1 (2026-06-25) — SHIPPED + ROLLED to all 3.** Records
+site-wide terms/CoC acceptance + completes the data export. **schema 0.50.0 / config
+0.24.0 / server 2.96.0 / layer 0.86.9, migration 0035** (additive: `user_consents` table
++ `users.accepted_terms_at/version`). `recordConsent` writes an audit row on signup (via
+the `onUserCreated` hook); the register page gained a required acceptance checkbox;
+`exportUserData` now includes consents/votes/hub-memberships/enrollments/events/RSVPs/
+contest-entries/contest-PII/agreements (GDPR Art. 20 completeness) + fixes a latent
+ambiguous-`id` bug in the content export subquery. `instance.termsVersion` (default '1')
+config added. Server suite 1501 / layer 1412 / typecheck 28/28; live-verified. Plans
+authored: `docs/plans/gdpr-consent-hardening.md` (Phase 2 = re-acceptance + cookie record,
+not built), `docs/plans/email-comms-overhaul.md` (not built), analysis
+`docs/reference/email-gdpr-scaling-analysis.md`. Detail: `docs/sessions/227-gdpr-consent-phase1.md`.
+
+**Session 227 entry-detail draft gate (2026-06-25) — SHIPPED + ROLLED to all 3.** Earlier
+same session: `server 2.95.0 / layer 0.86.8` (no schema bump). `GET /api/contests/:slug/
+entries/:entryId` 404s a draft-placeholder entry for non-entrant/non-privileged viewers;
+detail page hides the dead "View the project" link. PR #57. Detail:
+`docs/sessions/227-entry-detail-draft-gate.md`.
 
 **Session 227 (2026-06-25) — SHIPPED + ROLLED to all 3.** Entry-detail draft gate
 (residual from 226's A2), **server 2.95.0 / layer 0.86.8** (no schema bump, no

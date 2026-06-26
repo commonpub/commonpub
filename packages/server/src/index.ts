@@ -304,8 +304,8 @@ export type {
 } from './admin/index.js';
 
 // Profile
-export { getUserByUsername, getUserContent, updateUserProfile, exportUserData, searchUsers } from './profile/index.js';
-export type { UserDataExport, UserSearchResult } from './profile/index.js';
+export { getUserByUsername, getUserContent, updateUserProfile, exportUserData, searchUsers, recordConsent } from './profile/index.js';
+export type { UserDataExport, UserSearchResult, ConsentKind, RecordConsentInput } from './profile/index.js';
 
 // Security
 export {

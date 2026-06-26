@@ -11,12 +11,19 @@ const { signUp } = useAuth();
 const username = ref('');
 const email = ref('');
 const password = ref('');
+const agreed = ref(false);
 const error = ref('');
 const loading = ref(false);
 const registered = ref(false);
 
 async function handleSubmit(): Promise<void> {
   error.value = '';
+  // Affirmative consent (GDPR): the button is disabled until checked, but guard
+  // here too in case of a programmatic submit.
+  if (!agreed.value) {
+    error.value = 'Please accept the Terms of Service and Code of Conduct to continue.';
+    return;
+  }
   loading.value = true;
 
   try {
@@ -101,14 +108,17 @@ async function handleSubmit(): Promise<void> {
         />
       </div>
 
-      <p class="register-legal">
-        By creating an account, you agree to our
-        <NuxtLink to="/terms">Terms of Service</NuxtLink>
-        and acknowledge our
-        <NuxtLink to="/privacy">Privacy Policy</NuxtLink>.
-      </p>
+      <label class="register-consent">
+        <input v-model="agreed" type="checkbox" class="register-consent-box" required />
+        <span>
+          I agree to the
+          <NuxtLink to="/terms">Terms of Service and Code of Conduct</NuxtLink>
+          and acknowledge the
+          <NuxtLink to="/privacy">Privacy Policy</NuxtLink>.
+        </span>
+      </label>
 
-      <button type="submit" class="submit-btn" :disabled="loading">
+      <button type="submit" class="submit-btn" :disabled="loading || !agreed">
         {{ loading ? 'Creating...' : 'Create account' }}
       </button>
     </form>
@@ -213,18 +223,28 @@ async function handleSubmit(): Promise<void> {
   cursor: not-allowed;
 }
 
-.register-legal {
+.register-consent {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
   font-size: 11px;
   color: var(--text-faint);
   line-height: 1.5;
+  cursor: pointer;
 }
 
-.register-legal a {
+.register-consent-box {
+  margin-top: 2px;
+  flex-shrink: 0;
+  accent-color: var(--accent);
+}
+
+.register-consent a {
   color: var(--accent);
   text-decoration: none;
 }
 
-.register-legal a:hover {
+.register-consent a:hover {
   text-decoration: underline;
 }
 

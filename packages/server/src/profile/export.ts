@@ -8,6 +8,18 @@ import {
   bookmarks,
   notifications,
   messages,
+  userConsents,
+  hubs,
+  hubMembers,
+  enrollments,
+  learningPaths,
+  events,
+  eventAttendees,
+  contests,
+  contestEntries,
+  contestEntryPrivateFields,
+  contestAgreementAcceptances,
+  contestEntryVotes,
 } from '@commonpub/schema';
 import { eq, sql } from 'drizzle-orm';
 
@@ -24,6 +36,17 @@ export interface UserDataExport {
   bookmarks: Array<Record<string, unknown>>;
   notifications: Array<Record<string, unknown>>;
   messages: Array<Record<string, unknown>>;
+  // GDPR completeness (session 227): sections previously omitted so the export
+  // matches both the privacy policy's promise and the deletion cascade's reach.
+  consents: Array<Record<string, unknown>>;
+  votes: Array<Record<string, unknown>>;
+  hubMemberships: Array<Record<string, unknown>>;
+  enrollments: Array<Record<string, unknown>>;
+  events: Array<Record<string, unknown>>;
+  eventRsvps: Array<Record<string, unknown>>;
+  contestEntries: Array<Record<string, unknown>>;
+  contestPersonalData: Array<Record<string, unknown>>;
+  contestAgreements: Array<Record<string, unknown>>;
 }
 
 /**
@@ -62,11 +85,14 @@ export async function exportUserData(db: DB, userId: string): Promise<UserDataEx
       coverImageUrl: contentItems.coverImageUrl,
       status: contentItems.status,
       difficulty: contentItems.difficulty,
+      // Fully-qualify the correlated id: a bare ${contentItems.id} renders as
+      // "id", which is ambiguous against the subquery's joined tags.id (Postgres
+      // 42702). Qualify it so it binds to the outer content row unambiguously.
       tags: sql<string[]>`(
         SELECT COALESCE(array_agg(t.name), '{}')
         FROM content_tags ct
         JOIN tags t ON t.id = ct.tag_id
-        WHERE ct.content_id = ${contentItems.id}
+        WHERE ct.content_id = ${sql.raw('"content_items"."id"')}
       )`,
       createdAt: contentItems.createdAt,
       publishedAt: contentItems.publishedAt,
@@ -127,6 +153,98 @@ export async function exportUserData(db: DB, userId: string): Promise<UserDataEx
     }).from(messages).where(eq(messages.senderId, userId)),
   ]);
 
+  // GDPR-completeness sections (session 227). A second batch keeps the diff
+  // localized; an export is rare/admin-ish so the extra round-trip is fine.
+  const [
+    consents,
+    votes,
+    hubMemberships,
+    learningEnrollments,
+    eventsCreated,
+    eventRsvps,
+    contestEntryRows,
+    contestPersonalData,
+    contestAgreements,
+  ] = await Promise.all([
+    // Consent audit trail
+    db.select({
+      kind: userConsents.kind,
+      version: userConsents.version,
+      acceptedAt: userConsents.acceptedAt,
+    }).from(userConsents).where(eq(userConsents.userId, userId)),
+
+    // Contest votes cast
+    db.select({
+      entryId: contestEntryVotes.entryId,
+      createdAt: contestEntryVotes.createdAt,
+    }).from(contestEntryVotes).where(eq(contestEntryVotes.userId, userId)),
+
+    // Hub memberships
+    db.select({
+      hubSlug: hubs.slug,
+      hubName: hubs.name,
+      role: hubMembers.role,
+      status: hubMembers.status,
+      joinedAt: hubMembers.joinedAt,
+    }).from(hubMembers)
+      .innerJoin(hubs, eq(hubs.id, hubMembers.hubId))
+      .where(eq(hubMembers.userId, userId)),
+
+    // Learning path enrollments
+    db.select({
+      pathSlug: learningPaths.slug,
+      pathTitle: learningPaths.title,
+      progress: enrollments.progress,
+      startedAt: enrollments.startedAt,
+      completedAt: enrollments.completedAt,
+    }).from(enrollments)
+      .innerJoin(learningPaths, eq(learningPaths.id, enrollments.pathId))
+      .where(eq(enrollments.userId, userId)),
+
+    // Events created
+    db.select({
+      title: events.title,
+      slug: events.slug,
+      status: events.status,
+      startDate: events.startDate,
+      createdAt: events.createdAt,
+    }).from(events).where(eq(events.createdById, userId)),
+
+    // Event RSVPs
+    db.select({
+      eventTitle: events.title,
+      eventSlug: events.slug,
+      status: eventAttendees.status,
+      registeredAt: eventAttendees.registeredAt,
+    }).from(eventAttendees)
+      .innerJoin(events, eq(events.id, eventAttendees.eventId))
+      .where(eq(eventAttendees.userId, userId)),
+
+    // Contest entries (the user's own, incl. their public stage artifacts)
+    db.select({
+      contestSlug: contests.slug,
+      contestTitle: contests.title,
+      stageSubmissions: contestEntries.stageSubmissions,
+      submittedAt: contestEntries.submittedAt,
+    }).from(contestEntries)
+      .innerJoin(contests, eq(contests.id, contestEntries.contestId))
+      .where(eq(contestEntries.userId, userId)),
+
+    // Contest personal data (the entrant's OWN partitioned PII)
+    db.select({
+      fields: contestEntryPrivateFields.fields,
+      createdAt: contestEntryPrivateFields.createdAt,
+    }).from(contestEntryPrivateFields).where(eq(contestEntryPrivateFields.userId, userId)),
+
+    // Contest agreement acceptances (the user's own consent snapshots)
+    db.select({
+      fieldKey: contestAgreementAcceptances.fieldKey,
+      termsSnapshot: contestAgreementAcceptances.termsSnapshot,
+      termsHash: contestAgreementAcceptances.termsHash,
+      acceptedAt: contestAgreementAcceptances.acceptedAt,
+    }).from(contestAgreementAcceptances).where(eq(contestAgreementAcceptances.userId, userId)),
+  ]);
+
   return {
     exportedAt: new Date().toISOString(),
     profile: profile[0] ?? {},
@@ -146,5 +264,14 @@ export async function exportUserData(db: DB, userId: string): Promise<UserDataEx
     bookmarks: userBookmarks as Record<string, unknown>[],
     notifications: userNotifications as Record<string, unknown>[],
     messages: userMessages as Record<string, unknown>[],
+    consents: consents as Record<string, unknown>[],
+    votes: votes as Record<string, unknown>[],
+    hubMemberships: hubMemberships as Record<string, unknown>[],
+    enrollments: learningEnrollments as Record<string, unknown>[],
+    events: eventsCreated as Record<string, unknown>[],
+    eventRsvps: eventRsvps as Record<string, unknown>[],
+    contestEntries: contestEntryRows as Record<string, unknown>[],
+    contestPersonalData: contestPersonalData as Record<string, unknown>[],
+    contestAgreements: contestAgreements as Record<string, unknown>[],
   };
 }
