@@ -115,6 +115,9 @@ export const instanceConfigSchema = z.object({
     .array(z.enum(['project', 'article', 'blog', 'explainer']))
     .default(['project', 'blog', 'explainer']),
   contestCreation: z.enum(['open', 'staff', 'admin']).default('admin'),
+  // Bump when the Terms/Code-of-Conduct text changes materially; recorded against
+  // each user's acceptance so re-acceptance can be required later (GDPR, session 227).
+  termsVersion: z.string().min(1).max(32).default('1'),
 });
 
 export const federationConfigSchema = z.object({

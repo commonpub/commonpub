@@ -1,7 +1,7 @@
 // Nitro middleware for authentication using @commonpub/auth
 import { createAuthMiddleware, type AuthLocals } from '@commonpub/auth';
 import { createAuth } from '@commonpub/auth';
-import { emailTemplates, emitHook } from '@commonpub/server';
+import { emailTemplates, emitHook, recordConsent } from '@commonpub/server';
 
 let authMiddleware: ReturnType<typeof createAuthMiddleware> | null = null;
 
@@ -44,6 +44,16 @@ function getAuthMiddleware(): ReturnType<typeof createAuthMiddleware> {
       },
     },
     onUserCreated: async (user) => {
+      // GDPR (session 227): record the terms/CoC acceptance the signup form
+      // gates on. Best-effort + isolated so a consent-write failure can't break
+      // registration (and vice-versa with the hook bus below).
+      try {
+        await recordConsent(db, {
+          userId: user.id,
+          kind: 'terms',
+          version: config.instance.termsVersion ?? '1',
+        });
+      } catch { /* swallow — registration already succeeded */ }
       await emitHook('user:registered', {
         db,
         userId: user.id,

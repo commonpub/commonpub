@@ -170,6 +170,12 @@ export interface InstanceConfig {
    * - 'admin': admin role only (default)
    */
   contestCreation?: 'open' | 'staff' | 'admin';
+  /**
+   * Version string for the Terms of Service + Code of Conduct. Recorded against
+   * each user's acceptance at signup; bump it when the terms change materially so
+   * a future re-acceptance gate can detect stale consent. Default '1'.
+   */
+  termsVersion?: string;
 }
 
 export interface FederationConfig {

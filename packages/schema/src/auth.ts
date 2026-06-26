@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, text, timestamp, boolean, jsonb } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, text, timestamp, boolean, jsonb, index } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import { userRoleEnum, userStatusEnum, profileVisibilityEnum } from './enums.js';
 
@@ -45,6 +45,10 @@ export const users = pgTable('users', {
     follows?: boolean;
     mentions?: boolean;
   }>(),
+  // GDPR consent (session 227). Denormalized "current acceptance" for cheap reads
+  // + the future re-acceptance gate; the full history lives in `user_consents`.
+  acceptedTermsAt: timestamp('accepted_terms_at', { withTimezone: true }),
+  acceptedTermsVersion: varchar('accepted_terms_version', { length: 32 }),
   deletedAt: timestamp('deleted_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull().$onUpdateFn(() => new Date()),
@@ -154,6 +158,29 @@ export const verifications = pgTable('verifications', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
+/**
+ * Append-only consent audit trail (GDPR, session 227). One row per acceptance:
+ * site-wide terms/CoC acceptance at signup, plus future re-acceptances and
+ * (optionally) logged-in cookie-consent records. Mirrors the contest-scoped
+ * `contest_agreement_acceptances` pattern (snapshot version + document hash + ip),
+ * but for the whole instance. The denormalized `users.acceptedTermsAt/Version`
+ * carry the "current" acceptance for cheap reads; this table is the history.
+ */
+export const userConsents = pgTable('user_consents', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  // 'terms' | 'code_of_conduct' | 'privacy' | 'cookies'
+  kind: varchar('kind', { length: 32 }).notNull(),
+  version: varchar('version', { length: 32 }).notNull(),
+  // sha-256 of the rendered document text (reuse hashTerms()); null when not captured.
+  documentHash: varchar('document_hash', { length: 64 }),
+  acceptedAt: timestamp('accepted_at', { withTimezone: true }).defaultNow().notNull(),
+  ipAddress: varchar('ip_address', { length: 45 }),
+  userAgent: text('user_agent'),
+}, (t) => [index('idx_user_consents_user_kind').on(t.userId, t.kind)]);
+
 // --- Relations ---
 
 export const usersRelations = relations(users, ({ many }) => ({
@@ -206,3 +233,5 @@ export type OauthCodeRow = typeof oauthCodes.$inferSelect;
 export type NewOauthCodeRow = typeof oauthCodes.$inferInsert;
 export type VerificationRow = typeof verifications.$inferSelect;
 export type NewVerificationRow = typeof verifications.$inferInsert;
+export type UserConsentRow = typeof userConsents.$inferSelect;
+export type NewUserConsentRow = typeof userConsents.$inferInsert;
