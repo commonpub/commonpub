@@ -3,9 +3,9 @@
 > **Living doc — your "come back later" reference.** Snapshot updated 2026-06-19 (sessions 203-204).
 > Verify any version/flag claim before trusting it: `npm view @commonpub/<pkg> version`,
 > `curl https://<instance>/api/features`, `cargo search create-commonpub`.
-> Companion docs: the rolling handoff `docs/sessions/205-kickoff-next.md`, the audit
-> `docs/sessions/203-full-codebase-audit.md` + `docs/sessions/204-deep-audit-round2.md`,
-> RBAC plan `docs/plans/rbac-activation-and-contest-editors.md`, contest guide
+> Companion docs: **`docs/ROADMAP.md`** (prioritized remaining work — the master backlog), the
+> rolling handoff `docs/sessions/228-handoff.md` + kickoff `docs/sessions/228-kickoff.md`, the
+> audit `docs/sessions/203-full-codebase-audit.md` + `204-deep-audit-round2.md`, contest guide
 > `docs/reference/guides/contests.md`.
 
 ---

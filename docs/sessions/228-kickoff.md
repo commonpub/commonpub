@@ -31,30 +31,20 @@ The `adminBroadcast` and `requireTermsAcceptance` flags are also OFF by default.
 above changes prod behavior yet.
 
 A session-228 audit of ALL 24 `docs/plans/` found everything COMPLETE or deferred-by-design
-EXCEPT three areas of genuinely-pending engineering (full map in `docs/sessions/228-handoff.md`).
-Pick from the backlog below when prioritized, or take new direction from the user.
+except a few pending areas. **The prioritized master backlog is `docs/ROADMAP.md` — read it and
+pick from there, or take new direction from the user.** Headline tiers:
+- **Tier 0:** enable email on an instance (operator + Resend secret — unlocks the inert email
+  subsystem); small protective hardening (paginate the digest build; `pnpm pack` leak check in
+  `publish:layer`).
+- **Tier 1 (big, need the user's go-ahead + scoping):** the **layout engine** (editor 3e/3f +
+  rollout Phases 4-10; a commonpub.io-only canary; includes the homepage 3-path consolidation) and
+  **instance-self-update** (entirely un-built, "awaiting maintainer approval").
+- **Tier 2 (ready):** federated-follow-from-profile UI (backend ready); extract the ~1512-line
+  `inboxHandlers.onCreate` monolith behind new inbound-Create integration tests.
+- **Tier 3:** operator actions + small polish + deferred-by-design (see ROADMAP).
 
-Backlog (build when prioritized):
-- **Layout engine (the largest dormant initiative)** — `docs/plans/layout-engine-rollout.md` +
-  `phase-3-editor.md`. The visual editor is ~80% (Phase 3e-remainder + 3f pending); the ROLLOUT
-  (Phases 4-10: adopt `LayoutSlot` beyond the homepage in ~7 routes, ~8 more section types, mobile
-  editor, versioning/publish UI) is largely unshipped. The engine is a commonpub.io-only canary
-  (`layoutEngine` OFF on deveco/heatsync). Big; scope a phase with the user before diving in.
-- **instance-self-update.md** — entire feature un-built, "awaiting maintainer approval." A decision
-  gate: confirm the user wants it before building (admin update page + backend + scaffolder workflow).
-- **monolith-splits 3c/4a/4b** (`monolith-splits-remaining-backlog.md`): 3c federated-follow-from-
-  profile UI (backend ready, needs a UI surface); 4a homepage 3-path consolidation (HIGH blank-page
-  risk, needs a 2-phase deploy seeding default layouts); 4b extract `inboxHandlers.onCreate` (~1512
-  lines, needs inbound-Create integration tests first). All risk-gated — confirm before starting.
-- **Enable email on an instance** (operator decision): wire `NUXT_EMAIL_ADAPTER=resend` +
-  `NUXT_RESEND_API_KEY`/`NUXT_RESEND_FROM` + `NUXT_PUBLIC_FEATURES_EMAIL_NOTIFICATIONS=true`,
-  verify a sending domain in Resend, smoke a real send. Cost/scale model:
-  `docs/reference/email-gdpr-scaling-analysis.md`.
-- Email/GDPR follow-ups: bulk PII review UI; paginate the digest in-memory build at scale;
-  `pnpm pack` test-leak check in `publish:layer`; broadcast specific-users picker polish; email
-  open/click analytics.
-- Older backlog: contest entry-detail residuals; deferred a11y (`--accent` as small nav TEXT);
-  maxEntries TOCTOU; federation P3 mirror Offer→Accept live round-trip.
+Do NOT start a Tier 1 item without the user's direction (they're large/strategic). Tier 0.2 +
+Tier 2 are safe to pick up directly.
 
 New-flag gotcha: a feature flag needs `config` schema/types + `layers/base/nuxt.config.ts`
 `runtimeConfig.public.features` + `apps/reference/server/utils/config.ts` `ENV_FLAG_MAP` +
