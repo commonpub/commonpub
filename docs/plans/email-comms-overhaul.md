@@ -1,5 +1,9 @@
 # Plan — Email & Communications Overhaul
 
+> **Status: COMPLETE (session 227).** All phases (1+1b outbox/unsubscribe, 2 branding, 3 broadcast)
+> + 3 outbox audit fixes + a maintainability refactor SHIPPED + ROLLED to all 3. Email remains OFF in
+> prod (operator must wire a Resend secret). Detail: `docs/sessions/227-email-*.md`.
+
 > Created 2026-06-25 (session 227). Companion analysis:
 > `docs/reference/email-gdpr-scaling-analysis.md` §2–5. This is the master plan for
 > making CommonPub's email layer production-grade at scale and adding operator

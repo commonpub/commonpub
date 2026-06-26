@@ -1,10 +1,10 @@
 # Plan: Contest Builder UX — surface what exists, template the start, polish the gaps
 
-> Status: **Phases 0, 1, 3 SHIPPED to all 3 instances** (session 220). **Phases 2, 4, 5, 6 BUILT +
-> tested + typecheck-clean (session 221), pending release.** PR #53 (`90467ebd`) shipped 0/1/3;
-> `@commonpub/layer 0.84.0` published. Session 221 work is layer + a schema/server bump (migration 0032,
-> bannerMeta/coverMeta + instructionsBlocks Zod). Full layer suite **1367 green**, schema validators
-> **282 green**, reference `nuxt typecheck` clean, `pnpm build` 16/16. See "Progress" below.
+> Status: **COMPLETE — all phases SHIPPED + ROLLED to all 3 instances** (verified by the session 228
+> plans audit). Phases 0/1/3 in session 220 (`@commonpub/layer 0.84.0`, PR #53 `90467ebd`); Phases
+> 2/4/5/6 + the release in session 221 (schema 0.47 / server 2.91 / layer 0.85, **migration 0032**
+> applied on all 3, CLI 0.5.17). The "pending release" wording below is stale — the session-221 work
+> shipped.
 >
 > ## Progress (session 221) — P2/P4/P5/P6 BUILT
 > - **P2** field presets + whole-form templates (`utils/contestSubmissionTemplates.ts`) + block intro

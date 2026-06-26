@@ -30,10 +30,22 @@ no Resend secret wired) — so the entire email subsystem is inert until an oper
 The `adminBroadcast` and `requireTermsAcceptance` flags are also OFF by default. None of the
 above changes prod behavior yet.
 
-There is no committed plan with remaining required work. Pick from the backlog below when
-prioritized, or take new direction from the user.
+A session-228 audit of ALL 24 `docs/plans/` found everything COMPLETE or deferred-by-design
+EXCEPT three areas of genuinely-pending engineering (full map in `docs/sessions/228-handoff.md`).
+Pick from the backlog below when prioritized, or take new direction from the user.
 
 Backlog (build when prioritized):
+- **Layout engine (the largest dormant initiative)** — `docs/plans/layout-engine-rollout.md` +
+  `phase-3-editor.md`. The visual editor is ~80% (Phase 3e-remainder + 3f pending); the ROLLOUT
+  (Phases 4-10: adopt `LayoutSlot` beyond the homepage in ~7 routes, ~8 more section types, mobile
+  editor, versioning/publish UI) is largely unshipped. The engine is a commonpub.io-only canary
+  (`layoutEngine` OFF on deveco/heatsync). Big; scope a phase with the user before diving in.
+- **instance-self-update.md** — entire feature un-built, "awaiting maintainer approval." A decision
+  gate: confirm the user wants it before building (admin update page + backend + scaffolder workflow).
+- **monolith-splits 3c/4a/4b** (`monolith-splits-remaining-backlog.md`): 3c federated-follow-from-
+  profile UI (backend ready, needs a UI surface); 4a homepage 3-path consolidation (HIGH blank-page
+  risk, needs a 2-phase deploy seeding default layouts); 4b extract `inboxHandlers.onCreate` (~1512
+  lines, needs inbound-Create integration tests first). All risk-gated — confirm before starting.
 - **Enable email on an instance** (operator decision): wire `NUXT_EMAIL_ADAPTER=resend` +
   `NUXT_RESEND_API_KEY`/`NUXT_RESEND_FROM` + `NUXT_PUBLIC_FEATURES_EMAIL_NOTIFICATIONS=true`,
   verify a sending domain in Resend, smoke a real send. Cost/scale model:
