@@ -383,17 +383,30 @@ a minute (`curl deveco.io/api/content?limit=5`, today's timestamp).
 
 ## 📌 Reference
 
-### Published versions (verified 2026-06-25 — session 227 GDPR consent Phase 1 release)
+### Published versions (verified 2026-06-25 — session 227 email Phase 1 outbox release)
 | Package | Version | | Package | Version |
 |---|---|---|---|---|
-| @commonpub/schema | **0.50.0** | | @commonpub/infra | **0.9.0** |
+| @commonpub/schema | **0.51.0** | | @commonpub/infra | **0.10.0** |
 | @commonpub/config | **0.24.0** | | @commonpub/editor | **0.9.0** |
 | @commonpub/protocol | **0.14.0** | | @commonpub/explainer | **0.8.0** |
 | @commonpub/auth | 0.8.0 | | @commonpub/docs | 0.6.3 |
-| @commonpub/server | **2.96.0** | | @commonpub/learning | 0.5.2 |
+| @commonpub/server | **2.97.0** | | @commonpub/learning | 0.5.2 |
 | @commonpub/ui | 0.13.1 | | @commonpub/test-utils | **0.5.8** |
-| @commonpub/layer | **0.86.9** | | @commonpub/theme-studio | 0.6.1 |
-| create-commonpub (crates.io) | **0.5.19** (pins ^0.49/^2.94/^0.86.7/config ^0.23 — STALE: schema/config/server/layer all bumped in 227, re-pin to ^0.50/^0.24/^2.96/^0.86.9 on next CLI bump) | | | |
+| @commonpub/layer | **0.86.10** | | @commonpub/theme-studio | 0.6.1 |
+| create-commonpub (crates.io) | **0.5.19** (pins ^0.49/^2.94/^0.86.7/config ^0.23 — STALE: re-pin to schema ^0.51 / config ^0.24 / server ^2.97 / infra ^0.10 / layer ^0.86.10 on next CLI bump) | | | |
+
+**Session 227 email Phase 1 + 1b (2026-06-25) — SHIPPED + ROLLED to all 3.** Foundational
+durable email pipeline + unsubscribe. **schema 0.51.0 / infra 0.10.0 / server 2.97.0 /
+layer 0.86.10, migration 0036** (additive `email_outbox`). Replaces the broken
+fire-one-fetch-per-recipient send path with an outbox + a throttled/batched/retrying
+worker (`drainEmailOutbox`, FOR UPDATE SKIP LOCKED, backoff, dead-letter) gated by
+`emailNotifications`; instant + digest now ENQUEUE; auth mail still sends directly. Adds
+RFC 8058 unsubscribe (HMAC token, `unsubscribedAll` pref, `List-Unsubscribe` header +
+footer link + `pages/unsubscribe.vue` + `POST /api/unsubscribe`). **No flags changed;
+email stays OFF in prod** so the worker is inert until enabled. Server suite 1511 / layer
+1417 / typecheck 28/28; live-verified end-to-end (follow→enqueue→worker-sent→unsubscribe
+→suppression). Detail: `docs/sessions/227-email-phase1-outbox.md`. Plan:
+`docs/plans/email-comms-overhaul.md` (Phase 2 templates + Phase 3 broadcast remain).
 
 **Session 227 GDPR consent Phase 1 (2026-06-25) — SHIPPED + ROLLED to all 3.** Records
 site-wide terms/CoC acceptance + completes the data export. **schema 0.50.0 / config

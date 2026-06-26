@@ -28,6 +28,7 @@ interface EmailNotificationPrefs {
   comments?: boolean;
   follows?: boolean;
   mentions?: boolean;
+  unsubscribedAll?: boolean;
 }
 
 /** Map notification types to their preference key (only types that have a user-facing toggle) */
@@ -60,6 +61,9 @@ export async function shouldEmailNotification(
   if (!row?.emailNotifications) return false;
 
   const prefs = row.emailNotifications as EmailNotificationPrefs;
+
+  // Hard opt-out of all non-transactional mail (one-click unsubscribe).
+  if (prefs.unsubscribedAll) return false;
 
   // If digest mode is daily or weekly, instant emails are suppressed — digest plugin handles them
   if (prefs.digest === 'daily' || prefs.digest === 'weekly') return false;

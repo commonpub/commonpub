@@ -72,6 +72,13 @@ export default defineNuxtConfig({
     smtpFrom: '',
     resendApiKey: '',
     resendFrom: '',
+    // Email outbox worker knobs (email Phase 1). Strings (env vars are strings);
+    // parsed in the plugin. Defaults match Resend's 5 req/s + 100/batch limits.
+    emailWorkerIntervalMs: '8000',
+    emailMaxPerTick: '200',
+    emailBatchSize: '100',
+    emailMaxSendsPerSecond: '5',
+    emailMaxAttempts: '6',
     s3Bucket: '',
     s3Region: 'us-east-1',
     s3Endpoint: '',

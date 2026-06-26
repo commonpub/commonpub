@@ -63,6 +63,7 @@ export const updateProfileSchema = z.object({
       comments: z.boolean().optional(),
       follows: z.boolean().optional(),
       mentions: z.boolean().optional(),
+      unsubscribedAll: z.boolean().optional(),
     })
     .optional(),
 });

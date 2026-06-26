@@ -1,18 +1,34 @@
 /**
- * Notification email plugin.
- * - Registers an instant email sender so createNotification() can fire emails.
- * - Runs a digest scheduler that batches unread notifications for users who prefer daily/weekly digests.
+ * Notification email producer plugin (email Phase 1).
+ * - Registers an instant email sender so createNotification() can ENQUEUE emails.
+ * - Runs a digest scheduler that batches unread notifications into ENQUEUED emails
+ *   for users who prefer daily/weekly digests.
+ *
+ * This plugin PRODUCES `email_outbox` rows; the email-outbox.ts worker delivers
+ * them (throttled, batched, retrying). Nothing here sends a provider request
+ * directly. Auth mail (verify/reset) is unaffected — it sends directly elsewhere.
  */
 import {
   setNotificationEmailSender,
   shouldEmailNotification,
   getNotificationEmailTarget,
   emailTemplates,
+  enqueueEmail,
+  enqueueEmails,
+  makeUnsubscribeToken,
   listNotifications,
 } from '@commonpub/server';
-import type { NotificationType } from '@commonpub/server';
+import type { NotificationType, OutboxMessage } from '@commonpub/server';
 import { users, digestRuns } from '@commonpub/schema';
 import { and, isNotNull, eq } from 'drizzle-orm';
+
+/** RFC 8058 one-click unsubscribe headers pointing at the POST API endpoint. */
+function unsubscribeHeaders(apiUrl: string): Record<string, string> {
+  return {
+    'List-Unsubscribe': `<${apiUrl}>`,
+    'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+  };
+}
 
 export default defineNitroPlugin((nitro) => {
   if (process.env.NODE_ENV === 'test') return;
@@ -30,11 +46,21 @@ export default defineNitroPlugin((nitro) => {
       const runtimeConfig = useRuntimeConfig();
       const siteUrl = (runtimeConfig.public?.siteUrl as string) || `https://${config.instance.domain}`;
       const siteName = config.instance.name || 'CommonPub';
+      const secret = (runtimeConfig.authSecret as string) || '';
 
-      // Register instant email sender.
-      // Uses useDB() instead of the passed db because createNotification() may be
-      // called inside a transaction — the fire-and-forget callback would run after
-      // the transaction commits, making the transaction-scoped db handle stale.
+      // Per-recipient unsubscribe links: a visible page link (scope choice) for the
+      // footer + an API URL for the one-click List-Unsubscribe header.
+      const unsubLinks = (userId: string): { pageUrl: string; headers: Record<string, string> } => {
+        const token = makeUnsubscribeToken(userId, secret);
+        return {
+          pageUrl: `${siteUrl}/unsubscribe?token=${token}`,
+          headers: unsubscribeHeaders(`${siteUrl}/api/unsubscribe?token=${token}`),
+        };
+      };
+
+      // Register instant email sender. Uses useDB() (not the passed db) because
+      // createNotification() may run inside a transaction; the fire-and-forget
+      // callback executes after commit, making a tx-scoped handle stale.
       setNotificationEmailSender(async (_db, notification) => {
         const freshDb = useDB();
         const should = await shouldEmailNotification(
@@ -47,7 +73,7 @@ export default defineNitroPlugin((nitro) => {
         const target = await getNotificationEmailTarget(freshDb, notification.userId);
         if (!target) return;
 
-        const emailAdapter = useEmailAdapter();
+        const { pageUrl, headers } = unsubLinks(notification.userId);
         const template = emailTemplates.notificationInstant(
           siteName,
           target.username,
@@ -56,16 +82,25 @@ export default defineNitroPlugin((nitro) => {
             message: notification.message,
             url: notification.link ? `${siteUrl}${notification.link}` : siteUrl,
           },
+          pageUrl,
         );
-        await emailAdapter.send({ ...template, to: target.email });
+        await enqueueEmail(freshDb, {
+          toEmail: target.email,
+          userId: notification.userId,
+          subject: template.subject,
+          html: template.html,
+          text: template.text,
+          headers,
+          category: 'notification',
+        });
       });
 
-      console.log('[notification-email] Instant email sender registered');
+      console.log('[notification-email] Instant email sender registered (enqueue)');
 
-      // Digest scheduler — runs every hour, sends digests for users whose digest window has elapsed
+      // Digest scheduler — runs hourly, enqueues digests at the digest hour.
       const DIGEST_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
       digestInterval = setInterval(() => {
-        runDigest(siteUrl, siteName).catch((err) => {
+        runDigest(siteUrl, siteName, unsubLinks).catch((err) => {
           console.error('[notification-email] Digest scheduler unexpected error:', err instanceof Error ? err.message : err);
         });
       }, DIGEST_INTERVAL_MS);
@@ -77,11 +112,14 @@ export default defineNitroPlugin((nitro) => {
   }, 5_000);
 
   // Cheap in-process pre-check to avoid hitting the DB once this replica has already
-  // observed today's digest as claimed. The DB claim (digest_runs) is the authority:
-  // it guarantees exactly-one-replica-wins across N replicas / restarts.
+  // observed today's digest as claimed. The DB claim (digest_runs) is the authority.
   let lastDigestDate = '';
 
-  async function runDigest(siteUrl: string, siteName: string): Promise<void> {
+  async function runDigest(
+    siteUrl: string,
+    siteName: string,
+    unsubLinks: (userId: string) => { pageUrl: string; headers: Record<string, string> },
+  ): Promise<void> {
     try {
       const db = useDB();
       const now = new Date();
@@ -93,29 +131,19 @@ export default defineNitroPlugin((nitro) => {
 
       if (!isDigestHour) return;
 
-      // Deterministic UTC date key (YYYY-MM-DD). toISOString() is always UTC.
       const todayKey = now.toISOString().slice(0, 10);
-
-      // Cheap pre-check: this replica already knows today's digest is handled.
       if (lastDigestDate === todayKey) return;
 
-      // Atomic cross-replica claim: INSERT today's row, ON CONFLICT DO NOTHING.
-      // Exactly one replica gets a returned row (it won the claim); the rest get
-      // an empty array and bail without sending. Replaces the per-process guard
-      // that sent N duplicate digests on N replicas.
+      // Atomic cross-replica claim: exactly one replica wins the day.
       const claimed = await db
         .insert(digestRuns)
         .values({ digestDate: todayKey })
         .onConflictDoNothing({ target: digestRuns.digestDate })
         .returning({ digestDate: digestRuns.digestDate });
 
-      // Record locally regardless of outcome so this replica skips the DB on
-      // subsequent hourly ticks within the same UTC day.
       lastDigestDate = todayKey;
-
       if (claimed.length === 0) return; // another replica already claimed today
 
-      // Find users with digest preferences
       const digestUsers = await db
         .select({
           id: users.id,
@@ -130,16 +158,15 @@ export default defineNitroPlugin((nitro) => {
           eq(users.emailVerified, true),
         ));
 
-      const emailAdapter = useEmailAdapter();
-      let sent = 0;
+      const messages: OutboxMessage[] = [];
 
       for (const user of digestUsers) {
-        const prefs = user.emailNotifications as { digest?: string } | null;
+        const prefs = user.emailNotifications as { digest?: string; unsubscribedAll?: boolean } | null;
         if (!prefs?.digest) continue;
         if (prefs.digest === 'none') continue;
+        if (prefs.unsubscribedAll) continue; // hard opt-out
         if (prefs.digest === 'weekly' && !isMonday) continue;
 
-        // Get unread notifications from the last digest period
         const since = new Date(now);
         if (prefs.digest === 'daily') {
           since.setDate(since.getDate() - 1);
@@ -153,10 +180,10 @@ export default defineNitroPlugin((nitro) => {
           limit: 50,
         });
 
-        // Filter to only notifications within the digest window
         const recent = items.filter((n) => n.createdAt >= since);
         if (recent.length === 0) continue;
 
+        const { pageUrl, headers } = unsubLinks(user.id);
         const template = emailTemplates.notificationDigest(
           siteName,
           user.username,
@@ -164,18 +191,23 @@ export default defineNitroPlugin((nitro) => {
             text: `${n.title}: ${n.message}`,
             url: n.link ? `${siteUrl}${n.link}` : siteUrl,
           })),
+          pageUrl,
         );
-
-        try {
-          await emailAdapter.send({ ...template, to: user.email });
-          sent++;
-        } catch (err) {
-          console.error(`[notification-email] Digest failed for ${user.username}:`, err instanceof Error ? err.message : err);
-        }
+        messages.push({
+          toEmail: user.email,
+          userId: user.id,
+          subject: template.subject,
+          html: template.html,
+          text: template.text,
+          headers,
+          category: 'digest',
+        });
       }
 
-      if (sent > 0) {
-        console.log(`[notification-email] Sent ${sent} digest email(s)`);
+      // One bulk insert; the outbox worker delivers them throttled/batched.
+      await enqueueEmails(db, messages);
+      if (messages.length > 0) {
+        console.log(`[notification-email] Enqueued ${messages.length} digest email(s)`);
       }
     } catch (err) {
       console.error('[notification-email] Digest scheduler error:', err instanceof Error ? err.message : err);
