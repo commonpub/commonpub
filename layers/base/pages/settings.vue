@@ -1,6 +1,7 @@
 <script setup lang="ts">
 definePageMeta({ middleware: 'auth' });
 useSeoMeta({ title: `Settings, ${useSiteName()}` });
+const { referralLinks } = useFeatures();
 </script>
 
 <template>
@@ -20,6 +21,9 @@ useSeoMeta({ title: `Settings, ${useSiteName()}` });
           </NuxtLink>
           <NuxtLink to="/settings/appearance" class="cpub-settings-link">
             <i class="fa-solid fa-palette" style="width: 14px"></i> Appearance
+          </NuxtLink>
+          <NuxtLink v-if="referralLinks" to="/settings/referral-links" class="cpub-settings-link">
+            <i class="fa-solid fa-link" style="width: 14px"></i> Referral Links
           </NuxtLink>
         </nav>
       </aside>

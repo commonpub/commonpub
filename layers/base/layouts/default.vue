@@ -10,7 +10,7 @@ import MobileNavRenderer from '../components/nav/MobileNavRenderer.vue';
 const { user, isAuthenticated, isAdmin, signOut, refreshSession } = useAuth();
 const { count: unreadCount, connect: connectNotifications, disconnect: disconnectNotifications } = useNotifications();
 const { count: unreadMessages, connect: connectMessages, disconnect: disconnectMessages } = useMessages();
-const { hubs, learning, video, docs, contests, events, admin, federation, explainers } = useFeatures();
+const { hubs, learning, video, docs, contests, events, admin, federation, explainers, referralLinks } = useFeatures();
 const { isDark, setDarkMode } = useTheme();
 const { enabledTypeMeta } = useContentTypes();
 const runtimeConfig = useRuntimeConfig();
@@ -192,6 +192,7 @@ const userUsername = computed(() => user.value?.username ?? '');
               <NuxtLink :to="`/u/${userUsername}`" class="cpub-dropdown-item" @click="userMenuOpen = false"><i class="fa-solid fa-user"></i> Profile</NuxtLink>
               <NuxtLink to="/dashboard" class="cpub-dropdown-item" @click="userMenuOpen = false"><i class="fa-solid fa-gauge"></i> Dashboard</NuxtLink>
               <NuxtLink to="/settings" class="cpub-dropdown-item" @click="userMenuOpen = false"><i class="fa-solid fa-gear"></i> Settings</NuxtLink>
+              <NuxtLink v-if="referralLinks" to="/settings/referral-links" class="cpub-dropdown-item" @click="userMenuOpen = false"><i class="fa-solid fa-link"></i> Referral Links</NuxtLink>
               <button class="cpub-dropdown-item" @click="setDarkMode(!isDark)">
                 <i :class="isDark ? 'fa-solid fa-sun' : 'fa-solid fa-moon'"></i> {{ isDark ? 'Light mode' : 'Dark mode' }}
               </button>

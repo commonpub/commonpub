@@ -59,6 +59,22 @@ describe('defineCommonPubConfig', () => {
     expect(config.federation?.registryPingIntervalMs).toBe(21_600_000);
   });
 
+  it('defaults the referral policy and the referralLinks flag (off) via the factory', () => {
+    const { config } = defineCommonPubConfig({ instance: validInstance });
+    expect(config.features.referralLinks).toBe(false);
+    expect(config.referral?.cookieless).toBe(false);
+    expect(config.referral?.defaultAttributionWindowDays).toBe(60);
+  });
+
+  it('lets an operator opt into cookieless referral attribution (typed input)', () => {
+    const { config } = defineCommonPubConfig({
+      instance: validInstance,
+      referral: { cookieless: true, defaultAttributionWindowDays: 30 },
+    });
+    expect(config.referral?.cookieless).toBe(true);
+    expect(config.referral?.defaultAttributionWindowDays).toBe(30);
+  });
+
   it('should allow disabling content feature flag', () => {
     const { config } = defineCommonPubConfig({
       instance: validInstance,

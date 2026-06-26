@@ -267,6 +267,13 @@
       "when": 1782463179403,
       "tag": "0037_spotty_black_knight",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1782503848289,
+      "tag": "0038_milky_red_ghost",
+      "breakpoints": true
     }
   ]
 }

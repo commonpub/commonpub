@@ -12,6 +12,7 @@ const ROUTE_FEATURE_MAP: Record<string, keyof FeatureFlags> = {
   '/contests': 'contests',
   '/events': 'events',
   '/explainer': 'explainers',
+  '/settings/referral-links': 'referralLinks',
 };
 
 export default defineNuxtRouteMiddleware((to) => {

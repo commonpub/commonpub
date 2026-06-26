@@ -20,6 +20,9 @@ export * from './comms.js';
 // Hubs
 export * from './hub.js';
 
+// Referrals (session 229 — user-owned signup attribution + onboarding actions)
+export * from './referral.js';
+
 // Products
 export * from './product.js';
 

@@ -7,6 +7,7 @@ export type {
   InstanceConfig,
   FederationConfig,
   DocsConfig,
+  ReferralConfig,
   CookieDefinition,
   RegisteredTheme,
 } from './types.js';

@@ -23,6 +23,7 @@ function makeConfig(idOverrides: Partial<CommonPubConfig['features']['identity']
       publicApi: false, contentImport: true, layoutEngine: false, rbac: false,
       actAsRegistry: false, announceToRegistry: false,
       publicApiMetricsFederation: false,
+      referralLinks: false,
       identity: {
         linkRemoteAccounts: false,
         signInWithRemote: false,
