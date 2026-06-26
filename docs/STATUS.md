@@ -383,17 +383,29 @@ a minute (`curl deveco.io/api/content?limit=5`, today's timestamp).
 
 ## 📌 Reference
 
-### Published versions (verified 2026-06-26 — session 227 email outbox audit hotfix)
+### Published versions (verified 2026-06-26 — session 227 email Phase 2 branding)
 | Package | Version | | Package | Version |
 |---|---|---|---|---|
-| @commonpub/schema | **0.51.0** | | @commonpub/infra | **0.10.1** |
+| @commonpub/schema | **0.52.0** | | @commonpub/infra | **0.11.0** |
 | @commonpub/config | **0.24.0** | | @commonpub/editor | **0.9.0** |
 | @commonpub/protocol | **0.14.0** | | @commonpub/explainer | **0.8.0** |
 | @commonpub/auth | 0.8.0 | | @commonpub/docs | 0.6.3 |
-| @commonpub/server | **2.97.1** | | @commonpub/learning | 0.5.2 |
+| @commonpub/server | **2.98.0** | | @commonpub/learning | 0.5.2 |
 | @commonpub/ui | 0.13.1 | | @commonpub/test-utils | **0.5.8** |
-| @commonpub/layer | **0.86.11** | | @commonpub/theme-studio | 0.6.1 |
-| create-commonpub (crates.io) | **0.5.19** (pins ^0.49/^2.94/^0.86.7/config ^0.23 — STALE: re-pin to schema ^0.51 / config ^0.24 / server ^2.97.1 / infra ^0.10.1 / layer ^0.86.11 on next CLI bump) | | | |
+| @commonpub/layer | **0.87.0** | | @commonpub/theme-studio | 0.6.1 |
+| create-commonpub (crates.io) | **0.5.19** (pins ^0.49/^2.94/^0.86.7/config ^0.23 — STALE: re-pin to schema ^0.52 / config ^0.24 / server ^2.98 / infra ^0.11 / layer ^0.87 on next CLI bump) | | | |
+
+**Session 227 email Phase 2 + outbox fix #2 (2026-06-26) — SHIPPED + ROLLED to all 3.**
+Operator-customizable email branding (accent / header text or logo / footer) persisted in
+`instance_settings['email.branding']`, applied to ALL emails, with an `email.manage`-gated
+admin editor (`/admin/email-templates`) + server-rendered live preview. **schema 0.52.0 /
+infra 0.11.0 / server 2.98.0 / layer 0.87.0**, no migration. Bundled the audit's outbox
+fix: per-chunk lock renewal (real multi-replica safety; replaces the unsound duration clamp)
++ `batchSize` floor. infra 162 / schema 484 / server 1517 / layer 1429 / typecheck 28/28;
+live-verified (branding GET/PUT/preview + branding flows into a real outbound email). Email
+still OFF in prod. Detail: `docs/sessions/227-email-phase2-branding.md` +
+`docs/sessions/227-email-outbox-audit-hotfix.md`. Remaining plan: email Phase 3 (broadcast),
+GDPR Phase 2.
 
 **Session 227 email outbox audit hotfix (2026-06-26) — SHIPPED + ROLLED to all 3.**
 Adversarial review of email Phase 1 before building Phase 2/3. **infra 0.10.1 / server

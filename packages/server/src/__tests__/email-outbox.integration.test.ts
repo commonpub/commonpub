@@ -142,6 +142,21 @@ describe('email outbox', () => {
     }
   });
 
+  it('floors batchSize to 1 so a 0 batchSize cannot infinite-loop the chunker', async () => {
+    const fresh = await createTestDB();
+    try {
+      await enqueueEmails(fresh, [msg('a@f.com'), msg('b@f.com')]);
+      const adapter = new MockAdapter();
+      const now = new Date('2026-07-01T00:00:00Z');
+      // batchSize 0 previously made `i += 0` spin forever; it must floor to 1.
+      const r = await drainEmailOutbox(fresh, adapter, { batchSize: 0, now, sleep: async () => {} });
+      expect(r.sent).toBe(2);
+      expect(adapter.batches.every((b) => b.length === 1)).toBe(true); // chunked at 1
+    } finally {
+      await closeTestDB(fresh);
+    }
+  });
+
   it('does not claim rows scheduled in the future', async () => {
     const fresh = await createTestDB();
     try {

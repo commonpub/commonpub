@@ -173,6 +173,40 @@ describe('ResendEmailAdapter', () => {
   });
 });
 
+describe('email branding (Phase 2)', () => {
+  it('applies the accent color (header + button) and custom header text', () => {
+    const t = emailTemplates.verification('Site', 'https://x/y', { accentColor: '#aa0000', headerText: 'Brandy' });
+    expect(t.html).toContain('#aa0000'); // header border + button use the accent
+    expect(t.html).toContain('Brandy');
+    expect(t.html).not.toContain('#5b9cf6'); // default accent fully replaced
+  });
+
+  it('renders a logo image when logoUrl is set', () => {
+    const t = emailTemplates.verification('Site', 'https://x/y', { logoUrl: 'https://cdn.example.com/logo.png' });
+    expect(t.html).toContain('<img src="https://cdn.example.com/logo.png"');
+  });
+
+  it('escapes header/footer text and ignores a non-hex accent (injection safety)', () => {
+    const t = emailTemplates.notificationDigest(
+      'Site',
+      'u',
+      [{ text: 'a', url: '#' }],
+      undefined,
+      { headerText: '<script>x</script>', footerText: '<b>f</b>', accentColor: 'red;}body{x' },
+    );
+    expect(t.html).not.toContain('<script>x</script>');
+    expect(t.html).toContain('&lt;script&gt;');
+    expect(t.html).not.toContain('red;}body{x'); // non-hex accent rejected at render
+    expect(t.html).toContain('#5b9cf6'); // fell back to the default accent
+  });
+
+  it('falls back to defaults when no branding is given', () => {
+    const t = emailTemplates.verification('Site', 'https://x/y');
+    expect(t.html).toContain('#5b9cf6');
+    expect(t.html).toContain('Site');
+  });
+});
+
 describe('emailTemplates.verification', () => {
   it('returns a verification email with correct structure', () => {
     const result = emailTemplates.verification('TestSite', 'https://example.com/verify?token=abc');

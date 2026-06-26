@@ -18,3 +18,4 @@ export * from './federation.js';
 export * from './publicApi.js';
 export * from './theme.js';
 export * from './layout.js';
+export * from './comms.js';

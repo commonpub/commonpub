@@ -1,7 +1,7 @@
 // Nitro middleware for authentication using @commonpub/auth
 import { createAuthMiddleware, type AuthLocals } from '@commonpub/auth';
 import { createAuth } from '@commonpub/auth';
-import { emailTemplates, emitHook, recordConsent } from '@commonpub/server';
+import { emailTemplates, emitHook, recordConsent, getEmailBranding } from '@commonpub/server';
 
 let authMiddleware: ReturnType<typeof createAuthMiddleware> | null = null;
 
@@ -35,11 +35,11 @@ function getAuthMiddleware(): ReturnType<typeof createAuthMiddleware> {
     trustedOrigins,
     emailSender: {
       async sendResetPasswordEmail(email: string, url: string, _token: string): Promise<void> {
-        const template = emailTemplates.passwordReset(siteName, url);
+        const template = emailTemplates.passwordReset(siteName, url, await getEmailBranding(db));
         await emailAdapter.send({ ...template, to: email });
       },
       async sendVerificationEmail(email: string, url: string, _token: string): Promise<void> {
-        const template = emailTemplates.verification(siteName, url);
+        const template = emailTemplates.verification(siteName, url, await getEmailBranding(db));
         await emailAdapter.send({ ...template, to: email });
       },
     },
