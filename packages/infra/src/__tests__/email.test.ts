@@ -66,6 +66,9 @@ describe('ResendEmailAdapter', () => {
         html: '<p>Hello</p>',
         text: 'Hello',
       }),
+      // A request timeout was added (EMAIL_HTTP_TIMEOUT_MS) so a hung call can't
+      // outlive the outbox worker's row lock.
+      signal: expect.any(AbortSignal),
     });
 
     vi.unstubAllGlobals();
@@ -124,6 +127,49 @@ describe('ResendEmailAdapter', () => {
     ).rejects.toThrow('fetch failed');
 
     vi.unstubAllGlobals();
+  });
+
+  it('sendBatch attributes per-message results from the batch response (partial success)', async () => {
+    // Resend returns 200 with one data entry per ACCEPTED message, in order. A
+    // missing/absent id means that message was rejected and must be retried.
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      text: () => Promise.resolve(''),
+      json: () => Promise.resolve({ data: [{ id: 'a' }, {}, { id: 'c' }] }),
+    });
+    vi.stubGlobal('fetch', mockFetch);
+
+    const adapter = new ResendEmailAdapter({ apiKey: 'k', from: 'f@t.com' });
+    const results = await adapter.sendBatch([
+      { to: '1@t.com', subject: 's', html: '<p>1</p>' },
+      { to: '2@t.com', subject: 's', html: '<p>2</p>' },
+      { to: '3@t.com', subject: 's', html: '<p>3</p>' },
+    ]);
+
+    expect(results.map((r) => r.ok)).toEqual([true, false, true]);
+    expect(mockFetch).toHaveBeenCalledWith('https://api.resend.com/emails/batch', expect.objectContaining({ method: 'POST' }));
+    vi.unstubAllGlobals();
+  });
+
+  it('sendBatch throws on a transport-level (non-2xx) failure', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 500,
+      text: () => Promise.resolve('boom'),
+    });
+    vi.stubGlobal('fetch', mockFetch);
+    const adapter = new ResendEmailAdapter({ apiKey: 'k', from: 'f@t.com' });
+    await expect(adapter.sendBatch([{ to: '1@t.com', subject: 's', html: '<p>1</p>' }])).rejects.toThrow(/Resend batch API error \(500\)/);
+    vi.unstubAllGlobals();
+  });
+
+  it('ConsoleEmailAdapter.sendBatch returns ok for every message', async () => {
+    const adapter = new ConsoleEmailAdapter();
+    const results = await adapter.sendBatch([
+      { to: 'a@t.com', subject: 's', html: 'h' },
+      { to: 'b@t.com', subject: 's', html: 'h' },
+    ]);
+    expect(results).toEqual([{ ok: true }, { ok: true }]);
   });
 });
 

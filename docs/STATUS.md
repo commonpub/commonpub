@@ -383,17 +383,27 @@ a minute (`curl deveco.io/api/content?limit=5`, today's timestamp).
 
 ## 📌 Reference
 
-### Published versions (verified 2026-06-25 — session 227 email Phase 1 outbox release)
+### Published versions (verified 2026-06-26 — session 227 email outbox audit hotfix)
 | Package | Version | | Package | Version |
 |---|---|---|---|---|
-| @commonpub/schema | **0.51.0** | | @commonpub/infra | **0.10.0** |
+| @commonpub/schema | **0.51.0** | | @commonpub/infra | **0.10.1** |
 | @commonpub/config | **0.24.0** | | @commonpub/editor | **0.9.0** |
 | @commonpub/protocol | **0.14.0** | | @commonpub/explainer | **0.8.0** |
 | @commonpub/auth | 0.8.0 | | @commonpub/docs | 0.6.3 |
-| @commonpub/server | **2.97.0** | | @commonpub/learning | 0.5.2 |
+| @commonpub/server | **2.97.1** | | @commonpub/learning | 0.5.2 |
 | @commonpub/ui | 0.13.1 | | @commonpub/test-utils | **0.5.8** |
-| @commonpub/layer | **0.86.10** | | @commonpub/theme-studio | 0.6.1 |
-| create-commonpub (crates.io) | **0.5.19** (pins ^0.49/^2.94/^0.86.7/config ^0.23 — STALE: re-pin to schema ^0.51 / config ^0.24 / server ^2.97 / infra ^0.10 / layer ^0.86.10 on next CLI bump) | | | |
+| @commonpub/layer | **0.86.11** | | @commonpub/theme-studio | 0.6.1 |
+| create-commonpub (crates.io) | **0.5.19** (pins ^0.49/^2.94/^0.86.7/config ^0.23 — STALE: re-pin to schema ^0.51 / config ^0.24 / server ^2.97.1 / infra ^0.10.1 / layer ^0.86.11 on next CLI bump) | | | |
+
+**Session 227 email outbox audit hotfix (2026-06-26) — SHIPPED + ROLLED to all 3.**
+Adversarial review of email Phase 1 before building Phase 2/3. **infra 0.10.1 / server
+2.97.1 / layer 0.86.11** (patch, no migration). Fixed P1 (Resend partial-batch success was
+marked entirely `sent` → silent mail loss; `sendBatch` now returns per-message results and
+the drain attributes each row) + P2 (30s HTTP timeout + clamp the tick under the lock TTL +
+`status='sending'` guard on mark-sent for cross-replica safety). Verified clean: SKIP LOCKED
+SQL emission (now regression-tested), token security, pref-merge, auth-mail bypass. infra
+158 / server 1513 / layer 1417 / typecheck 28/28. Email still OFF in prod. Detail:
+`docs/sessions/227-email-outbox-audit-hotfix.md`.
 
 **Session 227 email Phase 1 + 1b (2026-06-25) — SHIPPED + ROLLED to all 3.** Foundational
 durable email pipeline + unsubscribe. **schema 0.51.0 / infra 0.10.0 / server 2.97.0 /

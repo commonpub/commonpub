@@ -1,7 +1,7 @@
 import { and, or, eq, lt, lte, asc, inArray } from 'drizzle-orm';
 import { emailOutbox } from '@commonpub/schema';
 import type { DB } from '../types.js';
-import type { EmailAdapter, EmailMessage } from '../email.js';
+import type { EmailAdapter, EmailMessage, EmailSendResult } from '../email.js';
 
 // Durable email outbox (email Phase 1). Producers ENQUEUE; a single throttled
 // worker DRAINS. Separation of concerns: this module knows nothing about
@@ -69,6 +69,11 @@ export interface DrainResult {
 }
 
 const LOCK_TTL_MS = 5 * 60 * 1000;
+// Worst-case budget for one provider call (its HTTP timeout) plus a throttle gap.
+// Used to clamp a tick's row count so the whole tick finishes before its own row
+// lock expires — otherwise a second replica could reclaim and re-send in-flight
+// rows. Slightly above the adapter's 30s HTTP timeout.
+const PER_CALL_BUDGET_MS = 35_000;
 
 /** Exponential backoff for the NEXT retry (1→2min, 2→4min, ... capped 1h). */
 function backoffMs(attempts: number): number {
@@ -100,7 +105,6 @@ export async function drainEmailOutbox(
   adapter: EmailAdapter,
   opts: DrainOptions = {},
 ): Promise<DrainResult> {
-  const maxPerTick = opts.maxPerTick ?? 200;
   const batchSize = Math.min(opts.batchSize ?? 100, 100);
   const maxAttempts = opts.maxAttempts ?? 6;
   const maxBatchesPerSecond = opts.maxBatchesPerSecond ?? 5;
@@ -108,6 +112,11 @@ export async function drainEmailOutbox(
   const sleep = opts.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
   const lockExpiry = new Date(now.getTime() + LOCK_TTL_MS);
   const gapMs = Math.ceil(1000 / Math.max(1, maxBatchesPerSecond));
+  // Clamp the tick so its worst-case duration stays under LOCK_TTL_MS: a tick must
+  // finish (and mark its rows done) before another replica could treat them as
+  // stale and reclaim them. maxChunks * per-chunk-budget < lock TTL.
+  const maxChunks = Math.max(1, Math.floor(LOCK_TTL_MS / (PER_CALL_BUDGET_MS + gapMs)));
+  const maxPerTick = Math.min(opts.maxPerTick ?? 200, maxChunks * batchSize);
 
   // Claim: pending+due rows, plus stale 'sending' rows whose lock expired (a
   // crashed worker). SKIP LOCKED so parallel workers don't collide.
@@ -139,40 +148,61 @@ export async function drainEmailOutbox(
 
   for (let c = 0; c < chunks.length; c++) {
     const chunk = chunks[c]!;
+
+    // Per-message outcomes. A thrown error = transport failure where nothing was
+    // accepted → treat every message as failed (retry the whole chunk). A returned
+    // array attributes each message, so a partial provider acceptance marks only
+    // the accepted rows sent and reschedules the rejected ones (no loss, no blind
+    // resend of the whole chunk).
+    let results: EmailSendResult[];
     try {
-      await adapter.sendBatch(chunk.map(rowToMessage));
+      results = await adapter.sendBatch(chunk.map(rowToMessage));
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      results = chunk.map(() => ({ ok: false, error: msg }));
+    }
+
+    const okIds: string[] = [];
+    for (let i = 0; i < chunk.length; i++) {
+      const row = chunk[i]!;
+      const res = results[i] ?? { ok: false, error: 'no provider result' };
+      if (res.ok) {
+        okIds.push(row.id);
+        continue;
+      }
+      // Reschedule (or dead-letter) the failed row, attempt-accurate.
+      const attempts = row.attempts + 1;
+      if (attempts >= maxAttempts) {
+        await db
+          .update(emailOutbox)
+          .set({ status: 'failed', attempts, lastError: res.error ?? 'send failed' })
+          .where(and(eq(emailOutbox.id, row.id), eq(emailOutbox.status, 'sending')));
+        failed++;
+      } else {
+        await db
+          .update(emailOutbox)
+          .set({
+            status: 'pending',
+            attempts,
+            lastError: res.error ?? 'send failed',
+            scheduledAt: new Date(now.getTime() + backoffMs(attempts)),
+            claimedAt: null,
+            lockExpiresAt: null,
+          })
+          .where(and(eq(emailOutbox.id, row.id), eq(emailOutbox.status, 'sending')));
+      }
+    }
+
+    if (okIds.length > 0) {
+      // Guard on status='sending': if another replica reclaimed a stale row mid-tick
+      // it would no longer be 'sending' as claimed by us, so we won't stomp it sent.
       await db
         .update(emailOutbox)
         .set({ status: 'sent', sentAt: now, lastError: null })
-        .where(inArray(emailOutbox.id, chunk.map((r) => r.id)));
-      sent += chunk.length;
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      // Reschedule (or dead-letter) each row in the failed chunk individually so
-      // the attempt counter is per-row accurate.
-      for (const row of chunk) {
-        const attempts = row.attempts + 1;
-        if (attempts >= maxAttempts) {
-          await db
-            .update(emailOutbox)
-            .set({ status: 'failed', attempts, lastError: msg })
-            .where(eq(emailOutbox.id, row.id));
-          failed++;
-        } else {
-          await db
-            .update(emailOutbox)
-            .set({
-              status: 'pending',
-              attempts,
-              lastError: msg,
-              scheduledAt: new Date(now.getTime() + backoffMs(attempts)),
-              claimedAt: null,
-              lockExpiresAt: null,
-            })
-            .where(eq(emailOutbox.id, row.id));
-        }
-      }
+        .where(and(inArray(emailOutbox.id, okIds), eq(emailOutbox.status, 'sending')));
+      sent += okIds.length;
     }
+
     // Throttle provider API calls to the rate limit (skip after the last chunk).
     if (c < chunks.length - 1) await sleep(gapMs);
   }

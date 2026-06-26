@@ -9,14 +9,27 @@ export interface EmailMessage {
   headers?: Record<string, string>;
 }
 
+/** Per-message outcome from a batch send, in the SAME order as the input. */
+export interface EmailSendResult {
+  ok: boolean;
+  error?: string;
+}
+
+/** Network timeout for a single provider HTTP call. Must stay well under the
+ *  outbox worker's row lock TTL so a hung call can't outlive its claim. */
+export const EMAIL_HTTP_TIMEOUT_MS = 30_000;
+
 export interface EmailAdapter {
   send(message: EmailMessage): Promise<void>;
   /**
-   * Send many messages efficiently. Providers with a batch API (Resend) use it
-   * (up to 100/call); others fall back to a sequential loop. Throwing aborts the
-   * whole call so the caller can reschedule the chunk — keep chunks <= 100.
+   * Send many messages and report each one's outcome (same order, one result per
+   * input). The worker marks ONLY the `ok` rows as sent and reschedules the rest,
+   * so a partial provider failure can neither silently drop nor blindly resend the
+   * whole chunk. A thrown error means a transport-level failure where NOTHING was
+   * accepted — the caller treats every message in the chunk as failed. Keep chunks
+   * <= 100 (Resend's batch limit).
    */
-  sendBatch(messages: EmailMessage[]): Promise<void>;
+  sendBatch(messages: EmailMessage[]): Promise<EmailSendResult[]>;
 }
 
 /** SMTP email adapter — uses nodemailer-compatible transports */
@@ -71,9 +84,19 @@ export class SmtpEmailAdapter implements EmailAdapter {
     });
   }
 
-  // SMTP has no batch primitive — send sequentially.
-  async sendBatch(messages: EmailMessage[]): Promise<void> {
-    for (const m of messages) await this.send(m);
+  // SMTP has no batch primitive — send sequentially, attributing each result so a
+  // mid-loop failure neither loses the rest nor resends the ones already sent.
+  async sendBatch(messages: EmailMessage[]): Promise<EmailSendResult[]> {
+    const results: EmailSendResult[] = [];
+    for (const m of messages) {
+      try {
+        await this.send(m);
+        results.push({ ok: true });
+      } catch (err) {
+        results.push({ ok: false, error: err instanceof Error ? err.message : String(err) });
+      }
+    }
+    return results;
   }
 }
 
@@ -106,6 +129,7 @@ export class ResendEmailAdapter implements EmailAdapter {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(this.toPayload(message)),
+      signal: AbortSignal.timeout(EMAIL_HTTP_TIMEOUT_MS),
     });
 
     if (!response.ok) {
@@ -114,9 +138,14 @@ export class ResendEmailAdapter implements EmailAdapter {
     }
   }
 
-  // Resend's batch endpoint accepts up to 100 messages per call.
-  async sendBatch(messages: EmailMessage[]): Promise<void> {
-    if (messages.length === 0) return;
+  // Resend's batch endpoint accepts up to 100 messages per call and responds
+  // `200 { data: [{ id }, ...] }` with one entry per ACCEPTED message, in order.
+  // We attribute per-message: an aligned `data[i].id` => that message was accepted;
+  // anything else (missing entry, no id, length mismatch) => that message failed
+  // and must be retried, so a partial acceptance never silently drops mail. A
+  // transport-level failure throws (caller fails the whole chunk).
+  async sendBatch(messages: EmailMessage[]): Promise<EmailSendResult[]> {
+    if (messages.length === 0) return [];
     const response = await fetch('https://api.resend.com/emails/batch', {
       method: 'POST',
       headers: {
@@ -124,12 +153,21 @@ export class ResendEmailAdapter implements EmailAdapter {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(messages.map((m) => this.toPayload(m))),
+      signal: AbortSignal.timeout(EMAIL_HTTP_TIMEOUT_MS),
     });
 
     if (!response.ok) {
       const body = await response.text();
       throw new Error(`Resend batch API error (${response.status}): ${body}`);
     }
+
+    const parsed = (await response.json().catch(() => null)) as { data?: Array<{ id?: string }> } | null;
+    const data = Array.isArray(parsed?.data) ? parsed!.data : [];
+    return messages.map((_, i) =>
+      typeof data[i]?.id === 'string'
+        ? { ok: true }
+        : { ok: false, error: 'Resend batch: message not acknowledged' },
+    );
   }
 }
 
@@ -141,8 +179,9 @@ export class ConsoleEmailAdapter implements EmailAdapter {
     console.log(`[EMAIL] Body: ${message.text ?? message.html.slice(0, 200)}`);
   }
 
-  async sendBatch(messages: EmailMessage[]): Promise<void> {
+  async sendBatch(messages: EmailMessage[]): Promise<EmailSendResult[]> {
     for (const m of messages) await this.send(m);
+    return messages.map(() => ({ ok: true }));
   }
 }
 
