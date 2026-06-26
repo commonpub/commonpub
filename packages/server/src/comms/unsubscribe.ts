@@ -17,6 +17,30 @@ export function makeUnsubscribeToken(userId: string, secret: string): string {
   return `${b64url(Buffer.from(userId, 'utf8'))}.${sign(userId, secret)}`;
 }
 
+export interface UnsubscribeLinks {
+  /** Visible footer link → the `/unsubscribe` page (offers digest-vs-all scope). */
+  pageUrl: string;
+  /** RFC 8058 one-click headers → `POST /api/unsubscribe`. */
+  headers: { 'List-Unsubscribe': string; 'List-Unsubscribe-Post': string };
+}
+
+/**
+ * Per-recipient unsubscribe links for one email: the visible footer page URL +
+ * the one-click `List-Unsubscribe` headers. The single source of truth for the
+ * unsubscribe URL/header shape — every non-transactional sender (notifications,
+ * digests, broadcasts) uses this so the path/format stays consistent.
+ */
+export function buildUnsubscribeLinks(siteUrl: string, userId: string, secret: string): UnsubscribeLinks {
+  const token = makeUnsubscribeToken(userId, secret);
+  return {
+    pageUrl: `${siteUrl}/unsubscribe?token=${token}`,
+    headers: {
+      'List-Unsubscribe': `<${siteUrl}/api/unsubscribe?token=${token}>`,
+      'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+    },
+  };
+}
+
 /**
  * Verify a token and return the userId, or null if malformed/forged. Constant-time
  * comparison on the signature so the token can't be brute-forced by timing.

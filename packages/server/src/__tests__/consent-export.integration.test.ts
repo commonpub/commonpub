@@ -3,10 +3,39 @@ import { eq } from 'drizzle-orm';
 import { users, userConsents } from '@commonpub/schema';
 import type { DB } from '../types.js';
 import { createTestDB, createTestUser, closeTestDB } from './helpers/testdb.js';
-import { recordConsent } from '../profile/consent.js';
+import { recordConsent, needsTermsReacceptance } from '../profile/consent.js';
 import { exportUserData } from '../profile/export.js';
 
 // GDPR Phase 1 (session 227): terms-acceptance recording + export completeness.
+
+describe('needsTermsReacceptance (GDPR Phase 2)', () => {
+  let db: DB;
+  let userId: string;
+
+  beforeAll(async () => {
+    db = await createTestDB();
+    userId = (await createTestUser(db, { username: `reaccept-${Date.now()}` })).id;
+    await recordConsent(db, { userId, kind: 'terms', version: '1' }); // accepted v1
+  });
+  afterAll(async () => { await closeTestDB(db); });
+
+  it('is false when the feature is disabled (regardless of version)', async () => {
+    expect(await needsTermsReacceptance(db, userId, { enabled: false, termsVersion: '2' })).toBe(false);
+  });
+
+  it('is false when enabled and the accepted version matches', async () => {
+    expect(await needsTermsReacceptance(db, userId, { enabled: true, termsVersion: '1' })).toBe(false);
+  });
+
+  it('is true when enabled and the accepted version is behind', async () => {
+    expect(await needsTermsReacceptance(db, userId, { enabled: true, termsVersion: '2' })).toBe(true);
+  });
+
+  it('is true when enabled and the user never accepted', async () => {
+    const fresh = (await createTestUser(db, { username: `reaccept-never-${Date.now()}` })).id;
+    expect(await needsTermsReacceptance(db, fresh, { enabled: true, termsVersion: '1' })).toBe(true);
+  });
+});
 
 describe('recordConsent', () => {
   let db: DB;

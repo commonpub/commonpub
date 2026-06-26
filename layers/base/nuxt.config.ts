@@ -120,6 +120,7 @@ export default defineNuxtConfig({
         themeStudio: true,
         emailNotifications: false,
         adminBroadcast: false,
+        requireTermsAcceptance: false,
         publicApi: false,
         contentImport: true,
         layoutEngine: false,

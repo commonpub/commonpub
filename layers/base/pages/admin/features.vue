@@ -37,6 +37,7 @@ const flagMeta: Record<string, { label: string; description: string; icon: strin
   themeStudio: { label: 'Theme Studio', description: 'Guided theme generator in the theme builder', icon: 'fa-solid fa-wand-magic-sparkles' },
   emailNotifications: { label: 'Email Notifications', description: 'Email digests and instant notifications', icon: 'fa-solid fa-envelope' },
   adminBroadcast: { label: 'Admin Broadcast', description: 'Send announcement emails to users from the admin panel', icon: 'fa-solid fa-bullhorn' },
+  requireTermsAcceptance: { label: 'Require Terms Re-acceptance', description: 'Make users re-accept the Terms after you bump the terms version', icon: 'fa-solid fa-file-signature' },
 };
 
 const flagKeys = computed(() => data.value ? Object.keys(data.value.flags) : []);

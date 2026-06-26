@@ -20,73 +20,8 @@ export interface NotificationItem {
 
 export type NotificationType = 'like' | 'comment' | 'follow' | 'mention' | 'contest' | 'certificate' | 'hub' | 'system' | 'fork' | 'build';
 
-// --- Email notification preferences ---
-
-interface EmailNotificationPrefs {
-  digest?: 'daily' | 'weekly' | 'none';
-  likes?: boolean;
-  comments?: boolean;
-  follows?: boolean;
-  mentions?: boolean;
-  unsubscribedAll?: boolean;
-}
-
-/** Map notification types to their preference key (only types that have a user-facing toggle) */
-const TYPE_TO_PREF: Partial<Record<NotificationType, keyof Omit<EmailNotificationPrefs, 'digest'>>> = {
-  like: 'likes',
-  comment: 'comments',
-  follow: 'follows',
-  mention: 'mentions',
-};
-
-/**
- * Check whether a user should receive an instant email for a notification type.
- * Returns false if the user has no preferences set, the type has no toggle, or the user disabled it.
- * Also returns false if the user chose digest mode (daily/weekly) — those are batched separately.
- */
-export async function shouldEmailNotification(
-  db: DB,
-  userId: string,
-  type: NotificationType,
-): Promise<boolean> {
-  const prefKey = TYPE_TO_PREF[type];
-  if (!prefKey) return false; // types without a toggle never trigger instant email
-
-  const [row] = await db
-    .select({ emailNotifications: users.emailNotifications })
-    .from(users)
-    .where(eq(users.id, userId))
-    .limit(1);
-
-  if (!row?.emailNotifications) return false;
-
-  const prefs = row.emailNotifications as EmailNotificationPrefs;
-
-  // Hard opt-out of all non-transactional mail (one-click unsubscribe).
-  if (prefs.unsubscribedAll) return false;
-
-  // If digest mode is daily or weekly, instant emails are suppressed — digest plugin handles them
-  if (prefs.digest === 'daily' || prefs.digest === 'weekly') return false;
-
-  return prefs[prefKey] === true;
-}
-
-/**
- * Get user email and username for sending notification emails.
- */
-export async function getNotificationEmailTarget(
-  db: DB,
-  userId: string,
-): Promise<{ email: string; username: string } | null> {
-  const [row] = await db
-    .select({ email: users.email, username: users.username, emailVerified: users.emailVerified })
-    .from(users)
-    .where(eq(users.id, userId))
-    .limit(1);
-
-  if (!row || !row.emailVerified) return null;
-  return { email: row.email, username: row.username };
-}
+// Email-preference gating (shouldEmailNotification / getNotificationEmailTarget)
+// lives in ./emailPrefs.ts.
 
 // --- Module-level email sender registration ---
 

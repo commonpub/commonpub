@@ -52,6 +52,9 @@ export const featureFlagsSchema = z.object({
   // Admin broadcast emails to users (email Phase 3). Default OFF; no effect unless
   // email is actually configured + emailNotifications is on.
   adminBroadcast: z.boolean().default(false),
+  // Require logged-in users to re-accept the Terms when `instance.termsVersion`
+  // is bumped above what they last accepted (GDPR Phase 2). Default OFF.
+  requireTermsAcceptance: z.boolean().default(false),
   publicApi: z.boolean().default(false),
   // URL content import (importFromUrl). Default on; operators can
   // disable URL import without disabling content authoring. The import
@@ -121,6 +124,9 @@ export const instanceConfigSchema = z.object({
   // Bump when the Terms/Code-of-Conduct text changes materially; recorded against
   // each user's acceptance so re-acceptance can be required later (GDPR, session 227).
   termsVersion: z.string().min(1).max(32).default('1'),
+  // Version of the cookie policy; recorded when a logged-in user makes a cookie
+  // consent choice (GDPR Phase 2).
+  cookiePolicyVersion: z.string().min(1).max(32).default('1'),
 });
 
 export const federationConfigSchema = z.object({

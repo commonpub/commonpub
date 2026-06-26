@@ -32,6 +32,7 @@ export function createTestConfig(overrides?: Partial<CommonPubConfig>): CommonPu
       themeStudio: true,
       emailNotifications: false,
       adminBroadcast: false,
+      requireTermsAcceptance: false,
       publicApi: false,
       contentImport: true,
       layoutEngine: false,

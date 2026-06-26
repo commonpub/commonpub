@@ -34,6 +34,7 @@ const ENV_FLAG_MAP: Record<string, string> = {
   admin: 'FEATURE_ADMIN',
   emailNotifications: 'FEATURE_EMAIL_NOTIFICATIONS',
   adminBroadcast: 'FEATURE_ADMIN_BROADCAST',
+  requireTermsAcceptance: 'FEATURE_REQUIRE_TERMS_ACCEPTANCE',
   contentImport: 'FEATURE_CONTENT_IMPORT',
   actAsRegistry: 'FEATURE_ACT_AS_REGISTRY',
   announceToRegistry: 'FEATURE_ANNOUNCE_TO_REGISTRY',
