@@ -60,7 +60,20 @@ Capture (`/r/:code` → indexed `lower(code)` lookup, `click_count++`, sets `cpu
 - **Pre-existing a11y**: register consent text contrast + Log in link distinguishability (not this feature).
 - **confirmOnVerify** deferred (no email-verify hook + email OFF in prod) — `referral_attributions.status` keeps `pending`/`rejected` for the future.
 
-## Release steps (the §16 chain — when approved)
+## Release log (session 229 — executed)
+
+1. Bumped + published in dep order (all live on npm): **schema 0.55.0 → config 0.27.0 → server 2.101.0 → test-utils 0.5.9 → layer 0.90.0** (layer via `pnpm run publish:layer`; verified no `workspace:` leak — layer 0.90.0 pins schema 0.55.0 / config 0.27.0 / server 2.101.0).
+2. Branch `referral-links` → **PR #68 → squash-merged to main** → commonpub.io "Deploy Production" running (migration 0038 applies there).
+3. Bumped consumer pins (config ^0.27.0, schema ^0.55.0, server ^2.101.0, layer ^0.90.0) + lockfiles, pushed:
+   - **deveco-io** (3c3585b): package.json + pnpm-lock.yaml (npm lock is gitignored; deploy uses pnpm frozen).
+   - **heatsynclabs-io** (c6120e9): package.json + pnpm-lock.yaml + package-lock.json (both tracked).
+4. Liveness check: `/api/features` now contains the `referralLinks` key on each instance once its deploy swaps in (proves layer 0.90.0 live).
+
+### ENABLE step (ADMIN action — flag still OFF on all 3)
+
+Flags on these instances are NOT set via deploy env (no `FEATURE_*` in deploy.yml) — they are controlled by the **`/admin/features` DB toggle**, which needs an admin session. To turn the feature on (canary order): on **commonpub.io** first, sign in as admin → `/admin/features` → enable **referralLinks** → exercise the flow → then enable on **deveco.io** and **heatsynclabs.io**. (Their `server/utils/config.ts` ENV_FLAG_MAP lacks `referralLinks`, so the env var won't toggle them — use the admin UI. Add it to their map if env-toggle is wanted later.)
+
+## Original release steps (reference — the §16 chain)
 
 1. Branch `referral-links`. Bump changed packages: schema (0.54→0.55, new tables) → config (0.26→0.27, flag + section) → server (2.100.1→2.101, referral module) → ui (only if a shared component changed — none did) → layer (0.89.1→0.90). `pnpm typecheck` (28/28) + suites green.
 2. Publish in dep order (schema → config → server → … → layer via `pnpm run publish:layer`), polling `npm view` between.
