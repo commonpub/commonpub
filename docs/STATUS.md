@@ -383,17 +383,27 @@ a minute (`curl deveco.io/api/content?limit=5`, today's timestamp).
 
 ## 📌 Reference
 
-### Published versions (verified 2026-06-26 — session 227 email refactor + GDPR Phase 2)
+### Published versions (verified 2026-06-26 — session 227 GDPR Phase 2 enforcement + CLI re-pin)
 | Package | Version | | Package | Version |
 |---|---|---|---|---|
 | @commonpub/schema | **0.54.0** | | @commonpub/infra | **0.13.0** |
 | @commonpub/config | **0.26.0** | | @commonpub/editor | **0.9.0** |
 | @commonpub/protocol | **0.14.0** | | @commonpub/explainer | **0.8.0** |
 | @commonpub/auth | 0.8.0 | | @commonpub/docs | 0.6.3 |
-| @commonpub/server | **2.100.0** | | @commonpub/learning | 0.5.2 |
+| @commonpub/server | **2.100.1** | | @commonpub/learning | 0.5.2 |
 | @commonpub/ui | 0.13.1 | | @commonpub/test-utils | **0.5.8** |
-| @commonpub/layer | **0.89.0** | | @commonpub/theme-studio | 0.6.1 |
-| create-commonpub (crates.io) | **0.5.19** (pins ^0.49/^2.94/^0.86.7/config ^0.23 — VERY STALE: re-pin to schema ^0.54 / config ^0.26 / server ^2.100 / infra ^0.13 / layer ^0.89 on next CLI bump) | | | |
+| @commonpub/layer | **0.89.1** | | @commonpub/theme-studio | 0.6.1 |
+| create-commonpub (crates.io) | **0.5.20** (pins schema ^0.54 / config ^0.26 / server ^2.100.1 / layer ^0.89.1 — current) | | | |
+
+**Session 227 GDPR Phase 2 enforcement + CLI re-pin (2026-06-26) — SHIPPED + ROLLED to all 3.**
+Adversarial review of GDPR Phase 2 (no P0; auth/CSRF/IDOR/spoofing/injection clean). Added a
+flag-gated `require-terms` middleware that 403s stale-consent users on WRITE `/api/*` requests
+(the client gate was bypassable; `/api/consent` + `/api/auth/*` exempt; reads open).
+`recordConsent` dedups the audit insert (no unbounded growth) while keeping the `users` column
+in sync. **server 2.100.1 / layer 0.89.1** (no schema/migration). create-commonpub re-pinned to
+**0.5.20** (was many versions stale). server 1526 / layer +4 / typecheck 28/28; live-verified
+(stale→403, /api/consent clears it, dedup holds at 1). Detail:
+`docs/sessions/227-email-refactor-gdpr-phase2.md` + `228-handoff.md`.
 
 **Session 227 email refactor + GDPR Phase 2 (2026-06-26) — SHIPPED + ROLLED to all 3.**
 Structural audit + refactor of the email subsystem (split the 432-line `infra/email.ts`

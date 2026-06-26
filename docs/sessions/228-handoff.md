@@ -6,11 +6,21 @@ canonical runbook `docs/STATUS.md` (versions, release chain, deploy, flags); the
 kickoff prompt for the next agent is `docs/sessions/228-kickoff.md`.
 
 ## Published versions (all live on commonpub.io + deveco.io + heatsynclabs.io)
-`schema 0.54.0 · config 0.26.0 · infra 0.13.0 · server 2.100.0 · layer 0.89.0`
+`schema 0.54.0 · config 0.26.0 · infra 0.13.0 · server 2.100.1 · layer 0.89.1`
 (unchanged this arc: protocol 0.14.0, auth 0.8.0, ui 0.13.1, editor 0.9.0, docs 0.6.3,
 learning 0.5.2, explainer 0.8.0, theme-studio 0.6.1, test-utils 0.5.8). Migrations through
-**0037**. create-commonpub **0.5.19** on crates.io — **VERY STALE** (still pins the
-session-225-era versions); re-pin to the above on the next CLI bump.
+**0037**. create-commonpub **0.5.20** on crates.io — **re-pinned to current** (schema ^0.54 /
+config ^0.26 / server ^2.100.1 / layer ^0.89.1).
+
+## GDPR Phase 2 enforcement follow-up (server 2.100.1 / layer 0.89.1)
+An adversarial review of GDPR Phase 2 (no P0; auth/CSRF/IDOR/spoofing/injection all clean)
+found the re-acceptance gate was client-side only. Added `layers/base/server/middleware/
+require-terms.ts`: when `requireTermsAcceptance` is on, a logged-in user with a stale accepted
+version gets **403 on WRITE `/api/*`** requests until they re-accept (reads + the gate stay
+open; `/api/consent` + `/api/auth/*` exempt). Flag-gated → zero cost when off (the default).
+Also: `recordConsent` dedups the audit insert on a same-version repeat (no unbounded
+`user_consents` growth) while keeping `users.accepted_terms_*` in sync; `termsVersion` is
+documented as an opaque, bump-forward-only token.
 
 ## What shipped this session (all SHIPPED + ROLLED to all 3)
 
@@ -58,10 +68,7 @@ session-225-era versions); re-pin to the above on the next CLI bump.
   + the `health.test.ts` FeatureFlags literal or the server build fails.
 
 ## Suggested next work (pick by priority / take user direction)
-1. **Re-pin + republish `create-commonpub`** (crates.io) — pins are many versions stale; the
-   scaffolder installs the old layer/server. Bump `tools/create-commonpub/template.rs` consts
-   + `tests/cli.rs` asserts to schema ^0.54 / config ^0.26 / server ^2.100 / infra ^0.13 /
-   layer ^0.89, `cargo test`, `cargo publish --locked`.
+1. ~~Re-pin create-commonpub~~ — DONE (0.5.20, pins current).
 2. **Operator decision: enable email on an instance?** If yes, wire the Resend secret + flags
    per above and smoke a real send. (Cost model + scaling: `docs/reference/email-gdpr-scaling-analysis.md`.)
 3. **GDPR/email small follow-ups** (from the analysis + audits): bulk PII review UI; the

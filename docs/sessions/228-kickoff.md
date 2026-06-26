@@ -10,9 +10,10 @@ pnpm + Turborepo, Nuxt reference app + @commonpub/*, plus consumer sites ../deve
 `docs/STATUS.md` (release/deploy runbook + version table), then your auto-memory index.
 
 Everything is SHIPPED + live as of 2026-06-26: `schema 0.54.0 · config 0.26.0 · infra 0.13.0 ·
-server 2.100.0 · layer 0.89.0`, create-commonpub 0.5.19 (crates.io, VERY STALE), migrations
-through **0037**. All 3 instances (commonpub.io local layer; deveco.io + heatsynclabs.io pin
-the published versions) rolled + health 200; working trees clean.
+server 2.100.1 · layer 0.89.1`, create-commonpub 0.5.20 (crates.io, re-pinned to current),
+migrations through **0037**. All 3 instances (commonpub.io local layer; deveco.io +
+heatsynclabs.io pin the published versions) rolled + health 200; working trees clean. GDPR
+Phase 2 gained server-side write-enforcement (`require-terms` middleware, flag-gated OFF).
 
 Session 227 was long and completed two whole initiatives end to end:
 - **Email & communications overhaul** (`docs/plans/email-comms-overhaul.md`, COMPLETE):
@@ -33,9 +34,6 @@ There is no committed plan with remaining required work. Pick from the backlog b
 prioritized, or take new direction from the user.
 
 Backlog (build when prioritized):
-- **Re-pin + republish create-commonpub** (crates.io) — pins are many versions stale. Bump
-  `tools/create-commonpub/template.rs` + `tests/cli.rs` to schema ^0.54 / config ^0.26 /
-  server ^2.100 / infra ^0.13 / layer ^0.89, `cargo test`, `cargo publish --locked`.
 - **Enable email on an instance** (operator decision): wire `NUXT_EMAIL_ADAPTER=resend` +
   `NUXT_RESEND_API_KEY`/`NUXT_RESEND_FROM` + `NUXT_PUBLIC_FEATURES_EMAIL_NOTIFICATIONS=true`,
   verify a sending domain in Resend, smoke a real send. Cost/scale model:
