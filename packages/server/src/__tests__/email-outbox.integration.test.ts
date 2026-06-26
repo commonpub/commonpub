@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
-import { eq } from 'drizzle-orm';
+import { eq, and, or, lt, lte, asc, inArray } from 'drizzle-orm';
 import { emailOutbox } from '@commonpub/schema';
 import type { DB } from '../types.js';
-import type { EmailAdapter, EmailMessage } from '../email.js';
+import type { EmailAdapter, EmailMessage, EmailSendResult } from '../email.js';
 import { createTestDB, closeTestDB } from './helpers/testdb.js';
 import { enqueueEmail, enqueueEmails, drainEmailOutbox } from '../comms/outbox.js';
 
@@ -10,11 +10,13 @@ import { enqueueEmail, enqueueEmails, drainEmailOutbox } from '../comms/outbox.j
 
 class MockAdapter implements EmailAdapter {
   batches: EmailMessage[][] = [];
-  fail = false;
+  fail = false; // throw → transport failure (whole chunk fails)
+  failEmails = new Set<string>(); // per-message rejection (partial-success path)
   async send(m: EmailMessage): Promise<void> { this.batches.push([m]); }
-  async sendBatch(msgs: EmailMessage[]): Promise<void> {
+  async sendBatch(msgs: EmailMessage[]): Promise<EmailSendResult[]> {
     if (this.fail) throw new Error('provider 429');
     this.batches.push(msgs);
+    return msgs.map((m) => (this.failEmails.has(m.to) ? { ok: false, error: 'rejected' } : { ok: true }));
   }
 }
 
@@ -26,6 +28,33 @@ describe('email outbox', () => {
   let db: DB;
   beforeAll(async () => { db = await createTestDB(); });
   afterAll(async () => { await closeTestDB(db); });
+
+  it('claim query emits FOR UPDATE SKIP LOCKED (multi-replica safety)', () => {
+    // PGlite is single-connection, so SKIP LOCKED is a no-op at runtime and the
+    // other tests can't prove the lock clause survives drizzle's inArray-subquery
+    // serialization. Assert the generated SQL directly — without this clause two
+    // replicas could claim the same rows and double-send. Mirrors the claim in
+    // drainEmailOutbox exactly.
+    const now = new Date();
+    const claimIds = db
+      .select({ id: emailOutbox.id })
+      .from(emailOutbox)
+      .where(
+        or(
+          and(eq(emailOutbox.status, 'pending'), lte(emailOutbox.scheduledAt, now)),
+          and(eq(emailOutbox.status, 'sending'), lt(emailOutbox.lockExpiresAt, now)),
+        ),
+      )
+      .orderBy(asc(emailOutbox.scheduledAt))
+      .limit(10)
+      .for('update', { skipLocked: true });
+    const { sql } = db
+      .update(emailOutbox)
+      .set({ status: 'sending' })
+      .where(inArray(emailOutbox.id, claimIds))
+      .toSQL();
+    expect(sql.toLowerCase()).toContain('for update skip locked');
+  });
 
   it('enqueues and drains a batch, marking rows sent', async () => {
     await enqueueEmails(db, [msg('a@x.com'), msg('b@x.com'), msg('c@x.com')]);
@@ -85,6 +114,29 @@ describe('email outbox', () => {
       [row] = await fresh.select().from(emailOutbox);
       expect(row!.status).toBe('failed');
       expect(row!.attempts).toBe(2);
+    } finally {
+      await closeTestDB(fresh);
+    }
+  });
+
+  it('attributes a PARTIAL batch: accepted rows sent, rejected rows rescheduled', async () => {
+    const fresh = await createTestDB();
+    try {
+      await enqueueEmails(fresh, [msg('ok1@p.com'), msg('bad@p.com'), msg('ok2@p.com')]);
+      const adapter = new MockAdapter();
+      adapter.failEmails.add('bad@p.com'); // provider rejects this one in a 200 batch
+      const now = new Date('2026-07-01T00:00:00Z');
+
+      const r = await drainEmailOutbox(fresh, adapter, { now, sleep: async () => {} });
+      expect(r.claimed).toBe(3);
+      expect(r.sent).toBe(2);
+      expect(r.failed).toBe(0); // rejected one is rescheduled, not dead-lettered
+
+      const rows = await fresh.select().from(emailOutbox);
+      const bad = rows.find((x) => x.toEmail === 'bad@p.com')!;
+      expect(bad.status).toBe('pending');
+      expect(bad.attempts).toBe(1);
+      expect(rows.filter((x) => x.status === 'sent')).toHaveLength(2);
     } finally {
       await closeTestDB(fresh);
     }
