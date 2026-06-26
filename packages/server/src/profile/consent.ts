@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { eq, and, desc } from 'drizzle-orm';
 import { users, userConsents } from '@commonpub/schema';
 import type { DB } from '../types.js';
 
@@ -28,15 +28,32 @@ export interface RecordConsentInput {
  * `user_consents.user_id` cascade.
  */
 export async function recordConsent(db: DB, input: RecordConsentInput): Promise<void> {
-  await db.insert(userConsents).values({
-    userId: input.userId,
-    kind: input.kind,
-    version: input.version,
-    documentHash: input.documentHash ?? null,
-    ipAddress: input.ip ?? null,
-    userAgent: input.userAgent ?? null,
-  });
+  // Dedup the AUDIT row: if the user's latest consent of this kind already records
+  // this exact version, skip the insert (re-clicking "accept" for the same version
+  // shouldn't append unbounded `user_consents` rows). A genuine re-acceptance (new
+  // version) always differs, so it records.
+  const [latest] = await db
+    .select({ version: userConsents.version })
+    .from(userConsents)
+    .where(and(eq(userConsents.userId, input.userId), eq(userConsents.kind, input.kind)))
+    .orderBy(desc(userConsents.acceptedAt))
+    .limit(1);
+  const isDuplicate = latest?.version === input.version;
 
+  if (!isDuplicate) {
+    await db.insert(userConsents).values({
+      userId: input.userId,
+      kind: input.kind,
+      version: input.version,
+      documentHash: input.documentHash ?? null,
+      ipAddress: input.ip ?? null,
+      userAgent: input.userAgent ?? null,
+    });
+  }
+
+  // Always keep the denormalized current-acceptance in sync for terms (even on a
+  // duplicate click) — a single in-place UPDATE, no row growth — so the
+  // re-acceptance gate reliably clears regardless of column drift.
   if (input.kind === 'terms') {
     await db
       .update(users)
@@ -51,6 +68,11 @@ export async function recordConsent(db: DB, input: RecordConsentInput): Promise<
  * version differs from the current instance `termsVersion` (including never having
  * accepted). The route exposes this so the client interstitial doesn't need to see
  * the user's stored version or the instance version.
+ *
+ * NOTE: the comparison is an exact string `!==` with no ordering — `termsVersion`
+ * is an OPAQUE token. Always bump it FORWARD on a material terms change and never
+ * reformat it (e.g. '1' → '1.0'), or every user gets re-prompted for an unchanged
+ * document. A rollback to an older string also re-prompts (harmless).
  */
 export async function needsTermsReacceptance(
   db: DB,

@@ -81,6 +81,17 @@ describe('recordConsent', () => {
     expect(u!.at).toBeNull();
     expect(u!.v).toBeNull();
   });
+
+  it('dedups: re-recording the SAME version is a no-op; a NEW version records', async () => {
+    const u = (await createTestUser(db, { username: `consent-dedup-${Date.now()}` })).id;
+    await recordConsent(db, { userId: u, kind: 'cookies', version: '1' });
+    await recordConsent(db, { userId: u, kind: 'cookies', version: '1' }); // dup → skipped
+    await recordConsent(db, { userId: u, kind: 'cookies', version: '1' }); // dup → skipped
+    expect((await db.select().from(userConsents).where(eq(userConsents.userId, u))).length).toBe(1);
+
+    await recordConsent(db, { userId: u, kind: 'cookies', version: '2' }); // new version → recorded
+    expect((await db.select().from(userConsents).where(eq(userConsents.userId, u))).length).toBe(2);
+  });
 });
 
 describe('exportUserData GDPR completeness', () => {
