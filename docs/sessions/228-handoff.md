@@ -67,46 +67,25 @@ documented as an opaque, bump-forward-only token.
   works for ANY flag without ENV_FLAG_MAP. Also add it to `packages/test-utils/src/mockConfig.ts`
   + the `health.test.ts` FeatureFlags literal or the server build fails.
 
-## Plans audit (session 228 — all 24 `docs/plans/` + 4 archived, verified vs STATUS + code)
+## Remaining work → see `docs/ROADMAP.md` (the prioritized master backlog)
 
-**Complete (no outstanding code):** email-comms-overhaul, gdpr-consent-hardening,
-rbac + rbac-activation-and-contest-editors, federation-discovery-and-hardening,
-federation-hardening, public-api-cors-and-metrics (Ph1-3), pagination-scalability (A-C),
-ALL six contest plans (stage-e-unification, stages-and-editor-polish, per-stage-submissions,
-elevation, editor-shell, builder-ux), theme-studio-advanced-tokens (A-D), search-overhaul,
-redis-integration (code done), and the 4 archived master/federation plans (historical).
+A session-228 audit of all 24 `docs/plans/` + 4 archived docs (verified vs STATUS + code) found
+**almost everything COMPLETE or deferred-by-design.** The full prioritized roadmap is now
+`docs/ROADMAP.md` — start there. Headline:
 
-**GENUINELY PENDING engineering (never built or partially built) — the real backlog:**
-1. **Layout engine** (`layout-engine-rollout.md` + `phase-3-editor.md`) — the LARGEST. The
-   visual editor is ~80% (Phase 3e-remainder: mobile colSpan slider, rich-field pickers,
-   config-edit undo; Phase 3f inspector polish — both pending). The ROLLOUT (Phases 4-10) is
-   largely unshipped: adopt `LayoutSlot` in ~7 more routes (currently homepage-only), the
-   remaining ~8 section types, mobile editor, versioning/draft/publish UI. The engine is a
-   **commonpub.io-only canary** — deveco/heatsync run the legacy renderer (`layoutEngine` OFF).
-2. **instance-self-update.md** — ENTIRE feature un-built; status "awaiting maintainer approval."
-   No backend, no `/admin/updates` page, no scaffolder workflow. A DECISION GATE, not just dev.
-3. **monolith-splits Phases 3c / 4a / 4b** (`monolith-splits-remaining-backlog.md`):
-   3c federated-follow-from-profile UI (backend ready; needs a UI surface + a decision);
-   4a homepage 3-path consolidation (`pages/index.vue` still has 3 branches; HIGH blank-page
-   risk, needs a 2-phase deploy seeding default layouts); 4b extract `inboxHandlers.onCreate`
-   (file still ~1512 lines; needs inbound-Create integration tests first; HIGH risk).
+- **Tier 0 (do/decide first):** enable email on an instance (operator + Resend secret — unlocks the
+  whole inert email subsystem); small protective hardening (paginate the digest build; `pnpm pack`
+  leak check in `publish:layer`).
+- **Tier 1 (big, gated on your go-ahead):** the **layout engine** (editor 3e/3f + rollout Phases 4-10;
+  a commonpub.io-only canary today; includes the homepage 3-path consolidation) and **instance-self-update**
+  (entirely un-built, "awaiting maintainer approval").
+- **Tier 2 (ready, medium):** federated-follow-from-profile UI (backend ready); extract the ~1512-line
+  `inboxHandlers.onCreate` monolith (behind new inbound-Create integration tests).
+- **Tier 3:** operator actions (federation mirror round-trip, reconcile-counters, RBAC flag-flip),
+  small polish, and deferred-by-design items (pagination D, public-API Ph4, theme-studio Ph E, etc.).
 
-**Deferred-by-design (logged optional, NOT action items):** pagination step D (unified
-`feed_items`), public-API Phase 4 (event table), theme-studio Phase E, contest B3 teams,
-federation small polish (txn-wrap approveMirror, backfill-progress UI). Redis + Meilisearch
-are code-complete but **operator-deferred** (env vars unset; single-process + Postgres-FTS is
-the live path).
-
-**Operator actions (can't be done headlessly):** enable email (Resend secret); federation P3
-mirror Offer→Accept live round-trip; `reconcile-counters --check`; RBAC flag-flip rollout.
-
-**Doc hygiene:** three plan headers carried stale "pending release / NOT merged" text that
-the session-219/220/221 logs supersede — corrected this session (contest-builder-ux,
-contest-editor-shell; email/gdpr plans marked COMPLETE).
-
-**Small follow-ups** (from prior audits, low priority): digest in-memory build should paginate
-at scale; `pnpm pack` test-leak check in `publish:layer`; bulk PII review UI; specific-users
-broadcast picker polish; entry-detail residuals; deferred a11y (`--accent` as small nav text).
+Nothing was an active assignment that got missed — the kickoffs correctly said "no committed plan
+with remaining required work." The Tier 1 items are dormant/un-started and each need your direction.
 
 ## Standing rules (unchanged)
 Test-driven; verify UI visually (run the app + screenshot/Playwright) before shipping;
