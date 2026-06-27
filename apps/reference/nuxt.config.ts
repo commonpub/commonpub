@@ -7,6 +7,9 @@ export default defineNuxtConfig({
       // Expose this instance's declared non-essential cookies to the client so the
       // cookie-consent banner can ask about them (the layer defaults this to []).
       instanceCookies: siteConfig.config.cookies ?? [],
+      // Keep the register page's check-email screen in sync with the server's
+      // auth.requireEmailVerification (createAuth). Default OFF.
+      requireEmailVerification: siteConfig.config.auth.requireEmailVerification === true,
     },
   },
   devtools: { enabled: true },

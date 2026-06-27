@@ -95,6 +95,11 @@ export const authConfigSchema = z.object({
   emailPassword: z.boolean().default(true),
   magicLink: z.boolean().default(false),
   passkeys: z.boolean().default(false),
+  // Require users to verify their email before they can sign in. Default OFF so
+  // signup works out of the box without an email provider. Turn ON only once an
+  // email adapter (Resend/SMTP) is actually wired, otherwise new users get a
+  // verification email that is never sent and can't complete signup.
+  requireEmailVerification: z.boolean().default(false),
   github: z
     .object({
       clientId: z.string().min(1),

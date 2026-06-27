@@ -75,6 +75,12 @@ describe('defineCommonPubConfig', () => {
     expect(config.referral?.defaultAttributionWindowDays).toBe(30);
   });
 
+  it('defaults requireEmailVerification OFF and lets an operator turn it on', () => {
+    expect(defineCommonPubConfig({ instance: validInstance }).config.auth.requireEmailVerification).toBe(false);
+    const { config } = defineCommonPubConfig({ instance: validInstance, auth: { requireEmailVerification: true } });
+    expect(config.auth.requireEmailVerification).toBe(true);
+  });
+
   it('lets an operator declare non-essential cookies via the typed input (banner trigger)', () => {
     const { config } = defineCommonPubConfig({
       instance: validInstance,

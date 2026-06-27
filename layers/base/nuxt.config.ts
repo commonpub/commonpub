@@ -144,6 +144,10 @@ export default defineNuxtConfig({
       contentTypes: 'project,blog,explainer',
       contestCreation: 'admin',
       instanceCookies: [] as Array<{ name: string; category: string; description: string; duration: string; provider?: string }>,
+      // Default OFF — the register page only shows the "check your email" screen
+      // when this is on (operator opts in once email is wired). Mirrors
+      // config.auth.requireEmailVerification on the server (createAuth).
+      requireEmailVerification: false,
     },
   },
   // NOTE: /docs/** was previously set to `prerender: true` but this caused

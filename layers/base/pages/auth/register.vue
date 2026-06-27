@@ -49,8 +49,11 @@ async function handleSubmit(): Promise<void> {
   try {
     await signUp(email.value, password.value, username.value);
     const { user: authUser } = useAuth();
-    if (authUser.value && !authUser.value.emailVerified) {
-      // Email verification required — show the check-your-email message
+    // Only dead-end at "check your email" when the operator actually requires
+    // verification (and email is wired). Default OFF, so signup proceeds straight
+    // into the app — no stranded "check your email" with no email sent.
+    const requireVerify = useRuntimeConfig().public.requireEmailVerification === true;
+    if (requireVerify && authUser.value && !authUser.value.emailVerified) {
       registered.value = true;
       return;
     }
@@ -154,9 +157,9 @@ async function handleSubmit(): Promise<void> {
         <input v-model="agreed" type="checkbox" class="register-consent-box" required />
         <span>
           I agree to the
-          <NuxtLink to="/terms">Terms of Service and Code of Conduct</NuxtLink>
+          <NuxtLink to="/terms" target="_blank" rel="noopener">Terms of Service and Code of Conduct</NuxtLink>
           and acknowledge the
-          <NuxtLink to="/privacy">Privacy Policy</NuxtLink>.
+          <NuxtLink to="/privacy" target="_blank" rel="noopener">Privacy Policy</NuxtLink>.
         </span>
       </label>
 
