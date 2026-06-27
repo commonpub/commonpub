@@ -28,10 +28,11 @@ const { data: learningData } = useLazyFetch(`/api/users/${username}/learning`, {
   immediate: learningEnabled.value,
 });
 
-const activeTab = ref('projects');
+const activeTab = ref('overview');
 
 const tabDefs = computed(() => {
   const tabs = [
+    { value: 'overview', label: 'Overview', icon: 'fa-solid fa-table-cells-large' },
     { value: 'projects', label: 'Projects', icon: 'fa-solid fa-folder-open' },
     { value: 'articles', label: 'Blog', icon: 'fa-solid fa-pen-nib' },
   ];
@@ -97,6 +98,7 @@ const activityByDate = computed<Record<string, number>>(() => {
 });
 
 const { isAuthenticated, user } = useAuth();
+const { contentLink } = useContentUrl();
 const toast = useToast();
 const isOwnProfile = computed(() => user.value?.username === username);
 const following = ref(false);
@@ -129,6 +131,40 @@ const {
   canLoadMore: canLoadMoreTab,
   loadingMore: loadingMoreTab,
 } = useProfileContent(username, feedQuery);
+
+// --- Overview tab: a sampled row of each content type (at-a-glance), plus a
+// recent-activity worklog. Each row links "View all" to that type's tab. ---
+const { data: ovProjects } = useLazyFetch<PaginatedResponse<Serialized<ContentListItem>>>(`/api/users/${username}/content`, { query: { type: 'project', limit: 6 } });
+const { data: ovBlogs } = useLazyFetch<PaginatedResponse<Serialized<ContentListItem>>>(`/api/users/${username}/content`, { query: { type: 'blog', limit: 6 } });
+const { data: ovExplainers } = useLazyFetch<PaginatedResponse<Serialized<ContentListItem>>>(`/api/users/${username}/content`, { query: { type: 'explainer', limit: 6 }, immediate: explainersEnabled.value });
+
+const overviewSections = computed(() => {
+  const out: Array<{ key: string; tab: string; label: string; icon: string; items: Serialized<ContentListItem>[] }> = [];
+  if (ovProjects.value?.items?.length) out.push({ key: 'project', tab: 'projects', label: 'Projects', icon: 'fa-solid fa-folder-open', items: ovProjects.value.items });
+  if (ovBlogs.value?.items?.length) out.push({ key: 'blog', tab: 'articles', label: 'Blog', icon: 'fa-solid fa-pen-nib', items: ovBlogs.value.items });
+  if (explainersEnabled.value && ovExplainers.value?.items?.length) out.push({ key: 'explainer', tab: 'explainers', label: 'Explainers', icon: 'fa-solid fa-book-open', items: ovExplainers.value.items });
+  return out;
+});
+const overviewEmpty = computed(() => overviewSections.value.length === 0);
+
+const TYPE_VERB: Record<string, string> = { project: 'Published a project', blog: 'Posted a blog', article: 'Posted a blog', explainer: 'Published an explainer' };
+const TYPE_ICON: Record<string, string> = { project: 'fa-solid fa-folder-open', blog: 'fa-solid fa-pen-nib', article: 'fa-solid fa-pen-nib', explainer: 'fa-solid fa-book-open' };
+const recentActivity = computed<Serialized<ContentListItem>[]>(() => {
+  const items = (content.value?.items ?? []).filter((i) => i.publishedAt);
+  return [...items]
+    .sort((a, b) => new Date(b.publishedAt as unknown as string).getTime() - new Date(a.publishedAt as unknown as string).getTime())
+    .slice(0, 8);
+});
+
+function relTime(ts: string | Date | null | undefined): string {
+  if (!ts) return '';
+  const diff = Date.now() - new Date(ts).getTime();
+  const day = 86_400_000;
+  if (diff < 3_600_000) return `${Math.max(1, Math.round(diff / 60_000))}m`;
+  if (diff < day) return `${Math.round(diff / 3_600_000)}h`;
+  if (diff < 30 * day) return `${Math.round(diff / day)}d`;
+  return new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
 
 // Initialize follow state from API response
 watch(() => profile.value, (profileData) => {
@@ -228,66 +264,57 @@ async function handleReport(): Promise<void> {
       </div>
 
       <div class="cpub-profile-hero-inner">
-        <div class="cpub-profile-hero-top">
-          <div class="cpub-profile-avatar-wrap">
-            <div class="cpub-profile-avatar">
-              <img v-if="p.avatarUrl" :src="p.avatarUrl" :alt="p.displayName || p.username" class="cpub-profile-avatar-img" />
-              <span v-else>{{ (p.displayName || p.username || 'U').charAt(0).toUpperCase() }}</span>
-            </div>
-          </div>
-          <div class="cpub-profile-hero-info">
-            <h1 class="cpub-profile-name">{{ p.displayName || p.username }}</h1>
-            <div class="cpub-profile-handle">@{{ p.username }}<span v-if="federationEnabled && instanceDomain" class="cpub-fedi-addr" title="Fediverse address">@{{ instanceDomain }}</span></div>
-            <p v-if="p.headline" class="cpub-profile-headline">{{ p.headline }}</p>
-            <p v-if="p.bio" class="cpub-profile-bio">{{ p.bio }}</p>
-            <div class="cpub-profile-meta">
-              <span v-if="p.location" class="cpub-profile-meta-item">
-                <i class="fa-solid fa-location-dot"></i> {{ p.location }}
-              </span>
-              <span v-if="p.website" class="cpub-profile-meta-item">
-                <i class="fa-solid fa-globe"></i>
-                <a :href="p.website" target="_blank" rel="noopener">{{ p.website.replace(/^https?:\/\//, '') }}</a>
-              </span>
-              <span class="cpub-profile-meta-item">
-                <i class="fa-solid fa-calendar"></i> Joined {{ new Date(p.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) }}
-              </span>
-            </div>
-            <div v-if="p.skills?.length" class="cpub-tag-row" style="margin-bottom: 14px">
-              <span v-for="skill in p.skills" :key="skill" class="cpub-tag">{{ skill }}</span>
-            </div>
-            <div style="display: flex; align-items: center; gap: 16px">
-              <div v-if="!isOwnProfile" class="cpub-profile-actions">
-                <button
-                  :class="['cpub-btn', following ? '' : 'cpub-btn-primary']"
-                  :disabled="followLoading"
-                  @click="toggleFollow"
-                >
-                  <i :class="following ? 'fa-solid fa-user-check' : 'fa-solid fa-user-plus'"></i>
-                  {{ following ? 'Following' : 'Follow' }}
-                </button>
-                <button class="cpub-btn" @click="handleMessage"><i class="fa-solid fa-envelope"></i> Message</button>
-                <button class="cpub-btn cpub-btn-sm" aria-label="Share profile" @click="handleShare"><i class="fa-solid fa-share-nodes"></i></button>
-                <div style="position: relative; display: inline-block;">
-                  <button class="cpub-btn cpub-btn-sm" aria-label="More options" @click="toggleMenu"><i class="fa-solid fa-ellipsis"></i></button>
-                  <div v-if="showMenu" class="cpub-dropdown" @click="showMenu = false">
-                    <button class="cpub-dropdown-item" @click="handleReport"><i class="fa-solid fa-flag"></i> Report</button>
-                  </div>
-                </div>
-              </div>
-              <div v-else class="cpub-profile-actions">
-                <NuxtLink to="/settings/profile" class="cpub-btn"><i class="fa-solid fa-pen"></i> Edit Profile</NuxtLink>
-              </div>
-              <div v-if="p.socialLinks" class="cpub-profile-social">
-                <a v-if="p.socialLinks.github" :href="p.socialLinks.github" class="cpub-social-btn" target="_blank" rel="noopener" aria-label="GitHub"><i class="fa-brands fa-github"></i></a>
-                <a v-if="p.socialLinks.twitter" :href="p.socialLinks.twitter" class="cpub-social-btn" target="_blank" rel="noopener" aria-label="Twitter"><i class="fa-brands fa-x-twitter"></i></a>
-                <a v-if="p.socialLinks.linkedin" :href="p.socialLinks.linkedin" class="cpub-social-btn" target="_blank" rel="noopener" aria-label="LinkedIn"><i class="fa-brands fa-linkedin-in"></i></a>
-                <a v-if="p.socialLinks.youtube" :href="p.socialLinks.youtube" class="cpub-social-btn" target="_blank" rel="noopener" aria-label="YouTube"><i class="fa-brands fa-youtube"></i></a>
-                <a v-if="p.socialLinks.mastodon" :href="p.socialLinks.mastodon" class="cpub-social-btn" target="_blank" rel="noopener" aria-label="Mastodon"><i class="fa-brands fa-mastodon"></i></a>
+        <!-- Actions: top-right, in the content area (baseline with the identity) -->
+        <div class="cpub-profile-actions-top">
+          <template v-if="!isOwnProfile">
+            <button
+              :class="['cpub-btn', following ? '' : 'cpub-btn-primary']"
+              :disabled="followLoading"
+              @click="toggleFollow"
+            >
+              <i :class="following ? 'fa-solid fa-user-check' : 'fa-solid fa-user-plus'"></i>
+              {{ following ? 'Following' : 'Follow' }}
+            </button>
+            <button class="cpub-btn" @click="handleMessage"><i class="fa-solid fa-envelope"></i> Message</button>
+            <button class="cpub-btn cpub-btn-icon" aria-label="Share profile" @click="handleShare"><i class="fa-solid fa-share-nodes"></i></button>
+            <div style="position: relative; display: inline-block;">
+              <button class="cpub-btn cpub-btn-icon" aria-label="More options" @click="toggleMenu"><i class="fa-solid fa-ellipsis"></i></button>
+              <div v-if="showMenu" class="cpub-dropdown" @click="showMenu = false">
+                <button class="cpub-dropdown-item" @click="handleReport"><i class="fa-solid fa-flag"></i> Report</button>
               </div>
             </div>
-          </div>
+          </template>
+          <NuxtLink v-else to="/settings/profile" class="cpub-btn"><i class="fa-solid fa-pen"></i> Edit Profile</NuxtLink>
         </div>
-        <!-- Stats -->
+
+        <!-- Avatar straddles the banner seam; identity sits BELOW it in the content area -->
+        <div class="cpub-profile-avatar">
+          <img v-if="p.avatarUrl" :src="p.avatarUrl" :alt="p.displayName || p.username" class="cpub-profile-avatar-img" />
+          <span v-else>{{ (p.displayName || p.username || 'U').charAt(0).toUpperCase() }}</span>
+        </div>
+
+        <h1 class="cpub-profile-name">{{ p.displayName || p.username }}</h1>
+        <div class="cpub-profile-handle">@{{ p.username }}<span v-if="federationEnabled && instanceDomain" class="cpub-fedi-addr" title="Fediverse address">@{{ instanceDomain }}</span></div>
+        <p v-if="p.headline" class="cpub-profile-headline">{{ p.headline }}</p>
+        <p v-if="p.bio" class="cpub-profile-bio">{{ p.bio }}</p>
+
+        <div class="cpub-profile-meta">
+          <span v-if="p.location" class="cpub-profile-meta-item"><i class="fa-solid fa-location-dot"></i> {{ p.location }}</span>
+          <span v-if="p.website" class="cpub-profile-meta-item"><i class="fa-solid fa-globe"></i> <a :href="p.website" target="_blank" rel="noopener">{{ p.website.replace(/^https?:\/\//, '') }}</a></span>
+          <span class="cpub-profile-meta-item"><i class="fa-solid fa-calendar"></i> Joined {{ new Date(p.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) }}</span>
+          <span v-if="p.socialLinks && (p.socialLinks.github || p.socialLinks.twitter || p.socialLinks.linkedin || p.socialLinks.youtube || p.socialLinks.mastodon)" class="cpub-profile-social">
+            <a v-if="p.socialLinks.github" :href="p.socialLinks.github" class="cpub-social-btn" target="_blank" rel="noopener" aria-label="GitHub"><i class="fa-brands fa-github"></i></a>
+            <a v-if="p.socialLinks.twitter" :href="p.socialLinks.twitter" class="cpub-social-btn" target="_blank" rel="noopener" aria-label="Twitter"><i class="fa-brands fa-x-twitter"></i></a>
+            <a v-if="p.socialLinks.linkedin" :href="p.socialLinks.linkedin" class="cpub-social-btn" target="_blank" rel="noopener" aria-label="LinkedIn"><i class="fa-brands fa-linkedin-in"></i></a>
+            <a v-if="p.socialLinks.youtube" :href="p.socialLinks.youtube" class="cpub-social-btn" target="_blank" rel="noopener" aria-label="YouTube"><i class="fa-brands fa-youtube"></i></a>
+            <a v-if="p.socialLinks.mastodon" :href="p.socialLinks.mastodon" class="cpub-social-btn" target="_blank" rel="noopener" aria-label="Mastodon"><i class="fa-brands fa-mastodon"></i></a>
+          </span>
+        </div>
+
+        <div v-if="p.skills?.length" class="cpub-tag-row cpub-profile-skills">
+          <span v-for="skill in p.skills" :key="skill" class="cpub-tag">{{ skill }}</span>
+        </div>
+
         <StatBar :stats="profileStats" />
       </div>
     </section>
@@ -302,7 +329,7 @@ async function handleReport(): Promise<void> {
           :class="{ active: activeTab === tab.value }"
           @click="activeTab = tab.value"
         >
-          <i :class="tab.icon" style="font-size: 10px"></i>
+          <i :class="tab.icon"></i>
           {{ tab.label }}
         </button>
       </div>
@@ -310,6 +337,51 @@ async function handleReport(): Promise<void> {
 
     <!-- Content -->
     <div class="cpub-profile-main">
+      <!-- Overview — a sampled row of each content type + an activity rail -->
+      <template v-if="activeTab === 'overview'">
+        <div class="cpub-overview-grid">
+          <div class="cpub-overview-col">
+            <template v-if="overviewSections.length">
+              <section v-for="sec in overviewSections" :key="sec.key" class="cpub-ov-section">
+                <div class="cpub-ov-head">
+                  <h2 class="cpub-ov-title"><i :class="sec.icon"></i> {{ sec.label }}</h2>
+                  <button class="cpub-ov-viewall" @click="activeTab = sec.tab">View all <i class="fa-solid fa-arrow-right"></i></button>
+                </div>
+                <div class="cpub-grid-3">
+                  <ContentCard v-for="item in sec.items" :key="item.id" :item="item" />
+                </div>
+              </section>
+            </template>
+            <div v-else class="cpub-empty-state">
+              <div class="cpub-empty-icon"><i class="fa-solid fa-folder-open"></i></div>
+              <p class="cpub-empty-state-title">No published work yet</p>
+              <p v-if="isOwnProfile" class="cpub-empty-state-sub">Create a project or blog post to fill out your profile.</p>
+            </div>
+          </div>
+
+          <aside class="cpub-overview-rail">
+            <div class="cpub-sb-card">
+              <div class="cpub-sb-title">Activity</div>
+              <HeatmapGrid :data="activityByDate" :weeks="18" />
+            </div>
+            <div class="cpub-sb-card">
+              <div class="cpub-sb-title">Recent</div>
+              <div v-if="recentActivity.length" class="cpub-activity-list">
+                <NuxtLink v-for="item in recentActivity" :key="item.id" :to="contentLink(item)" class="cpub-activity-item">
+                  <span class="cpub-activity-icon"><i :class="TYPE_ICON[item.type] || 'fa-solid fa-file-lines'"></i></span>
+                  <span class="cpub-activity-body">
+                    <span class="cpub-activity-verb">{{ TYPE_VERB[item.type] || 'Published' }}</span>
+                    <span class="cpub-activity-obj">{{ item.title }}</span>
+                  </span>
+                  <span class="cpub-activity-time">{{ relTime(item.publishedAt) }}</span>
+                </NuxtLink>
+              </div>
+              <p v-else class="cpub-activity-empty">No recent activity.</p>
+            </div>
+          </aside>
+        </div>
+      </template>
+
       <!-- Projects / Articles / Explainers / Drafts tabs -->
       <template v-if="isFeedTab">
         <!-- Section header -->
@@ -519,36 +591,24 @@ async function handleReport(): Promise<void> {
 .cpub-profile-hero-inner {
   max-width: 1080px;
   margin: 0 auto;
-  padding: 0 32px;
-  margin-top: -48px;
+  padding: 0 32px 18px;
   position: relative;
-  z-index: 1;
 }
 
-.cpub-profile-hero-top {
-  display: flex;
-  align-items: flex-start;
-  gap: 24px;
-  margin-bottom: 24px;
-  padding-top: 16px;
-}
-
-.cpub-profile-avatar-wrap {
-  position: relative;
-  flex-shrink: 0;
-}
-
+/* Avatar straddles the banner seam; name + everything else sit BELOW it in the
+   content area (not floating at the seam). */
 .cpub-profile-avatar {
-  width: 120px;
-  height: 120px;
+  width: 112px;
+  height: 112px;
+  margin-top: -56px;
   border-radius: 50%;
   background: var(--surface);
-  border: 4px solid var(--surface);
+  border: 4px solid var(--surface2);
   box-shadow: 0 0 0 2px var(--border);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 40px;
+  font-size: 38px;
   font-weight: 700;
   color: var(--accent);
   font-family: var(--font-mono);
@@ -562,60 +622,69 @@ async function handleReport(): Promise<void> {
   border-radius: 50%;
 }
 
-.cpub-profile-hero-info {
-  flex: 1;
-  min-width: 0;
+.cpub-profile-actions-top {
+  position: absolute;
+  top: 16px;
+  right: 32px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
+.cpub-btn-icon { padding-left: 9px; padding-right: 9px; }
+
 .cpub-profile-name {
-  font-size: 22px;
+  font-size: 28px;
   font-weight: 700;
   letter-spacing: -0.02em;
-  margin-bottom: 2px;
+  line-height: 1.15;
+  margin-top: 14px;
 }
 
 .cpub-profile-handle {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--text-dim);
   font-family: var(--font-mono);
-  margin-bottom: 6px;
+  margin-top: 2px;
 }
 
 .cpub-fedi-addr {
-  color: var(--text-faint);
-  font-size: 0.75rem;
+  color: var(--text-dim);
 }
 
 .cpub-profile-headline {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 500;
   color: var(--text);
-  margin-bottom: 10px;
+  margin-top: 12px;
 }
 
 .cpub-profile-bio {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--text-dim);
   line-height: 1.6;
-  max-width: 560px;
-  margin-bottom: 12px;
+  max-width: 640px;
+  margin-top: 8px;
 }
 
 .cpub-profile-meta {
   display: flex;
   align-items: center;
-  gap: 16px;
-  font-size: 11px;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  font-size: 12px;
   color: var(--text-dim);
-  margin-bottom: 12px;
   font-family: var(--font-mono);
+  margin-top: 14px;
 }
 
 .cpub-profile-meta-item {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
 }
+
+.cpub-profile-meta-item i { color: var(--text-faint); width: 13px; text-align: center; }
 
 .cpub-profile-meta-item a {
   color: var(--accent);
@@ -626,23 +695,21 @@ async function handleReport(): Promise<void> {
   text-decoration: underline;
 }
 
-.cpub-profile-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 20px;
+.cpub-profile-skills {
+  margin-top: 14px;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
 .cpub-profile-social {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 6px;
-  margin-left: 8px;
 }
 
 .cpub-social-btn {
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
   background: var(--surface);
   border: var(--border-width-default) solid var(--border);
   color: var(--text-dim);
@@ -657,6 +724,91 @@ async function handleReport(): Promise<void> {
   background: var(--surface2);
   color: var(--text);
 }
+
+.cpub-profile-hero-inner :deep(.cpub-stat-bar) { margin-top: 18px; }
+
+/* Tabs: one label size (14px), icon matches text */
+.cpub-tab-btn { font-size: 14px; }
+.cpub-tab-btn i { font-size: 13px; }
+
+/* Section headings: one size across feed/learning/about */
+.cpub-sec-head h2 { font-size: 18px; font-weight: 600; }
+
+/* Overview: sampled rows + activity rail */
+.cpub-overview-grid {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 32px;
+  align-items: start;
+}
+.cpub-overview-col { min-width: 0; }
+.cpub-ov-section { margin-bottom: 32px; }
+.cpub-ov-section:last-child { margin-bottom: 0; }
+.cpub-ov-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.cpub-ov-title {
+  font-size: 18px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.cpub-ov-title i { color: var(--accent); font-size: 14px; }
+.cpub-ov-viewall {
+  font-size: 12px;
+  font-family: var(--font-mono);
+  color: var(--accent);
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.cpub-ov-viewall:hover { text-decoration: underline; }
+.cpub-ov-viewall i { font-size: 10px; }
+
+.cpub-overview-rail { display: flex; flex-direction: column; gap: 16px; }
+
+.cpub-activity-list { display: flex; flex-direction: column; }
+.cpub-activity-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: var(--border-width-default) solid var(--border2);
+  text-decoration: none;
+  color: var(--text);
+}
+.cpub-activity-item:last-child { border-bottom: none; }
+.cpub-activity-icon {
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface2);
+  border: var(--border-width-default) solid var(--border2);
+  color: var(--accent);
+  font-size: 12px;
+}
+.cpub-activity-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.cpub-activity-verb { font-size: 11px; color: var(--text-faint); font-family: var(--font-mono); }
+.cpub-activity-obj {
+  font-size: 13px;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cpub-activity-item:hover .cpub-activity-obj { color: var(--accent); }
+.cpub-activity-time { font-size: 11px; color: var(--text-faint); font-family: var(--font-mono); flex-shrink: 0; }
+.cpub-activity-empty { font-size: 12px; color: var(--text-faint); }
 
 /* Profile Stats */
 .cpub-profile-stats {
@@ -904,28 +1056,17 @@ async function handleReport(): Promise<void> {
 }
 
 @media (max-width: 768px) {
-  .cpub-profile-hero-top {
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-  }
-  .cpub-profile-meta {
-    justify-content: center;
+  /* Actions move out of the top-right corner and sit under the identity */
+  .cpub-profile-actions-top {
+    position: static;
+    margin-top: 14px;
     flex-wrap: wrap;
   }
-  .cpub-profile-actions {
-    justify-content: center;
-  }
-  .cpub-profile-stats {
-    flex-wrap: wrap;
-  }
-  .cpub-profile-stat {
-    min-width: 50%;
-    border-bottom: var(--border-width-default) solid var(--border);
-  }
-  .cpub-about-grid {
+  .cpub-about-grid,
+  .cpub-overview-grid {
     grid-template-columns: 1fr;
   }
+  .cpub-overview-rail { order: -1; }
   .cpub-grid-3 {
     grid-template-columns: 1fr;
   }
