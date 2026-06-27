@@ -1,5 +1,5 @@
 import { configSchema } from './schema.js';
-import type { CommonPubConfig, ReferralConfig, RegisteredTheme } from './types.js';
+import type { CommonPubConfig, CookieDefinition, ReferralConfig, RegisteredTheme } from './types.js';
 
 export interface ConfigWarning {
   field: string;
@@ -40,6 +40,11 @@ export function defineCommonPubConfig(input: {
   themes?: RegisteredTheme[];
   /** Brand default theme id — see CommonPubConfig.defaultTheme. */
   defaultTheme?: string;
+  /** Non-essential cookies (analytics/functional) this instance sets. Declaring
+   *  one is what makes the cookie-consent banner appear; an essential-only site
+   *  needs no banner. The zod schema always accepted these; the input type
+   *  previously omitted them, so thin apps couldn't declare them. */
+  cookies?: CookieDefinition[];
 }): ConfigResult {
   const config = configSchema.parse(input) as CommonPubConfig;
   const warnings: ConfigWarning[] = [];

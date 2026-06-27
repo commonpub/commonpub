@@ -11,9 +11,11 @@ const NuxtLink = { name: 'NuxtLink', props: ['to'], template: '<a><slot /></a>' 
 const $fetch = vi.fn(async (url: string) => (String(url).includes('status') ? { termsReacceptanceRequired: required } : { ok: true }));
 let authUser: { id: string } | null = { id: 'u1' };
 let required = true;
+let routePath = '/dashboard';
 
 Object.assign(globalThis, {
   useAuth: () => ({ user: ref(authUser) }),
+  useRouter: () => ({ currentRoute: ref({ path: routePath }) }),
   $fetch,
 });
 
@@ -23,6 +25,7 @@ beforeEach(() => {
   $fetch.mockClear();
   authUser = { id: 'u1' };
   required = true;
+  routePath = '/dashboard';
 });
 
 describe('terms re-acceptance gate', () => {
@@ -51,5 +54,18 @@ describe('terms re-acceptance gate', () => {
     await flush();
     expect(queryByRole('dialog')).toBeNull();
     expect($fetch).not.toHaveBeenCalled();
+  });
+
+  it('suppresses itself on the legal pages so they stay readable, even when required', async () => {
+    routePath = '/terms';
+    const onTerms = render(Gate, { global: { stubs: { NuxtLink } } });
+    await flush();
+    expect(onTerms.queryByRole('dialog')).toBeNull();
+    onTerms.unmount();
+
+    routePath = '/privacy';
+    const onPrivacy = render(Gate, { global: { stubs: { NuxtLink } } });
+    await flush();
+    expect(onPrivacy.queryByRole('dialog')).toBeNull();
   });
 });

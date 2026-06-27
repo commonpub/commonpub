@@ -5,8 +5,19 @@
 // continuing. The server owns the decision (GET /api/consent/status); this just
 // renders it. Inert for logged-out users and when the feature is off.
 const { user } = useAuth();
+const router = useRouter();
 const show = ref(false);
 const accepting = ref(false);
+
+// Don't cover the legal pages themselves — the user must be able to READ the
+// Terms/Privacy/Cookies before accepting (the gate's links open them, now that
+// the gate is mounted globally via a plugin it would otherwise block them).
+const LEGAL_PREFIXES = ['/terms', '/privacy', '/cookies'];
+const onLegalPage = computed(() => {
+  const p = router.currentRoute.value.path;
+  return LEGAL_PREFIXES.some((x) => p === x || p.startsWith(`${x}/`));
+});
+const visible = computed(() => show.value && !onLegalPage.value);
 
 // Untyped view of $fetch for these two known endpoints. When this component is
 // imported into the terms-gate.client.ts plugin (a .ts file), Nuxt's typed-route
@@ -39,7 +50,7 @@ watch(user, check, { immediate: true });
 </script>
 
 <template>
-  <div v-if="show" class="cpub-trg" role="dialog" aria-modal="true" aria-labelledby="cpub-trg-title">
+  <div v-if="visible" class="cpub-trg" role="dialog" aria-modal="true" aria-labelledby="cpub-trg-title">
     <div class="cpub-trg-card">
       <h2 id="cpub-trg-title" class="cpub-trg-title">Our terms have been updated</h2>
       <p class="cpub-trg-body">Please review and accept the updated Terms of Service and Code of Conduct to continue using your account.</p>

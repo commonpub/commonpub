@@ -39,4 +39,6 @@ export default defineCommonPubConfig({
     passkeys: false,
     trustedInstances: ['deveco.io'],
   },
+  // Declare any non-essential (analytics/functional) cookies here to surface the
+  // consent banner; an essential-only instance needs none (and shows no banner).
 });

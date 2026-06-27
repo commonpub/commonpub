@@ -1,5 +1,14 @@
+import siteConfig from './commonpub.config';
+
 export default defineNuxtConfig({
   extends: ['../../layers/base'],
+  runtimeConfig: {
+    public: {
+      // Expose this instance's declared non-essential cookies to the client so the
+      // cookie-consent banner can ask about them (the layer defaults this to []).
+      instanceCookies: siteConfig.config.cookies ?? [],
+    },
+  },
   devtools: { enabled: true },
   app: {
     head: {
