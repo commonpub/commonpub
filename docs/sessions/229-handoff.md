@@ -122,9 +122,15 @@ Shipped (config **0.29.0** · auth **0.9.0** · layer **0.93.0**; server/schema 
 
 **Email NOT actually sent anywhere yet**: all 3 instances use the console adapter. To send real mail, set `NUXT_EMAIL_ADAPTER=resend` + the Resend API key + a from-address in the instance's deploy env (operator step). Then optionally turn `requireEmailVerification` on.
 
-## ACTIVE NEXT: profile-page redesign
+## Follow-up release 4 — profile-page redesign (session 229)
 
-Research done (5-source design brief synthesized + full code map). Plan: name BELOW the banner (avatar straddles the seam, name+handle+actions in the content area — universal pattern, current page floats the name at the seam); strict type/icon/tag scale (3-4 type levels, 1-2 icon sizes, one chip size); an Overview default tab = per-type sampled rows (capped 6 desktop, "View all →" to the type tab) + inline month-grouped recent-activity (needs a new `/api/users/:username/activity` aggregating recent published content + likes/follows/comments — none exists yet); type tabs = full grid. Profile page is `layers/base/pages/u/[username]/index.vue` (963 lines), no consumer override. Reuse ContentCard/StatBar/HeatmapGrid. Tokens in packages/ui/theme/base.css.
+Shipped (layer **0.94.0**; layer-only, no schema/server/config change; PR #72). Page: `layers/base/pages/u/[username]/index.vue`. Research-backed (5-source design brief + code map).
+- **Header**: avatar straddles the banner seam; name/handle/headline/bio/meta/skills/stats sit BELOW it in the content area (was floating at the seam); actions move top-right. Normalized the type scale (name 28, handle/headline 14-15, body 14, meta/labels 11-12), one tab-label size, consistent icon/tag sizes.
+- **New default "Overview" tab**: a sampled row of each content type (Projects/Blog/Explainers), each with "View all" → that type's filtered tab. Type tabs still render the full keyset-paginated grid.
+- **Right activity rail** on the Overview: contribution heatmap (HeatmapGrid) + a recent worklog derived from recent published content (linked via `contentLink`, relative timestamps). NOTE: this is a content-derived worklog, not a full likes/follows/comments activity feed — a richer `/api/users/:username/activity` aggregating those is the documented next step if wanted.
+- Verified: typecheck 28/28, full suite 33 tasks / 5341 tests, Playwright screenshots (header + 3 overview rows + activity rail), axe WCAG2 AA zero violations in the new markup.
+
+**Pre-existing a11y follow-up (not this redesign):** `StatBar`'s `.cpub-stat-bar-label` and the global `.cpub-kbd` fail AA contrast (shared components in `packages/ui/theme` — a session-224-style sweep target).
 
 ## Original release steps (reference — the §16 chain)
 
