@@ -63,7 +63,7 @@ describe('createAuth', () => {
         secret: 'test-secret',
         baseURL: 'https://test.example.com',
         basePath: '/api/auth',
-        emailAndPassword: { enabled: true },
+        emailAndPassword: expect.objectContaining({ enabled: true }),
         session: {
           expiresIn: 60 * 60 * 24 * 7,
           updateAge: 60 * 60 * 24,
@@ -165,7 +165,7 @@ describe('createAuth', () => {
 
     expect(betterAuth).toHaveBeenCalledWith(
       expect.objectContaining({
-        emailAndPassword: { enabled: false },
+        emailAndPassword: expect.objectContaining({ enabled: false }),
       }),
     );
   });
@@ -209,10 +209,10 @@ describe('createAuth', () => {
     );
   });
 
-  it('should wire sendVerificationEmail when emailSender is provided', () => {
+  it('wires sendVerificationEmail only when requireEmailVerification is on', () => {
     const sendVerificationEmail = vi.fn();
     createAuth({
-      config: createMockConfig(),
+      config: createMockConfig({ requireEmailVerification: true }),
       db: {} as any,
       secret: 'test-secret',
       emailSender: { sendVerificationEmail },
@@ -220,12 +220,27 @@ describe('createAuth', () => {
 
     expect(betterAuth).toHaveBeenCalledWith(
       expect.objectContaining({
+        emailAndPassword: expect.objectContaining({ requireEmailVerification: true }),
         emailVerification: expect.objectContaining({
           sendVerificationEmail: expect.any(Function),
           sendOnSignUp: true,
         }),
       }),
     );
+  });
+
+  it('does NOT require or send verification by default (signup works without email)', () => {
+    const sendVerificationEmail = vi.fn();
+    createAuth({
+      config: createMockConfig(), // requireEmailVerification defaults off
+      db: {} as any,
+      secret: 'test-secret',
+      emailSender: { sendVerificationEmail },
+    });
+
+    const call = (betterAuth as unknown as ReturnType<typeof vi.fn>).mock.calls.at(-1)![0];
+    expect(call.emailAndPassword.requireEmailVerification).toBe(false);
+    expect(call.emailVerification).toBeUndefined();
   });
 
   it('should not wire email callbacks when emailSender is not provided', () => {
@@ -237,7 +252,7 @@ describe('createAuth', () => {
 
     expect(betterAuth).toHaveBeenCalledWith(
       expect.objectContaining({
-        emailAndPassword: { enabled: true },
+        emailAndPassword: expect.objectContaining({ enabled: true }),
       }),
     );
   });

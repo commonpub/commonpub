@@ -58,13 +58,19 @@ export function createAuth({ config, db, secret, baseURL, trustedOrigins, emailS
     },
     emailAndPassword: {
       enabled: config.auth.emailPassword,
+      // Gate sign-in on verification only when the operator opts in (default OFF
+      // so signup works without an email provider configured).
+      requireEmailVerification: config.auth.requireEmailVerification === true,
       sendResetPassword: emailSender?.sendResetPasswordEmail
         ? async ({ user, url, token }) => {
             await emailSender.sendResetPasswordEmail!(user.email, url, token);
           }
         : undefined,
     },
-    emailVerification: emailSender?.sendVerificationEmail
+    // Only send a verification email on signup when verification is actually
+    // required AND an email sender is wired. Otherwise a new user would get a
+    // verification email that is never sent (console adapter) and be stuck.
+    emailVerification: (emailSender?.sendVerificationEmail && config.auth.requireEmailVerification === true)
       ? {
           sendVerificationEmail: async ({ user, url, token }) => {
             await emailSender.sendVerificationEmail!(user.email, url, token);

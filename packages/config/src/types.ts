@@ -146,6 +146,12 @@ export interface AuthConfig {
   magicLink: boolean;
   /** Enable passkey (WebAuthn) authentication */
   passkeys: boolean;
+  /**
+   * Require email verification before sign-in. Default OFF — signup works
+   * without an email provider. Only enable once an email adapter is wired, or
+   * new users get a verification email that never arrives.
+   */
+  requireEmailVerification?: boolean;
   /** GitHub OAuth credentials (omit to disable) */
   github?: { clientId: string; clientSecret: string };
   /** Google OAuth credentials (omit to disable) */
