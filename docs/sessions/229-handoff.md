@@ -1,8 +1,23 @@
-# Session 229 Handoff — Referral Links + GDPR/terms/cookie overlays (SHIPPED) → next: profile-page polish
+# Session 229 Handoff — referrals + GDPR/terms/cookie overlays + email-verify toggle + profile redesign (ALL SHIPPED)
 
-Date: 2026-06-26. Everything below is SHIPPED + live on all 3 instances. **Current live stack: schema 0.55.0 · config 0.28.0 · server 2.102.0 · test-utils 0.5.9 · layer 0.92.0** (migration 0038). Three releases this session: referrals (PR #68), terms gate fix + runtime version bump (PR #69), legal-page readability + cookie overlays (PR #70).
+Date: 2026-06-26. Everything in this doc is SHIPPED + live + verified on all 3 instances (commonpub.io / deveco.io / heatsynclabs.io, all health 200). **Current live stack: schema 0.55.0 · config 0.29.0 · auth 0.9.0 · server 2.102.0 · test-utils 0.5.9 · layer 0.94.0** (migration 0038).
 
-ACTIVE NEXT: polishing the user profile page (`/u/:username`) — fix the awkward name-in-banner placement, normalize font/tag/icon sizes, add an "at a glance" multi-row overview (a row per content type, tabs filter), and a right-side recent-activity panel. Research + redesign in progress.
+Five releases this session, each published + merged to main (commonpub.io deploys on push) + consumer pins/lockfiles rolled + live-verified:
+- **PR #68** — referral links (schema 0.55 / config 0.27 / server 2.101 / layer 0.90, migration 0038). Flag `referralLinks` OFF by default.
+- **PR #69** — terms re-accept gate fixed (durable plugin mount) + runtime terms-version bump via `/admin/settings` + `/api/admin/features` lockout escape (server 2.102 / layer 0.91).
+- **PR #70** — terms gate suppresses on /terms,/privacy,/cookies (readable); cookie banner durable + declarable (`config.cookies` input + `instanceCookies` wiring); both overlays via one `global-overlays.client.ts` plugin (config 0.28 / layer 0.92).
+- **PR #71** — optional email verification, default OFF (`config.auth.requireEmailVerification`) so signup no longer dead-ends; register consent links open in new tab (config 0.29 / auth 0.9 / layer 0.93).
+- **PR #72** — profile-page redesign (layer 0.94, layer-only).
+
+### Open follow-ups (none blocking; pick up if/when wanted)
+- **Email is inert** — all 3 use the console adapter (no Resend key). To send real mail: set `NUXT_EMAIL_ADAPTER=resend` + the API key + a from-address in the instance's deploy env (operator step). Then optionally turn `requireEmailVerification` on.
+- **Enable referral links** per instance via `/admin/features` (flag is OFF; deveco already on). canary commonpub.io first.
+- **Richer profile activity feed** — the Overview rail is a content-derived worklog; a `/api/users/:username/activity` aggregating likes/follows/comments would make it a true feed.
+- **GDPR export of referral data** (`exportUserData`); referral links erase via FK cascade.
+- **a11y contrast sweep** — `StatBar` `.cpub-stat-bar-label` + global `.cpub-kbd` fail AA (shared CSS in `packages/ui/theme`, session-224-style sweep).
+- deveco/heatsync `ENV_FLAG_MAP` lacks `referralLinks` (they enable via the admin DB toggle, not env).
+
+The release log for each item is in the "Follow-up release N" sections below.
 
 ## Release versions (session 229)
 schema **0.55.0** · config **0.27.0** · server **2.101.0** · test-utils **0.5.9** · layer **0.90.0**. Migration **0038_milky_red_ghost** (referral_links + referral_attributions). Consumer pins (deveco-io + heatsynclabs-io) bumped to match: config ^0.27.0, schema ^0.55.0, server ^2.101.0, layer ^0.90.0.
