@@ -1,6 +1,8 @@
-# Session 229 Handoff — Referral Links (RELEASING)
+# Session 229 Handoff — Referral Links + GDPR/terms/cookie overlays (SHIPPED) → next: profile-page polish
 
-Date: 2026-06-26. Branch `referral-links`. Release in progress (see "Release log" at bottom).
+Date: 2026-06-26. Everything below is SHIPPED + live on all 3 instances. **Current live stack: schema 0.55.0 · config 0.28.0 · server 2.102.0 · test-utils 0.5.9 · layer 0.92.0** (migration 0038). Three releases this session: referrals (PR #68), terms gate fix + runtime version bump (PR #69), legal-page readability + cookie overlays (PR #70).
+
+ACTIVE NEXT: polishing the user profile page (`/u/:username`) — fix the awkward name-in-banner placement, normalize font/tag/icon sizes, add an "at a glance" multi-row overview (a row per content type, tabs filter), and a right-side recent-activity panel. Research + redesign in progress.
 
 ## Release versions (session 229)
 schema **0.55.0** · config **0.27.0** · server **2.101.0** · test-utils **0.5.9** · layer **0.90.0**. Migration **0038_milky_red_ghost** (referral_links + referral_attributions). Consumer pins (deveco-io + heatsynclabs-io) bumped to match: config ^0.27.0, schema ^0.55.0, server ^2.101.0, layer ^0.90.0.
