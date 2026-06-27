@@ -95,6 +95,20 @@ Verified: full suite 33 tasks / 5337 tests (+3 terms-version); Playwright+DB —
 
 Operator note: to bump terms, set `instance.termsVersion` in `/admin/settings` (takes effect within the request, no redeploy — it reads instance_settings directly, not the 60s-cached config). Terms TEXT is still the static templated `terms.vue`/`privacy.vue` (a full DB-backed content editor was scoped out).
 
+## Follow-up release 2 — legal-page readability + cookie banner (session 229)
+
+Two issues found by the operator using the terms feature on deveco:
+1. **Terms gate covered the /terms page.** Once the gate became plugin-mounted (global), opening its own "Terms of Service" link (`target=_blank` → `/terms`) showed the modal over the terms, forcing blind acceptance. FIX: the gate now suppresses itself on `/terms`, `/privacy`, `/cookies` (a `useRouter` path check) so they stay readable; it returns on every other route.
+2. **Cookie banner could never appear.** THREE gaps: (a) deveco's custom layout had dropped `<CookieConsent />` too; (b) `defineCommonPubConfig` input omitted `cookies` so an instance couldn't declare non-essential cookies; (c) nothing wired `config.cookies` → `runtimeConfig.public.instanceCookies` (the client read it but it was always `[]`). An essential-only instance still correctly shows NO banner (that's GDPR-correct).
+
+Shipped (config **0.28.0** · layer **0.92.0**; server unchanged; PR #70):
+- Renamed `terms-gate.client.ts` → `global-overlays.client.ts`, which now mounts BOTH the cookie banner and the terms gate (immune to layout overrides); removed `CookieConsent` from the layer `default.vue`.
+- `defineCommonPubConfig` input accepts `cookies` (the schema always did — same omission class as `referral`/`themes`).
+- Reference `nuxt.config` wires `config.cookies` → `runtimeConfig.public.instanceCookies`.
+- Verified: full suite 33 tasks / 5339 tests (+ legal-page-suppression component test + cookies-input config test); Playwright — gate visible on /dashboard, suppressed on /terms+/privacy (readable), returns after; cookie banner appears once a non-essential cookie is declared+wired, hides on Accept; both overlay hosts mount on all three instances.
+
+How to make the cookie banner appear on an instance: declare your real non-essential (analytics/functional) cookies — for the reference/commonpub pattern, `cookies: [...]` in `commonpub.config.ts`; for deveco/heatsync (which set `runtimeConfig.public` directly), add `instanceCookies: [...]` in their `nuxt.config.ts`. No non-essential cookies = no banner, by design.
+
 ## Original release steps (reference — the §16 chain)
 
 1. Branch `referral-links`. Bump changed packages: schema (0.54→0.55, new tables) → config (0.26→0.27, flag + section) → server (2.100.1→2.101, referral module) → ui (only if a shared component changed — none did) → layer (0.89.1→0.90). `pnpm typecheck` (28/28) + suites green.
