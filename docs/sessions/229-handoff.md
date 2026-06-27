@@ -111,6 +111,21 @@ Shipped (config **0.28.0** · layer **0.92.0**; server unchanged; PR #70):
 
 How to make the cookie banner appear on an instance: declare your real non-essential (analytics/functional) cookies — for the reference/commonpub pattern, `cookies: [...]` in `commonpub.config.ts`; for deveco/heatsync (which set `runtimeConfig.public` directly), add `instanceCookies: [...]` in their `nuxt.config.ts`. No non-essential cookies = no banner, by design.
 
+## Follow-up release 3 — optional email verification + signup link target (session 229)
+
+Operator hit a stranded signup: "Check your email" with no email ever sent (deveco has no Resend key → console adapter logs, doesn't send), so new users dead-ended. Also the signup consent links navigated in-place, losing the form.
+
+Shipped (config **0.29.0** · auth **0.9.0** · layer **0.93.0**; server/schema unchanged; PR #71):
+- `config.auth.requireEmailVerification` (default **OFF**). `createAuth` only gates sign-in + sends the verification email on signup when it's ON AND an email sender is wired; otherwise signup proceeds with no verification email. `register.vue` shows "check your email" only when required (`runtimeConfig.public.requireEmailVerification`, synced from config in the reference nuxt.config; layer defaults it false). So signup works out of the box.
+- register consent links now `target="_blank" rel="noopener"`.
+- Verified: full suite 33 tasks / 5341 tests (auth tests caught + cover the gating); the check-email dead-end is gone (the dev `navigateTo` non-nav is the Nuxt 3.21 `#app-manifest` dev quirk — also affects login — works in prod).
+
+**Email NOT actually sent anywhere yet**: all 3 instances use the console adapter. To send real mail, set `NUXT_EMAIL_ADAPTER=resend` + the Resend API key + a from-address in the instance's deploy env (operator step). Then optionally turn `requireEmailVerification` on.
+
+## ACTIVE NEXT: profile-page redesign
+
+Research done (5-source design brief synthesized + full code map). Plan: name BELOW the banner (avatar straddles the seam, name+handle+actions in the content area — universal pattern, current page floats the name at the seam); strict type/icon/tag scale (3-4 type levels, 1-2 icon sizes, one chip size); an Overview default tab = per-type sampled rows (capped 6 desktop, "View all →" to the type tab) + inline month-grouped recent-activity (needs a new `/api/users/:username/activity` aggregating recent published content + likes/follows/comments — none exists yet); type tabs = full grid. Profile page is `layers/base/pages/u/[username]/index.vue` (963 lines), no consumer override. Reuse ContentCard/StatBar/HeatmapGrid. Tokens in packages/ui/theme/base.css.
+
 ## Original release steps (reference — the §16 chain)
 
 1. Branch `referral-links`. Bump changed packages: schema (0.54→0.55, new tables) → config (0.26→0.27, flag + section) → server (2.100.1→2.101, referral module) → ui (only if a shared component changed — none did) → layer (0.89.1→0.90). `pnpm typecheck` (28/28) + suites green.
