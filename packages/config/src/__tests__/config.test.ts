@@ -75,6 +75,15 @@ describe('defineCommonPubConfig', () => {
     expect(config.referral?.defaultAttributionWindowDays).toBe(30);
   });
 
+  it('lets an operator declare non-essential cookies via the typed input (banner trigger)', () => {
+    const { config } = defineCommonPubConfig({
+      instance: validInstance,
+      cookies: [{ name: '_ga', category: 'analytics', description: 'Google Analytics', duration: '2 years' }],
+    });
+    expect(config.cookies).toHaveLength(1);
+    expect(config.cookies?.[0]?.category).toBe('analytics');
+  });
+
   it('should allow disabling content feature flag', () => {
     const { config } = defineCommonPubConfig({
       instance: validInstance,
