@@ -13,4 +13,10 @@ export default defineEventHandler(async (event): Promise<void> => {
   if (input.key === 'theme.default') {
     invalidateThemeCache();
   }
+
+  // Rebuild the merged config so an admin rename (SEO brand) takes effect on the
+  // next request without a redeploy — the site-identity-prime plugin re-reads it.
+  if (input.key === 'instance.name' || input.key === 'instance.description') {
+    invalidateConfigCache();
+  }
 });

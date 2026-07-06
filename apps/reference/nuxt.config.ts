@@ -4,6 +4,12 @@ export default defineNuxtConfig({
   extends: ['../../layers/base'],
   runtimeConfig: {
     public: {
+      // SEO brand / titles / unfurls. The layer defaults these to 'CommonPub';
+      // wire them from THIS instance's config so every <title> / og:site_name is
+      // branded correctly out of the box (the admin-set instance.name overrides
+      // this at runtime via the site-identity-prime plugin — no redeploy needed).
+      siteName: siteConfig.config.instance.name,
+      siteDescription: siteConfig.config.instance.description,
       // Expose this instance's declared non-essential cookies to the client so the
       // cookie-consent banner can ask about them (the layer defaults this to []).
       instanceCookies: siteConfig.config.cookies ?? [],

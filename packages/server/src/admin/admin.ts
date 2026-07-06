@@ -505,6 +505,39 @@ export async function getInstanceSetting(db: DB, key: string): Promise<unknown |
   return row?.value ?? null;
 }
 
+/** instance_settings key holding the admin-set public instance name (SEO brand). */
+export const INSTANCE_NAME_SETTING_KEY = 'instance.name';
+/** instance_settings key holding the admin-set public instance description. */
+export const INSTANCE_DESCRIPTION_SETTING_KEY = 'instance.description';
+
+/**
+ * Coerce a jsonb setting scalar to a non-empty string, else undefined.
+ * Real Postgres stores a jsonb string ("devEco.io"); PGlite (and a numeric
+ * admin input) can read a scalar back as a number — normalize both.
+ */
+function settingString(value: unknown): string | undefined {
+  if (typeof value === 'string') return value.length > 0 ? value : undefined;
+  if (typeof value === 'number') return String(value);
+  return undefined;
+}
+
+/**
+ * Effective public instance name = admin-set `instance.name` override
+ * (instance_settings) OR the build-time config `fallback`. Lets an operator
+ * rebrand SEO/titles/unfurls from /admin/settings with no redeploy — mirrors
+ * `getEffectiveTermsVersion`.
+ */
+export async function getEffectiveSiteName(db: DB, fallback: string): Promise<string> {
+  const raw = await getInstanceSetting(db, INSTANCE_NAME_SETTING_KEY);
+  return settingString(raw) ?? fallback;
+}
+
+/** Effective public instance description (admin override OR config fallback). */
+export async function getEffectiveSiteDescription(db: DB, fallback: string): Promise<string> {
+  const raw = await getInstanceSetting(db, INSTANCE_DESCRIPTION_SETTING_KEY);
+  return settingString(raw) ?? fallback;
+}
+
 export async function setInstanceSetting(
   db: DB,
   key: string,

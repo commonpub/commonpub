@@ -7,7 +7,11 @@
 //
 // DB overrides are cached for 60 seconds to avoid per-request DB hits.
 import { type CommonPubConfig, type FeatureFlags } from '@commonpub/config';
-import { getInstanceSetting } from '@commonpub/server';
+import {
+  getInstanceSetting,
+  INSTANCE_NAME_SETTING_KEY,
+  INSTANCE_DESCRIPTION_SETTING_KEY,
+} from '@commonpub/server';
 import siteConfig from '~/commonpub.config';
 
 /** Parse a boolean env var. Returns undefined if not set. */
@@ -47,8 +51,17 @@ let baseConfig: CommonPubConfig | null = null;
 
 /** Cached DB overrides with TTL */
 let dbOverrides: Partial<FeatureFlags> | null = null;
+/** Cached admin-set instance identity overrides (SEO brand), refreshed with the same TTL. */
+let dbIdentity: { name?: string; description?: string } | null = null;
 let dbOverridesFetchedAt = 0;
 const DB_CACHE_TTL_MS = 60_000;
+
+/** Coerce a jsonb setting scalar to a non-empty string, else undefined. */
+function settingString(value: unknown): string | undefined {
+  if (typeof value === 'string') return value.length > 0 ? value : undefined;
+  if (typeof value === 'number') return String(value);
+  return undefined;
+}
 
 /** Merged config (base + DB overrides) — refreshed when DB cache expires */
 let mergedConfig: CommonPubConfig | null = null;
@@ -83,11 +96,22 @@ function getBaseConfig(): CommonPubConfig {
   return baseConfig;
 }
 
-function buildMergedConfig(base: CommonPubConfig, overrides: Partial<FeatureFlags> | null): CommonPubConfig {
-  if (!overrides || Object.keys(overrides).length === 0) return base;
+function buildMergedConfig(
+  base: CommonPubConfig,
+  overrides: Partial<FeatureFlags> | null,
+  identity: { name?: string; description?: string } | null,
+): CommonPubConfig {
+  const hasFeatureOverrides = overrides && Object.keys(overrides).length > 0;
+  const hasIdentity = identity && (identity.name !== undefined || identity.description !== undefined);
+  if (!hasFeatureOverrides && !hasIdentity) return base;
   return {
     ...base,
-    features: { ...base.features, ...overrides },
+    instance: {
+      ...base.instance,
+      ...(identity?.name !== undefined ? { name: identity.name } : {}),
+      ...(identity?.description !== undefined ? { description: identity.description } : {}),
+    },
+    features: hasFeatureOverrides ? { ...base.features, ...overrides } : base.features,
   };
 }
 
@@ -113,7 +137,7 @@ export function useConfig(): CommonPubConfig {
   return mergedConfig ?? base;
 }
 
-/** Async: fetch DB overrides and rebuild merged config */
+/** Async: fetch DB overrides + instance identity and rebuild merged config */
 async function refreshDbOverrides(): Promise<void> {
   try {
     const db = useDB();
@@ -121,15 +145,22 @@ async function refreshDbOverrides(): Promise<void> {
     dbOverrides = (raw && typeof raw === 'object' && !Array.isArray(raw))
       ? raw as Partial<FeatureFlags>
       : null;
+    // Admin-set SEO brand (name/description) — runtime-editable without redeploy.
+    const name = settingString(await getInstanceSetting(db, INSTANCE_NAME_SETTING_KEY));
+    const description = settingString(await getInstanceSetting(db, INSTANCE_DESCRIPTION_SETTING_KEY));
+    dbIdentity = (name !== undefined || description !== undefined) ? { name, description } : null;
   } catch {
     // DB not available yet (startup) — use defaults
     dbOverrides = null;
+    dbIdentity = null;
   }
-  mergedConfig = buildMergedConfig(getBaseConfig(), dbOverrides);
+  mergedConfig = buildMergedConfig(getBaseConfig(), dbOverrides, dbIdentity);
 }
 
-/** Force-refresh the config cache (call after admin changes feature overrides) */
+/** Force-refresh the config cache (call after admin changes feature overrides
+ *  or the instance name/description). */
 export function invalidateConfigCache(): void {
   dbOverridesFetchedAt = 0;
   mergedConfig = null;
+  dbIdentity = null;
 }
