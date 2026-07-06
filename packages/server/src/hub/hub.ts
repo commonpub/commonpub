@@ -3,6 +3,7 @@ import {
   hubs,
   hubMembers,
   users,
+  instanceSettings,
 } from '@commonpub/schema';
 import type {
   DB,
@@ -127,6 +128,52 @@ export async function listHubs(
     // Federated hubs table may not exist yet — return local only
     return { items: localItems, total };
   }
+}
+
+/** instance_settings key holding the operator-chosen featured hub id (a hub uuid). */
+export const FEATURED_HUB_SETTING_KEY = 'hubs.featuredId';
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * The operator-chosen featured hub (rendered as a full-width hero atop the hubs
+ * listing), or null if unset / cleared / pointing at a deleted or non-public
+ * hub. Reads instance_settings['hubs.featuredId']; a malformed (non-uuid) value
+ * returns null rather than letting a bad SQL bind throw. Returns the same
+ * HubListItem shape as `listHubs` so the client maps it identically.
+ */
+export async function getFeaturedHub(db: DB): Promise<HubListItem | null> {
+  const [setting] = await db
+    .select({ value: instanceSettings.value })
+    .from(instanceSettings)
+    .where(eq(instanceSettings.key, FEATURED_HUB_SETTING_KEY))
+    .limit(1);
+  const id = typeof setting?.value === 'string' ? setting.value : null;
+  if (!id || !UUID_RE.test(id)) return null;
+
+  const [row] = await db
+    .select({ hub: hubs, createdBy: USER_REF_SELECT })
+    .from(hubs)
+    .innerJoin(users, eq(hubs.createdById, users.id))
+    .where(and(eq(hubs.id, id), isNull(hubs.deletedAt), eq(hubs.privacy, 'public')))
+    .limit(1);
+  if (!row) return null;
+
+  return {
+    id: row.hub.id,
+    name: row.hub.name,
+    slug: row.hub.slug,
+    description: row.hub.description,
+    hubType: row.hub.hubType,
+    iconUrl: row.hub.iconUrl,
+    bannerUrl: row.hub.bannerUrl,
+    joinPolicy: row.hub.joinPolicy,
+    isOfficial: row.hub.isOfficial,
+    memberCount: row.hub.memberCount,
+    postCount: row.hub.postCount,
+    createdAt: row.hub.createdAt,
+    createdBy: row.createdBy,
+  };
 }
 
 export async function getHubBySlug(

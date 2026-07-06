@@ -134,6 +134,8 @@ export type { ContentCategoryItem } from './content/index.js';
 // Hubs
 export {
   listHubs,
+  getFeaturedHub,
+  FEATURED_HUB_SETTING_KEY,
   getHubBySlug,
   createHub,
   updateHub,

@@ -89,6 +89,11 @@ export const featureFlagsSchema = z.object({
   // links that run bounded onboarding actions (auto-join a hub, redirect).
   // Default OFF. Operator policy knobs live in `config.referral`, not here.
   referralLinks: z.boolean().default(false),
+  // Featured hub (session 230). Renders one operator-chosen hub as a full-width
+  // hero atop the hubs listing. The chosen hub id lives in
+  // instance_settings['hubs.featuredId']; this flag gates the hero + the admin
+  // picker. Default OFF.
+  featuredHub: z.boolean().default(false),
 });
 
 export const authConfigSchema = z.object({
