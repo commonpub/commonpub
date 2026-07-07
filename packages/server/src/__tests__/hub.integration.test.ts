@@ -246,6 +246,28 @@ describe('hub integration', () => {
     expect(updated!.website).toBe('https://updated.example.com');
   });
 
+  it('denies a non-member editing a hub, but a platform admin (root override) can', async () => {
+    const hub = await createHub(db, ownerId, { name: 'Root Editable Hub' });
+    const outsider = await createTestUser(db, { username: 'outsider-editor' });
+
+    // A non-member cannot edit (returns null).
+    expect(await updateHub(db, hub.id, outsider.id, { bannerUrl: 'https://cdn.example.com/x.webp' })).toBeNull();
+
+    // The SAME non-member CAN edit with the platform-admin override.
+    const updated = await updateHub(
+      db,
+      hub.id,
+      outsider.id,
+      { bannerUrl: 'https://cdn.example.com/admin-banner.webp', description: 'Edited by platform admin' },
+      { asPlatformAdmin: true },
+    );
+    expect(updated).not.toBeNull();
+    expect(updated!.bannerUrl).toBe('https://cdn.example.com/admin-banner.webp');
+    expect(updated!.description).toBe('Edited by platform admin');
+    // Override does not make them a member.
+    expect(updated!.currentUserRole).toBeNull();
+  });
+
   it('owner is auto-added as member with owner role', async () => {
     const hub = await createHub(db, ownerId, { name: 'Owner Check Hub' });
     const { items: members } = await listMembers(db, hub.id);

@@ -15,7 +15,12 @@ export default defineEventHandler(async (event): Promise<HubDetail> => {
 
   const input = await parseBody(event, updateHubSchema);
 
-  const updated = await updateHub(db, hub.id, user.id, input);
+  // Platform-admin (root) override: an instance admin can edit any community's
+  // settings without being a hub member. `hasPermission` is non-throwing and
+  // admin-floored, so full admins pass regardless of hub membership.
+  const asPlatformAdmin = hasPermission(event, 'admin.access');
+
+  const updated = await updateHub(db, hub.id, user.id, input, { asPlatformAdmin });
   if (!updated) {
     throw createError({ statusCode: 403, statusMessage: 'Not authorized to update this hub' });
   }

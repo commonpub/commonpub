@@ -44,6 +44,9 @@ useSeoMeta({
 });
 
 const { isAuthenticated, user: authUser } = useAuth();
+// Platform (instance) admins can manage any community's settings (root override,
+// enforced server-side in PUT /api/hubs/[slug]).
+const canManageAsAdmin = useCan('admin.access');
 const initialTab = hubType.value === 'community' || !hub.value?.hubType ? 'feed' : 'overview';
 const activeTab = ref(initialTab);
 
@@ -324,7 +327,7 @@ async function onRefreshGallery(): Promise<void> {
           <button class="cpub-btn cpub-btn-sm" aria-label="Share hub" @click="handleShare"><i class="fa-solid fa-share-nodes"></i></button>
           <NuxtLink v-if="['owner', 'admin'].includes(hub?.currentUserRole ?? '')" :to="`/hubs/${slug}/members`" class="cpub-btn cpub-btn-sm" aria-label="Manage members"><i class="fa-solid fa-users-gear"></i> Members</NuxtLink>
           <NuxtLink v-if="['owner', 'admin'].includes(hub?.currentUserRole ?? '')" :to="`/hubs/${slug}/invites`" class="cpub-btn cpub-btn-sm" aria-label="Manage invites"><i class="fa-solid fa-user-plus"></i> Invites</NuxtLink>
-          <NuxtLink v-if="hub?.currentUserRole === 'owner'" :to="`/hubs/${slug}/settings`" class="cpub-btn cpub-btn-sm" aria-label="Hub settings"><i class="fa-solid fa-gear"></i> Settings</NuxtLink>
+          <NuxtLink v-if="hub?.currentUserRole === 'owner' || canManageAsAdmin" :to="`/hubs/${slug}/settings`" class="cpub-btn cpub-btn-sm" :aria-label="canManageAsAdmin && hub?.currentUserRole !== 'owner' ? 'Edit community settings (admin)' : 'Hub settings'"><i class="fa-solid fa-gear"></i> Settings</NuxtLink>
         </template>
         <template #badges>
           <span v-if="hub?.isOfficial" class="cpub-tag cpub-tag-accent"><i class="fa-solid fa-shield-halved" style="margin-right: 3px"></i>Verified</span>

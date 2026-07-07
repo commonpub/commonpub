@@ -349,16 +349,27 @@ export async function updateHub(
     bannerUrl?: string;
     categories?: string[];
   },
+  options?: {
+    /**
+     * Platform-admin override (root). When true, the hub-membership check is
+     * skipped so an instance admin can edit ANY community's settings (banner,
+     * etc.) without being a member. The caller (API route) is responsible for
+     * verifying the actor actually holds the instance-wide permission.
+     */
+    asPlatformAdmin?: boolean;
+  },
 ): Promise<HubDetail | null> {
-  // Permission check: must be admin+
-  const member = await db
-    .select({ role: hubMembers.role })
-    .from(hubMembers)
-    .where(and(eq(hubMembers.hubId, hubId), eq(hubMembers.userId, userId)))
-    .limit(1);
+  // Permission: a hub admin+ OR (root) a platform admin editing any community.
+  if (!options?.asPlatformAdmin) {
+    const member = await db
+      .select({ role: hubMembers.role })
+      .from(hubMembers)
+      .where(and(eq(hubMembers.hubId, hubId), eq(hubMembers.userId, userId)))
+      .limit(1);
 
-  if (member.length === 0 || !hasPermission(member[0]!.role, 'editHub')) {
-    return null;
+    if (member.length === 0 || !hasPermission(member[0]!.role, 'editHub')) {
+      return null;
+    }
   }
 
   const updates: Record<string, unknown> = { updatedAt: new Date() };
