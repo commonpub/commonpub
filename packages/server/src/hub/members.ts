@@ -428,6 +428,7 @@ export async function changeRole(
   hubId: string,
   targetUserId: string,
   newRole: HubRole,
+  opts?: { asPlatformAdmin?: boolean },
 ): Promise<{ changed: boolean; error?: string }> {
   const [actorMember, targetMember] = await Promise.all([
     db
@@ -450,18 +451,26 @@ export async function changeRole(
       .limit(1),
   ]);
 
-  if (actorMember.length === 0) {
+  if (!opts?.asPlatformAdmin && actorMember.length === 0) {
     return { changed: false, error: 'Not a member' };
   }
   if (targetMember.length === 0) {
     return { changed: false, error: 'Target is not a member' };
   }
 
-  if (!hasPermission(actorMember[0]!.role, 'manageMembers')) {
-    return { changed: false, error: 'Insufficient permissions' };
-  }
-  if (!canManageRole(actorMember[0]!.role, targetMember[0]!.role)) {
-    return { changed: false, error: 'Cannot manage a user with equal or higher role' };
+  if (opts?.asPlatformAdmin) {
+    // Root: a platform admin manages any non-owner member. The owner role is
+    // protected (reassign only via transferOwnership).
+    if (targetMember[0]!.role === 'owner') {
+      return { changed: false, error: "Cannot change the owner's role" };
+    }
+  } else {
+    if (!hasPermission(actorMember[0]!.role, 'manageMembers')) {
+      return { changed: false, error: 'Insufficient permissions' };
+    }
+    if (!canManageRole(actorMember[0]!.role, targetMember[0]!.role)) {
+      return { changed: false, error: 'Cannot manage a user with equal or higher role' };
+    }
   }
 
   if (newRole === 'owner') {
@@ -494,6 +503,7 @@ export async function kickMember(
   actorId: string,
   hubId: string,
   targetUserId: string,
+  opts?: { asPlatformAdmin?: boolean },
 ): Promise<{ kicked: boolean; error?: string }> {
   const [actorMember, targetMember] = await Promise.all([
     db
@@ -516,17 +526,24 @@ export async function kickMember(
       .limit(1),
   ]);
 
-  if (actorMember.length === 0) {
+  if (!opts?.asPlatformAdmin && actorMember.length === 0) {
     return { kicked: false, error: 'Not a member' };
   }
   if (targetMember.length === 0) {
     return { kicked: false, error: 'Target is not a member' };
   }
-  if (!hasPermission(actorMember[0]!.role, 'kickMember')) {
-    return { kicked: false, error: 'Insufficient permissions' };
-  }
-  if (!canManageRole(actorMember[0]!.role, targetMember[0]!.role)) {
-    return { kicked: false, error: 'Cannot kick a user with equal or higher role' };
+  if (opts?.asPlatformAdmin) {
+    // Root: a platform admin can remove any non-owner member.
+    if (targetMember[0]!.role === 'owner') {
+      return { kicked: false, error: 'Cannot remove the owner' };
+    }
+  } else {
+    if (!hasPermission(actorMember[0]!.role, 'kickMember')) {
+      return { kicked: false, error: 'Insufficient permissions' };
+    }
+    if (!canManageRole(actorMember[0]!.role, targetMember[0]!.role)) {
+      return { kicked: false, error: 'Cannot kick a user with equal or higher role' };
+    }
   }
 
   await db

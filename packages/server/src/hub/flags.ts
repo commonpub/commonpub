@@ -102,10 +102,13 @@ export async function listHubFlags(
   actorId: string,
   hubId: string,
   filters?: { status?: 'open' | 'dismissed' | 'actioned' },
+  opts?: { asPlatformAdmin?: boolean },
 ): Promise<{ items: HubFlagItem[]; error?: string }> {
-  const role = await getRole(db, hubId, actorId);
-  if (!role || !hasPermission(role, 'reviewFlags')) {
-    return { items: [], error: 'Insufficient permissions' };
+  if (!opts?.asPlatformAdmin) {
+    const role = await getRole(db, hubId, actorId);
+    if (!role || !hasPermission(role, 'reviewFlags')) {
+      return { items: [], error: 'Insufficient permissions' };
+    }
   }
 
   const conditions = [eq(hubFlags.hubId, hubId)];
@@ -157,10 +160,13 @@ export async function resolveHubFlag(
   hubId: string,
   flagId: string,
   status: 'dismissed' | 'actioned',
+  opts?: { asPlatformAdmin?: boolean },
 ): Promise<{ resolved: boolean; error?: string }> {
-  const role = await getRole(db, hubId, actorId);
-  if (!role || !hasPermission(role, 'reviewFlags')) {
-    return { resolved: false, error: 'Insufficient permissions' };
+  if (!opts?.asPlatformAdmin) {
+    const role = await getRole(db, hubId, actorId);
+    if (!role || !hasPermission(role, 'reviewFlags')) {
+      return { resolved: false, error: 'Insufficient permissions' };
+    }
   }
 
   const [flag] = await db

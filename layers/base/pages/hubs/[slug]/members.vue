@@ -10,8 +10,10 @@ const members = computed(() => membersData.value?.items ?? []);
 
 const { user } = useAuth();
 const { hubGovernance } = useFeatures();
+// Platform (instance) admins manage members of any community (root override).
+const canManageAsAdmin = useCan('admin.access');
 const currentUserRole = computed(() => hub.value?.currentUserRole ?? null);
-const canManage = computed(() => currentUserRole.value === 'owner' || currentUserRole.value === 'admin');
+const canManage = computed(() => currentUserRole.value === 'owner' || currentUserRole.value === 'admin' || canManageAsAdmin.value);
 // Stewards (and managers) can flag members for the owner/admin review queue.
 const canFlagMembers = computed(() =>
   hubGovernance.value && ['owner', 'admin', 'moderator', 'steward'].includes(currentUserRole.value ?? ''),

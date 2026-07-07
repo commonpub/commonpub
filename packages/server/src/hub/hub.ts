@@ -409,16 +409,19 @@ export async function deleteHub(
   db: DB,
   hubId: string,
   userId: string,
+  opts?: { asPlatformAdmin?: boolean },
 ): Promise<boolean> {
-  // Owner only
-  const member = await db
-    .select({ role: hubMembers.role })
-    .from(hubMembers)
-    .where(and(eq(hubMembers.hubId, hubId), eq(hubMembers.userId, userId)))
-    .limit(1);
+  // Hub owner OR (root) a platform admin.
+  if (!opts?.asPlatformAdmin) {
+    const member = await db
+      .select({ role: hubMembers.role })
+      .from(hubMembers)
+      .where(and(eq(hubMembers.hubId, hubId), eq(hubMembers.userId, userId)))
+      .limit(1);
 
-  if (member.length === 0 || member[0]!.role !== 'owner') {
-    return false;
+    if (member.length === 0 || member[0]!.role !== 'owner') {
+      return false;
+    }
   }
 
   // Soft delete — set deletedAt instead of destroying data

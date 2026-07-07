@@ -12,5 +12,5 @@ export default defineEventHandler(async (event): Promise<{ changed: boolean; err
     throw createError({ statusCode: 404, statusMessage: 'Hub not found' });
   }
 
-  return changeRole(db, user.id, hub.id, userId, input.role);
+  return changeRole(db, user.id, hub.id, userId, input.role, { asPlatformAdmin: hasPermission(event, 'admin.access') });
 });

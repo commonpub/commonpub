@@ -86,6 +86,7 @@ const postsVM = computed<HubPostViewModel[]>(() => {
     isPinned: p.isPinned ?? false,
     isLocked: p.isLocked ?? false,
     linkTo: `/hubs/${slug.value}/posts/${p.id}`,
+    authorId: p.author?.id ?? null,
     ...(p.sharedContent ? {
       sharedContent: {
         type: (p.sharedContent as Record<string, unknown>).type as string,
@@ -93,6 +94,7 @@ const postsVM = computed<HubPostViewModel[]>(() => {
         title: (p.sharedContent as Record<string, unknown>).title as string,
         description: ((p.sharedContent as Record<string, unknown>).description as string | null) ?? null,
         coverImageUrl: ((p.sharedContent as Record<string, unknown>).coverImageUrl as string | null) ?? null,
+        contentId: ((p.sharedContent as Record<string, unknown>).contentId as string | undefined) ?? null,
         authorUsername: ((p.sharedContent as Record<string, unknown>).authorUsername as string | undefined) ?? undefined,
       },
     } : {}),
@@ -325,8 +327,8 @@ async function onRefreshGallery(): Promise<void> {
             <i class="fa-solid fa-check"></i> Joined
           </span>
           <button class="cpub-btn cpub-btn-sm" aria-label="Share hub" @click="handleShare"><i class="fa-solid fa-share-nodes"></i></button>
-          <NuxtLink v-if="['owner', 'admin'].includes(hub?.currentUserRole ?? '')" :to="`/hubs/${slug}/members`" class="cpub-btn cpub-btn-sm" aria-label="Manage members"><i class="fa-solid fa-users-gear"></i> Members</NuxtLink>
-          <NuxtLink v-if="['owner', 'admin'].includes(hub?.currentUserRole ?? '')" :to="`/hubs/${slug}/invites`" class="cpub-btn cpub-btn-sm" aria-label="Manage invites"><i class="fa-solid fa-user-plus"></i> Invites</NuxtLink>
+          <NuxtLink v-if="['owner', 'admin'].includes(hub?.currentUserRole ?? '') || canManageAsAdmin" :to="`/hubs/${slug}/members`" class="cpub-btn cpub-btn-sm" aria-label="Manage members"><i class="fa-solid fa-users-gear"></i> Members</NuxtLink>
+          <NuxtLink v-if="['owner', 'admin'].includes(hub?.currentUserRole ?? '') || canManageAsAdmin" :to="`/hubs/${slug}/invites`" class="cpub-btn cpub-btn-sm" aria-label="Manage invites"><i class="fa-solid fa-user-plus"></i> Invites</NuxtLink>
           <NuxtLink v-if="hub?.currentUserRole === 'owner' || canManageAsAdmin" :to="`/hubs/${slug}/settings`" class="cpub-btn cpub-btn-sm" :aria-label="canManageAsAdmin && hub?.currentUserRole !== 'owner' ? 'Edit community settings (admin)' : 'Hub settings'"><i class="fa-solid fa-gear"></i> Settings</NuxtLink>
         </template>
         <template #badges>
@@ -341,7 +343,7 @@ async function onRefreshGallery(): Promise<void> {
     <!-- Main content area -->
 
     <!-- Feed tab -->
-    <HubFeed v-if="activeTab === 'feed'" :posts="postsVM" :hub-slug="slug">
+    <HubFeed v-if="activeTab === 'feed'" :posts="postsVM" :hub-slug="slug" :current-user-role="hub?.currentUserRole ?? null" @changed="refreshPosts">
       <template v-if="isAuthenticated" #compose>
         <div class="cpub-compose-bar">
           <div class="cpub-compose-types">

@@ -5,10 +5,40 @@ import type { VoteDirection } from '@commonpub/server';
 const props = defineProps<{
   posts: HubPostViewModel[];
   hubSlug?: string;
+  currentUserRole?: string | null;
 }>();
 
-const { isAuthenticated } = useAuth();
+const emit = defineEmits<{ changed: [] }>();
+
+const { isAuthenticated, user } = useAuth();
 const toast = useToast();
+// Unlink a shared project: the sharer (post author), a hub owner/admin, OR a
+// platform admin (root). Enforced server-side by POST /api/hubs/:slug/unshare.
+const canManageAsAdmin = useCan('admin.access');
+function canUnlink(post: HubPostViewModel): boolean {
+  if (!post.sharedContent?.contentId) return false;
+  return (
+    (!!user.value?.id && post.authorId === user.value.id) ||
+    ['owner', 'admin'].includes(props.currentUserRole ?? '') ||
+    canManageAsAdmin.value
+  );
+}
+const unlinking = reactive<Set<string>>(new Set());
+async function handleUnlink(post: HubPostViewModel): Promise<void> {
+  const contentId = post.sharedContent?.contentId;
+  if (!contentId || !props.hubSlug || unlinking.has(post.id)) return;
+  if (!confirm('Unlink this project from the community?')) return;
+  unlinking.add(post.id);
+  try {
+    await $fetch(`/api/hubs/${props.hubSlug}/unshare`, { method: 'POST', body: { contentId } });
+    toast.success('Project unlinked');
+    emit('changed');
+  } catch {
+    toast.error('Failed to unlink project');
+  } finally {
+    unlinking.delete(post.id);
+  }
+}
 
 function stripHtml(html: string): string {
   return html.replace(/<[^>]*>/g, '').trim();
@@ -96,6 +126,16 @@ async function handleVote(postId: string): Promise<void> {
     <template v-for="post in filteredPosts" :key="post.id">
       <!-- Share posts -->
       <NuxtLink v-if="post.sharedContent?.slug && !post.sharedContent?.url" :to="(post.sharedContent as any).authorUsername ? `/u/${(post.sharedContent as any).authorUsername}/${post.sharedContent.type}/${post.sharedContent.slug}` : `/${post.sharedContent.type}/${post.sharedContent.slug}`" class="cpub-share-card">
+        <button
+          v-if="canUnlink(post)"
+          class="cpub-share-unlink"
+          :disabled="unlinking.has(post.id)"
+          aria-label="Unlink project from community"
+          title="Unlink from community"
+          @click.stop.prevent="handleUnlink(post)"
+        >
+          <i class="fa-solid fa-link-slash"></i>
+        </button>
         <div class="cpub-share-card-context">
           <i class="fa-solid fa-share-nodes"></i>
           {{ post.author.name }} shared a {{ post.sharedContent.type }}
@@ -212,7 +252,22 @@ async function handleVote(postId: string): Promise<void> {
 .cpub-feed-link { text-decoration: none; color: inherit; display: block; }
 
 /* Share card */
-.cpub-share-card { display: block; text-decoration: none; color: inherit; }
+.cpub-share-card { display: block; text-decoration: none; color: inherit; position: relative; }
+.cpub-share-unlink {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 1;
+  background: var(--surface);
+  border: var(--border-width-default) solid var(--border2);
+  color: var(--text-faint);
+  cursor: pointer;
+  font-size: 11px;
+  padding: 4px 7px;
+  line-height: 1;
+}
+.cpub-share-unlink:hover { color: var(--red-text); border-color: var(--red); }
+.cpub-share-unlink:disabled { opacity: 0.5; cursor: default; }
 .cpub-share-card-context {
   font-size: 11px; color: var(--text-faint); padding: 0 0 6px;
   display: flex; align-items: center; gap: 5px;

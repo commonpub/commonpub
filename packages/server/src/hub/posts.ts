@@ -217,6 +217,7 @@ export async function deletePost(
   postId: string,
   userId: string,
   hubId: string,
+  opts?: { asPlatformAdmin?: boolean },
 ): Promise<boolean> {
   const post = await db
     .select({ authorId: hubPosts.authorId, hubId: hubPosts.hubId })
@@ -226,7 +227,8 @@ export async function deletePost(
 
   if (post.length === 0 || post[0]!.hubId !== hubId) return false;
 
-  if (!post[0]!.authorId || post[0]!.authorId !== userId) {
+  // Author, a hub moderator+ (incl. steward), OR (root) a platform admin.
+  if ((!post[0]!.authorId || post[0]!.authorId !== userId) && !opts?.asPlatformAdmin) {
     const member = await db
       .select({ role: hubMembers.role })
       .from(hubMembers)
@@ -293,15 +295,18 @@ export async function togglePinPost(
   postId: string,
   userId: string,
   hubId: string,
+  opts?: { asPlatformAdmin?: boolean },
 ): Promise<{ pinned: boolean } | null> {
-  const member = await db
-    .select({ role: hubMembers.role })
-    .from(hubMembers)
-    .where(and(eq(hubMembers.hubId, hubId), eq(hubMembers.userId, userId)))
-    .limit(1);
+  if (!opts?.asPlatformAdmin) {
+    const member = await db
+      .select({ role: hubMembers.role })
+      .from(hubMembers)
+      .where(and(eq(hubMembers.hubId, hubId), eq(hubMembers.userId, userId)))
+      .limit(1);
 
-  if (member.length === 0 || !hasPermission(member[0]!.role, 'pinPost')) {
-    return null;
+    if (member.length === 0 || !hasPermission(member[0]!.role, 'pinPost')) {
+      return null;
+    }
   }
 
   const post = await db
@@ -326,15 +331,18 @@ export async function toggleLockPost(
   postId: string,
   userId: string,
   hubId: string,
+  opts?: { asPlatformAdmin?: boolean },
 ): Promise<{ locked: boolean } | null> {
-  const member = await db
-    .select({ role: hubMembers.role })
-    .from(hubMembers)
-    .where(and(eq(hubMembers.hubId, hubId), eq(hubMembers.userId, userId)))
-    .limit(1);
+  if (!opts?.asPlatformAdmin) {
+    const member = await db
+      .select({ role: hubMembers.role })
+      .from(hubMembers)
+      .where(and(eq(hubMembers.hubId, hubId), eq(hubMembers.userId, userId)))
+      .limit(1);
 
-  if (member.length === 0 || !hasPermission(member[0]!.role, 'lockPost')) {
-    return null;
+    if (member.length === 0 || !hasPermission(member[0]!.role, 'lockPost')) {
+      return null;
+    }
   }
 
   const post = await db
@@ -786,6 +794,7 @@ export async function unshareContent(
   userId: string,
   hubId: string,
   contentId: string,
+  opts?: { asPlatformAdmin?: boolean },
 ): Promise<boolean> {
   const [share] = await db
     .select({ id: hubShares.id, sharedById: hubShares.sharedById })
@@ -795,7 +804,8 @@ export async function unshareContent(
 
   if (!share) return false;
 
-  if (share.sharedById !== userId) {
+  // Sharer, a hub owner/admin, OR (root) a platform admin.
+  if (share.sharedById !== userId && !opts?.asPlatformAdmin) {
     const [member] = await db
       .select({ role: hubMembers.role })
       .from(hubMembers)
@@ -805,6 +815,24 @@ export async function unshareContent(
   }
 
   await db.delete(hubShares).where(eq(hubShares.id, share.id));
+
+  // Also remove the share POST from the feed (shareContent creates a
+  // type='share' post whose JSON content carries the contentId). Without this
+  // the unlinked project keeps showing in the feed as an orphan.
+  const removed = await db
+    .delete(hubPosts)
+    .where(and(
+      eq(hubPosts.hubId, hubId),
+      eq(hubPosts.type, 'share'),
+      sql`${hubPosts.content} LIKE ${`%"contentId":"${contentId}"%`}`,
+    ))
+    .returning({ id: hubPosts.id });
+  if (removed.length > 0) {
+    await db
+      .update(hubs)
+      .set({ postCount: sql`GREATEST(${hubs.postCount} - ${removed.length}, 0)` })
+      .where(eq(hubs.id, hubId));
+  }
   return true;
 }
 

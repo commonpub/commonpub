@@ -11,7 +11,7 @@ export default defineEventHandler(async (event): Promise<{ items: HubFlagItem[] 
   const hub = await getHubBySlug(db, slug);
   if (!hub) throw createError({ statusCode: 404, statusMessage: 'Hub not found' });
 
-  const res = await listHubFlags(db, user.id, hub.id, status ? { status } : undefined);
+  const res = await listHubFlags(db, user.id, hub.id, status ? { status } : undefined, { asPlatformAdmin: hasPermission(event, 'admin.access') });
   if (res.error) throw createError({ statusCode: 403, statusMessage: res.error });
   return { items: res.items };
 });

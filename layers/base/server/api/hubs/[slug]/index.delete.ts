@@ -10,7 +10,7 @@ export default defineEventHandler(async (event): Promise<{ success: boolean }> =
     throw createError({ statusCode: 404, statusMessage: 'Hub not found' });
   }
 
-  const deleted = await deleteHub(db, hub.id, user.id);
+  const deleted = await deleteHub(db, hub.id, user.id, { asPlatformAdmin: hasPermission(event, 'admin.access') });
   if (!deleted) {
     throw createError({ statusCode: 403, statusMessage: 'Not authorized to delete this hub' });
   }

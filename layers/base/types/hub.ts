@@ -28,12 +28,16 @@ export interface HubPostViewModel {
   isPinned: boolean
   isLocked: boolean
   linkTo: string | null
+  /** Post author = the sharer for share posts (used to gate self-unlink). */
+  authorId?: string | null
   sharedContent?: {
     type: string
     slug: string
     title: string
     description: string | null
     coverImageUrl: string | null
+    /** Local content id — present for local shares; enables unlink. */
+    contentId?: string | null
     /** External URL for federated shared content (when slug isn't a local route) */
     url?: string | null
   }

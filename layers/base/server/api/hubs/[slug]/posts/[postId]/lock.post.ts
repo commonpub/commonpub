@@ -11,7 +11,7 @@ export default defineEventHandler(async (event) => {
   const post = await getPostById(db, postId);
   if (!post || post.hubId !== community.id) throw createError({ statusCode: 404, statusMessage: 'Post not found' });
 
-  const result = await toggleLockPost(db, postId, user.id, community.id);
+  const result = await toggleLockPost(db, postId, user.id, community.id, { asPlatformAdmin: hasPermission(event, 'admin.access') });
   if (!result) throw createError({ statusCode: 403, statusMessage: 'Not authorized' });
   return result;
 });

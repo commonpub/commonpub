@@ -10,7 +10,9 @@ const { hubGovernance } = useFeatures();
 
 interface HubHeader { id: string; name: string; currentUserRole: string | null }
 const { data: hub } = useLazyFetch<HubHeader>(() => `/api/hubs/${slug.value}`);
-const canReview = computed(() => ['owner', 'admin'].includes(hub.value?.currentUserRole ?? ''));
+// Owner/admin of the hub OR a platform admin (root override).
+const canManageAsAdmin = useCan('admin.access');
+const canReview = computed(() => ['owner', 'admin'].includes(hub.value?.currentUserRole ?? '') || canManageAsAdmin.value);
 
 const { data: flagsData, refresh, error } = useLazyFetch<{ items: HubFlagItem[] }>(
   () => `/api/hubs/${slug.value}/flags`,

@@ -9,5 +9,5 @@ export default defineEventHandler(async (event): Promise<{ kicked: boolean; erro
     throw createError({ statusCode: 404, statusMessage: 'Community not found' });
   }
 
-  return kickMember(db, user.id, community.id, userId);
+  return kickMember(db, user.id, community.id, userId, { asPlatformAdmin: hasPermission(event, 'admin.access') });
 });

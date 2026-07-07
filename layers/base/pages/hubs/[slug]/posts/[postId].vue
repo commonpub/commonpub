@@ -15,9 +15,12 @@ const { data: repliesData, refresh: refreshReplies } = useLazyFetch<{ items: Ser
 const post = computed(() => postData.value);
 const replies = computed(() => repliesData.value?.items ?? []);
 
+// Stewards moderate the discussion board (pin/lock/delete); platform admins can
+// moderate any community (root). The server enforces both.
+const canManageAsAdmin = useCan('admin.access');
 const isMod = computed(() => {
   const role = hub.value?.currentUserRole;
-  return role === 'owner' || role === 'admin' || role === 'moderator';
+  return role === 'owner' || role === 'admin' || role === 'moderator' || role === 'steward' || canManageAsAdmin.value;
 });
 
 const isAuthor = computed(() => post.value?.author?.id === authUser.value?.id);

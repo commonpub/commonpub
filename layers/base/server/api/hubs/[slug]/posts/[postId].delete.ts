@@ -10,7 +10,7 @@ export default defineEventHandler(async (event): Promise<boolean> => {
     throw createError({ statusCode: 404, statusMessage: 'Community not found' });
   }
 
-  const deleted = await deletePost(db, postId, user.id, community.id);
+  const deleted = await deletePost(db, postId, user.id, community.id, { asPlatformAdmin: hasPermission(event, 'admin.access') });
 
   // Federate deletion as Delete(Tombstone) from the hub Group actor
   if (deleted && config.features.federation && config.features.federateHubs) {
