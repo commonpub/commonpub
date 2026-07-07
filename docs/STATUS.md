@@ -12,20 +12,25 @@
 
 ## TL;DR — where things stand
 
-**Session 230 (2026-07-07) — SHIPPED + ROLLED to all 3.** Three features:
-(1) **per-instance SEO branding** (fixes "CommonPub" in unfurls — `og:site_name` + branded titles now
-come from `instance_settings['instance.name']` → config, runtime-editable, via a `seo-brand` plugin
-that survives consumer app.vue overrides); (2) **featured hub** (`hubs.featuredId` instance-setting +
-admin picker → full-width `HubHero` atop `/hubs`, flag `featuredHub`); (3) **hub governance** (flag
-`hubGovernance`): owner **transfer-ownership** (atomic), **Steward** role (authoritative capability
-whitelist — moderates discussions + flags, never kick/ban), **`hub_flags`** review queue, and
-**self-unlink** of shared projects. Released **schema 0.56.0 / config 0.30.0 / server 2.103.0 /
-test-utils 0.5.10 / layer 0.95.0**, **migration 0039** (hub_flags + steward enum). Both new flags
-default **OFF** (enable via `/admin/features`). Full suites green (5 pre-existing email-outbox PGlite
-flakes aside); browser-verified end-to-end. Two bugs caught in the browser pass + fixed pre-release
-(picker `limit=200`>max→400; unlabeled admin flags). Detail: `docs/sessions/230-*.md`. Follow-ups: two
-F2 UI-visibility slices (steward post controls + share-card unlink button — backends done/enforced),
-CLI re-pin.
+**Session 230 (2026-07-07) — SHIPPED + ROLLED to all 3. Live stack: schema 0.56.0 / config 0.30.0 /
+server 2.104.0 / test-utils 0.5.10 / layer 0.96.0, migration 0039.** Handoff: `docs/sessions/230-handoff.md`.
+Five releases: (1) **per-instance SEO branding** (fixes "CommonPub" in unfurls — `og:site_name` +
+titles now come from `instance_settings['instance.name']` → config, runtime-editable, via a `seo-brand`
+plugin that survives consumer app.vue overrides; verified live devEco.io/HeatSync Labs); (2) **featured
+hub** (`hubs.featuredId` instance-setting + admin picker → full-width `HubHero` atop `/hubs`, flag
+`featuredHub`); (3) **hub governance** (flag `hubGovernance`, migration 0039): owner
+**transfer-ownership** (atomic), **Steward** role (authoritative capability whitelist — moderates
+discussions + flags, never kick/ban), **`hub_flags`** review queue, **self-unlink** of shared projects;
+(4) **deveco-only** featured-hub port into deveco's forked `/hubs` page + homepage Trending list (deveco
+shadows the layer); (5) **platform-admin community-settings override** (server 2.104 / layer 0.96):
+instance admins (`admin.access`) can edit ANY community's settings (banner etc.) without membership —
+`updateHub { asPlatformAdmin }` + Settings link via `useCan('admin.access')`; non-admin non-members
+403. Both new flags default **OFF** (enable via `/admin/features`; deveco has them ON). Full suites
+green (5 pre-existing email-outbox PGlite flakes aside); browser + release audit verified. Bugs caught
++ fixed: picker `limit=200`>max→400; unlabeled admin flags; deveco CI TS2322 (typed-route manifest
+collapse in deveco's settings.vue fork). Follow-ups (see handoff): two F2 UI-visibility slices (steward
+post controls + share-card unlink — backends done/enforced), CLI re-pin (^0.56/^0.30/^2.104/^0.96),
+deveco fork-shadowing.
 
 **Session 216 (2026-06-23) — `contests` branch MERGED to main + LIVE on commonpub.io ONLY**
 (merge commit `00139353`, deploy run `28019122283` ✅). Ships 108 commits = the **monolith-splits backlog**
@@ -398,17 +403,17 @@ a minute (`curl deveco.io/api/content?limit=5`, today's timestamp).
 
 ## 📌 Reference
 
-### Published versions (verified 2026-06-26 — session 227 GDPR Phase 2 enforcement + CLI re-pin)
+### Published versions (verified 2026-07-07 — session 230 admin community-override)
 | Package | Version | | Package | Version |
 |---|---|---|---|---|
-| @commonpub/schema | **0.54.0** | | @commonpub/infra | **0.13.0** |
-| @commonpub/config | **0.26.0** | | @commonpub/editor | **0.9.0** |
-| @commonpub/protocol | **0.14.0** | | @commonpub/explainer | **0.8.0** |
-| @commonpub/auth | 0.8.0 | | @commonpub/docs | 0.6.3 |
-| @commonpub/server | **2.100.1** | | @commonpub/learning | 0.5.2 |
-| @commonpub/ui | 0.13.1 | | @commonpub/test-utils | **0.5.8** |
-| @commonpub/layer | **0.89.1** | | @commonpub/theme-studio | 0.6.1 |
-| create-commonpub (crates.io) | **0.5.20** (pins schema ^0.54 / config ^0.26 / server ^2.100.1 / layer ^0.89.1 — current) | | | |
+| @commonpub/schema | **0.56.0** | | @commonpub/infra | 0.13.0 |
+| @commonpub/config | **0.30.0** | | @commonpub/editor | 0.9.0 |
+| @commonpub/protocol | 0.14.0 | | @commonpub/explainer | 0.8.0 |
+| @commonpub/auth | 0.9.0 | | @commonpub/docs | 0.6.3 |
+| @commonpub/server | **2.104.0** | | @commonpub/learning | 0.5.2 |
+| @commonpub/ui | 0.13.1 | | @commonpub/test-utils | **0.5.10** |
+| @commonpub/layer | **0.96.0** | | @commonpub/theme-studio | 0.6.1 |
+| create-commonpub (crates.io) | **0.5.20** — **STALE** (pins ^0.54/^0.26/^2.100.1/^0.89.1; re-pin to ^0.56/^0.30/^2.104/^0.96) | | | |
 
 **Session 227 GDPR Phase 2 enforcement + CLI re-pin (2026-06-26) — SHIPPED + ROLLED to all 3.**
 Adversarial review of GDPR Phase 2 (no P0; auth/CSRF/IDOR/spoofing/injection clean). Added a

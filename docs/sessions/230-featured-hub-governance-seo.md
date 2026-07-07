@@ -74,3 +74,18 @@ lockfiles → pushed (deploys apply 0039 via db-migrate.mjs). All three curl-ver
 - deveco/heatsync `ENV_FLAG_MAP` lacks the new flags (they enable via the `/admin/features` DB toggle).
 - deveco/heatsync don't get the runtime instance.name→SEO merge (their own config.ts); their build-time
   `public.siteName` already brands correctly, so no regression — runtime-editable is an enhancement.
+
+## Follow-on releases (same session, after the initial 3 features)
+
+- **deveco featured-hub fork port** (deveco repo, commit `22fddad`): deveco overrides
+  `pages/hubs/index.vue` + `pages/index.vue`, shadowing the layer's featured-hub rendering, so the
+  operator's featured hub didn't show despite the flag being on. Ported the hero into deveco's `/hubs`
+  page + pinned the featured community atop the homepage Trending list, in deveco's own style.
+  deveco-only (commonpub/heatsync homepages have no featured section).
+- **Platform-admin community-settings override** (server **2.104.0** / layer **0.96.0**): instance
+  admins (`admin.access`) can edit ANY community's settings (banner/icon/description/rules/privacy/
+  join-policy/website) without hub membership. `updateHub { asPlatformAdmin }` + PUT route gate on
+  `hasPermission(event, 'admin.access')` + Settings link via `useCan('admin.access')`. Non-admin
+  non-members 403. Rolled to all 3 (no migration).
+
+Authoritative current-state doc: **`docs/sessions/230-handoff.md`**.
