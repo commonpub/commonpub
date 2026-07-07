@@ -12,7 +12,7 @@ const { featuredHub: featuredHubEnabled } = useFeatures();
 const FEATURED_HUB_KEY = 'hubs.featuredId';
 const { data: hubsForPicker } = await useFetch<{ items: Array<{ id: string; name: string; source?: string }> }>(
   '/api/hubs',
-  { query: { limit: 200 } },
+  { query: { limit: 100 } },
 );
 const localHubs = computed(() =>
   (hubsForPicker.value?.items ?? []).filter((h: { source?: string }) => h.source !== 'federated'),
