@@ -60,9 +60,29 @@ export const banUserSchema = z.object({
 export type BanUserInput = z.infer<typeof banUserSchema>;
 
 export const changeRoleSchema = z.object({
-  role: z.enum(['admin', 'moderator', 'member']),
+  role: z.enum(['admin', 'moderator', 'steward', 'member']),
 });
 export type ChangeRoleInput = z.infer<typeof changeRoleSchema>;
+
+/** Owner-only: hand the `owner` role to another active member. */
+export const transferOwnershipSchema = z.object({
+  userId: z.string().uuid(),
+});
+export type TransferOwnershipInput = z.infer<typeof transferOwnershipSchema>;
+
+/** Steward+ flags a shared project or a hub member for owner/admin review. */
+export const createHubFlagSchema = z.object({
+  targetType: z.enum(['project', 'member']),
+  targetId: z.string().uuid(),
+  reason: z.string().trim().max(1000).optional(),
+});
+export type CreateHubFlagInput = z.infer<typeof createHubFlagSchema>;
+
+/** Owner/admin resolves a flag. Does not itself remove the target. */
+export const resolveHubFlagSchema = z.object({
+  status: z.enum(['dismissed', 'actioned']),
+});
+export type ResolveHubFlagInput = z.infer<typeof resolveHubFlagSchema>;
 
 export const postTypeSchema = z.enum(['text', 'link', 'share', 'poll', 'discussion', 'question', 'showcase', 'announcement']);
 export type PostType = z.infer<typeof postTypeSchema>;
@@ -73,7 +93,7 @@ export type JoinPolicy = z.infer<typeof joinPolicySchema>;
 export const hubPrivacySchema = z.enum(['public', 'unlisted', 'private']);
 export type HubPrivacy = z.infer<typeof hubPrivacySchema>;
 
-export const hubRoleSchema = z.enum(['owner', 'admin', 'moderator', 'member']);
+export const hubRoleSchema = z.enum(['owner', 'admin', 'moderator', 'steward', 'member']);
 export type HubRole = z.infer<typeof hubRoleSchema>;
 
 // --- Hub Resource validators ---

@@ -776,27 +776,35 @@ export async function shareContent(
   return post;
 }
 
+/**
+ * Unlink a shared project from a hub. Allowed for the original sharer (their own
+ * project) OR a hub owner/admin (the moderation "actioned" path — `reviewFlags`).
+ * Stewards/moderators cannot force-unlink others' projects; they flag instead.
+ */
 export async function unshareContent(
   db: DB,
   userId: string,
   hubId: string,
   contentId: string,
 ): Promise<boolean> {
-  const share = await db
-    .select({ id: hubShares.id })
+  const [share] = await db
+    .select({ id: hubShares.id, sharedById: hubShares.sharedById })
     .from(hubShares)
-    .where(
-      and(
-        eq(hubShares.hubId, hubId),
-        eq(hubShares.contentId, contentId),
-        eq(hubShares.sharedById, userId),
-      ),
-    )
+    .where(and(eq(hubShares.hubId, hubId), eq(hubShares.contentId, contentId)))
     .limit(1);
 
-  if (share.length === 0) return false;
+  if (!share) return false;
 
-  await db.delete(hubShares).where(eq(hubShares.id, share[0]!.id));
+  if (share.sharedById !== userId) {
+    const [member] = await db
+      .select({ role: hubMembers.role })
+      .from(hubMembers)
+      .where(and(eq(hubMembers.hubId, hubId), eq(hubMembers.userId, userId)))
+      .limit(1);
+    if (!member || !hasPermission(member.role, 'reviewFlags')) return false;
+  }
+
+  await db.delete(hubShares).where(eq(hubShares.id, share.id));
   return true;
 }
 

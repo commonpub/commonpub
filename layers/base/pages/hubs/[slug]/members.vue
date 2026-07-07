@@ -3,13 +3,33 @@ const route = useRoute();
 const slug = computed(() => route.params.slug as string);
 const toast = useToast();
 
-const { data: hub } = useLazyFetch(() => `/api/hubs/${slug.value}`);
+interface HubHeader { id: string; name: string; slug: string; currentUserRole: string | null }
+const { data: hub } = useLazyFetch<HubHeader>(() => `/api/hubs/${slug.value}`);
 const { data: membersData, refresh } = useLazyFetch<{ items: any[]; total: number }>(() => `/api/hubs/${slug.value}/members`);
 const members = computed(() => membersData.value?.items ?? []);
 
 const { user } = useAuth();
+const { hubGovernance } = useFeatures();
 const currentUserRole = computed(() => hub.value?.currentUserRole ?? null);
 const canManage = computed(() => currentUserRole.value === 'owner' || currentUserRole.value === 'admin');
+// Stewards (and managers) can flag members for the owner/admin review queue.
+const canFlagMembers = computed(() =>
+  hubGovernance.value && ['owner', 'admin', 'moderator', 'steward'].includes(currentUserRole.value ?? ''),
+);
+
+async function flagMember(userId: string, username: string): Promise<void> {
+  const reason = prompt(`Flag @${username} for the hub owners to review? Enter an optional reason, or Cancel.`);
+  if (reason === null) return;
+  try {
+    await $fetch(`/api/hubs/${slug.value}/flags`, {
+      method: 'POST',
+      body: { targetType: 'member', targetId: userId, reason: reason.trim() || undefined },
+    });
+    toast.success('Member flagged for review');
+  } catch {
+    toast.error('Failed to flag member');
+  }
+}
 
 interface BanItem {
   id: string;
@@ -53,12 +73,18 @@ async function denyRequest(userId: string): Promise<void> {
 
 useSeoMeta({ title: () => `Members, ${hub.value?.name ?? 'Hub'}, ${useSiteName()}` });
 
-const roles = ['member', 'moderator', 'admin'] as const;
+// Steward is only assignable when hub governance is enabled.
+const roles = computed(() =>
+  hubGovernance.value
+    ? (['member', 'steward', 'moderator', 'admin'] as const)
+    : (['member', 'moderator', 'admin'] as const),
+);
 
 const roleColors: Record<string, string> = {
   owner: 'var(--yellow)',
   admin: 'var(--red)',
   moderator: 'var(--accent)',
+  steward: 'var(--teal)',
   member: 'var(--text-faint)',
 };
 
@@ -121,6 +147,9 @@ async function unbanMember(userId: string, username: string): Promise<void> {
       <NuxtLink :to="`/hubs/${slug}`" class="cpub-back-link"><i class="fa-solid fa-arrow-left"></i> {{ hub?.name ?? 'Hub' }}</NuxtLink>
       <h1 class="members-title">Members</h1>
       <p class="members-count" v-if="membersData?.total">{{ membersData.total }} members</p>
+      <NuxtLink v-if="hubGovernance && canManage" :to="`/hubs/${slug}/moderation`" class="cpub-btn cpub-btn-sm members-mod-link">
+        <i class="fa-solid fa-flag"></i> Review flags
+      </NuxtLink>
     </div>
 
     <!-- Pending join requests (managers only) -->
@@ -162,20 +191,25 @@ async function unbanMember(userId: string, username: string): Promise<void> {
         </span>
         <time class="member-joined">{{ new Date(m.joinedAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) }}</time>
 
-        <!-- Admin actions -->
-        <div v-if="canManage && m.role !== 'owner' && m.userId !== user?.id" class="member-actions">
-          <select
-            class="member-role-select"
-            :value="m.role"
-            @change="changeRole(m.userId, ($event.target as HTMLSelectElement).value)"
-          >
-            <option v-for="r in roles" :key="r" :value="r">{{ r }}</option>
-          </select>
-          <button class="member-kick-btn" title="Remove member" @click="kickMember(m.userId, m.user.username)">
-            <i class="fa-solid fa-user-xmark"></i>
-          </button>
-          <button class="member-ban-btn" title="Ban member" aria-label="Ban member" @click="banMember(m.userId, m.user.username)">
-            <i class="fa-solid fa-ban"></i>
+        <!-- Manager + steward actions -->
+        <div v-if="(canManage || canFlagMembers) && m.role !== 'owner' && m.userId !== user?.id" class="member-actions">
+          <template v-if="canManage">
+            <select
+              class="member-role-select"
+              :value="m.role"
+              @change="changeRole(m.userId, ($event.target as HTMLSelectElement).value)"
+            >
+              <option v-for="r in roles" :key="r" :value="r">{{ r }}</option>
+            </select>
+            <button class="member-kick-btn" title="Remove member" @click="kickMember(m.userId, m.user.username)">
+              <i class="fa-solid fa-user-xmark"></i>
+            </button>
+            <button class="member-ban-btn" title="Ban member" aria-label="Ban member" @click="banMember(m.userId, m.user.username)">
+              <i class="fa-solid fa-ban"></i>
+            </button>
+          </template>
+          <button v-if="canFlagMembers" class="member-flag-btn" title="Flag member for review" aria-label="Flag member for review" @click="flagMember(m.userId, m.user.username)">
+            <i class="fa-solid fa-flag"></i>
           </button>
         </div>
       </div>
@@ -239,6 +273,9 @@ async function unbanMember(userId: string, username: string): Promise<void> {
 .member-kick-btn:hover { color: var(--red-text); border-color: var(--red); }
 .member-ban-btn { background: none; border: var(--border-width-default) solid var(--border2); color: var(--text-faint); cursor: pointer; font-size: 10px; padding: 3px 6px; }
 .member-ban-btn:hover { color: var(--red-text); border-color: var(--red); }
+.member-flag-btn { background: none; border: var(--border-width-default) solid var(--border2); color: var(--text-faint); cursor: pointer; font-size: 10px; padding: 3px 6px; }
+.member-flag-btn:hover { color: var(--accent); border-color: var(--accent); }
+.members-mod-link { margin-top: 10px; }
 
 .members-empty { text-align: center; padding: 48px 0; color: var(--text-faint); }
 

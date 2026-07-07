@@ -23,6 +23,8 @@ import {
   postTypeEnum,
   followRelationshipStatusEnum,
   resourceCategoryEnum,
+  hubFlagTargetTypeEnum,
+  hubFlagStatusEnum,
 } from './enums.js';
 import { unique } from 'drizzle-orm/pg-core';
 
@@ -198,6 +200,34 @@ export const hubShares = pgTable('hub_shares', {
   unique('uq_hub_shares_hub_content').on(t.hubId, t.contentId),
 ]);
 
+/**
+ * Hub-scoped moderation flags. A steward (or higher) flags a shared project or
+ * a hub member "for removal"; the hub owner/admins review the queue and take the
+ * (separate) destructive action. Advisory only — a flag never itself removes
+ * anything. Instance-local; never federates. `targetId` is polymorphic (a
+ * content id or a user id per `targetType`), so it carries no FK.
+ */
+export const hubFlags = pgTable('hub_flags', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  hubId: uuid('hub_id')
+    .notNull()
+    .references(() => hubs.id, { onDelete: 'cascade' }),
+  targetType: hubFlagTargetTypeEnum('target_type').notNull(),
+  targetId: uuid('target_id').notNull(),
+  flaggedById: uuid('flagged_by_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  reason: text('reason'),
+  status: hubFlagStatusEnum('status').default('open').notNull(),
+  resolvedById: uuid('resolved_by_id').references(() => users.id, { onDelete: 'set null' }),
+  resolvedAt: timestamp('resolved_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [
+  index('idx_hub_flags_hub_status').on(t.hubId, t.status),
+  // One OPEN flag per (hub, target, reporter) — re-flagging is idempotent.
+  unique('uq_hub_flags_open').on(t.hubId, t.targetType, t.targetId, t.flaggedById),
+]);
+
 /** RSA keypairs for hub Group actors (separate from user keypairs) */
 export const hubActorKeypairs = pgTable('hub_actor_keypairs', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -358,6 +388,8 @@ export type NewHubBanRow = typeof hubBans.$inferInsert;
 export type HubInviteRow = typeof hubInvites.$inferSelect;
 export type NewHubInviteRow = typeof hubInvites.$inferInsert;
 export type HubShareRow = typeof hubShares.$inferSelect;
+export type HubFlagRow = typeof hubFlags.$inferSelect;
+export type NewHubFlagRow = typeof hubFlags.$inferInsert;
 export type NewHubShareRow = typeof hubShares.$inferInsert;
 export type HubActorKeypairRow = typeof hubActorKeypairs.$inferSelect;
 export type NewHubActorKeypairRow = typeof hubActorKeypairs.$inferInsert;

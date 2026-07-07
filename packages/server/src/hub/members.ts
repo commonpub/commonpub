@@ -553,3 +553,69 @@ export async function kickMember(
 
   return { kicked: true };
 }
+
+/**
+ * Transfer hub ownership to another active member. Owner-only. Atomic: the
+ * target becomes `owner` and the former owner is demoted to `admin` (kept as a
+ * manager, not stranded), preserving the exactly-one-owner invariant. Bypasses
+ * `changeRole`'s "cannot promote to owner" guard by being a dedicated,
+ * owner-gated path. Both member rows are locked FOR UPDATE to serialize
+ * concurrent transfers.
+ */
+export async function transferOwnership(
+  db: DB,
+  actorId: string,
+  hubId: string,
+  targetUserId: string,
+): Promise<{ transferred: boolean; error?: string }> {
+  if (actorId === targetUserId) {
+    return { transferred: false, error: 'You already own this hub' };
+  }
+
+  const result = await db.transaction(async (tx) => {
+    const [actor] = await tx
+      .select({ role: hubMembers.role })
+      .from(hubMembers)
+      .where(and(eq(hubMembers.hubId, hubId), eq(hubMembers.userId, actorId)))
+      .for('update')
+      .limit(1);
+    if (!actor || actor.role !== 'owner') {
+      return { transferred: false, error: 'Only the owner can transfer ownership' } as const;
+    }
+
+    const [target] = await tx
+      .select({ role: hubMembers.role })
+      .from(hubMembers)
+      .where(and(
+        eq(hubMembers.hubId, hubId),
+        eq(hubMembers.userId, targetUserId),
+        eq(hubMembers.status, 'active'),
+      ))
+      .for('update')
+      .limit(1);
+    if (!target) {
+      return { transferred: false, error: 'Target is not an active member of this hub' } as const;
+    }
+
+    await tx.update(hubMembers).set({ role: 'owner' })
+      .where(and(eq(hubMembers.hubId, hubId), eq(hubMembers.userId, targetUserId)));
+    await tx.update(hubMembers).set({ role: 'admin' })
+      .where(and(eq(hubMembers.hubId, hubId), eq(hubMembers.userId, actorId)));
+
+    return { transferred: true } as const;
+  });
+
+  if (result.transferred) {
+    try {
+      const [hub] = await db.select({ name: hubs.name, slug: hubs.slug }).from(hubs).where(eq(hubs.id, hubId)).limit(1);
+      await createNotification(db, {
+        userId: targetUserId, type: 'hub',
+        title: 'You are now the owner',
+        message: `You were made the owner of ${hub?.name ?? 'a hub'}`,
+        link: hub ? `/hubs/${hub.slug}` : undefined, actorId,
+      });
+    } catch { /* non-critical */ }
+  }
+
+  return result;
+}

@@ -7,11 +7,45 @@ const toast = useToast();
 
 import type { Serialized, HubDetail } from '@commonpub/server';
 
-const { data: hub } = useLazyFetch<Serialized<HubDetail>>(() => `/api/hubs/${slug.value}`);
+const { data: hub, refresh: refreshHub } = useLazyFetch<Serialized<HubDetail>>(() => `/api/hubs/${slug.value}`);
+const { hubGovernance } = useFeatures();
 
 useSeoMeta({
   title: () => `Settings, ${hub.value?.name ?? 'Hub'}, ${useSiteName()}`,
 });
+
+// --- Ownership transfer (owner-only, hub governance) ---
+const isOwner = computed(() => hub.value?.currentUserRole === 'owner');
+const { data: membersData, refresh: refreshMembers } = useLazyFetch<{ items: { userId: string; role: string; user: { username: string; displayName: string | null } }[] }>(
+  () => `/api/hubs/${slug.value}/members`,
+  { immediate: false },
+);
+watch([isOwner, hubGovernance], ([owner, gov]) => {
+  if (owner && gov && !membersData.value) refreshMembers();
+}, { immediate: true });
+const transferTo = ref('');
+const transferring = ref(false);
+const transferCandidates = computed(() =>
+  (membersData.value?.items ?? []).filter((m) => m.role !== 'owner'),
+);
+
+async function transferOwnership(): Promise<void> {
+  const target = transferCandidates.value.find((m) => m.userId === transferTo.value);
+  if (!target) return;
+  const label = target.user.displayName || target.user.username;
+  if (!confirm(`Make @${target.user.username} the owner of this hub? You will become an admin. This cannot be undone by you.`)) return;
+  transferring.value = true;
+  try {
+    await $fetch(`/api/hubs/${slug.value}/transfer-ownership`, { method: 'POST', body: { userId: transferTo.value } });
+    toast.success(`Ownership transferred to ${label}`);
+    transferTo.value = '';
+    await refreshHub();
+  } catch (err: unknown) {
+    toast.error(extractError(err));
+  } finally {
+    transferring.value = false;
+  }
+}
 
 const form = reactive({
   name: '',
@@ -43,7 +77,10 @@ async function handleSave(): Promise<void> {
   saving.value = true;
 
   try {
-    await $fetch(`/api/hubs/${slug.value}`, {
+    // Plain-string URL forces the generic $fetch overload (the typed hub route
+    // narrows method to GET, rejecting PUT).
+    const hubUrl: string = `/api/hubs/${slug.value}`;
+    await $fetch(hubUrl, {
       method: 'PUT',
       body: {
         name: form.name,
@@ -156,6 +193,24 @@ async function handleSave(): Promise<void> {
         <NuxtLink :to="`/hubs/${slug}`" class="cpub-btn">Cancel</NuxtLink>
       </div>
     </form>
+
+    <section v-if="hubGovernance && isOwner" class="cpub-danger-zone">
+      <h2 class="cpub-danger-title">Transfer ownership</h2>
+      <p class="cpub-danger-desc">
+        Hand ownership of this hub to another member. You become an admin. This cannot be undone by you.
+      </p>
+      <div class="cpub-transfer-row">
+        <select v-model="transferTo" class="cpub-field-input" aria-label="New owner">
+          <option value="">Select a member...</option>
+          <option v-for="m in transferCandidates" :key="m.userId" :value="m.userId">
+            {{ m.user.displayName || m.user.username }} (@{{ m.user.username }})
+          </option>
+        </select>
+        <button class="cpub-btn cpub-btn-danger" :disabled="!transferTo || transferring" @click="transferOwnership">
+          {{ transferring ? 'Transferring...' : 'Transfer' }}
+        </button>
+      </div>
+    </section>
   </div>
 
   <div v-else class="cpub-empty-state" style="padding: 64px 24px">
@@ -246,6 +301,17 @@ async function handleSave(): Promise<void> {
 }
 
 select.cpub-field-input { cursor: pointer; }
+
+.cpub-danger-zone {
+  margin-top: 40px;
+  padding: 20px;
+  border: var(--border-width-default) solid var(--red);
+  background: var(--surface);
+}
+.cpub-danger-title { font-size: 14px; font-weight: 700; color: var(--red-text); margin-bottom: 4px; }
+.cpub-danger-desc { font-size: 12px; color: var(--text-dim); margin-bottom: 12px; max-width: 52ch; }
+.cpub-transfer-row { display: flex; gap: 10px; align-items: center; }
+.cpub-transfer-row .cpub-field-input { flex: 1; }
 
 @media (max-width: 640px) {
   .cpub-hub-settings { padding: 16px; }

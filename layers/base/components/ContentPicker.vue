@@ -20,6 +20,9 @@ const query = computed(() => ({
   limit: 50,
 }));
 
+// @ts-ignore TS2589: typed-route manifest depth (see codebase-wide suppressions,
+// e.g. CommentSection/useContentFeed) — grows past TS's instantiation limit as
+// the route count increases. Runtime is fine.
 const { data, pending, refresh: refreshContent } = useLazyFetch('/api/content', {
   query,
   watch: [query],

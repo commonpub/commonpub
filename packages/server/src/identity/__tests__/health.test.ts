@@ -24,6 +24,7 @@ function makeConfig(idOverrides: Partial<CommonPubConfig['features']['identity']
       actAsRegistry: false, announceToRegistry: false,
       publicApiMetricsFederation: false,
       referralLinks: false,
+      hubGovernance: false,
       identity: {
         linkRemoteAccounts: false,
         signInWithRemote: false,

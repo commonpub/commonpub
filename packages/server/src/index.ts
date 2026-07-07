@@ -32,6 +32,7 @@ export type {
   EnrollmentItem,
   CertificateItem,
 } from './types.js';
+export type { HubFlagItem } from './hub/index.js';
 
 // Re-export input types from schema (single source of truth)
 export type {
@@ -148,6 +149,10 @@ export {
   listRemoteMembers,
   changeRole,
   kickMember,
+  transferOwnership,
+  createHubFlag,
+  listHubFlags,
+  resolveHubFlag,
   createPost,
   editPost,
   listPosts,

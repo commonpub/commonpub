@@ -94,6 +94,33 @@ describe('utils', () => {
       expect(hasPermission('member', 'banUser')).toBe(false);
       expect(hasPermission('member', 'deletePost')).toBe(false);
     });
+
+    it('grants steward EXACTLY discussion-moderation + flagging', () => {
+      expect(hasPermission('steward', 'deletePost')).toBe(true);
+      expect(hasPermission('steward', 'pinPost')).toBe(true);
+      expect(hasPermission('steward', 'lockPost')).toBe(true);
+      expect(hasPermission('steward', 'flagContent')).toBe(true);
+      expect(hasPermission('steward', 'flagMember')).toBe(true);
+    });
+
+    it('DENIES steward every destructive / management permission (whitelist, no numeric leak)', () => {
+      // kickMember/banUser share numeric level 2 with deletePost — the authoritative
+      // whitelist must still deny them for steward.
+      expect(hasPermission('steward', 'kickMember')).toBe(false);
+      expect(hasPermission('steward', 'banUser')).toBe(false);
+      expect(hasPermission('steward', 'manageMembers')).toBe(false);
+      expect(hasPermission('steward', 'manageResources')).toBe(false);
+      expect(hasPermission('steward', 'editHub')).toBe(false);
+      expect(hasPermission('steward', 'reviewFlags')).toBe(false);
+    });
+
+    it('still lets moderator/admin flag + review (unchanged numeric roles)', () => {
+      expect(hasPermission('moderator', 'flagContent')).toBe(true);
+      expect(hasPermission('moderator', 'flagMember')).toBe(true);
+      expect(hasPermission('moderator', 'reviewFlags')).toBe(false);
+      expect(hasPermission('admin', 'reviewFlags')).toBe(true);
+      expect(hasPermission('owner', 'reviewFlags')).toBe(true);
+    });
   });
 
   describe('canManageRole', () => {

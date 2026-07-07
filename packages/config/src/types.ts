@@ -124,6 +124,12 @@ export interface FeatureFlags {
    * signup). Default OFF. Operator policy lives in `config.referral`.
    */
   referralLinks: boolean;
+  /**
+   * Hub governance (session 230): owner-to-member ownership transfer, the
+   * Steward role (discussion moderation + flag projects/members for owner review,
+   * no destructive powers), and self-unlink of shared projects. Default OFF.
+   */
+  hubGovernance: boolean;
 }
 
 export interface IdentityFeatures {
