@@ -12,6 +12,21 @@
 
 ## TL;DR — where things stand
 
+**Session 230 (2026-07-07) — SHIPPED + ROLLED to all 3.** Three features:
+(1) **per-instance SEO branding** (fixes "CommonPub" in unfurls — `og:site_name` + branded titles now
+come from `instance_settings['instance.name']` → config, runtime-editable, via a `seo-brand` plugin
+that survives consumer app.vue overrides); (2) **featured hub** (`hubs.featuredId` instance-setting +
+admin picker → full-width `HubHero` atop `/hubs`, flag `featuredHub`); (3) **hub governance** (flag
+`hubGovernance`): owner **transfer-ownership** (atomic), **Steward** role (authoritative capability
+whitelist — moderates discussions + flags, never kick/ban), **`hub_flags`** review queue, and
+**self-unlink** of shared projects. Released **schema 0.56.0 / config 0.30.0 / server 2.103.0 /
+test-utils 0.5.10 / layer 0.95.0**, **migration 0039** (hub_flags + steward enum). Both new flags
+default **OFF** (enable via `/admin/features`). Full suites green (5 pre-existing email-outbox PGlite
+flakes aside); browser-verified end-to-end. Two bugs caught in the browser pass + fixed pre-release
+(picker `limit=200`>max→400; unlabeled admin flags). Detail: `docs/sessions/230-*.md`. Follow-ups: two
+F2 UI-visibility slices (steward post controls + share-card unlink button — backends done/enforced),
+CLI re-pin.
+
 **Session 216 (2026-06-23) — `contests` branch MERGED to main + LIVE on commonpub.io ONLY**
 (merge commit `00139353`, deploy run `28019122283` ✅). Ships 108 commits = the **monolith-splits backlog**
 (sessions 205-210) + the **contest elevation** initiative (211-216). Migrations **0028-0031** applied;
