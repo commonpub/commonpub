@@ -1,6 +1,8 @@
 // Hub CRUD
 export {
   listHubs,
+  getFeaturedHub,
+  FEATURED_HUB_SETTING_KEY,
   getHubBySlug,
   createHub,
   updateHub,

@@ -124,6 +124,12 @@ export interface FeatureFlags {
    * signup). Default OFF. Operator policy lives in `config.referral`.
    */
   referralLinks: boolean;
+  /**
+   * Feature one operator-chosen hub as a full-width hero atop the hubs listing
+   * (session 230). The chosen hub id lives in instance_settings['hubs.featuredId'];
+   * this flag gates the hero render + the admin picker. Default OFF.
+   */
+  featuredHub: boolean;
 }
 
 export interface IdentityFeatures {

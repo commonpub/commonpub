@@ -5,6 +5,29 @@ useSeoMeta({ title: `Settings, Admin, ${useSiteName()}` });
 
 const { data: settings, pending, refresh } = await useFetch<Record<string, string>>('/api/admin/settings');
 const toast = useToast();
+const { featuredHub: featuredHubEnabled } = useFeatures();
+
+// Featured-hub picker (gated by the featuredHub feature). The chosen hub id is
+// stored in instance_settings['hubs.featuredId']; '' clears it.
+const FEATURED_HUB_KEY = 'hubs.featuredId';
+const { data: hubsForPicker } = await useFetch<{ items: Array<{ id: string; name: string; source?: string }> }>(
+  '/api/hubs',
+  { query: { limit: 200 } },
+);
+const localHubs = computed(() =>
+  (hubsForPicker.value?.items ?? []).filter((h: { source?: string }) => h.source !== 'federated'),
+);
+const featuredHubId = ref('');
+watchEffect(() => {
+  featuredHubId.value = (settings.value as Record<string, string> | null)?.[FEATURED_HUB_KEY] ?? '';
+});
+async function saveFeaturedHub(): Promise<void> {
+  await saveSetting(FEATURED_HUB_KEY, featuredHubId.value);
+  toast.success(featuredHubId.value ? 'Featured hub set' : 'Featured hub cleared');
+}
+
+// Keys with a dedicated UI control — hidden from the raw "Custom Settings" list.
+const hiddenKeys = [FEATURED_HUB_KEY];
 
 const saving = ref(false);
 const editKey = ref('');
@@ -107,10 +130,24 @@ async function backfillCdn(dryRun: boolean): Promise<void> {
       </div>
     </div>
 
+    <section v-if="featuredHubEnabled" class="settings-featured">
+      <h2 class="settings-section-title">Featured Hub</h2>
+      <p class="settings-desc">
+        Show one hub as a full-width hero atop the Hubs page. Only local, public hubs can be featured.
+      </p>
+      <div class="settings-featured-row">
+        <select v-model="featuredHubId" class="settings-input settings-select" aria-label="Featured hub">
+          <option value="">None</option>
+          <option v-for="h in localHubs" :key="h.id" :value="h.id">{{ h.name }}</option>
+        </select>
+        <button class="cpub-btn cpub-btn-sm cpub-btn-primary" :disabled="saving" @click="saveFeaturedHub">Save</button>
+      </div>
+    </section>
+
     <div class="settings-custom">
       <h2 class="settings-section-title">Custom Settings</h2>
       <div v-for="(value, key) in (settings as Record<string, string>)" :key="key" class="settings-row">
-        <template v-if="!knownSettings.some(k => k.key === key)">
+        <template v-if="!knownSettings.some(k => k.key === key) && !hiddenKeys.includes(key as string)">
           <div class="settings-label">
             <span class="settings-key-mono">{{ key }}</span>
           </div>
@@ -189,6 +226,15 @@ async function backfillCdn(dryRun: boolean): Promise<void> {
 .settings-value-col { display: flex; align-items: center; gap: var(--space-2); flex-shrink: 0; }
 .settings-value { font-size: var(--text-sm); font-family: var(--font-mono); color: var(--text-dim); }
 .settings-input { font-size: var(--text-sm); padding: 4px 8px; border: var(--border-width-default) solid var(--border); background: var(--surface2); color: var(--text); font-family: var(--font-mono); min-width: 160px; }
+
+.settings-featured {
+  margin-top: var(--space-6);
+  border: var(--border-width-default) solid var(--border);
+  background: var(--surface);
+  padding: var(--space-4);
+}
+.settings-featured-row { display: flex; align-items: center; gap: var(--space-2); margin-top: var(--space-3); }
+.settings-select { min-width: 220px; font-family: inherit; }
 
 .settings-custom { margin-top: var(--space-6); }
 .settings-section-title { font-size: var(--text-md); font-weight: var(--font-weight-semibold); margin-bottom: var(--space-3); }

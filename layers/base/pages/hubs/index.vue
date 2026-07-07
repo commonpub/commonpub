@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { HubViewModel } from '../../types/hub';
+
 useSeoMeta({
   title: `Hubs, ${useSiteName()}`,
   description: 'Browse and join maker communities.',
@@ -6,8 +8,36 @@ useSeoMeta({
 
 const { data, pending, error, refresh } = await useFetch('/api/hubs');
 const { isAuthenticated } = useAuth();
+const { featuredHub: featuredEnabled } = useFeatures();
 
-const hubs = computed(() => data.value?.items ?? []);
+// The operator-chosen featured hub, rendered as a full-width hero above the
+// grid. The endpoint returns null when the featuredHub feature is off.
+const { data: featuredData } = await useFetch('/api/hubs/featured');
+const featured = computed(() => (featuredEnabled.value ? featuredData.value?.featured ?? null : null));
+
+// Exclude the featured hub from the grid so it isn't rendered twice.
+const hubs = computed(() =>
+  (data.value?.items ?? []).filter((h: { id: string }) => h.id !== featured.value?.id),
+);
+
+const featuredVM = computed<HubViewModel | null>(() => {
+  const f = featured.value;
+  if (!f) return null;
+  return {
+    name: f.name,
+    description: f.description,
+    iconUrl: f.iconUrl,
+    bannerUrl: f.bannerUrl,
+    hubType: (f.hubType as 'community' | 'product' | 'company') ?? 'community',
+    memberCount: f.memberCount ?? 0,
+    postCount: f.postCount ?? 0,
+    foundedLabel: new Date(f.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+    isOfficial: f.isOfficial ?? false,
+    joinPolicy: f.joinPolicy ?? null,
+    categories: null,
+    website: null,
+  };
+});
 
 function isFederated(hub: Record<string, unknown>): boolean {
   return (hub as { source?: string }).source === 'federated';
@@ -30,6 +60,19 @@ function hubLink(hub: Record<string, unknown>): string {
         <i class="fa-solid fa-plus"></i> Create Hub
       </NuxtLink>
     </div>
+
+    <NuxtLink
+      v-if="featuredVM && featured"
+      :to="`/hubs/${featured.slug}`"
+      class="cpub-hub-featured"
+      :aria-label="`Featured hub: ${featured.name}`"
+    >
+      <HubHero :hub="featuredVM">
+        <template #badges>
+          <span class="cpub-hub-featured-badge"><i class="fa-solid fa-star"></i> Featured</span>
+        </template>
+      </HubHero>
+    </NuxtLink>
 
     <div v-if="pending" class="cpub-empty-state"><p><i class="fa-solid fa-circle-notch fa-spin"></i> Loading hubs...</p></div>
     <div v-else-if="error" class="cpub-fetch-error">
@@ -66,7 +109,7 @@ function hubLink(hub: Record<string, unknown>): string {
         </div>
       </NuxtLink>
     </div>
-    <div v-else class="cpub-empty-state">
+    <div v-else-if="!featured" class="cpub-empty-state">
       <div class="cpub-empty-state-icon"><i class="fa-solid fa-users"></i></div>
       <p class="cpub-empty-state-title">No hubs yet</p>
       <p class="cpub-empty-state-desc">Be the first to create a community!</p>
@@ -94,6 +137,35 @@ function hubLink(hub: Record<string, unknown>): string {
 
 .cpub-hubs-title { font-size: 22px; font-weight: 700; }
 .cpub-hubs-desc { font-size: 13px; color: var(--text-dim); margin-top: 4px; }
+
+/* Featured hub hero — full-width bordered band above the grid, aligned to the
+   same 960px container so its edges line up with the tiles below. */
+.cpub-hub-featured {
+  display: block;
+  border: var(--border-width-default) solid var(--border);
+  margin-bottom: 28px;
+  text-decoration: none;
+  color: inherit;
+  overflow: hidden;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.cpub-hub-featured:hover {
+  border-color: var(--accent);
+  box-shadow: var(--shadow-md);
+}
+.cpub-hub-featured-badge {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+  background: var(--accent-bg);
+  border: var(--border-width-default) solid var(--accent-border);
+  padding: 3px 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
 
 .cpub-hubs-grid {
   display: grid;
