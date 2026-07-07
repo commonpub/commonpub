@@ -38,6 +38,8 @@ const flagMeta: Record<string, { label: string; description: string; icon: strin
   emailNotifications: { label: 'Email Notifications', description: 'Email digests and instant notifications', icon: 'fa-solid fa-envelope' },
   adminBroadcast: { label: 'Admin Broadcast', description: 'Send announcement emails to users from the admin panel', icon: 'fa-solid fa-bullhorn' },
   requireTermsAcceptance: { label: 'Require Terms Re-acceptance', description: 'Make users re-accept the Terms after you bump the terms version', icon: 'fa-solid fa-file-signature' },
+  featuredHub: { label: 'Featured Hub', description: 'Show one hub as a full-width hero atop the Hubs page (pick it in Settings)', icon: 'fa-solid fa-star' },
+  hubGovernance: { label: 'Hub Governance', description: 'Transfer ownership, the Steward role + flag queue, and self-unlink of shared projects', icon: 'fa-solid fa-people-roof' },
 };
 
 const flagKeys = computed(() => data.value ? Object.keys(data.value.flags) : []);
