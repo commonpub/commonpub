@@ -28,9 +28,11 @@ instance admins (`admin.access`) can edit ANY community's settings (banner etc.)
 403. Both new flags default **OFF** (enable via `/admin/features`; deveco has them ON). Full suites
 green (5 pre-existing email-outbox PGlite flakes aside); browser + release audit verified. Bugs caught
 + fixed: picker `limit=200`>max→400; unlabeled admin flags; deveco CI TS2322 (typed-route manifest
-collapse in deveco's settings.vue fork). Follow-ups (see handoff): two F2 UI-visibility slices (steward
-post controls + share-card unlink — backends done/enforced), CLI re-pin (^0.56/^0.30/^2.104/^0.96),
-deveco fork-shadowing.
+collapse in deveco's settings.vue fork). **Follow-up wrap-up (server 2.105.0 / layer 0.97.0):** the two
+F2 UI slices are DONE (steward + admin discussion moderation controls; unlink button on share posts,
+which also fixed `unshareContent` leaving an orphan share post); platform-admin **root perms** extended
+across hub management (posts/members/delete/flags/unshare, owner invariant preserved); CLI re-pinned
+(0.5.21); stale branches pruned. Remaining: deveco fork-shadowing (realign or port per feature).
 
 **Session 216 (2026-06-23) — `contests` branch MERGED to main + LIVE on commonpub.io ONLY**
 (merge commit `00139353`, deploy run `28019122283` ✅). Ships 108 commits = the **monolith-splits backlog**
@@ -403,17 +405,17 @@ a minute (`curl deveco.io/api/content?limit=5`, today's timestamp).
 
 ## 📌 Reference
 
-### Published versions (verified 2026-07-07 — session 230 admin community-override)
+### Published versions (verified 2026-07-07 — session 230 hub root perms + steward/unlink UI)
 | Package | Version | | Package | Version |
 |---|---|---|---|---|
 | @commonpub/schema | **0.56.0** | | @commonpub/infra | 0.13.0 |
 | @commonpub/config | **0.30.0** | | @commonpub/editor | 0.9.0 |
 | @commonpub/protocol | 0.14.0 | | @commonpub/explainer | 0.8.0 |
 | @commonpub/auth | 0.9.0 | | @commonpub/docs | 0.6.3 |
-| @commonpub/server | **2.104.0** | | @commonpub/learning | 0.5.2 |
+| @commonpub/server | **2.105.0** | | @commonpub/learning | 0.5.2 |
 | @commonpub/ui | 0.13.1 | | @commonpub/test-utils | **0.5.10** |
-| @commonpub/layer | **0.96.0** | | @commonpub/theme-studio | 0.6.1 |
-| create-commonpub (crates.io) | **0.5.20** — **STALE** (pins ^0.54/^0.26/^2.100.1/^0.89.1; re-pin to ^0.56/^0.30/^2.104/^0.96) | | | |
+| @commonpub/layer | **0.97.0** | | @commonpub/theme-studio | 0.6.1 |
+| create-commonpub (crates.io) | **0.5.21** (pins ^0.56/^0.30/^2.105/^0.97 — current) | | | |
 
 **Session 227 GDPR Phase 2 enforcement + CLI re-pin (2026-06-26) — SHIPPED + ROLLED to all 3.**
 Adversarial review of GDPR Phase 2 (no P0; auth/CSRF/IDOR/spoofing/injection clean). Added a

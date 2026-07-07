@@ -3,11 +3,30 @@
 Date: 2026-07-06/07. Everything below is SHIPPED, published, deployed, and audited live on all three
 instances (commonpub.io / deveco.io / heatsynclabs.io, all health 200).
 
-**Current live stack: schema 0.56.0 · config 0.30.0 · server 2.104.0 · test-utils 0.5.10 · layer 0.96.0.**
+**Current live stack: schema 0.56.0 · config 0.30.0 · server 2.105.0 · test-utils 0.5.10 · layer 0.97.0.**
 Migration **0039_striped_loa** (hub_flags + steward enum) applied on all 3. Latest migration is 0039.
-Consumer pins (deveco + heatsync): config ^0.30.0 / schema ^0.56.0 / server ^2.104.0 / layer ^0.96.0.
+Consumer pins (deveco + heatsync): config ^0.30.0 / schema ^0.56.0 / server ^2.105.0 / layer ^0.97.0.
+create-commonpub CLI **0.5.21** (re-pinned to ^0.56/^0.30/^2.105/^0.97 — current).
 
 Auth still 0.9.0 · ui 0.13.1 · protocol 0.14.0 (unchanged this session).
+
+**Follow-up wrap-up (2026-07-07, after the initial handoff — server 2.105.0 / layer 0.97.0):**
+Completed the two F2 UI-visibility slices + extended platform-admin root perms across hub management.
+- **Steward + platform-admin discussion moderation**: the post detail page's `isMod` now includes
+  `steward` + `admin.access`, so stewards see pin/lock/delete (server already authorized them) and
+  platform admins can moderate any community's posts.
+- **Unlink button on share posts** (HubFeed): the sharer, a hub owner/admin, OR a platform admin can
+  unlink a shared project; it's removed from the feed. Added `contentId` + `authorId` to the post view
+  model. **Fixed a latent bug**: `unshareContent` deleted only the `hub_shares` row, leaving the share
+  POST orphaned in the feed — it now also deletes the post + decrements `post_count`.
+- **Platform-admin root perms** extended (via `{ asPlatformAdmin }` + route `hasPermission(event,
+  'admin.access')`) to `deletePost`/`togglePinPost`/`toggleLockPost`/`unshareContent`/`deleteHub`/
+  `changeRole`/`kickMember`/`listHubFlags`/`resolveHubFlag`. Member management preserves the OWNER
+  invariant (admins can't change/kick the owner; owner reassigns only via `transferOwnership`). Hub
+  detail shows Members/Invites/Settings to admins; members page + moderation queue treat admins as
+  managers. Tests: `hub-root-admin.integration.test.ts` (5 cases). Live-verified: admin post controls
+  on a non-member hub, unlink + full removal, admin management links. CLI re-pinned (0.5.21). Stale
+  local branches pruned.
 
 ## Flag state per instance (verified live via /api/features)
 | Flag | commonpub.io | deveco.io | heatsynclabs.io |
