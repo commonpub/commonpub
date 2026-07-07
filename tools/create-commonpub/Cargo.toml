@@ -1,6 +1,6 @@
 [package]
 name = "create-commonpub"
-version = "0.5.20"
+version = "0.5.21"
 edition = "2021"
 description = "CLI tool for scaffolding new CommonPub instances"
 license = "MIT"
