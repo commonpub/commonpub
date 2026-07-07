@@ -22,7 +22,16 @@ export {
   type RemoteHubMember,
   changeRole,
   kickMember,
+  transferOwnership,
 } from './members.js';
+
+// Hub-scoped moderation flags (steward flagging + owner/admin review queue)
+export {
+  createHubFlag,
+  listHubFlags,
+  resolveHubFlag,
+  type HubFlagItem,
+} from './flags.js';
 
 // Posts, replies, likes, sharing
 export {

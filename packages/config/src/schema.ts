@@ -94,6 +94,10 @@ export const featureFlagsSchema = z.object({
   // instance_settings['hubs.featuredId']; this flag gates the hero + the admin
   // picker. Default OFF.
   featuredHub: z.boolean().default(false),
+  // Hub governance (session 230): owner transfers ownership, owner grants the
+  // Steward role (moderate discussions + flag projects/members, no destructive
+  // powers), and members unlink their own shared projects. Default OFF.
+  hubGovernance: z.boolean().default(false),
 });
 
 export const authConfigSchema = z.object({

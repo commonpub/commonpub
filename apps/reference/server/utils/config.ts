@@ -45,6 +45,7 @@ const ENV_FLAG_MAP: Record<string, string> = {
   publicApiMetricsFederation: 'FEATURE_PUBLIC_API_METRICS_FEDERATION',
   referralLinks: 'FEATURE_REFERRAL_LINKS',
   featuredHub: 'FEATURE_FEATURED_HUB',
+  hubGovernance: 'FEATURE_HUB_GOVERNANCE',
 };
 
 /** Base config (config.ts + env overrides) — computed once at startup */

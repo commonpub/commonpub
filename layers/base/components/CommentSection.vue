@@ -43,6 +43,12 @@ const queryParams = computed(() =>
 // type instantiation in some consumer apps (notably shell). Runtime is fine.
 const { data: comments, refresh } = await useFetch<Comment[]>(commentUrl, { query: queryParams, lazy: true });
 
+// Loose $fetch for mutations. The typed-route overload resolves the whole
+// server route manifest per call, tripping TS2589 ("excessively deep") as the
+// route count grows (this file already @ts-ignores it for useFetch above).
+// These mutations don't need the typed response.
+const apiMutate = $fetch as unknown as (url: string, opts?: { method?: string; body?: unknown }) => Promise<unknown>;
+
 const allCommentsLoaded = ref(false);
 const hasMore = computed(() => !isFederated.value && !allCommentsLoaded.value && (comments.value?.length ?? 0) >= commentLimit);
 const loadingMore = ref(false);
@@ -93,7 +99,7 @@ async function submitComment(): Promise<void> {
   try {
     if (props.federatedContentId) {
       // Federate reply to remote content
-      await $fetch('/api/federation/reply', {
+      await apiMutate('/api/federation/reply', {
         method: 'POST',
         body: {
           federatedContentId: props.federatedContentId,
@@ -101,7 +107,7 @@ async function submitComment(): Promise<void> {
         },
       });
     } else {
-      await $fetch('/api/social/comments', {
+      await apiMutate('/api/social/comments', {
         method: 'POST',
         body: {
           targetType: props.targetType,
@@ -124,7 +130,7 @@ async function submitComment(): Promise<void> {
 }
 
 async function deleteComment(id: string): Promise<void> {
-  await $fetch(`/api/social/comments/${id}`, { method: 'DELETE' });
+  await apiMutate(`/api/social/comments/${id}`, { method: 'DELETE' });
   await refresh();
 }
 </script>

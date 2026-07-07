@@ -85,8 +85,13 @@ export const hubRoleEnum = pgEnum('hub_role', [
   'owner',
   'admin',
   'moderator',
+  'steward',
   'member',
 ]);
+/** Hub-scoped flag targets: a shared project or a hub member. */
+export const hubFlagTargetTypeEnum = pgEnum('hub_flag_target_type', ['project', 'member']);
+/** Hub flag review lifecycle. */
+export const hubFlagStatusEnum = pgEnum('hub_flag_status', ['open', 'dismissed', 'actioned']);
 export const hubJoinPolicyEnum = pgEnum('hub_join_policy', [
   'open',
   'approval',

@@ -274,6 +274,13 @@
       "when": 1782503848289,
       "tag": "0038_milky_red_ghost",
       "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1783381343892,
+      "tag": "0039_striped_loa",
+      "breakpoints": true
     }
   ]
 }

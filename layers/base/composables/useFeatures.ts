@@ -60,6 +60,8 @@ export interface FeatureFlags {
   referralLinks: boolean;
   /** Feature one hub as a full-width hero atop the hubs listing. Default OFF. */
   featuredHub: boolean;
+  /** Hub governance: transfer ownership, Steward role + flag queue, self-unlink. Default OFF. */
+  hubGovernance: boolean;
   /**
    * Cross-instance delegated authorization. All sub-flags default false.
    * Mirrors `@commonpub/config`'s `IdentityFeatures`. Phase 1b+ — see
@@ -88,6 +90,7 @@ export const DEFAULT_FLAGS: FeatureFlags = {
   publicApiMetricsFederation: false,
   referralLinks: false,
   featuredHub: false,
+  hubGovernance: false,
   identity: {
     linkRemoteAccounts: false,
     signInWithRemote: false,
@@ -197,6 +200,7 @@ export function useFeatures() {
     rbac: computed(() => flags.value.rbac),
     referralLinks: computed(() => flags.value.referralLinks),
     featuredHub: computed(() => flags.value.featuredHub),
+    hubGovernance: computed(() => flags.value.hubGovernance),
     identity: computed(() => flags.value.identity),
   };
 }
