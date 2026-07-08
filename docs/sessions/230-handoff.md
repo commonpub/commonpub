@@ -109,9 +109,22 @@ Both flags default OFF; deveco's operator enabled them. Enable elsewhere via `/a
    featured hero), `pages/about.vue`. Verified: deveco CI + Deploy green, health 200, routing intact
    (`/create`/`/settings` 302→login via the layer pages), login page keeps deveco branding. The 5 kept
    forks still need per-feature porting; the functional pages now auto-inherit. heatsync forks far less.
-5. **Homepage featured-hub is deveco-only.** If wanted on commonpub.io/heatsync, add a featured-hub
+5. **deveco featured-hero redesigned as a spotlight card + top-bar copy (2026-07-07, deveco `303281a`).**
+   The `/hubs` featured hero went through several iterations (banner too tall → avatar overlapped →
+   `cover` cropped the logo → `contain` left a boxed logo with gaps → blurred-backdrop still boxed) before
+   landing on the right pattern: **a wide logo-on-white cannot work in a full-bleed banner slot; a
+   *featured* item wants a spotlight, not a banner hero.** Final `.de-hub-featured` is a horizontal card —
+   large avatar/logo mark (104px framed tile) + name + `COMMUNITY` badge + 2-line description + stats +
+   `EXPLORE →`, on a subtly green-branded surface (radial glow) with a green FEATURED pill. Robust for any
+   avatar (logo or photo), reads premium, and is shorter than the old banner (also fixed "too large").
+   **Lesson: don't force a logo into a banner slot — lead with the logo mark.** Also: top announcement bar
+   copy changed **"Backed by" → "Partnered with"** EDGE AI FOUNDATION (deveco `layouts/default.vue`). Two
+   open nits: the **footer** still says "Backed by" (top bar changed, footer not); and this spotlight lives
+   in deveco's `pages/hubs/index.vue` fork — **not yet ported to the base layer** (commonpub/heatsync still
+   use the layer's original featured hero on `/hubs`).
+6. **Homepage featured-hub is deveco-only.** If wanted on commonpub.io/heatsync, add a featured-hub
    section to the base layer's homepage (currently only the layer `/hubs` page has it).
-6. **"Root perms" extension.** The platform-admin override currently covers `updateHub` (settings). The
+7. **"Root perms" extension.** The platform-admin override currently covers `updateHub` (settings). The
    same one-line `{ asPlatformAdmin }` pattern extends to `deleteHub` / member management (changeRole/
    kickMember/banUser) / moderation if broader admin control is wanted (each needs the option + a
    client affordance). Deferred pending a request.
