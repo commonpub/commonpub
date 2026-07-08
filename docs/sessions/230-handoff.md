@@ -97,10 +97,18 @@ Both flags default OFF; deveco's operator enabled them. Enable elsewhere via `/a
 3. **deveco/heatsync `ENV_FLAG_MAP`** lacks `featuredHub`/`hubGovernance` — they enable via the
    `/admin/features` DB toggle (works for any flag). Add to their `server/utils/config.ts` map only if
    env-toggle is wanted.
-4. **deveco forks heavily** (pages/hubs/index.vue, pages/index.vue, settings.vue, app.vue, layouts) —
-   these SHADOW the layer, so any new layer UI feature needs porting to deveco's forks to appear there
-   (the featured-hub port was a case in point). Option: realign deveco's forks closer to the layer so
-   they inherit future features. heatsync forks far less (uses layer for hub pages).
+4. **deveco fork realignment — DONE (2026-07-07, deveco commit `0945550`).** Reduced deveco from **9
+   shadowing forks to 5**. Deleted 4 restyled-copy forks so they inherit the layer + all current/future
+   features, styled by deveco's theme: `app.vue`, `pages/hubs/[slug]/settings.vue` (was stale — missing
+   transfer-ownership), `pages/create.vue`, `pages/hubs/create.vue`. **The distinct look is preserved
+   via the theme** — `assets/deveco-theme.css` sets `--radius: 6px`, green accent, Poppins, and inherits
+   the layer's shadows, so an unforked layer page renders fully "deveco" (proven against the hub detail
+   page, which deveco never forked). **Kept** (genuine identity, not feature-bearing copies):
+   `layouts/default.vue` (chrome + "Backed by" banner), `layouts/auth.vue` (DevEcoLogo — deleting would
+   leak CommonPub branding), `pages/index.vue` (custom homepage), `pages/hubs/index.vue` (custom grid +
+   featured hero), `pages/about.vue`. Verified: deveco CI + Deploy green, health 200, routing intact
+   (`/create`/`/settings` 302→login via the layer pages), login page keeps deveco branding. The 5 kept
+   forks still need per-feature porting; the functional pages now auto-inherit. heatsync forks far less.
 5. **Homepage featured-hub is deveco-only.** If wanted on commonpub.io/heatsync, add a featured-hub
    section to the base layer's homepage (currently only the layer `/hubs` page has it).
 6. **"Root perms" extension.** The platform-admin override currently covers `updateHub` (settings). The
