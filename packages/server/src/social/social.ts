@@ -7,9 +7,13 @@ import {
   contentItems,
   hubPosts,
   hubs,
+  hubMembers,
   users,
   federatedContent,
   remoteActors,
+  learningLessons,
+  learningModules,
+  learningPaths,
 } from '@commonpub/schema';
 import type { CommonPubConfig } from '@commonpub/config';
 import type { DB, CommentItem } from '../types.js';
@@ -180,7 +184,73 @@ export async function listComments(
   targetId: string,
   limit?: number,
   offset?: number,
+  /**
+   * The authenticated viewer's id. Comments inherit their parent's read-visibility so a
+   * non-readable parent's comments don't leak (P-1 site 18): content targets gate on the
+   * item's visibility/author; `post` targets gate on hub membership (private hubs); `lesson`
+   * targets gate on the learning path's published status. `video` has no privacy concept
+   * (author-only column, always public) so it is served.
+   */
+  requesterId?: string,
 ): Promise<CommentItem[]> {
+  // Gate content-item comment threads on the parent's visibility. If the parent is not
+  // readable by this viewer, return no comments rather than leaking them.
+  const CONTENT_TARGETS = new Set<CommentTargetType>(['project', 'article', 'blog', 'explainer']);
+  if (CONTENT_TARGETS.has(targetType)) {
+    const [parent] = await db
+      .select({
+        authorId: contentItems.authorId,
+        status: contentItems.status,
+        visibility: contentItems.visibility,
+        deletedAt: contentItems.deletedAt,
+      })
+      .from(contentItems)
+      .where(eq(contentItems.id, targetId))
+      .limit(1);
+    if (!parent) return [];
+    const readable =
+      parent.deletedAt === null &&
+      ((parent.status === 'published' && parent.visibility === 'public') ||
+        (!!requesterId && parent.authorId === requesterId));
+    if (!readable) return [];
+  }
+
+  // Hub `post` comments: a private hub's post comments are members-only. Public/unlisted
+  // hubs serve by design. (Fail-closed: the generic endpoint has no platform-admin context;
+  // admins read a private hub's threads via the hub UI, which resolves membership/admin.)
+  if (targetType === 'post') {
+    const [post] = await db
+      .select({ hubId: hubPosts.hubId, privacy: hubs.privacy })
+      .from(hubPosts)
+      .innerJoin(hubs, eq(hubPosts.hubId, hubs.id))
+      .where(eq(hubPosts.id, targetId))
+      .limit(1);
+    if (!post) return [];
+    if (post.privacy === 'private') {
+      if (!requesterId) return [];
+      const [member] = await db
+        .select({ status: hubMembers.status })
+        .from(hubMembers)
+        .where(and(eq(hubMembers.hubId, post.hubId), eq(hubMembers.userId, requesterId)))
+        .limit(1);
+      if (member?.status !== 'active') return [];
+    }
+  }
+
+  // Learning `lesson` comments: a lesson on a non-published path is author-only (mirrors
+  // getLessonBySlug / site 17). `video` has no privacy field, so it is not gated here.
+  if (targetType === 'lesson') {
+    const [row] = await db
+      .select({ status: learningPaths.status, authorId: learningPaths.authorId })
+      .from(learningLessons)
+      .innerJoin(learningModules, eq(learningLessons.moduleId, learningModules.id))
+      .innerJoin(learningPaths, eq(learningModules.pathId, learningPaths.id))
+      .where(eq(learningLessons.id, targetId))
+      .limit(1);
+    if (!row) return [];
+    if (row.status !== 'published' && row.authorId !== requesterId) return [];
+  }
+
   const { limit: safeLimit, offset: safeOffset } = normalizePagination({ limit, offset }, { limit: 20 });
 
   // Step 1: Fetch paginated root comment IDs

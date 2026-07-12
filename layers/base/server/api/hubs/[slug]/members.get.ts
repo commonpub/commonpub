@@ -10,12 +10,16 @@ const membersQuerySchema = z.object({
 export default defineEventHandler(async (event): Promise<{ items: HubMemberItem[]; total: number; remoteMembers?: RemoteHubMember[] }> => {
   const db = useDB();
   const config = useConfig();
+  const user = getOptionalUser(event);
   const { slug } = parseParams(event, { slug: 'string' });
   const query = parseQueryParams(event, membersQuerySchema);
-  const community = await getHubBySlug(db, slug);
+  const community = await getHubBySlug(db, slug, user?.id, {
+    asPlatformAdmin: hasPermission(event, 'admin.access'),
+  });
   if (!community) {
     throw createError({ statusCode: 404, statusMessage: 'Community not found' });
   }
+  requireHubReadAccess(event, community);
 
   const result = await listMembers(db, community.id, query);
 

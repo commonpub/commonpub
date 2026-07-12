@@ -42,7 +42,7 @@ export default defineEventHandler(async (event) => {
   const { slug, lessonSlug } = parseParams(event, { slug: 'string', lessonSlug: 'string' });
   const user = getOptionalUser(event);
 
-  const result = await getLessonBySlug(db, slug, lessonSlug);
+  const result = await getLessonBySlug(db, slug, lessonSlug, user?.id);
   if (!result) {
     throw createError({ statusCode: 404, statusMessage: 'Lesson not found' });
   }

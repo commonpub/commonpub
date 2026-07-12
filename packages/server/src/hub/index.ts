@@ -4,10 +4,14 @@ export {
   getFeaturedHub,
   FEATURED_HUB_SETTING_KEY,
   getHubBySlug,
+  getHubIdBySlug,
   createHub,
   updateHub,
   deleteHub,
 } from './hub.js';
+
+// Hub read-access gating (P-2 — content/hub privacy enforcement)
+export { canReadHub, REDACTED_HUB_ID } from './access.js';
 
 // Membership
 export {

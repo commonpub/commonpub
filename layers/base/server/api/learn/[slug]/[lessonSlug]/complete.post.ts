@@ -11,7 +11,9 @@ export default defineEventHandler(async (event) => {
   // truth for whether a quiz passed. Accept empty body for non-quiz lessons.
   const input = await parseBody(event, completeLessonSchema);
 
-  const result = await getLessonBySlug(db, slug, lessonSlug);
+  // Pass the learner's id: they can only complete lessons on a published path (or their
+  // own draft path if authoring). markLessonComplete separately requires an active enrollment.
+  const result = await getLessonBySlug(db, slug, lessonSlug, user.id);
   if (!result) throw createError({ statusCode: 404, statusMessage: 'Lesson not found' });
 
   try {

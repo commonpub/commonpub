@@ -1,4 +1,4 @@
-import { getHubBySlug, createHubResource } from '@commonpub/server';
+import { getHubIdBySlug, createHubResource } from '@commonpub/server';
 import { createHubResourceSchema } from '@commonpub/schema';
 
 export default defineEventHandler(async (event) => {
@@ -6,7 +6,7 @@ export default defineEventHandler(async (event) => {
   const user = requireAuth(event);
   const { slug } = parseParams(event, { slug: 'string' });
 
-  const hub = await getHubBySlug(db, slug, user.id);
+  const hub = await getHubIdBySlug(db, slug);
   if (!hub) {
     throw createError({ statusCode: 404, statusMessage: 'Hub not found' });
   }

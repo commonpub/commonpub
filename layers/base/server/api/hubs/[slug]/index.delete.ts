@@ -1,11 +1,12 @@
-import { deleteHub, getHubBySlug } from '@commonpub/server';
+import { deleteHub, getHubIdBySlug } from '@commonpub/server';
 
 export default defineEventHandler(async (event): Promise<{ success: boolean }> => {
   const user = requireAuth(event);
   const db = useDB();
   const { slug } = parseParams(event, { slug: 'string' });
 
-  const hub = await getHubBySlug(db, slug, user.id);
+  // Real hub id (no read-redaction); deleteHub runs its own auth incl. platform-admin.
+  const hub = await getHubIdBySlug(db, slug);
   if (!hub) {
     throw createError({ statusCode: 404, statusMessage: 'Hub not found' });
   }

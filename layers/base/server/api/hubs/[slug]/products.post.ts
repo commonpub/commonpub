@@ -1,4 +1,4 @@
-import { getHubBySlug, createProduct } from '@commonpub/server';
+import { getHubIdBySlug, createProduct } from '@commonpub/server';
 import type { ProductDetail } from '@commonpub/server';
 import { createProductSchema } from '@commonpub/schema';
 
@@ -7,7 +7,7 @@ export default defineEventHandler(async (event): Promise<ProductDetail> => {
   const user = requireAuth(event);
   const { slug } = parseParams(event, { slug: 'string' });
 
-  const hub = await getHubBySlug(db, slug, user.id);
+  const hub = await getHubIdBySlug(db, slug);
   if (!hub) {
     throw createError({ statusCode: 404, statusMessage: 'Hub not found' });
   }

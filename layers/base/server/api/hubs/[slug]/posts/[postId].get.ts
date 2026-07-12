@@ -5,8 +5,11 @@ export default defineEventHandler(async (event) => {
   const user = getOptionalUser(event);
   const { slug, postId } = parseParams(event, { slug: 'string', postId: 'uuid' });
 
-  const community = await getHubBySlug(db, slug);
+  const community = await getHubBySlug(db, slug, user?.id, {
+    asPlatformAdmin: hasPermission(event, 'admin.access'),
+  });
   if (!community) throw createError({ statusCode: 404, statusMessage: 'Hub not found' });
+  requireHubReadAccess(event, community);
 
   const post = await getPostById(db, postId);
   if (!post || post.hubId !== community.id) throw createError({ statusCode: 404, statusMessage: 'Post not found' });

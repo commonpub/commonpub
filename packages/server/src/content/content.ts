@@ -597,6 +597,13 @@ export async function getContentBySlug(
     return null;
   }
 
+  // Non-public (members/private) content only visible to author — mirrors the status
+  // gate above. Without this an unauthenticated request reads content the author
+  // marked "Members only"/"Only you" (P-1 leak, docs/plans/content-privacy-enforcement.md).
+  if (item.visibility !== 'public' && item.authorId !== requesterId) {
+    return null;
+  }
+
   // Fetch tags, author stats, and related content in parallel
   const [itemTags, followerCountResult, articleCountResult, totalViewsResult, relatedRows] = await Promise.all([
     db

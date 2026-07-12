@@ -41,6 +41,10 @@ export default defineEventHandler(async (event) => {
     .where(and(
       eq(contentItems.slug, slug),
       eq(contentItems.status, 'published'),
+      // Only PUBLIC content is dereferenceable / redirectable here — matches the
+      // content-ap.ts middleware twin. Without this a members-only/private item leaks
+      // its full body over AP and its canonical URL over the browser redirect (P-1 site 2).
+      eq(contentItems.visibility, 'public'),
       isNull(contentItems.deletedAt),
     ))
     .limit(1);

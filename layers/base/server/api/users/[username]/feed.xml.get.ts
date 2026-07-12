@@ -24,6 +24,8 @@ export default defineEventHandler(async (event) => {
   const { items } = await listContent(db, {
     status: 'published',
     authorId: user.id,
+    // Public per-user RSS: never leak the author members-only/private items (P-1 site 4).
+    visibility: 'public',
     sort: 'recent',
     limit: 50,
   });

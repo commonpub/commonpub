@@ -18,6 +18,8 @@ export default defineEventHandler(async (event) => {
 
   const { items } = await listContent(db, {
     status: 'published',
+    // Public RSS: never leak members-only/private items (P-1 site 3).
+    visibility: 'public',
     sort: 'recent',
     limit: 50,
   });

@@ -8,14 +8,17 @@ const galleryQuerySchema = z.object({
 
 export default defineEventHandler(async (event) => {
   const db = useDB();
+  const user = getOptionalUser(event);
   const { slug } = parseParams(event, { slug: 'string' });
   const query = parseQueryParams(event, galleryQuerySchema);
 
-
-  const hub = await getHubBySlug(db, slug);
+  const hub = await getHubBySlug(db, slug, user?.id, {
+    asPlatformAdmin: hasPermission(event, 'admin.access'),
+  });
   if (!hub) {
     throw createError({ statusCode: 404, statusMessage: 'Hub not found' });
   }
+  requireHubReadAccess(event, hub);
 
   return listHubGallery(db, hub.id, query);
 });

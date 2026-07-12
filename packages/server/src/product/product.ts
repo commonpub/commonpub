@@ -10,6 +10,7 @@ import {
 import type { DB, UserRef } from '../types.js';
 import { generateSlug } from '../utils.js';
 import { ensureUniqueSlugFor, USER_REF_SELECT, normalizePagination, countRows, escapeLike } from '../query.js';
+import { visibleContentWhere } from '../content/visibility.js';
 
 // --- Types ---
 
@@ -503,9 +504,12 @@ export async function listProductContent(
 ): Promise<{ items: Array<{ id: string; title: string; slug: string; type: string; coverImageUrl: string | null; author: UserRef; publishedAt: Date | null }>; total: number }> {
   const { limit, offset } = normalizePagination(opts);
 
+  // visibleContentWhere() = published + public + not-soft-deleted (no requester: a product
+  // gallery is a public surface). Replaces the old status-only filter, which leaked
+  // members/private and resurfaced soft-deleted-published rows (P-1 sites 9 + 19).
   const where = and(
     eq(contentProducts.productId, productId),
-    eq(contentItems.status, 'published'),
+    visibleContentWhere(),
   );
 
   const [rows, countResult] = await Promise.all([
@@ -578,7 +582,7 @@ export async function listHubGallery(
     const pIds = productIds.map((p) => p.id);
     const where = and(
       inArray(contentProducts.productId, pIds),
-      eq(contentItems.status, 'published'),
+      visibleContentWhere(),
     );
 
     const [rows, countResult] = await Promise.all([
@@ -641,7 +645,7 @@ export async function listHubGallery(
     const pIds = productIds.map((p) => p.id);
     const where = and(
       inArray(contentProducts.productId, pIds),
-      eq(contentItems.status, 'published'),
+      visibleContentWhere(),
     );
 
     const [rows, countResult] = await Promise.all([
@@ -690,7 +694,7 @@ export async function listHubGallery(
 
   const where = and(
     eq(hubShares.hubId, hubId),
-    eq(contentItems.status, 'published'),
+    visibleContentWhere(),
   );
 
   const [rows, countResult] = await Promise.all([

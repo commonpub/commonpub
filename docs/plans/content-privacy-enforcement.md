@@ -130,3 +130,40 @@ binding), SSRF pinning on all outbound remote fetches (one residual: megalodon/M
 check-then-connect rebind TOCTOU, behind the OFF federation-login flag), the AP outbox projection, the
 "never federated" local-only data (`steward`/`hub_flags`/`referral_*`/`featuredId`/PII partitions),
 the contest scoring/PII/winner path, and the auth/session core (hand-minted-cookie concern remediated).
+
+---
+
+## Implementation status (session 231, branch `session-231-content-privacy`)
+
+**SHIPPED (in working tree, verified):** P-1 (content visibility) + P-2 (hub read access) across the
+19 sites. New helpers `content/visibility.ts` (`visibleContentWhere`), `hub/access.ts`
+(`canReadHub` + `REDACTED_HUB_ID`), `utils/hubAccess.ts` (`requireHubReadAccess`), membership-aware
+`getHubBySlug(requesterId, {asPlatformAdmin})`. Tests: `content-visibility-p1` (20) + `hub-privacy-p2`
+(17) + `social.integration` (15) = **52 pass**; server + reference typecheck clean; only the
+pre-existing Phase-0 outbox date-bomb failures remain.
+
+**Adversarial verification (workflow) caught + FIXED before commit:**
+- **Regression the fix introduced:** the 5 hub WRITE routes (`index.put`/`index.delete`/`products.post`/
+  `resources/index.post`/`resources/reorder`) passed `user.id` to `getHubBySlug`, so a platform admin
+  who is not a member of a private hub got `REDACTED_HUB_ID` → broken edit/delete (500/403). Fixed by
+  switching those writes to the (previously unused) `getHubIdBySlug` write helper. Also
+  `updateHub` now threads `asPlatformAdmin` into its return re-fetch (was returning a redacted body /
+  nil id to an admin), and `index.get` threads `asPlatformAdmin` (session-230 override consistency).
+- **Site 18 half-done:** `listComments` gated only content targets; `post`/`lesson` bypassed. Added a
+  hub-membership gate for `post` targets and a path-published gate for `lesson`; `video` has no privacy
+  field so it is served. (Regression test added.)
+
+**DEFERRED (tracked follow-ups, NOT blocking this commit):**
+- **`profileVisibility`** — the enum/column exist and the public API reads them, but **no writer sets
+  it** (default `public`, no settings UI/API), so it is a LATENT surface with nothing to leak today.
+  Gate `getUserByUsername` (+ followers/following/feed) when a writer is added.
+- **P-3 CI grep guard** — the regression backstop (fail CI on a raw `from(contentItems)` read lacking
+  the predicate). The fix is closed + tested; add the guard as a backstop.
+- **AP-twin hub collection routes** (`routes/hubs/[slug]/{outbox,followers,products,resources}.ts`)
+  serve a private hub over ActivityPub with no privacy gate — but they are behind `federation &&
+  federateHubs` (OFF in prod) and belong to the federation plan's item **2e** (private-hub federation
+  gate). Handle there.
+- **Meilisearch reindex sequencing (ROLLOUT):** `contentSearch.ts` now filters `visibility="public"`.
+  On rollout, `configureContentIndex` must re-run (add `visibility`/`authorId` as filterable) AND a
+  full reindex must populate the field BEFORE the filter is trusted, or search returns empty/500s
+  (fail-closed, not a leak). Add this step to the deploy runbook.

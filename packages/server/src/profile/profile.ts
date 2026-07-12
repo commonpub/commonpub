@@ -199,6 +199,10 @@ export async function getUserContent(
   return listContentKeyset(db, {
     authorId: profileUserId,
     status,
+    // Only the owner sees their own members/private items; a non-owner (or anon) is
+    // restricted to public, matching resolveContentQuery. Without this the profile
+    // listing leaked the author "Members only"/"Only you" content (P-1 site 8).
+    visibility: isOwner ? undefined : 'public',
     type: opts.type,
     cursor: opts.cursor ?? undefined,
     limit: opts.limit ?? 20,

@@ -42,6 +42,13 @@ export interface ContentSearchOptions {
   sort?: 'relevance' | 'recent' | 'popular' | 'likes';
   limit?: number;
   offset?: number;
+  /**
+   * The authenticated searcher's id (resolved server-side, never a client param). When
+   * set, the searcher additionally sees their OWN members/private content; when unset the
+   * search is restricted to public-visibility items. Without this the search endpoints
+   * leaked "Members only"/"Only you" content (P-1 sites 6 + 7).
+   */
+  requesterId?: string;
 }
 
 export interface MeiliClient {
@@ -80,6 +87,14 @@ export async function searchWithMeilisearch(
   // defense-in-depth costs almost nothing.
   const escapeFilter = (s: string): string => s.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
   const filter: string[] = ['status = "published"'];
+  // Visibility gate (P-1): public content for everyone, plus the searcher's own
+  // members/private content when authenticated. Requires `visibility` + `authorId` to be
+  // filterable attributes and indexed on each document (see configureContentIndex + indexContent).
+  filter.push(
+    opts.requesterId
+      ? `(visibility = "public" OR authorId = "${escapeFilter(opts.requesterId)}")`
+      : 'visibility = "public"',
+  );
   if (opts.type) filter.push(`type = "${escapeFilter(opts.type)}"`);
   if (opts.difficulty) filter.push(`difficulty = "${escapeFilter(opts.difficulty)}"`);
   if (opts.dateFrom) filter.push(`publishedAtTs >= ${new Date(opts.dateFrom).getTime() / 1000}`);
@@ -143,6 +158,11 @@ export async function searchWithPostgres(
   const conditions = [
     eq(contentItems.status, 'published'),
     isNull(contentItems.deletedAt),
+    // Visibility gate (P-1): public for everyone, plus the searcher's own members/private
+    // content when authenticated. Without this, search leaked non-public items.
+    opts.requesterId
+      ? or(eq(contentItems.visibility, 'public'), eq(contentItems.authorId, opts.requesterId))!
+      : eq(contentItems.visibility, 'public'),
   ];
 
   const validContentTypes = new Set(['project', 'article', 'blog', 'explainer']);
@@ -299,6 +319,7 @@ export async function indexContent(
       coverImageUrl: contentItems.coverImageUrl,
       difficulty: contentItems.difficulty,
       status: contentItems.status,
+      visibility: contentItems.visibility,
       viewCount: contentItems.viewCount,
       likeCount: contentItems.likeCount,
       commentCount: contentItems.commentCount,
@@ -351,6 +372,7 @@ export async function indexContent(
     coverImageUrl: row.coverImageUrl,
     difficulty: row.difficulty,
     status: row.status,
+    visibility: row.visibility,
     viewCount: row.viewCount,
     likeCount: row.likeCount,
     commentCount: row.commentCount,
@@ -382,6 +404,6 @@ export async function configureContentIndex(
 ): Promise<void> {
   const index = meiliClient.index(INDEX_NAME);
   await index.updateSearchableAttributes(['title', 'description', 'contentText', 'tags']);
-  await index.updateFilterableAttributes(['type', 'difficulty', 'status', 'authorUsername', 'publishedAtTs', 'tags']);
+  await index.updateFilterableAttributes(['type', 'difficulty', 'status', 'visibility', 'authorId', 'authorUsername', 'publishedAtTs', 'tags']);
   await index.updateSortableAttributes(['publishedAtTs', 'viewCount', 'likeCount']);
 }

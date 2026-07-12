@@ -167,6 +167,8 @@ export default defineEventHandler(async (event): Promise<{ items: unknown[]; tot
     sort: (params.sort as ContentSearchOptions['sort']) ?? 'relevance',
     limit,
     offset,
+    // Restrict to public content unless the searcher is viewing their own (P-1 sites 6/7).
+    requesterId: getOptionalUser(event)?.id,
   };
 
   const result = await searchContent(db, opts, meiliClient);

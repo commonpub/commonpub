@@ -14,6 +14,7 @@ export default defineEventHandler(async (event): Promise<CommentItem[]> => {
   requireFeature('social');
   const db = useDB();
   const query = parseQueryParams(event, commentsQuerySchema);
+  const viewer = getOptionalUser(event);
 
-  return listComments(db, query.targetType, query.targetId, query.limit, query.offset);
+  return listComments(db, query.targetType, query.targetId, query.limit, query.offset, viewer?.id);
 });

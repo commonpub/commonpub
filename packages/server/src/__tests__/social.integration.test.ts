@@ -1,4 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { contentItems } from '@commonpub/schema';
+import { eq } from 'drizzle-orm';
 import type { DB } from '../types.js';
 import { createTestDB, createTestUser, closeTestDB } from './helpers/testdb.js';
 import { createContent } from '../content/content.js';
@@ -34,6 +36,12 @@ describe('social integration', () => {
       type: 'article',
       title: 'Social Test Article',
     });
+    // Publish it: listComments now gates on the parent's read-visibility (P-1), so an
+    // unauthenticated listing only returns comments on a published+public item.
+    await db
+      .update(contentItems)
+      .set({ status: 'published', publishedAt: new Date() })
+      .where(eq(contentItems.id, content.id));
     contentId = content.id;
   });
 

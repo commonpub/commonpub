@@ -13,13 +13,16 @@ export default defineEventHandler(async (event) => {
   const db = useDB();
   const config = useRuntimeConfig();
   const siteUrl = config.public.siteUrl as string;
+  const user = getOptionalUser(event);
   const { slug } = parseParams(event, { slug: 'string' });
 
-
-  const hub = await getHubBySlug(db, slug);
+  const hub = await getHubBySlug(db, slug, user?.id, {
+    asPlatformAdmin: hasPermission(event, 'admin.access'),
+  });
   if (!hub) {
     throw createError({ statusCode: 404, statusMessage: 'Hub not found' });
   }
+  requireHubReadAccess(event, hub);
 
   const { items } = await listHubGallery(db, hub.id, { limit: 50 });
 

@@ -888,6 +888,13 @@ export async function getLessonBySlug(
   db: DB,
   pathSlug: string,
   lessonSlug: string,
+  /**
+   * The authenticated viewer's id. A lesson on a NON-published (draft/archived) learning
+   * path is only readable by the path author; without this a draft path's lessons leaked
+   * to anyone (P-1 site 17). Published-path lessons are public, so the enrolled-learner
+   * completion flow is unaffected.
+   */
+  requesterId?: string,
 ): Promise<{
   lesson: typeof learningLessons.$inferSelect;
   module: typeof learningModules.$inferSelect;
@@ -902,6 +909,11 @@ export async function getLessonBySlug(
     .limit(1);
 
   if (path.length === 0) return null;
+
+  // A lesson on an unpublished path is author-only (P-1 site 17).
+  if (path[0]!.status !== 'published' && path[0]!.authorId !== requesterId) {
+    return null;
+  }
 
   const rows = await db
     .select({ lesson: learningLessons, module: learningModules })

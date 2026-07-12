@@ -19,6 +19,7 @@ import type {
 import { generateSlug, hasPermission } from '../utils.js';
 import { ensureUniqueSlugFor, USER_REF_SELECT, normalizePagination, countRows, escapeLike } from '../query.js';
 import { checkBan } from './moderation.js';
+import { REDACTED_HUB_ID } from './access.js';
 
 // --- Hub CRUD ---
 
@@ -176,10 +177,29 @@ export async function getFeaturedHub(db: DB): Promise<HubListItem | null> {
   };
 }
 
+/**
+ * Resolve a hub's raw id/privacy/joinPolicy by slug with NO metadata redaction —
+ * for authenticated WRITE / membership flows (join, leave) that need the real id
+ * before the requester is a member and that run their own permission checks
+ * server-side. Read paths must use `getHubBySlug` + `requireHubReadAccess` instead.
+ */
+export async function getHubIdBySlug(
+  db: DB,
+  slug: string,
+): Promise<{ id: string; privacy: HubPrivacy; joinPolicy: JoinPolicy } | null> {
+  const [row] = await db
+    .select({ id: hubs.id, privacy: hubs.privacy, joinPolicy: hubs.joinPolicy })
+    .from(hubs)
+    .where(and(eq(hubs.slug, slug), isNull(hubs.deletedAt)))
+    .limit(1);
+  return row ?? null;
+}
+
 export async function getHubBySlug(
   db: DB,
   slug: string,
   requesterId?: string,
+  opts?: { asPlatformAdmin?: boolean },
 ): Promise<HubDetail | null> {
   const rows = await db
     .select({
@@ -232,10 +252,18 @@ export async function getHubBySlug(
   // required" signal is the combination privacy === 'private' && currentUserRole === null
   // with redacted metadata — callers/UI key off that (no new HubDetail field is added,
   // to keep the shared type stable). Posts and members are already gated separately.
-  // The member/admin path below returns the full detail.
-  if (row.hub.privacy === 'private' && currentUserRole === null) {
+  // A platform admin (opts.asPlatformAdmin) bypasses redaction so admin read/moderation
+  // resolves the real hub. The member/admin path below returns the full detail.
+  //
+  // P-2 (docs/plans/content-privacy-enforcement.md): when a NON-MEMBER requester is
+  // identified, the stub returns REDACTED_HUB_ID instead of the real id, so a read
+  // handler that forgets `requireHubReadAccess` still can't enumerate the hub's
+  // posts/roster/gallery/resources/products by id. A no-requesterId call keeps the real
+  // id, preserving the authenticated WRITE / AP callers (join/leave/like/lock/pin/outbox)
+  // that resolve the hub by slug without a member context and run their own checks.
+  if (row.hub.privacy === 'private' && currentUserRole === null && !opts?.asPlatformAdmin) {
     return {
-      id: row.hub.id,
+      id: requesterId ? REDACTED_HUB_ID : row.hub.id,
       name: row.hub.name,
       slug: row.hub.slug,
       description: null,
@@ -390,9 +418,12 @@ export async function updateHub(
 
   await db.update(hubs).set(updates).where(eq(hubs.id, hubId));
 
+  // Thread asPlatformAdmin so a platform admin editing a private hub they are not a member
+  // of gets the REAL updated detail back (not the redacted non-member stub / REDACTED_HUB_ID).
+  const asPlatformAdmin = options?.asPlatformAdmin;
   const slug = (updates.slug as string) ?? undefined;
   if (slug) {
-    return getHubBySlug(db, slug, userId);
+    return getHubBySlug(db, slug, userId, { asPlatformAdmin });
   }
 
   // Fetch updated hub
@@ -402,7 +433,7 @@ export async function updateHub(
     .where(eq(hubs.id, hubId))
     .limit(1);
 
-  return getHubBySlug(db, current[0]!.slug, userId);
+  return getHubBySlug(db, current[0]!.slug, userId, { asPlatformAdmin });
 }
 
 export async function deleteHub(

@@ -1,4 +1,4 @@
-import { updateHub, getHubBySlug, federateHubUpdate } from '@commonpub/server';
+import { updateHub, getHubIdBySlug, federateHubUpdate } from '@commonpub/server';
 import type { HubDetail } from '@commonpub/server';
 import { updateHubSchema } from '@commonpub/schema';
 
@@ -8,7 +8,10 @@ export default defineEventHandler(async (event): Promise<HubDetail> => {
   const config = useConfig();
   const { slug } = parseParams(event, { slug: 'string' });
 
-  const hub = await getHubBySlug(db, slug, user.id);
+  // Writes resolve the REAL hub id (no read-redaction) and let updateHub run its
+  // own auth (owner/admin, incl. platform-admin override). getHubBySlug would return
+  // REDACTED_HUB_ID for a platform admin who is not a member of a private hub.
+  const hub = await getHubIdBySlug(db, slug);
   if (!hub) {
     throw createError({ statusCode: 404, statusMessage: 'Hub not found' });
   }

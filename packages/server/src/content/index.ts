@@ -23,6 +23,8 @@ export {
 } from './content.js';
 export type { ContentVersionItem } from './content.js';
 
+export { visibleContentWhere } from './visibility.js';
+
 export {
   listContentCategories,
   getContentCategory,

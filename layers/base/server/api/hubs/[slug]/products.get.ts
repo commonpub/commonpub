@@ -13,14 +13,17 @@ const productQuerySchema = z.object({
 
 export default defineEventHandler(async (event): Promise<PaginatedResponse<ProductListItem>> => {
   const db = useDB();
+  const user = getOptionalUser(event);
   const { slug } = parseParams(event, { slug: 'string' });
   const filters = parseQueryParams(event, productQuerySchema);
 
-
-  const hub = await getHubBySlug(db, slug);
+  const hub = await getHubBySlug(db, slug, user?.id, {
+    asPlatformAdmin: hasPermission(event, 'admin.access'),
+  });
   if (!hub) {
     throw createError({ statusCode: 404, statusMessage: 'Hub not found' });
   }
+  requireHubReadAccess(event, hub);
 
   return listHubProducts(db, hub.id, filters);
 });

@@ -118,6 +118,7 @@ export {
   toggleFederatedBuildMark,
   isBuildMarked,
   isFederatedBuildMarked,
+  visibleContentWhere,
 } from './content/index.js';
 export type { ContentVersionItem } from './content/index.js';
 
@@ -138,6 +139,9 @@ export {
   getFeaturedHub,
   FEATURED_HUB_SETTING_KEY,
   getHubBySlug,
+  getHubIdBySlug,
+  canReadHub,
+  REDACTED_HUB_ID,
   createHub,
   updateHub,
   deleteHub,
