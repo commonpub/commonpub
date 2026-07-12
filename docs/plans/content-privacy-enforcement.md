@@ -167,3 +167,61 @@ pre-existing Phase-0 outbox date-bomb failures remain.
   On rollout, `configureContentIndex` must re-run (add `visibility`/`authorId` as filterable) AND a
   full reindex must populate the field BEFORE the filter is trusted, or search returns empty/500s
   (fail-closed, not a leak). Add this step to the deploy runbook.
+
+---
+
+## Phase P-1b — additional leak sites (round-7 adversarial audit, NOT yet fixed)
+
+> The round-7 audit confirmed the committed fix (b6e8049e) is CORRECT (no regressions; sound
+> predicate; the 5 write routes each self-authorize) but the original 19-site list was INCOMPLETE.
+> These sites are still-live pre-existing leaks of the same class. Ranked; each has a fix locus. The
+> fix pattern is the same `visibleContentWhere(requesterId)` / hub-privacy predicate.
+
+**HIGH (unauthenticated):**
+- **`GET /api/hubs` (+ `public/v1/hubs`, sitemap) lists PRIVATE hubs with full metadata.** `listHubs`
+  (`hub.ts:26-58`) filters only `deletedAt`; no `privacy`. Hub privacy enum = `public|unlisted|private`;
+  the directory must show `public` only (unlisted = directory-hidden, private = members-only), matching
+  `getFeaturedHub`. **Fix:** `conditions.push(eq(hubs.privacy, 'public'))` in `listHubs` (a "my hubs"
+  member view, if wanted, is a separate endpoint). This is the worst miss — trivial, unauth, unconditional.
+- **`getLessonBySlug` linked-content body.** The P-1 lesson fix added only a path-STATUS gate; the linked
+  content fetch (`learning.ts:~953`, `.where(eq(contentItems.id, lesson.contentItemId))`) has **no
+  visibility/status/deletedAt filter** → a lesson on a published path linking a members/private/draft/
+  deleted item leaks its full `content` body. **Fix:** `and(eq(contentItems.id, contentItemId),
+  visibleContentWhere(requesterId))`.
+
+**MEDIUM:**
+- **Related-content inside `getContentBySlug`** (`content.ts:638-644`, returned as `related` at :678) —
+  filters `status='published'` but not `visibility` → surfaces members/private titles/slugs/covers of
+  OTHER items, inside the function everyone assumes is fixed. (Both audit agents flagged.) **Fix:** add
+  `eq(contentItems.visibility, 'public')`. (The sibling `articleCount` aggregate at :621 also counts
+  non-public items — a number, not a data leak; optional.)
+- **`GET /api/search/trending`** (`trending.get.ts:14`) — `status='published'` only. **Fix:** add
+  `eq(contentItems.visibility, 'public')`.
+- **`GET /api/contests/<slug>/entries`** (`listContestEntries`, `entries.ts:56-57`) — status not
+  visibility → a members/private project submitted as an entry leaks title/slug/cover/author. **Fix:**
+  gate the entry's content join on `visibility='public'` OR entrant/organizer-privileged (thread requester).
+- **`GET /api/hubs/:slug/posts/:postId/poll-options`** (`poll-options.get.ts`) — `requireFeature('hubs')`
+  only; never resolves the hub/membership (sibling `replies.get` was patched, this skipped). **Fix:**
+  resolve the hub from `postId` + `requireHubReadAccess`.
+- **`GET /sitemap.xml`** (`sitemap.xml.ts`) — content query lacks `visibility='public'` (verify the
+  where clause). **Fix:** add published+public.
+- **Private-hub events** — event list/detail never joins `hubs.privacy`; an event on a private hub
+  (incl. `onlineUrl`) is readable unauth (ties to the known unauth-500 on `events?hubId`). **Fix:**
+  join hub privacy + `requireHubReadAccess` for hub-scoped events. (Verify.)
+
+**LOW / pre-existing:**
+- `listUserBookmarks` (`social.ts:524`) — no visibility filter on the joined content (stale metadata
+  after a post-bookmark visibility change; own-list only).
+- `createComment` WRITE (`social.ts:328`) does not validate target readability → a non-member can POST
+  a comment onto a private-hub post (notification injection). Pre-existing; the read gate now stops them
+  reading it back. **Fix:** apply the same `post`/content gate on the write path.
+- `public/v1/hubs/[slug]` returns a 200 stub (name+counts) for a private hub instead of 403 (oracle).
+- `listContentProducts` (`product.ts:390`) — parent-content visibility unchecked (needs uuid).
+- `listPosts` share-enrichment (`posts.ts:196-199`) — a private item shared into a PUBLIC hub can leak
+  its `description`/`coverImageUrl` (conditional on the stored share JSON lacking those).
+- Anon gets the real hub id in the private-hub stub (`hub.ts:266`, `requesterId ? REDACTED : real`) —
+  defense-in-depth gap (no live enumeration path since routes key on slug). Tighten for consistency.
+
+**Deferred to federation item 2e:** the hub ActivityPub surface (`hub-ap.ts`, `buildHubGroupActor`,
+hub `outbox`/`followers`/`resources`/`products` AP collections) has zero privacy checks — latent behind
+`federateHubs`/`seamlessFederation` (OFF).
