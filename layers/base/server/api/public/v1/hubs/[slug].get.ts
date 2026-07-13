@@ -7,8 +7,11 @@ export default defineEventHandler(async (event) => {
 
   const db = useDB();
   const config = useConfig();
+  // No-requesterId getHubBySlug returns the real-id stub for a private hub, so a
+  // read:hubs token could otherwise read a private hub's name + member/post
+  // counts. Match the public directory list (listHubs excludes private): 404.
   const hub = await getHubBySlug(db, slug);
-  if (!hub || (hub as { deletedAt?: Date | null }).deletedAt) {
+  if (!hub || (hub as { deletedAt?: Date | null }).deletedAt || hub.privacy === 'private') {
     throw createError({ statusCode: 404, statusMessage: 'Hub not found' });
   }
 

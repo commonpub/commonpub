@@ -35,8 +35,12 @@ export default defineEventHandler(async (event) => {
   const db = useDB();
   const domain = config.instance.domain;
 
+  // 2e: a private hub's AP surface is members-only. The no-requesterId
+  // getHubBySlug returns the redacted stub (which still carries `privacy`), so
+  // gate on it here exactly as the sibling AP routes (outbox/followers/products/
+  // resources) do — otherwise a private hub post Note leaks unauthenticated.
   const hub = await getHubBySlug(db, slug);
-  if (!hub) return;
+  if (!hub || hub.privacy === 'private') return;
 
   const [post] = await db
     .select({
