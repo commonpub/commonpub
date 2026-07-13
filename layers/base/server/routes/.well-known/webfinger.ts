@@ -55,7 +55,8 @@ export default defineEventHandler(async (event) => {
   // If not a user, try hub lookup (Group actor)
   if (!profile && config.features.federation && config.features.federateHubs) {
     const hub = await getHubBySlug(db, parsed.username);
-    if (hub) {
+    // 2e: don't resolve a private hub's Group actor over WebFinger (members-only).
+    if (hub && hub.privacy !== 'private') {
       const hubActorUri = `https://${instanceDomain}/hubs/${parsed.username}`;
       setResponseHeader(event, 'content-type', 'application/jrd+json');
       return buildWebFingerResponse({

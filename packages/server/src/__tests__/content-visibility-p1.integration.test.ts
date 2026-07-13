@@ -17,7 +17,7 @@ import { contentItems, hubShares, contests } from '@commonpub/schema';
 import { eq } from 'drizzle-orm';
 import type { DB } from '../types.js';
 import { createTestDB, createTestUser, closeTestDB } from './helpers/testdb.js';
-import { createContent, getContentBySlug, listContent } from '../content/content.js';
+import { createContent, getContentBySlug, listContent, forkContent } from '../content/content.js';
 import { visibleContentWhere } from '../content/visibility.js';
 import { getUserContent, getUserByUsername } from '../profile/profile.js';
 import { searchWithPostgres, searchContent, type MeiliClient } from '../search/contentSearch.js';
@@ -335,6 +335,20 @@ describe('P-1 content visibility enforcement', () => {
       const anon = await getLessonBySlug(db, path.slug, lesson.slug, undefined);
       expect(anon!.linkedContent).toBeDefined();
       expect(anon!.linkedContent!.id).toBe(pub.id);
+    });
+  });
+
+  // ---- forkContent: read-via-write must respect visibility (session-231 combined audit) ----
+  describe('forkContent visibility gate', () => {
+    it('refuses to fork another user members/private content (no full-body exfiltration)', async () => {
+      await expect(forkContent(db, mem.id, otherId)).rejects.toThrow(/not found/i);
+      await expect(forkContent(db, priv.id, otherId)).rejects.toThrow(/not found/i);
+    });
+    it('allows forking a public item, and the author forking their own non-public item', async () => {
+      const forkedPublic = await forkContent(db, pub.id, otherId);
+      expect(forkedPublic).not.toBeNull();
+      const forkedOwn = await forkContent(db, priv.id, authorId);
+      expect(forkedOwn).not.toBeNull();
     });
   });
 

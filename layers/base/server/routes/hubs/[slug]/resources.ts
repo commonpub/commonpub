@@ -21,7 +21,7 @@ export default defineEventHandler(async (event) => {
 
   const db = useDB();
   const hub = await getHubBySlug(db, slug);
-  if (!hub) return;
+  if (!hub || hub.privacy === 'private') return; // 2e: private hub AP collection is members-only
 
   const { items } = await listHubResources(db, hub.id);
   const domain = config.instance.domain;

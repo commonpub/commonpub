@@ -21,7 +21,8 @@ export default defineEventHandler(async (event) => {
   const domain = config.instance.domain;
 
   const hub = await getHubBySlug(db, slug);
-  if (!hub) {
+  // 2e: a private hub's AP collections are members-only; 404 (no existence oracle).
+  if (!hub || hub.privacy === 'private') {
     throw createError({ statusCode: 404, statusMessage: 'Hub not found' });
   }
 

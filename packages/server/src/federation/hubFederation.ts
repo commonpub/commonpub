@@ -86,6 +86,10 @@ export async function buildHubGroupActor(
     .limit(1);
 
   if (!hub) return null;
+  // 2e: a PRIVATE hub's ActivityPub Group actor must not be served (its name/roster/posts
+  // are members-only). unlisted/public still federate. Protects the hub-ap middleware +
+  // every buildHubGroupActor caller. `federateHubs` is ON on commonpub.io + deveco.io.
+  if (hub.privacy === 'private') return null;
 
   const keypair = await getOrCreateHubKeypair(db, hub.id);
   const actorUri = getHubActorUri(domain, hub.slug);
@@ -260,7 +264,7 @@ export async function federateHubActor(
   domain: string,
 ): Promise<void> {
   const [hub] = await db.select().from(hubs).where(eq(hubs.id, hubId)).limit(1);
-  if (!hub) return;
+  if (!hub || hub.privacy === 'private') return; // 2e: private hubs must not federate their actor/posts
 
   const hubActorUri = getHubActorUri(domain, hub.slug);
   const followersUri = `${hubActorUri}/followers`;
@@ -305,7 +309,7 @@ export async function federateHubPost(
   domain: string,
 ): Promise<void> {
   const [hub] = await db.select().from(hubs).where(eq(hubs.id, hubId)).limit(1);
-  if (!hub) return;
+  if (!hub || hub.privacy === 'private') return; // 2e: private hubs must not federate their actor/posts
 
   const [post] = await db
     .select({
@@ -414,7 +418,7 @@ export async function federateHubShare(
   domain: string,
 ): Promise<void> {
   const [hub] = await db.select().from(hubs).where(eq(hubs.id, hubId)).limit(1);
-  if (!hub) return;
+  if (!hub || hub.privacy === 'private') return; // 2e: private hubs must not federate their actor/posts
 
   const hubActorUri = getHubActorUri(domain, hub.slug);
   const followersUri = `${hubActorUri}/followers`;
@@ -618,7 +622,7 @@ export async function federateHubPostUpdate(
   domain: string,
 ): Promise<void> {
   const [hub] = await db.select().from(hubs).where(eq(hubs.id, hubId)).limit(1);
-  if (!hub) return;
+  if (!hub || hub.privacy === 'private') return; // 2e: private hubs must not federate their actor/posts
 
   const [post] = await db
     .select({
@@ -797,7 +801,7 @@ export async function federateHubUpdate(
   domain: string,
 ): Promise<void> {
   const [hub] = await db.select().from(hubs).where(eq(hubs.id, hubId)).limit(1);
-  if (!hub) return;
+  if (!hub || hub.privacy === 'private') return; // 2e: private hubs must not federate their actor/posts
 
   const actor = await buildHubGroupActor(db, hub.slug, domain);
   if (!actor) return;

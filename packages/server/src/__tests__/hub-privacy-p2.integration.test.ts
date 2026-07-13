@@ -41,6 +41,7 @@ import { createProduct, listHubProducts, listHubGallery, getProductBySlug, searc
 import { createContent } from '../content/content.js';
 import { createComment, listComments } from '../social/social.js';
 import { listEvents } from '../events/events.js';
+import { buildHubGroupActor } from '../federation/hubFederation.js';
 
 describe('P-2 hub read-access enforcement', () => {
   let db: DB;
@@ -116,6 +117,15 @@ describe('P-2 hub read-access enforcement', () => {
       const hub = (await getHubIdBySlug(db, priv.slug))!;
       const updated = await updateHub(db, hub.id, strangerId, { description: 'hax' }, { asPlatformAdmin: false });
       expect(updated).toBeFalsy();
+    });
+  });
+
+  // 2e: a private hub must not serve its ActivityPub Group actor (name/roster/posts) — the
+  // AP surface is gated only on federateHubs, which is LIVE on commonpub.io + deveco.io.
+  describe('hub AP Group actor (private-hub federation gate)', () => {
+    it('returns null for a private hub, serves a public hub (no over-block)', async () => {
+      expect(await buildHubGroupActor(db, priv.slug, 'example.com')).toBeNull();
+      expect(await buildHubGroupActor(db, pubHub.slug, 'example.com')).not.toBeNull();
     });
   });
 

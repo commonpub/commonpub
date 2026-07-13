@@ -1154,10 +1154,13 @@ export async function forkContent(
   sourceId: string,
   userId: string,
 ): Promise<ContentDetail> {
+  // Forking is a public-remix feature: you may fork public-published content OR your own
+  // (any status/visibility). Without visibleContentWhere this read-via-write leaked the FULL
+  // body of anyone's members/private/draft item to any authenticated user who knew its id.
   const source = await db
     .select()
     .from(contentItems)
-    .where(eq(contentItems.id, sourceId))
+    .where(and(eq(contentItems.id, sourceId), visibleContentWhere(userId)))
     .limit(1);
 
   if (source.length === 0) {
