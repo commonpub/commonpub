@@ -79,13 +79,12 @@ onMounted(async () => {
       automatically. Use the tokens below to drop in contest details.
     </p>
 
-    <div class="cpub-cee-templates" role="radiogroup" aria-label="Email template">
+    <div class="cpub-cee-templates" role="group" aria-label="Email template">
       <button
         v-for="t in TEMPLATES"
         :key="t.key"
         type="button"
-        role="radio"
-        :aria-checked="active === t.key"
+        :aria-pressed="active === t.key"
         class="cpub-cee-tpl"
         :class="{ 'cpub-cee-tpl-active': active === t.key }"
         @click="active = t.key"

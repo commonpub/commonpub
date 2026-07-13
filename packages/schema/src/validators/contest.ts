@@ -77,11 +77,9 @@ export const contestEmailCopySchema = z
     reminder: contestEmailTemplateCopySchema.optional(),
   })
   .strict();
-export type ContestEmailCopyInput = z.infer<typeof contestEmailCopySchema>;
 
 // Which of the two contest emails a preview/editor request targets.
 export const contestEmailTemplateKeySchema = z.enum(['confirmation', 'reminder']);
-export type ContestEmailTemplateKey = z.infer<typeof contestEmailTemplateKeySchema>;
 
 // Live-preview request: render one template with the UNSAVED copy. Validated with
 // the same field schema as the stored override, so preview can't render arbitrary
@@ -92,7 +90,6 @@ export const contestEmailPreviewSchema = z
     copy: contestEmailTemplateCopySchema,
   })
   .strict();
-export type ContestEmailPreviewInput = z.infer<typeof contestEmailPreviewSchema>;
 
 // Per-stage submission-template field types (Phase 4 extends the original
 // text/textarea/url trio). `agreement` + `address` and any field flagged `pii`

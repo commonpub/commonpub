@@ -43,9 +43,9 @@ describe('ContestEmailEditor', () => {
     const { container, emitted } = render(ContestEmailEditor, { props: { slug: 'c', modelValue: { ...EMPTY } } });
     const subj = container.querySelector('input[type="text"]') as HTMLInputElement;
     await fireEvent.update(subj, 'Welcome {username}');
-    const events = emitted()['update:modelValue'];
+    const events = emitted()['update:modelValue'] as Array<[typeof EMPTY]> | undefined;
     expect(events).toBeTruthy();
-    expect((events!.at(-1)![0] as typeof EMPTY).confirmationSubject).toBe('Welcome {username}');
+    expect(events!.at(-1)![0].confirmationSubject).toBe('Welcome {username}');
   });
 
   it('posts a preview request for the selected template', async () => {
