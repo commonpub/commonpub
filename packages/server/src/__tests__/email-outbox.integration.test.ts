@@ -20,7 +20,13 @@ class MockAdapter implements EmailAdapter {
   }
 }
 
-function msg(to: string, scheduledAt?: Date) {
+// Anchor enqueue time to the same fixed clock the drain tests inject as `now`, so a row is
+// "due" at that clock. Without this, an unscheduled enqueue fell to the DB's real now() (wall
+// clock) while the drain ran with a hardcoded fake now — so after 2026-07-01 the real-dated rows
+// were never claimed (a deterministic date-bomb, NOT a PGlite flake). session-231 Phase 0.
+const BASE_NOW = new Date('2026-07-01T00:00:00Z');
+
+function msg(to: string, scheduledAt: Date = BASE_NOW) {
   return { toEmail: to, subject: 's', html: '<p>h</p>', category: 'notification' as const, scheduledAt };
 }
 
