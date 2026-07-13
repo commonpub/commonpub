@@ -111,28 +111,50 @@ describe('sweepContestReminders', () => {
     const [m] = await db.select().from(emailOutbox);
     expect(m!.category).toBe('reminder');
     expect(m!.toEmail).toBe('v@example.com');
-    expect(m!.subject).toContain('7 days');
+    // 6 days out: the T7d milestone fires, but the copy states the ACTUAL time
+    // remaining ("6 days"), never the milestone's nominal name.
+    expect(m!.subject).toContain('6 days');
     expect(m!.html).toContain(formatDeadlineUtc(endDate));
     const hdr = (m!.headers as Record<string, string>)['List-Unsubscribe']!;
     const token = hdr.match(/token=([^>]+)/)![1]!;
     expect(verifyUnsubscribeToken(token, CTX.secret)).toBe(verifiedId);
   });
 
-  it('sequences milestones as the deadline approaches', async () => {
+  it('sequences milestones as the deadline approaches, one per sweep', async () => {
     const end = new Date('2026-06-10T00:00:00Z');
     const contestId = await makeContest(db, organizerId, end);
     await register(db, contestId, verifiedId);
 
-    // 6 days out: only T7d.
-    await sweepContestReminders(db, cfg(), { ...CTX, now: new Date(end.getTime() - 6 * DAY) });
-    // 30 hours out: T48h (30 <= 48) fires; T24h (30 > 24) does not yet.
-    await sweepContestReminders(db, cfg(), { ...CTX, now: new Date(end.getTime() - 30 * HOUR) });
-    // 30 minutes out: T24h and T1h both fire.
-    await sweepContestReminders(db, cfg(), { ...CTX, now: new Date(end.getTime() - 30 * 60 * 1000) });
+    // Each sweep fires exactly the single tightest entered milestone. Stepping
+    // through the bands as a frequent real sweep would, each milestone fires once.
+    await sweepContestReminders(db, cfg(), { ...CTX, now: new Date(end.getTime() - 6 * DAY) }); // T7d
+    await sweepContestReminders(db, cfg(), { ...CTX, now: new Date(end.getTime() - 40 * HOUR) }); // T48h (24 < 40 <= 48)
+    await sweepContestReminders(db, cfg(), { ...CTX, now: new Date(end.getTime() - 20 * HOUR) }); // T24h (1 < 20 <= 24)
+    await sweepContestReminders(db, cfg(), { ...CTX, now: new Date(end.getTime() - 30 * 60 * 1000) }); // T1h
 
     const milestones = (await db.select().from(contestReminderSends)).map((r) => r.milestone).sort();
     expect(milestones).toEqual(['deadline_T1h', 'deadline_T24h', 'deadline_T48h', 'deadline_T7d'].sort());
     expect(await db.select().from(emailOutbox)).toHaveLength(4);
+  });
+
+  it('a late registrant gets ONE reminder with the true time left, not a stale burst', async () => {
+    // Deadline 20 hours out. The old behavior fired T7d + T48h + T24h at once,
+    // two of them stating a wrong "time remaining" (7 days / 48 hours). Now only
+    // the tightest milestone (T24h) fires, and it states the real "20 hours".
+    const now = new Date('2026-06-01T00:00:00Z');
+    const contestId = await makeContest(db, organizerId, new Date(now.getTime() + 20 * HOUR));
+    await register(db, contestId, verifiedId);
+
+    const res = await sweepContestReminders(db, cfg(), { ...CTX, now });
+    expect(res.enqueued).toBe(1);
+
+    const ledger = (await db.select().from(contestReminderSends)).map((r) => r.milestone);
+    expect(ledger).toEqual(['deadline_T24h']);
+
+    const [m] = await db.select().from(emailOutbox);
+    expect(m!.subject).toContain('20 hours');
+    expect(m!.subject).not.toContain('7 days');
+    expect(m!.subject).not.toContain('48 hours');
   });
 
   it('skips unverified and globally-unsubscribed registrants, and non-registrants', async () => {

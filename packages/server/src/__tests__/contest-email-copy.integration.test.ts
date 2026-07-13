@@ -115,8 +115,10 @@ describe('per-contest email copy application', () => {
     const res = await sweepContestReminders(db, cfg({ emailNotifications: true, contestReminders: true, contestEmailEditor: true }), { ...EMAIL, now });
     expect(res.enqueued).toBe(1);
     const [mail] = await db.select().from(emailOutbox);
-    expect(mail!.subject).toBe('7 days to go for Override Cup');
-    expect(mail!.html).toContain('Only 7 days remain, copy-participant.');
+    // `{timeRemaining}` resolves to the ACTUAL time left (5 days out), not the
+    // milestone's nominal name.
+    expect(mail!.subject).toBe('5 days to go for Override Cup');
+    expect(mail!.html).toContain('Only 5 days remain, copy-participant.');
     expect(mail!.html).toContain('Submissions close on'); // system deadline line kept
   });
 
@@ -134,7 +136,7 @@ describe('per-contest email copy application', () => {
     await db.insert(contestRegistrations).values({ contestId, userId });
     await sweepContestReminders(db, cfg({ emailNotifications: true, contestReminders: true, contestEmailEditor: false }), { ...EMAIL, now });
     const [mail] = await db.select().from(emailOutbox);
-    expect(mail!.subject).toContain('7 days left to submit: Override Cup');
-    expect(mail!.html).not.toContain('Only 7 days remain');
+    expect(mail!.subject).toContain('5 days left to submit: Override Cup');
+    expect(mail!.html).not.toContain('Only 5 days remain');
   });
 });
