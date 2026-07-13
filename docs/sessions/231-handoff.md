@@ -66,8 +66,10 @@ the outbox date-bomb. A completeness re-sweep found NO un-catalogued sites. **De
 `getHubBySlug` stub still returns the real hub id (no-requesterId path is shared by write/AP callers;
 needs a read-scoped resolver); `createComment` write-abuse into a private hub (write-behavior change).
 
-**Next action (recommended): ROLL the privacy fix** — publish `@commonpub/server` + `@commonpub/layer`,
-deploy to all 3 with the Meili reindex step, and curl each leak site UNAUTHENTICATED before/after
+**Privacy fix is COMPLETE and roll-ready.** Continuing on-branch with the next roadmap items
+(**GDPR export #2**, then **RBAC #3**) so the whole security batch can roll together. **The eventual
+roll** (recommended before too much else stacks up): publish `@commonpub/server` + `@commonpub/layer`,
+deploy to all 3 **with the Meili reindex step**, and curl each leak site UNAUTHENTICATED before/after
 (esp. `/api/hubs`, `/api/events`, `/api/content/<members-slug>`, `/api/hubs/<private-slug>/posts`).
 
 ## Remaining roadmap (verified priority — `session-231-remediation-roadmap.md`)
