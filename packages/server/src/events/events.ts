@@ -1,5 +1,5 @@
-import { eq, and, desc, asc, gte, sql, or } from 'drizzle-orm';
-import { events, eventAttendees, users } from '@commonpub/schema';
+import { eq, and, desc, asc, gte, sql, or, isNull, notInArray } from 'drizzle-orm';
+import { events, eventAttendees, users, hubs } from '@commonpub/schema';
 import type { DB } from '../types.js';
 import { normalizePagination, countRows, ensureUniqueSlugFor } from '../query.js';
 
@@ -125,6 +125,19 @@ export async function listEvents(
     conditions.push(
       sql`${events.status} IN ('published', 'active')`,
     );
+  }
+
+  // Private-hub events must not appear in the public/unscoped feed (P-1b): a published
+  // event on a private hub would otherwise leak its title/startDate/onlineUrl to anyone.
+  // The `?hubId=` path is route-authorized via canReadHubById; the `userId` "my events"
+  // path shows the user's own events; only the bare feed needs this join-based exclusion.
+  if (!filters.hubId && !filters.userId) {
+    const privateHubs = await db.select({ id: hubs.id }).from(hubs).where(eq(hubs.privacy, 'private'));
+    if (privateHubs.length > 0) {
+      conditions.push(
+        or(isNull(events.hubId), notInArray(events.hubId, privateHubs.map((h) => h.id)))!,
+      );
+    }
   }
 
   const where = conditions.length > 0 ? and(...conditions) : undefined;

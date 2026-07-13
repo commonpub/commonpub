@@ -34,12 +34,14 @@ export default defineEventHandler(async (event): Promise<ContestEntryItem> => {
   }
   const isEntrant = !!user && user.id === entry.userId;
 
-  // Draft gate (mirrors the listing's `onlyPublishedContent` filter): a proposal
-  // DRAFT placeholder must not be openable by direct URL — 404 it for anyone but
-  // the entrant or a privileged viewer. Without this, a non-owner who guessed a
-  // draft entryId could read its artifacts/title via the detail route even though
-  // the entries listing hides it.
-  if (entry.contentStatus !== 'published' && !privileged && !isEntrant) {
+  // Draft + visibility gate (mirrors the listing's `onlyPublishedContent` +
+  // public-visibility filter): a proposal DRAFT placeholder OR a published-but
+  // members/private project must not be openable by direct URL — 404 it for anyone
+  // but the entrant or a privileged viewer. Without the visibility half (P-1b), a
+  // members/private published entry passes the draft gate and leaks its
+  // title/slug/cover to any viewer of the public contest.
+  const contentPublic = entry.contentStatus === 'published' && entry.contentVisibility === 'public';
+  if (!contentPublic && !privileged && !isEntrant) {
     throw createError({ statusCode: 404, statusMessage: 'Entry not found' });
   }
 

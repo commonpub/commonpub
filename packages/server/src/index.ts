@@ -140,6 +140,7 @@ export {
   FEATURED_HUB_SETTING_KEY,
   getHubBySlug,
   getHubIdBySlug,
+  canReadHubById,
   canReadHub,
   REDACTED_HUB_ID,
   createHub,

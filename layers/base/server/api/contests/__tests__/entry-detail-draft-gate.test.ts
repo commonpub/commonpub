@@ -18,12 +18,16 @@ import { resolve } from 'node:path';
 const handlerPath = resolve(__dirname, '..', '[slug]', 'entries', '[entryId]', 'index.get.ts');
 const src = readFileSync(handlerPath, 'utf8');
 
-describe('GET /api/contests/:slug/entries/:entryId — draft-entry gate', () => {
-  it('404s a non-published-content entry for a non-entrant, non-privileged viewer', () => {
-    // The guard must combine all three: content not published AND not privileged
-    // AND not the entrant → 404.
-    expect(src, 'must gate on contentStatus !== published').toMatch(
-      /entry\.contentStatus\s*!==\s*['"]published['"]/,
+describe('GET /api/contests/:slug/entries/:entryId — draft + visibility gate', () => {
+  it('404s a non-public-content entry for a non-entrant, non-privileged viewer', () => {
+    // The guard must combine: content published AND public (P-1b) — else not
+    // privileged AND not the entrant → 404. The published check drives the draft
+    // gate; the visibility check stops a published-but-members/private leak.
+    expect(src, 'must gate on contentStatus === published').toMatch(
+      /entry\.contentStatus\s*===\s*['"]published['"]/,
+    );
+    expect(src, 'must gate on contentVisibility === public (P-1b)').toMatch(
+      /entry\.contentVisibility\s*===\s*['"]public['"]/,
     );
     expect(src, 'must exempt privileged viewers').toMatch(/!privileged/);
     expect(src, 'must exempt the entrant').toMatch(/!isEntrant/);

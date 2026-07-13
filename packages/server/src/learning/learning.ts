@@ -14,6 +14,7 @@ import type { QuizLessonContent, QuizGrade } from '@commonpub/learning';
 import { generateVerificationCode } from '@commonpub/learning';
 import { generateSlug } from '../utils.js';
 import { ensureUniqueSlugFor, USER_REF_SELECT, normalizePagination, countRows } from '../query.js';
+import { visibleContentWhere } from '../content/visibility.js';
 import type {
   DB,
   LearningPathListItem,
@@ -950,7 +951,10 @@ export async function getLessonBySlug(
       })
       .from(contentItems)
       .innerJoin(users, eq(contentItems.authorId, users.id))
-      .where(eq(contentItems.id, rows[0]!.lesson.contentItemId))
+      // The path-status gate above is not enough: the linked item is separate content
+      // with its own status/visibility. Without this predicate a published path could
+      // link a members/private/draft/soft-deleted item and leak its full body (P-1b).
+      .where(and(eq(contentItems.id, rows[0]!.lesson.contentItemId), visibleContentWhere(requesterId)))
       .limit(1);
     if (items.length > 0) {
       const { authorUsername, ...rest } = items[0]!;

@@ -16,7 +16,7 @@
  * WRITE/AP callers (join/leave/like/lock/pin) that resolve the hub by slug.
  */
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { hubMembers, contentItems, hubShares } from '@commonpub/schema';
+import { hubMembers, contentItems, hubShares, events } from '@commonpub/schema';
 import { eq } from 'drizzle-orm';
 import type { DB } from '../types.js';
 import { createTestDB, createTestUser, closeTestDB } from './helpers/testdb.js';
@@ -26,16 +26,21 @@ import {
   getHubIdBySlug,
   updateHub,
   canReadHub,
+  canReadHubById,
   REDACTED_HUB_ID,
   createPost,
   listPosts,
   listMembers,
   createHubResource,
   listHubResources,
+  listHubs,
+  shareContent,
+  listShares,
 } from '../hub/index.js';
-import { createProduct, listHubProducts, listHubGallery } from '../product/product.js';
+import { createProduct, listHubProducts, listHubGallery, getProductBySlug, searchProducts } from '../product/product.js';
 import { createContent } from '../content/content.js';
 import { createComment, listComments } from '../social/social.js';
+import { listEvents } from '../events/events.js';
 
 describe('P-2 hub read-access enforcement', () => {
   let db: DB;
@@ -72,6 +77,19 @@ describe('P-2 hub read-access enforcement', () => {
     const shared = await createContent(db, ownerId, { type: 'project', title: 'P2 Shared Build', visibility: 'public' });
     await db.update(contentItems).set({ status: 'published', publishedAt: new Date() }).where(eq(contentItems.id, shared.id));
     await db.insert(hubShares).values({ hubId: priv.id, contentId: shared.id, sharedById: ownerId });
+
+    // Events: a published event on the private hub (must NOT leak into the bare public feed)
+    // and one on the public hub (must still appear — no over-block).
+    await db.insert(events).values({
+      title: 'P2 Secret Meetup', slug: 'p2-secret-meetup',
+      startDate: new Date(Date.now() + 86_400_000), endDate: new Date(Date.now() + 90_000_000),
+      status: 'published', hubId: priv.id, createdById: ownerId, onlineUrl: 'https://secret.example/join',
+    });
+    await db.insert(events).values({
+      title: 'P2 Open Meetup', slug: 'p2-open-meetup',
+      startDate: new Date(Date.now() + 86_400_000), endDate: new Date(Date.now() + 90_000_000),
+      status: 'published', hubId: pubHub.id, createdById: ownerId,
+    });
   });
 
   afterAll(async () => {
@@ -98,6 +116,15 @@ describe('P-2 hub read-access enforcement', () => {
       const hub = (await getHubIdBySlug(db, priv.slug))!;
       const updated = await updateHub(db, hub.id, strangerId, { description: 'hax' }, { asPlatformAdmin: false });
       expect(updated).toBeFalsy();
+    });
+  });
+
+  // P-1b §2.1: private-hub events must not appear in the bare (unscoped) public events feed.
+  describe('bare events feed (private-hub exclusion)', () => {
+    it('excludes private-hub events but still serves public-hub events', async () => {
+      const { items } = await listEvents(db, {});
+      expect(items.some((e) => e.hubId === priv.id)).toBe(false);
+      expect(items.some((e) => e.hubId === pubHub.id)).toBe(true);
     });
   });
 
@@ -209,6 +236,108 @@ describe('P-2 hub read-access enforcement', () => {
       const hub = (await getHubBySlug(db, pubHub.slug))!;
       expect(hub.id).toBe(pubHub.id);
       expect(canReadHub(hub)).toBe(true);
+    });
+  });
+
+  // ---- P-1b: listHubs directory shows PUBLIC hubs only ----
+  describe('listHubs (P-1b directory privacy)', () => {
+    it('excludes private hubs from the directory for everyone (unauth)', async () => {
+      const { items } = await listHubs(db, { limit: 100 });
+      const ids = items.map((h) => ('id' in h ? h.id : ''));
+      expect(ids).toContain(pubHub.id);
+      expect(ids).not.toContain(priv.id);
+    });
+
+    it('excludes an UNLISTED hub too (directory-hidden)', async () => {
+      const unlisted = await createHub(db, ownerId, { name: 'P1b Unlisted Hub', privacy: 'unlisted' });
+      const { items } = await listHubs(db, { limit: 100 });
+      const ids = items.map((h) => ('id' in h ? h.id : ''));
+      expect(ids).not.toContain(unlisted.id);
+    });
+  });
+
+  // ---- P-1b: canReadHubById (event/by-id hub-scoped surfaces) ----
+  describe('canReadHubById (P-1b)', () => {
+    it('denies anon + non-member on a private hub, grants member/admin', async () => {
+      expect(await canReadHubById(db, priv.id)).toBe(false);
+      expect(await canReadHubById(db, priv.id, strangerId)).toBe(false);
+      expect(await canReadHubById(db, priv.id, memberId)).toBe(true);
+      expect(await canReadHubById(db, priv.id, strangerId, { asPlatformAdmin: true })).toBe(true);
+    });
+    it('grants everyone on a public hub', async () => {
+      expect(await canReadHubById(db, pubHub.id)).toBe(true);
+      expect(await canReadHubById(db, pubHub.id, strangerId)).toBe(true);
+    });
+    it('grants when the hub id is missing/deleted (owning entity stands alone)', async () => {
+      expect(await canReadHubById(db, REDACTED_HUB_ID)).toBe(true);
+    });
+  });
+
+  // ---- P-1b: product detail/search hide private-hub products ----
+  describe('getProductBySlug / searchProducts (P-1b private-hub products)', () => {
+    it('hides a private-hub product from anon + non-member, serves member/admin', async () => {
+      const p = await createProduct(db, ownerId, priv.id, { name: 'P1b Secret Gizmo' });
+      expect(await getProductBySlug(db, p.slug)).toBeNull(); // anon
+      expect(await getProductBySlug(db, p.slug, strangerId)).toBeNull();
+      expect(await getProductBySlug(db, p.slug, memberId)).not.toBeNull();
+      expect(await getProductBySlug(db, p.slug, strangerId, { asPlatformAdmin: true })).not.toBeNull();
+    });
+
+    it('serves a public-hub product to anyone', async () => {
+      const p = await createProduct(db, ownerId, pubHub.id, { name: 'P1b Open Gizmo' });
+      expect(await getProductBySlug(db, p.slug)).not.toBeNull();
+    });
+
+    it('excludes private-hub products from search (bare + ?hubId enumeration)', async () => {
+      const priv2 = await createHub(db, ownerId, { name: 'P1b Search Priv', privacy: 'private' });
+      const secret = await createProduct(db, ownerId, priv2.id, { name: 'P1b Search Secret' });
+      const open = await createProduct(db, ownerId, pubHub.id, { name: 'P1b Search Open' });
+
+      const anon = await searchProducts(db, { limit: 100 });
+      const anonIds = anon.items.map((i) => i.id);
+      expect(anonIds).toContain(open.id);
+      expect(anonIds).not.toContain(secret.id);
+
+      // ?hubId=<private> must not enumerate the catalog for a non-member
+      const enumAttempt = await searchProducts(db, { hubId: priv2.id, limit: 100 });
+      expect(enumAttempt.items.map((i) => i.id)).not.toContain(secret.id);
+
+      // a member of that private hub DOES see its products via search
+      await db.insert(hubMembers).values({ hubId: priv2.id, userId: memberId, role: 'member', status: 'active' });
+      const asMember = await searchProducts(db, { hubId: priv2.id, limit: 100 }, memberId);
+      expect(asMember.items.map((i) => i.id)).toContain(secret.id);
+
+      // platform admin sees everything
+      const asAdmin = await searchProducts(db, { hubId: priv2.id, limit: 100 }, strangerId, { asPlatformAdmin: true });
+      expect(asAdmin.items.map((i) => i.id)).toContain(secret.id);
+    });
+  });
+
+  // ---- P-1b: shareContent WRITE gate (ownership/visibility) ----
+  describe('shareContent (P-1b write gate)', () => {
+    it('refuses to share another user\'s members/private item into a hub', async () => {
+      // stranger is an active member of the public hub so membership passes
+      await db.insert(hubMembers).values({ hubId: pubHub.id, userId: strangerId, role: 'member', status: 'active' });
+      const secret = await createContent(db, ownerId, { type: 'project', title: 'P1b Not Yours', visibility: 'private' });
+      await db.update(contentItems).set({ status: 'published', publishedAt: new Date() }).where(eq(contentItems.id, secret.id));
+
+      const shared = await shareContent(db, strangerId, pubHub.id, secret.id);
+      expect(shared).toBeNull();
+      const shares = await listShares(db, pubHub.id);
+      expect(shares.map((s) => s.contentId)).not.toContain(secret.id);
+    });
+
+    it('allows sharing the sharer\'s OWN private item (author bypass)', async () => {
+      const mine = await createContent(db, strangerId, { type: 'project', title: 'P1b My Draft', visibility: 'private' });
+      const shared = await shareContent(db, strangerId, pubHub.id, mine.id);
+      expect(shared).not.toBeNull();
+    });
+
+    it('allows sharing a public published item', async () => {
+      const pub = await createContent(db, ownerId, { type: 'project', title: 'P1b Public Share', visibility: 'public' });
+      await db.update(contentItems).set({ status: 'published', publishedAt: new Date() }).where(eq(contentItems.id, pub.id));
+      const shared = await shareContent(db, strangerId, pubHub.id, pub.id);
+      expect(shared).not.toBeNull();
     });
   });
 });

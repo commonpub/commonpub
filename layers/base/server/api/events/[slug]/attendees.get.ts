@@ -1,4 +1,4 @@
-import { getEventBySlug, listEventAttendees } from '@commonpub/server';
+import { getEventBySlug, listEventAttendees, canReadHubById } from '@commonpub/server';
 import type { AttendeeStatus } from '@commonpub/server';
 
 /**
@@ -13,6 +13,16 @@ export default defineEventHandler(async (event) => {
 
   const existing = await getEventBySlug(db, slug);
   if (!existing) throw createError({ statusCode: 404, statusMessage: 'Event not found' });
+
+  // A private-hub event's attendee roster (userName/username/avatar of every
+  // registrant) is members-only (P-1b). 404 (not 403) so the slug isn't confirmed.
+  if (existing.hubId) {
+    const viewer = getOptionalUser(event);
+    const canRead = await canReadHubById(db, existing.hubId, viewer?.id, {
+      asPlatformAdmin: hasPermission(event, 'admin.access'),
+    });
+    if (!canRead) throw createError({ statusCode: 404, statusMessage: 'Event not found' });
+  }
 
   // Don't expose the attendee roster for non-published events (draft/cancelled/etc)
   // to the public; gate to the creator/admin, matching the event-detail gating.

@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { contentItems, users } from '@commonpub/schema';
 import { listHubs, listPaths } from '@commonpub/server';
 
@@ -26,7 +26,9 @@ export default defineEventHandler(async (event) => {
     })
     .from(contentItems)
     .innerJoin(users, eq(contentItems.authorId, users.id))
-    .where(eq(contentItems.status, 'published'));
+    // Sitemap lists only live-public content — a members/private URL must not be
+    // published to crawlers (P-1b). The hub list inherits the listHubs privacy fix.
+    .where(and(eq(contentItems.status, 'published'), eq(contentItems.visibility, 'public')));
 
   // Users with public profiles
   const publicUsers = await db

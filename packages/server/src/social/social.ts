@@ -23,6 +23,7 @@ import { buildContentPath } from '../query.js';
 import { emitHook } from '../hooks.js';
 import { createNotification } from '../notification/notification.js';
 import { USER_REF_SELECT, USER_REF_WITH_BIO_SELECT, normalizePagination, countRows } from '../query.js';
+import { visibleContentWhere } from '../content/visibility.js';
 
 export type { CommentItem };
 
@@ -562,7 +563,13 @@ export async function listUserBookmarks(
         },
       })
       .from(bookmarks)
-      .leftJoin(contentItems, eq(bookmarks.targetId, contentItems.id))
+      // Gate the content join on read-visibility (P-1b): a bookmark of another user's
+      // item that has since gone members/private/draft/deleted must not re-surface its
+      // metadata. The predicate grants the bookmark owner their OWN restricted content
+      // (visibleContentWhere(userId) → authorId=userId branch), so self-bookmarks stay.
+      // Non-matching rows leave contentItems null → the bookmark row is preserved but
+      // shown without content (falls through to the federated/empty branch).
+      .leftJoin(contentItems, and(eq(bookmarks.targetId, contentItems.id), visibleContentWhere(userId)))
       .leftJoin(users, eq(contentItems.authorId, users.id))
       .leftJoin(federatedContent, eq(bookmarks.targetId, federatedContent.id))
       .leftJoin(remoteActors, eq(federatedContent.remoteActorId, remoteActors.id))

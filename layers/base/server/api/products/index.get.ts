@@ -15,14 +15,22 @@ const productSearchSchema = z.object({
 
 export default defineEventHandler(async (event): Promise<PaginatedResponse<ProductListItem>> => {
   const db = useDB();
+  const user = getOptionalUser(event);
   const query = parseQueryParams(event, productSearchSchema);
 
-  return searchProducts(db, {
-    search: query.q ?? query.search,
-    category: query.category,
-    status: query.status,
-    hubId: query.hubId,
-    limit: query.limit,
-    offset: query.offset,
-  });
+  // Thread the requester so PRIVATE-hub products are excluded for non-members and
+  // a `?hubId=<private hub>` catalog enumeration is blocked (P-1b).
+  return searchProducts(
+    db,
+    {
+      search: query.q ?? query.search,
+      category: query.category,
+      status: query.status,
+      hubId: query.hubId,
+      limit: query.limit,
+      offset: query.offset,
+    },
+    user?.id,
+    { asPlatformAdmin: hasPermission(event, 'admin.access') },
+  );
 });

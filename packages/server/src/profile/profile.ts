@@ -3,6 +3,7 @@ import { contentItems, users, follows } from '@commonpub/schema';
 import type { ContentType } from '@commonpub/schema';
 import type { DB, ContentListItem, UserProfile } from '../types.js';
 import { listContentKeyset } from '../content/content.js';
+import { visibleContentWhere } from '../content/visibility.js';
 
 export interface UserSearchResult {
   id: string;
@@ -50,7 +51,10 @@ export async function getUserByUsername(db: DB, username: string): Promise<UserP
         count: sql<number>`count(*)::int`,
       })
       .from(contentItems)
-      .where(and(eq(contentItems.authorId, user.id), eq(contentItems.status, 'published')))
+      // Public profile stats count/aggregate the author's live-public work only.
+      // Without the visibility gate, per-type counts + totalViews/totalLikes reveal
+      // the volume/engagement of members/private (and soft-deleted) items (P-1b).
+      .where(and(visibleContentWhere(), eq(contentItems.authorId, user.id)))
       .groupBy(contentItems.type),
     db
       .select({
@@ -58,7 +62,7 @@ export async function getUserByUsername(db: DB, username: string): Promise<UserP
         totalLikes: sql<number>`coalesce(sum(${contentItems.likeCount}), 0)::int`,
       })
       .from(contentItems)
-      .where(and(eq(contentItems.authorId, user.id), eq(contentItems.status, 'published'))),
+      .where(and(visibleContentWhere(), eq(contentItems.authorId, user.id))),
     db
       .select({ count: sql<number>`count(*)::int` })
       .from(follows)

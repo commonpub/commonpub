@@ -49,12 +49,19 @@ export async function listContestEntries(
 ): Promise<{ items: ContestEntryItem[]; total: number }> {
   const revealScores = opts.revealScores ?? true;
   const { limit, offset } = normalizePagination(opts);
-  // Public callers only see entries backed by published content; the viewer always
-  // sees their own. Privileged callers omit `onlyPublishedContent` → no filter.
+  // Public callers only see entries backed by published + PUBLIC content; the viewer
+  // always sees their own. Privileged callers omit `onlyPublishedContent` → no filter.
+  // (P-1b: a members/private project submitted as an entry must not leak its
+  // title/slug/cover/author through the public entries grid — the status gate alone
+  // let a published-but-members item through.)
+  const livePublicEntry = and(
+    eq(contentItems.status, 'published'),
+    eq(contentItems.visibility, 'public'),
+  )!;
   const contentVisible = opts.onlyPublishedContent
     ? (opts.viewerId
-        ? or(eq(contentItems.status, 'published'), eq(contestEntries.userId, opts.viewerId))
-        : eq(contentItems.status, 'published'))
+        ? or(livePublicEntry, eq(contestEntries.userId, opts.viewerId))
+        : livePublicEntry)
     : undefined;
   const where = contentVisible
     ? and(eq(contestEntries.contestId, contestId), contentVisible)
@@ -158,6 +165,7 @@ export async function getContestEntry(db: DB, entryId: string): Promise<ContestE
         slug: contentItems.slug,
         type: contentItems.type,
         status: contentItems.status,
+        visibility: contentItems.visibility,
         coverImageUrl: contentItems.coverImageUrl,
       },
       author: {
@@ -189,6 +197,7 @@ export async function getContestEntry(db: DB, entryId: string): Promise<ContestE
     contentSlug: row.content.slug,
     contentType: row.content.type,
     contentStatus: row.content.status,
+    contentVisibility: row.content.visibility,
     contentCoverImageUrl: row.content.coverImageUrl,
     authorName: row.author.displayName ?? row.author.username,
     authorUsername: row.author.username,

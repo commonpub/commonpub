@@ -1,4 +1,4 @@
-import { eq, desc } from 'drizzle-orm';
+import { and, eq, desc } from 'drizzle-orm';
 import { contentItems } from '@commonpub/schema';
 
 export default defineEventHandler(async (): Promise<Array<{ query: string; trend: number }>> => {
@@ -11,7 +11,9 @@ export default defineEventHandler(async (): Promise<Array<{ query: string; trend
       viewCount: contentItems.viewCount,
     })
     .from(contentItems)
-    .where(eq(contentItems.status, 'published'))
+    // Trending "searches" expose content titles; restrict to live-public items so a
+    // members/private title can't surface as a suggested query (P-1b).
+    .where(and(eq(contentItems.status, 'published'), eq(contentItems.visibility, 'public')))
     .orderBy(desc(contentItems.viewCount))
     .limit(8);
 

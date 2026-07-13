@@ -13,18 +13,19 @@
  * still serving the author their own work.
  */
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { contentItems, hubShares } from '@commonpub/schema';
+import { contentItems, hubShares, contests } from '@commonpub/schema';
 import { eq } from 'drizzle-orm';
 import type { DB } from '../types.js';
 import { createTestDB, createTestUser, closeTestDB } from './helpers/testdb.js';
 import { createContent, getContentBySlug, listContent } from '../content/content.js';
 import { visibleContentWhere } from '../content/visibility.js';
-import { getUserContent } from '../profile/profile.js';
+import { getUserContent, getUserByUsername } from '../profile/profile.js';
 import { searchWithPostgres, searchContent, type MeiliClient } from '../search/contentSearch.js';
 import { createProduct, addContentProduct, listProductContent, listHubGallery } from '../product/product.js';
 import { createHub } from '../hub/hub.js';
 import { createPath, createModule, createLesson, publishPath, getLessonBySlug } from '../learning/learning.js';
-import { createComment, listComments } from '../social/social.js';
+import { createComment, listComments, toggleBookmark, listUserBookmarks } from '../social/social.js';
+import { createContest, submitContestEntry, listContestEntries, getContestEntry } from '../contest/index.js';
 
 type Visibility = 'public' | 'members' | 'private';
 
@@ -294,6 +295,162 @@ describe('P-1 content visibility enforcement', () => {
     it('serves comments on a public item to anyone', async () => {
       await createComment(db, otherId, { targetType: 'project', targetId: pub.id, content: 'public comment' });
       expect((await listComments(db, 'project', pub.id, 20, 0, undefined)).length).toBeGreaterThan(0);
+    });
+  });
+
+  // ---- P-1b: getLessonBySlug linked-content body ----
+  describe('getLessonBySlug linked-content (P-1b)', () => {
+    it('hides the linked content body of a members/private item on a PUBLISHED path', async () => {
+      const path = await createPath(db, authorId, { title: 'P1b Linked Path' });
+      const mod = await createModule(db, authorId, { pathId: path.id, title: 'Mod' });
+      const lesson = await createLesson(db, authorId, {
+        moduleId: mod.id,
+        title: 'Linked Members Lesson',
+        type: 'article',
+        contentItemId: mem.id,
+      });
+      await publishPath(db, path.id, authorId);
+
+      // The path is published (served to anyone) but the LINKED item is members-only:
+      // its body must not leak to a non-author, yet the author still sees it.
+      const anon = await getLessonBySlug(db, path.slug, lesson.slug, undefined);
+      expect(anon).not.toBeNull();
+      expect(anon!.linkedContent).toBeUndefined();
+
+      const owner = await getLessonBySlug(db, path.slug, lesson.slug, authorId);
+      expect(owner!.linkedContent).toBeDefined();
+      expect(owner!.linkedContent!.id).toBe(mem.id);
+    });
+
+    it('serves a public linked item to anyone', async () => {
+      const path = await createPath(db, authorId, { title: 'P1b Linked Public Path' });
+      const mod = await createModule(db, authorId, { pathId: path.id, title: 'Mod' });
+      const lesson = await createLesson(db, authorId, {
+        moduleId: mod.id,
+        title: 'Linked Public Lesson',
+        type: 'article',
+        contentItemId: pub.id,
+      });
+      await publishPath(db, path.id, authorId);
+      const anon = await getLessonBySlug(db, path.slug, lesson.slug, undefined);
+      expect(anon!.linkedContent).toBeDefined();
+      expect(anon!.linkedContent!.id).toBe(pub.id);
+    });
+  });
+
+  // ---- P-1b: related-content inside getContentBySlug ----
+  describe('getContentBySlug related-content (P-1b)', () => {
+    it('excludes the author OWN members/private items from the related sidebar', async () => {
+      // pub, mem, priv are all type=project by the same author; viewing pub as anon,
+      // the related list must surface neither mem nor priv.
+      const detail = await getContentBySlug(db, pub.slug, undefined);
+      expect(detail).not.toBeNull();
+      const relatedIds = (detail!.related ?? []).map((r) => r.id);
+      expect(relatedIds).not.toContain(mem.id);
+      expect(relatedIds).not.toContain(priv.id);
+    });
+  });
+
+  // ---- P-1b: getUserByUsername profile stats ----
+  describe('getUserByUsername stats (P-1b)', () => {
+    it('counts/aggregates only the author live-public content', async () => {
+      const u = await createTestUser(db, { username: 'p1b-profile' });
+      const mkProject = async (visibility: Visibility, viewCount: number): Promise<void> => {
+        const c = await createContent(db, u.id, { type: 'project', title: `P1b stat ${visibility} ${viewCount}`, visibility });
+        await db
+          .update(contentItems)
+          .set({ status: 'published', publishedAt: new Date(), viewCount })
+          .where(eq(contentItems.id, c.id));
+      };
+      await mkProject('public', 10);
+      await mkProject('members', 100);
+      await mkProject('private', 1000);
+
+      const profile = await getUserByUsername(db, 'p1b-profile');
+      expect(profile).not.toBeNull();
+      // Only the single public project is counted; the members/private aren't.
+      expect(profile!.stats.projects).toBe(1);
+      // totalViews reflects the public item's 10 views only (not 100 + 1000).
+      expect(profile!.viewCount).toBe(10);
+    });
+  });
+
+  // ---- P-1b: listUserBookmarks joined-content visibility ----
+  describe('listUserBookmarks (P-1b)', () => {
+    it('hides a bookmark of another user item that has since gone private, keeps own', async () => {
+      // otherId bookmarks the author's public item, then the author flips it private.
+      await toggleBookmark(db, otherId, 'project', pub.id);
+      const before = await listUserBookmarks(db, otherId);
+      expect(before.items.some((b) => b.content?.id === pub.id)).toBe(true);
+
+      await db.update(contentItems).set({ visibility: 'private' }).where(eq(contentItems.id, pub.id));
+      const after = await listUserBookmarks(db, otherId);
+      // Bookmark row is preserved but its content metadata is withheld.
+      const stillListed = after.items.find((b) => b.targetId === pub.id);
+      expect(stillListed).toBeDefined();
+      expect(stillListed!.content).toBeNull();
+
+      // Restore for downstream tests.
+      await db.update(contentItems).set({ visibility: 'public' }).where(eq(contentItems.id, pub.id));
+    });
+
+    it('keeps the owner OWN now-private bookmarked item visible', async () => {
+      const mine = await createContent(db, otherId, { type: 'project', title: 'P1b My Bookmarked Private', visibility: 'private' });
+      await db.update(contentItems).set({ status: 'published', publishedAt: new Date() }).where(eq(contentItems.id, mine.id));
+      await toggleBookmark(db, otherId, 'project', mine.id);
+      const list = await listUserBookmarks(db, otherId);
+      const own = list.items.find((b) => b.targetId === mine.id);
+      expect(own?.content?.id).toBe(mine.id);
+    });
+  });
+
+  // ---- P-1b: contest entries (list + detail) visibility ----
+  describe('contest entries (P-1b)', () => {
+    it('hides a members/private published entry from the public list, keeps the entrant own view', async () => {
+      const contest = await createContest(db, {
+        title: 'P1b Entry Contest',
+        slug: `p1b-entry-contest-${Date.now()}`,
+        description: 'x',
+        startDate: new Date('2026-04-01').toISOString(),
+        endDate: new Date('2026-05-01').toISOString(),
+        createdBy: authorId,
+      });
+      await db.update(contests).set({ status: 'active' }).where(eq(contests.id, contest.id));
+
+      // author submits their PUBLISHED public item + their PUBLISHED members item.
+      await submitContestEntry(db, contest.id, pub.id, authorId);
+      const memEntry = await submitContestEntry(db, contest.id, mem.id, authorId);
+      expect(memEntry).not.toBeNull();
+
+      // Public (non-privileged) listing excludes the members entry.
+      const pubList = await listContestEntries(db, contest.id, { onlyPublishedContent: true });
+      const pubIds = pubList.items.map((e) => e.contentId);
+      expect(pubIds).toContain(pub.id);
+      expect(pubIds).not.toContain(mem.id);
+
+      // The entrant sees their own members entry.
+      const mine = await listContestEntries(db, contest.id, { onlyPublishedContent: true, viewerId: authorId });
+      expect(mine.items.map((e) => e.contentId)).toContain(mem.id);
+
+      // A different viewer does NOT.
+      const otherView = await listContestEntries(db, contest.id, { onlyPublishedContent: true, viewerId: otherId });
+      expect(otherView.items.map((e) => e.contentId)).not.toContain(mem.id);
+    });
+
+    it('getContestEntry exposes contentVisibility so the detail route can gate', async () => {
+      const contest = await createContest(db, {
+        title: 'P1b Detail Contest',
+        slug: `p1b-detail-contest-${Date.now()}`,
+        description: 'x',
+        startDate: new Date('2026-04-01').toISOString(),
+        endDate: new Date('2026-05-01').toISOString(),
+        createdBy: authorId,
+      });
+      await db.update(contests).set({ status: 'active' }).where(eq(contests.id, contest.id));
+      const entry = await submitContestEntry(db, contest.id, mem.id, authorId);
+      const fetched = await getContestEntry(db, entry!.id);
+      expect(fetched!.contentStatus).toBe('published');
+      expect(fetched!.contentVisibility).toBe('members');
     });
   });
 });

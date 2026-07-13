@@ -190,6 +190,14 @@ export interface ContestEntryItem {
    * drafts out).
    */
   contentStatus?: string;
+  /**
+   * Backing content visibility (`public`/`members`/`private`). Drives the
+   * entry-detail route's visibility gate (P-1b): a published-but-members/private
+   * project submitted as an entry must be 404'd for non-owner/non-privileged
+   * viewers, same as a draft. Present on `getContestEntry`; the public listing
+   * already filters non-public entries out.
+   */
+  contentVisibility?: string;
   contentCoverImageUrl: string | null;
   authorName: string;
   authorUsername: string;

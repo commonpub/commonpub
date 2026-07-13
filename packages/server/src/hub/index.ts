@@ -5,6 +5,7 @@ export {
   FEATURED_HUB_SETTING_KEY,
   getHubBySlug,
   getHubIdBySlug,
+  canReadHubById,
   createHub,
   updateHub,
   deleteHub,

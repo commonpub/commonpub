@@ -16,6 +16,7 @@ import { generateSlug } from '../utils.js';
 import { ensureUniqueSlugFor, USER_REF_SELECT, USER_REF_WITH_HEADLINE_SELECT, normalizePagination, countRows, escapeLike, buildContentPath, decodeCursor, asDateUuidCursor, encodeCursor, keysetWhere, type KeysetCursor } from '../query.js';
 import { federateContent, federateUpdate, federateDelete } from '../federation/federation.js';
 import { createNotification } from '../notification/notification.js';
+import { visibleContentWhere } from './visibility.js';
 
 /** Sanitize HTML strings within block content to prevent XSS */
 async function sanitizeBlockContent(content: unknown): Promise<unknown> {
@@ -618,11 +619,15 @@ export async function getContentBySlug(
     db
       .select({ count: sql<number>`count(*)::int` })
       .from(contentItems)
-      .where(and(eq(contentItems.authorId, row.author.id), eq(contentItems.status, 'published'))),
+      // Author sidebar stat: count only the author's live-public work, so the
+      // published count doesn't include members/private/soft-deleted items (P-1b).
+      .where(and(visibleContentWhere(), eq(contentItems.authorId, row.author.id))),
     db
       .select({ total: sql<number>`coalesce(sum(${contentItems.viewCount}), 0)::int` })
       .from(contentItems)
-      .where(eq(contentItems.authorId, row.author.id)),
+      // Same as articleCount: aggregate views over live-public items only, not
+      // draft/members/private/soft-deleted content (P-1b).
+      .where(and(visibleContentWhere(), eq(contentItems.authorId, row.author.id))),
     db
       .select({
         id: contentItems.id,
@@ -639,6 +644,9 @@ export async function getContentBySlug(
         and(
           eq(contentItems.type, item.type),
           eq(contentItems.status, 'published'),
+          // Related sidebar must not surface OTHER authors' members/private items
+          // (title/slug/cover) from inside the "fixed" detail helper (P-1b).
+          eq(contentItems.visibility, 'public'),
           sql`${contentItems.id} != ${item.id}`,
         ),
       )

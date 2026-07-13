@@ -1,4 +1,4 @@
-import { eq, and, desc, sql, ilike, inArray } from 'drizzle-orm';
+import { eq, and, desc, sql, ilike, inArray, notInArray } from 'drizzle-orm';
 import {
   products,
   contentProducts,
@@ -109,7 +109,10 @@ export async function createProduct(
     })
     .returning();
 
-  return (await getProductBySlug(db, product!.slug))!;
+  // Internal write-confirmation re-fetch: bypass the P-1b private-hub read gate
+  // (`asPlatformAdmin`) so creating a product in a PRIVATE hub still returns the
+  // created row to its creator (who already passed the member check above).
+  return (await getProductBySlug(db, product!.slug, userId, { asPlatformAdmin: true }))!;
 }
 
 export async function updateProduct(
@@ -160,7 +163,9 @@ export async function updateProduct(
     .where(eq(products.id, productId))
     .limit(1);
 
-  return getProductBySlug(db, updated[0]!.slug);
+  // Internal write-confirmation re-fetch: bypass the P-1b private-hub read gate so a
+  // private-hub product edit returns the updated row to its creator.
+  return getProductBySlug(db, updated[0]!.slug, userId, { asPlatformAdmin: true });
 }
 
 export async function deleteProduct(
@@ -183,6 +188,8 @@ export async function deleteProduct(
 export async function getProductBySlug(
   db: DB,
   slug: string,
+  requesterId?: string,
+  opts?: { asPlatformAdmin?: boolean },
 ): Promise<ProductDetail | null> {
   const rows = await db
     .select({
@@ -194,6 +201,7 @@ export async function getProductBySlug(
         slug: hubs.slug,
         hubType: hubs.hubType,
       },
+      hubPrivacy: hubs.privacy,
     })
     .from(products)
     .innerJoin(users, eq(products.createdById, users.id))
@@ -204,6 +212,30 @@ export async function getProductBySlug(
   if (rows.length === 0) return null;
 
   const row = rows[0]!;
+
+  // A private hub's product (and the private hub's id/name/slug/hubType it discloses)
+  // is members-only (P-1b), mirroring the hub products route's requireHubReadAccess.
+  // Serve iff the hub isn't private, OR the requester is a platform admin, OR the
+  // requester holds an active membership. 404 (null) otherwise.
+  if (row.hubPrivacy === 'private' && !opts?.asPlatformAdmin) {
+    const isMember = requesterId
+      ? (
+          await db
+            .select({ userId: hubMembers.userId })
+            .from(hubMembers)
+            .where(
+              and(
+                eq(hubMembers.hubId, row.product.hubId),
+                eq(hubMembers.userId, requesterId),
+                eq(hubMembers.status, 'active'),
+              ),
+            )
+            .limit(1)
+        ).length > 0
+      : false;
+    if (!isMember) return null;
+  }
+
   return {
     id: row.product.id,
     name: row.product.name,
@@ -276,6 +308,8 @@ export async function listHubProducts(
 export async function searchProducts(
   db: DB,
   filters: ProductFilters = {},
+  requesterId?: string,
+  opts?: { asPlatformAdmin?: boolean },
 ): Promise<{ items: ProductListItem[]; total: number }> {
   const conditions = [];
 
@@ -290,6 +324,31 @@ export async function searchProducts(
   }
   if (filters.hubId) {
     conditions.push(eq(products.hubId, filters.hubId));
+  }
+
+  // Exclude PRIVATE-hub products from the public product directory/search (P-1b): a
+  // `?hubId=<private hub>` query would otherwise enumerate that hub's whole catalog,
+  // and the bare endpoint intermixed private-hub products (each row discloses its
+  // hubId). We compute the blocked private-hub ids (minus the ones the requester is
+  // an active member of) and NOT-IN filter — keeping the query products-only so the
+  // join-less countRows stays valid. A platform admin sees everything.
+  if (!opts?.asPlatformAdmin) {
+    const privateHubs = await db
+      .select({ id: hubs.id })
+      .from(hubs)
+      .where(eq(hubs.privacy, 'private'));
+    let blocked = privateHubs.map((h) => h.id);
+    if (blocked.length > 0 && requesterId) {
+      const memberOf = await db
+        .select({ hubId: hubMembers.hubId })
+        .from(hubMembers)
+        .where(and(eq(hubMembers.userId, requesterId), eq(hubMembers.status, 'active')));
+      const memberSet = new Set(memberOf.map((m) => m.hubId));
+      blocked = blocked.filter((id) => !memberSet.has(id));
+    }
+    if (blocked.length > 0) {
+      conditions.push(notInArray(products.hubId, blocked));
+    }
   }
 
   const where = conditions.length > 0 ? and(...conditions) : undefined;

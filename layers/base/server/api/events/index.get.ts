@@ -1,4 +1,4 @@
-import { listEvents } from '@commonpub/server';
+import { listEvents, canReadHubById } from '@commonpub/server';
 import type { EventStatus } from '@commonpub/server';
 
 const PUBLIC_STATUSES = new Set<string>(['published', 'active', 'completed']);
@@ -28,6 +28,17 @@ export default defineEventHandler(async (event) => {
   const hubId = (query.hubId as string) || undefined;
   if (hubId && !isUuid(hubId)) {
     throw createError({ statusCode: 400, statusMessage: 'Invalid hubId' });
+  }
+
+  // A `?hubId=<private hub>` events query must not enumerate a private hub's events
+  // for a non-member (P-1b). Return empty (not 403) so the private hub's existence
+  // isn't confirmed. (The bare feed intermixing private-hub events is a separate
+  // residual — see plan; it needs a join-based exclusion in listEvents.)
+  if (hubId) {
+    const canRead = await canReadHubById(db, hubId, user?.id, {
+      asPlatformAdmin: hasPermission(event, 'admin.access'),
+    });
+    if (!canRead) return { items: [], total: 0 };
   }
 
   return listEvents(db, {

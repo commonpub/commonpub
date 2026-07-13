@@ -22,6 +22,7 @@ import { hasPermission } from '../utils.js';
 import { USER_REF_SELECT, normalizePagination, countRows } from '../query.js';
 import { checkBan } from './moderation.js';
 import { createNotification } from '../notification/notification.js';
+import { visibleContentWhere } from '../content/visibility.js';
 
 // --- Posts ---
 
@@ -196,7 +197,9 @@ export async function listPosts(
       .select({ id: contentItems.id, coverImageUrl: contentItems.coverImageUrl, description: contentItems.description, authorUsername: users.username })
       .from(contentItems)
       .innerJoin(users, eq(contentItems.authorId, users.id))
-      .where(inArray(contentItems.id, contentIds));
+      // Public-only: don't re-leak cover/description of an item shared while public but
+      // later flipped to members/private (share-time snapshot of title/slug is kept). P-1b.
+      .where(and(inArray(contentItems.id, contentIds), visibleContentWhere()));
     const enrichMap = new Map(enrichData.map((e) => [e.id, e]));
     for (const item of sharesToEnrich) {
       const sc = item.sharedContent as Record<string, unknown>;
@@ -743,7 +746,11 @@ export async function shareContent(
     })
     .from(contentItems)
     .innerJoin(users, eq(contentItems.authorId, users.id))
-    .where(eq(contentItems.id, contentId))
+    // Only shareable if the sharer owns it OR it's live-public (P-1b write-root):
+    // otherwise any active member could snapshot another user's members/private item's
+    // title/slug/type/cover/description into the hub-feed share JSON, readable by
+    // everyone who can read the hub. The read gate alone can't un-persist the snapshot.
+    .where(and(eq(contentItems.id, contentId), visibleContentWhere(userId)))
     .limit(1);
 
   if (content.length === 0) return null;

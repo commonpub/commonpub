@@ -28,7 +28,12 @@ export async function listHubs(
   filters: HubFilters = {},
   options?: { includeFederated?: boolean },
 ): Promise<{ items: (HubListItem | FederatedHubListItem)[]; total: number }> {
-  const conditions = [isNull(hubs.deletedAt)];
+  // Directory listing shows PUBLIC hubs only (P-1b security). `unlisted` hubs are
+  // directory-hidden (reachable by direct slug) and `private` hubs are members-only;
+  // neither may leak into the public hub index / public API / sitemap. Every caller
+  // (search, public/v1/hubs, hubs/index, sitemap) is a public directory, not a
+  // "my hubs" member view, so this is unconditional. Mirrors getFeaturedHub.
+  const conditions = [isNull(hubs.deletedAt), eq(hubs.privacy, 'public')];
 
   if (filters.search) {
     conditions.push(ilike(hubs.name, `%${escapeLike(filters.search)}%`));
@@ -193,6 +198,45 @@ export async function getHubIdBySlug(
     .where(and(eq(hubs.slug, slug), isNull(hubs.deletedAt)))
     .limit(1);
   return row ?? null;
+}
+
+/**
+ * Read-access check for a hub identified by ID (P-1b). Used by hub-scoped surfaces
+ * that already hold a `hubId` (e.g. events, which store `events.hub_id`) rather than
+ * a slug, so they can't route through `getHubBySlug` + `requireHubReadAccess`.
+ *
+ * Returns `true` iff the hub is missing/deleted (the owning entity stands alone —
+ * an event with a nulled/removed hub is not hub-gated), OR the hub isn't `private`,
+ * OR the requester is a platform admin, OR the requester holds an active membership.
+ * Mirrors `canReadHub` semantics for the by-id path.
+ */
+export async function canReadHubById(
+  db: DB,
+  hubId: string,
+  requesterId?: string,
+  opts?: { asPlatformAdmin?: boolean },
+): Promise<boolean> {
+  const [row] = await db
+    .select({ privacy: hubs.privacy })
+    .from(hubs)
+    .where(and(eq(hubs.id, hubId), isNull(hubs.deletedAt)))
+    .limit(1);
+  if (!row) return true;
+  if (row.privacy !== 'private') return true;
+  if (opts?.asPlatformAdmin) return true;
+  if (!requesterId) return false;
+  const member = await db
+    .select({ userId: hubMembers.userId })
+    .from(hubMembers)
+    .where(
+      and(
+        eq(hubMembers.hubId, hubId),
+        eq(hubMembers.userId, requesterId),
+        eq(hubMembers.status, 'active'),
+      ),
+    )
+    .limit(1);
+  return member.length > 0;
 }
 
 export async function getHubBySlug(

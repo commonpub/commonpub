@@ -8,10 +8,14 @@ const querySchema = z.object({
 
 export default defineEventHandler(async (event) => {
   const db = useDB();
+  const user = getOptionalUser(event);
   const { slug } = parseParams(event, { slug: 'string' });
 
-
-  const product = await getProductBySlug(db, slug);
+  // Thread the requester so a private-hub product's content gallery is members-only,
+  // consistent with the product detail route (P-1b).
+  const product = await getProductBySlug(db, slug, user?.id, {
+    asPlatformAdmin: hasPermission(event, 'admin.access'),
+  });
   if (!product) {
     throw createError({ statusCode: 404, statusMessage: 'Product not found' });
   }
