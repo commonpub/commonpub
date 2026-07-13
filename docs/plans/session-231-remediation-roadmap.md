@@ -4,6 +4,16 @@
 > ordered by **verified real-world priority**. Every item is code-verified. Detailed specs live in
 > the linked sub-plans; the GDPR-export and RBAC items are specced inline here (they had no prior
 > doc). This roadmap supersedes the priority framing inside the individual plans.
+>
+> **This is the SECURITY/CORRECTNESS master.** The FEATURE + TECH-DEBT master is `docs/ROADMAP.md`
+> (session 228): layout engine (largest feature, decision-gated), instance-self-update (decision-gated),
+> monolith-splits (3a/3b/3c/4a/4b). Together the two indexes cover the whole backlog.
+>
+> **Federation flag context (verified `curl /api/features` 2026-07-12):** `federation` +
+> `federateHubs` are **ON on commonpub.io + deveco.io** (OFF on heatsync). So the "#5/#6 federation"
+> items below are **LIVE on 2 of 3 instances**, not "latent" — notably **#6/2b is a live P1** (any
+> signed peer's `Create` is stored as `federatedContent` even with NO matching mirror → unbounded
+> growth). `events` is ON on all 3.
 
 ## Status (updated 2026-07-12, branch `session-231-content-privacy`)
 
