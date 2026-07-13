@@ -66,8 +66,9 @@ the outbox date-bomb. A completeness re-sweep found NO un-catalogued sites. **De
 `getHubBySlug` stub still returns the real hub id (no-requesterId path is shared by write/AP callers;
 needs a read-scoped resolver); `createComment` write-abuse into a private hub (write-behavior change).
 
-**Privacy fix is COMPLETE and roll-ready.** Continuing on-branch with the next roadmap items
-(**GDPR export #2**, then **RBAC #3**) so the whole security batch can roll together. **The eventual
+**Privacy fix (#1) COMPLETE + GDPR export (#2) COMPLETE**, both on-branch. **Next: RBAC #3**
+(roles.manage privilege ceiling + self-assign guard; `contest.*` must not subsume `contest.pii`;
+gate `event.create`; drop/wire the dead `contest.create`/`content.read` keys). Then roll the batch. **The eventual
 roll** (recommended before too much else stacks up): publish `@commonpub/server` + `@commonpub/layer`,
 deploy to all 3 **with the Meili reindex step**, and curl each leak site UNAUTHENTICATED before/after
 (esp. `/api/hubs`, `/api/events`, `/api/content/<members-slug>`, `/api/hubs/<private-slug>/posts`).
@@ -75,10 +76,12 @@ deploy to all 3 **with the Meili reindex step**, and curl each leak site UNAUTHE
 ## Remaining roadmap (verified priority — `session-231-remediation-roadmap.md`)
 
 1. **Content/hub privacy** — P-1/P-2/**P-1b all committed**. **Ready to ROLL** to all 3 (next action).
-2. **GDPR data-export completeness** (P2, live) — export omits ~15 tables of subject data (referral
-   graph, all hub forum posts/replies, videos, learning paths, products, reports, certificates, files,
-   edit history, held IPs); JSDoc falsely claims Art. 20 parity. Fix loci in the roadmap. MUST exclude
-   keypairs/sessions/audit_logs.
+2. **GDPR data-export completeness** — **DONE (commit `3de11931`).** Added ~15 subject-scoped tables
+   (referral, hub posts/replies, videos, learning paths, products, docs, files, content versions,
+   certificates, reports + hub flags own-statement, held IPs/terms). Third-party discipline verified
+   (report/flag rows projected to own fields; referral never enumerates referred users); secrets
+   (keypairs/sessions/accounts) + audit_logs excluded; JSDoc corrected. Tests assert subject-present /
+   third-party-absent / secret-absent. No migration.
 3. **RBAC** — `roles.manage` has no privilege ceiling (self-escalation, full exploit path);
    `contest.*` subsumes `contest.pii`; `event.create` unenforced (any user creates events);
    `contest.create`/`content.read` are dead keys.

@@ -5,6 +5,13 @@
 > the linked sub-plans; the GDPR-export and RBAC items are specced inline here (they had no prior
 > doc). This roadmap supersedes the priority framing inside the individual plans.
 
+## Status (updated 2026-07-12, branch `session-231-content-privacy`)
+
+- **#1 Content/hub privacy — DONE** (P-1 `b6e8049e`, P-2, P-1b `df0486f3`). Roll-ready.
+- **#2 GDPR export completeness — DONE** (`3de11931`).
+- **#3 RBAC — NEXT.** Then #4 Phase 0 (test-only), #5-7 federation (behind behavioral harnesses),
+  #8 contest comms. Nothing pushed/published/rolled yet; roll the security batch (#1-#3) together.
+
 ## The one-line story
 
 Five audit rounds refined federation/email fixes; the **sixth, ground-up round found the real fire**:
