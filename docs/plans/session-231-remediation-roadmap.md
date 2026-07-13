@@ -10,9 +10,15 @@
 - **#1 Content/hub privacy — DONE** (P-1 `b6e8049e`, P-2, P-1b `df0486f3`). Roll-ready.
 - **#2 GDPR export completeness — DONE** (`3de11931`).
 - **#3 RBAC hardening — DONE** (`e3cf8c8c`; touched packages/auth + packages/schema).
-- **NEXT: ROLL the security batch (#1-#3)** — publish schema→auth→server→layer + CLI re-pin + both
-  lockfiles + Meili reindex; curl-verify. Then #4 Phase 0 (test-only), #5-7 federation (behind
-  behavioral harnesses), #8 contest comms. Nothing pushed/published/rolled yet.
+- **#4 Phase 0 outbox date-bomb — DONE** (`3ae5fc20`; suite now 1656/0).
+- **Pre-roll audit fixes — DONE** (`4fb0af34`): `forkContent` full-body exfiltration gate + **2e**
+  private-hub ActivityPub surface (was "deferred/latent" but `federateHubs` is LIVE-ON on
+  commonpub.io + deveco.io → it was a live unauth private-hub leak; now gated). Batch is
+  BEHAVIORALLY VERIFIED (app run + unauth curl, all leak sites closed).
+- **NEXT: ROLL the batch** — publish schema 0.57→auth 0.10→server 2.106→layer 0.98 + CLI re-pin +
+  fork pins + lockfiles + **Meili reindex immediately post-deploy** + unauth curl-verify (see
+  231-handoff.md). Then #5-7 federation residuals (behind behavioral harnesses; note 2e's R9/R10
+  lifecycle + `createComment` write-abuse follow-ups), #8 contest comms. Nothing rolled yet.
 
 ## The one-line story
 
@@ -34,7 +40,7 @@ floor — the crypto/network/concurrency/UI boundaries are all mocked, so "SOLID
 | 4 | **Phase 0 — outbox test date-bomb** | P1 (test-only) | CI | ~0.25 sess | no | `federation-email-audit-fixes.md` Phase 0 |
 | 5 | **Federation live P2s** — negative-page 500 (1a), counter inflation (1b), **contest-notif dedup collision (1c)**, inbox amplification (2a) | P2 | LIVE-if-federating | ~1 sess | 2a: 1 mig | fixes plan Ph1/2a + round-5 |
 | 6 | **Mirror ingestion gating (2b, upgraded → P1)** — storage ungated entirely, not just the cap | P1 | latent | ~0.5 sess | maybe col | fixes plan 2b + round-5 |
-| 7 | **Federation + email latent hardening** — private-hub gate (2e), backfill actor-binding (2c), sanitizer DOMPurify (2d, P3), **email P3s** (List-Unsubscribe GET, send-time unsubscribe recheck, empty-AUTH_SECRET tokens, broadcast drain-gate/idempotency) | P2/P3 | latent | ~1-1.5 sess | some | fixes plan Ph2/3 |
+| 7 | **Federation + email latent hardening** — ~~private-hub gate (2e)~~ **DONE `4fb0af34`** (R9/R10 lifecycle remains), backfill actor-binding (2c), sanitizer DOMPurify (2d, P3), **email P3s** (List-Unsubscribe GET, send-time unsubscribe recheck, empty-AUTH_SECRET tokens, broadcast drain-gate/idempotency) | P2/P3 | latent | ~1-1.5 sess | some | fixes plan Ph2/3 |
 | 8 | **Contest communications** (preference center, contest emails, reminders, winner) | feature | — | ~5-7 sess | migs | `contest-communications.md` |
 
 **Do 1-3 first** (all live/legal, all server-only no-migration, all cheap), then 4, then the

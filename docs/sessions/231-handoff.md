@@ -1,9 +1,11 @@
 # Session 231 Handoff — security batch (content/hub privacy + GDPR export + RBAC), all committed on-branch
 
 Date: 2026-07-12. Branch **`session-231-content-privacy`** (NOT pushed / published / deployed).
-Fix commits: `b6e8049e` (privacy P-1/P-2) + `df0486f3` (P-1b remaining leak sites) + `3de11931` (GDPR
-export completeness) + `e3cf8c8c` (RBAC privilege ceiling); plus `c6d80423` (plans) + doc-update
-commits. **All three security items (#1 privacy, #2 GDPR, #3 RBAC) are COMPLETE.** Nothing rolled yet.
+Fix commits: `b6e8049e` (privacy P-1/P-2) + `df0486f3` (P-1b) + `3de11931` (GDPR export) + `e3cf8c8c`
+(RBAC ceiling) + `3ae5fc20` (Phase-0 outbox date-bomb, now green) + `4fb0af34` (**pre-roll audit:
+forkContent gate + 2e private-hub AP gate**); plus `c6d80423` (plans) + doc commits. **Security batch
+COMPLETE, full server suite 1656 pass / 0 fail, and BEHAVIORALLY VERIFIED (app run + unauth curl of
+every leak site — see below).** Nothing rolled yet.
 
 ## TL;DR
 
@@ -128,3 +130,54 @@ deploy to all 3 **with the Meili reindex step**, and curl each leak site UNAUTHE
 Plans: `session-231-remediation-roadmap.md` (master), `content-privacy-enforcement.md` (P-1/P-2/P-1b),
 `federation-email-audit-fixes.md` (rounds 2-5 corrections + GDPR/RBAC), `contest-communications.md`.
 Memory: `project_session_231_privacy_leak.md`, `project_email_flag_state_2026_07.md`.
+
+---
+
+## Pre-roll deep audit (final turn) — behaviorally verified, 2 more live leaks fixed
+
+A 3-agent deep audit before rolling: (1) whole-branch adversarial re-attack, (2) roll-readiness /
+consumer-breaking-change, (3) **behavioral verification (ran the app + unauth curl)**.
+
+**BEHAVIORAL VERIFICATION — PASSED.** The reference app was brought up against a throwaway PG DB,
+leak fixtures seeded, and every site hit UNAUTHENTICATED through the real Nitro route layer (not the
+helpers the tests use — the known coverage gap). All closed, no over-block: `/api/hubs` omits the
+private hub; `/api/content/<members|private-slug>` → 404; public control → 200; `/api/hubs/<priv>/posts`
+→ 403; `/api/events` omits private-hub event; legacy AP `/content/<members>` → 404. **This is the
+"change medium" gate every methodology audit demanded — the fix works at runtime, not just in units.**
+
+**Two MORE live leaks found + fixed this turn (`4fb0af34`):**
+- **forkContent** (`POST /api/content/<id>/fork`) copied a source item's FULL body with no
+  visibility check → any authed user could exfiltrate anyone's members/private/draft content by id.
+  Gated with `visibleContentWhere(userId)`.
+- **2e private-hub AP surface** — the deferral said "latent behind `federateHubs` OFF", but a live
+  `curl /api/features` shows **`federateHubs` is ON on commonpub.io + deveco.io**, so a private hub's
+  AP Group actor + **follower roster** + outbox were served unauthenticated. Fixed: `buildHubGroupActor`
+  null-for-private, the 4 AP routes + webfinger 404/skip private, all 5 outbound `federateHub*` skip
+  private. Gate = `privacy==='private'` only (unlisted/public still federate). R9/R10 public↔private
+  lifecycle deferred as a follow-up.
+
+**#4 Phase 0** (outbox date-bomb) fixed (`3ae5fc20`) — suite now fully green.
+
+**Live flag state (verified `curl /api/features`, matters for the roll):** `events` ON all 3 (the
+events privacy fix is live-relevant); `federateHubs` ON commonpub+deveco (why 2e was live);
+`publicApi` ON deveco (public/v1 routes reachable there — spot-check at roll).
+
+**Roll sequence (from the roll-readiness audit — NO migration):** publish **schema 0.56→0.57 → auth
+0.9→0.10 → server 2.105→2.106 → layer 0.97→0.98** (order load-bearing; layer via `pnpm publish:layer`).
+No consumer-breaking change (the 3 RBAC signature changes only affect the updated layer routes; forks
+don't call them; `getHubBySlug`/`hasPermissionPure` are additive/unchanged). Then: CLI re-pin
+(schema^0.57/server^2.106/layer^0.98), fork `package.json` pin bumps (0.x carets need hand-edit) +
+lockfiles (deveco npm gitignored / heatsync pnpm tracked), and **`POST /api/admin/search/reindex`
+IMMEDIATELY post-deploy per Meili instance** (the visibility filter ships with the code that writes
+the field, so you reindex after, not before — else search fails closed/empty). Run **full `pnpm test`**
+before publishing. Post-deploy, run the unauth **curl checklist** (below) on all 3.
+
+**Curl checklist (per instance, unauthenticated):** `GET /api/hubs` (private slug absent),
+`/api/content/<members-slug>` (404), `/api/content/<public-slug>` (200 control),
+`/api/hubs/<private-slug>/posts` (403), `/api/events` (private-hub event absent; only if events ON),
+`/content/<members-slug>` Accept:activity+json (404), and — new — `/hubs/<private-slug>` +
+`/hubs/<private-slug>/followers` Accept:activity+json (404, 2e). Check `/api/features` first.
+
+**Deferred (LOW, tracked): `createComment` write-abuse** into a private hub (content injection;
+mitigated — UUID now non-discoverable, notification templated) — "fix next" per the audit; anon
+`getHubBySlug` real-id stub; `profileVisibility` (inert). R9/R10 hub-federation lifecycle.
