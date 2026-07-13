@@ -181,3 +181,52 @@ before publishing. Post-deploy, run the unauth **curl checklist** (below) on all
 **Deferred (LOW, tracked): `createComment` write-abuse** into a private hub (content injection;
 mitigated — UUID now non-discoverable, notification templated) — "fix next" per the audit; anon
 `getHubBySlug` real-id stub; `profileVisibility` (inert). R9/R10 hub-federation lifecycle.
+
+---
+
+## Contest registration + reminders + Callout fix (SEPARATE workstream — branch `contest-registration-reminders`)
+
+Distinct from the security batch above. Committed `faa5bb3f` on branch **`contest-registration-reminders`**
+(NOT pushed / rolled). Satisfies a Qualcomm partner ask (via Jinger Zeng): (1) registration
+confirmation email, (2) automatic deadline reminders to participants. Plus fixes the editor Callout
+("tip block") reversed-text bug from the same thread.
+
+**What shipped (`faa5bb3f`, 35 files, migration 0040 additive-only):**
+- **Registration** — new `contest_registrations` (audience concept: sign-up independent of any
+  attached content; a `contest_entries` row needs content so it can't be the mail audience). Server
+  `contest/registrations.ts`; API `POST/DELETE/GET /api/contests/:slug/register` (`requireAuth` +
+  `canViewContest` gated); `ContestSidebar.vue` register card (count, cancel, login-redirect, state via
+  text+icon + `aria-pressed`).
+- **Confirmation email** — enqueued on a genuinely-new registration, gated `emailNotifications` + a
+  mailable target. `contestRegistrationConfirmation` template (templates.ts:99).
+- **Deadline reminders** — `contest/reminders.ts` `sweepContestReminders`: one idempotent sweep, safe
+  on every replica, mails each registered+verified+not-unsubscribed participant once per milestone
+  (7d/48h/24h/1h) via a UNIQUE `(contest,user,milestone)` ledger claim (`contest_reminder_sends`).
+  Nitro plugin `contest-reminders.ts` (stagger 18000, ~10min interval) drives it, inert until an
+  operator opts in. Gated behind NEW flag **`contestReminders`** (default OFF) AND `emailNotifications`.
+  Flag wired at all 7 touchpoints. `contestDeadlineReminder` template (templates.ts:133).
+- **Hardened `getNotificationEmailTarget`** to honor `unsubscribedAll` at the source (was verify-only) —
+  fixes the one P2 the verifier caught (confirmation would mail a globally-opted-out user) for every
+  current + future caller. `notification-email.ts` already pre-filters, so redundant-safe there. New
+  regression test.
+- **Callout/Quote reversed-text FIX** — root cause: body was a *controlled* `v-html` contenteditable
+  that re-assigned `innerHTML` every keystroke → replaced the text node → caret collapsed to offset 0 →
+  input reversed ("make"→"ekam"). Now *uncontrolled* (seed once on mount, write back only on genuine
+  external change, mirroring TextBlock). Regression test types char-by-char through the real parent
+  round-trip and asserts text-node identity is preserved.
+
+**Verified:** server typecheck ✓; full server suite **1674 pass / 0 fail** (incl. new registration +
+reminder + the unsubscribedAll regression); editor **245 pass** (incl. Callout regression); server
+build ✓; reference (vue-tsc) typecheck exit 0. Working tree clean, no AI attribution.
+
+**Operator enable checklist (to actually deliver mail):** (1) `emailNotifications` ON + wire a real
+transport (`NUXT_RESEND_*`) — today only deveco has email on, console sink, so nothing sends yet;
+(2) `contestReminders` ON in `/admin/features`; (3) sweep plugin then runs automatically. Qualcomm copy
+pastes into `packages/infra/src/email/templates.ts` — confirmation subject :116 / body :118-121;
+reminder subject :149 / body :151-154.
+
+**NEW BACKLOG (this handoff's follow-up ask): per-contest email-template EDITING UI in the contest
+editor.** Today the two contest email bodies are hardcoded instance-global copy in templates.ts;
+organizers can't customize per-contest copy without a code change. Next session explores building a
+contest-editor panel to edit that copy (with the safe plain-text+CTA pattern, per-contest override with
+built-in fallback). Kickoff: `docs/sessions/232-kickoff.md`.
