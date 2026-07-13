@@ -23,6 +23,19 @@ const createEventSchema = z.object({
 /**
  * POST /api/events
  * Create a new event (authenticated).
+ *
+ * RBAC-7 (session 231): deliberately NOT gated with
+ * `requirePermission(event, 'event.create')`. Event creation is open to every
+ * authenticated user today (requireFeature + requireAuth only), and the
+ * `event.create` catalog key is seeded ONLY to `staff`/`admin` — the `member`,
+ * `pro`, and `verified` system roles have EMPTY grant sets, and with
+ * `features.rbac` OFF (the default) EVERY non-admin resolves to no grants. A bare
+ * `requirePermission('event.create')` gate would therefore 403 every normal
+ * member (both flag-on and flag-off) — a regression. Governance, if ever wanted,
+ * must mirror contests: add a `config.instance.eventCreation` ('open'|'staff'|
+ * 'admin', default 'open') policy enforced against `user.role` inside
+ * `createEvent`, preserving today's open-creation default. Do not slap a
+ * permission gate on this route. (RBAC-7, REGRESSION_RISK verdict.)
  */
 export default defineEventHandler(async (event) => {
   requireFeature('events');

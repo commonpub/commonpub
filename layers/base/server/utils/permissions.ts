@@ -81,7 +81,15 @@ export async function resolvePermissions(
   return resolved;
 }
 
-/** Drop one user's cached permissions. Call AFTER a role/grant DB commit. */
+/**
+ * Drop one user's cached permissions. Call AFTER a role/grant DB commit.
+ *
+ * RBAC-8 (session 231, P3 — note only): this clears the LOCAL process only. On a
+ * multi-pod deployment a revoked grant can linger up to `PERMISSIONS_CACHE_TTL_MS`
+ * (30s) on OTHER pods until their own entry expires. Accepted for v1 (auth-critical
+ * TTL is deliberately short); a cross-pod bust (pub/sub or shared cache) is the
+ * future hardening if sub-30s cross-pod revocation is ever required.
+ */
 export function invalidatePermissions(userId: string): void {
   cache.delete(userId);
 }

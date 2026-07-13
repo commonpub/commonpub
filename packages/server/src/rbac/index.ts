@@ -12,4 +12,4 @@ export {
   setUserCustomRoles,
   getUserRoleIds,
 } from './admin.js';
-export type { RoleWithPermissions, CreateRoleInput, UpdateRoleInput } from './admin.js';
+export type { RoleWithPermissions, CreateRoleInput, UpdateRoleInput, ActorGrants } from './admin.js';

@@ -62,6 +62,30 @@ describe('hasPermissionPure', () => {
     });
   });
 
+  describe('protected leaf: contest.pii (RBAC-6)', () => {
+    it('the `contest.*` SEGMENT wildcard does NOT satisfy contest.pii', () => {
+      expect(hasPermissionPure(new Set(['contest.*']), 'contest.pii')).toBe(false);
+    });
+
+    it('but `contest.*` STILL satisfies the other contest.* capabilities', () => {
+      const g = new Set(['contest.*']);
+      expect(hasPermissionPure(g, 'contest.create')).toBe(true);
+      expect(hasPermissionPure(g, 'contest.manage')).toBe(true);
+    });
+
+    it('the full wildcard `*` STILL satisfies contest.pii (admin PII read via `*`)', () => {
+      expect(hasPermissionPure(new Set(['*']), 'contest.pii')).toBe(true);
+    });
+
+    it('the admin floor STILL satisfies contest.pii', () => {
+      expect(hasPermissionPure(new Set(), 'contest.pii', 'admin')).toBe(true);
+    });
+
+    it('an EXPLICIT contest.pii grant STILL satisfies it (staff seeds it exactly)', () => {
+      expect(hasPermissionPure(new Set(['contest.pii']), 'contest.pii')).toBe(true);
+    });
+  });
+
   describe('default deny (INV-3)', () => {
     it('empty set + non-admin denies', () => {
       expect(hasPermissionPure(new Set(), 'content.read')).toBe(false);

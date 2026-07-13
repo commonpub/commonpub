@@ -1,3 +1,4 @@
+import { WILDCARD_PROTECTED_PERMISSIONS } from '@commonpub/schema';
 import type { PermissionKey } from '@commonpub/schema';
 
 /**
@@ -41,8 +42,12 @@ export function hasPermissionPure(
   // 4. Segment wildcard: walk each dotted prefix of `needed` and check `<prefix>.*`.
   //    `content.moderate` ⇒ checks `content.*`. Multi-segment keys (none today)
   //    would also check deeper prefixes, future-proofing the rule.
+  //    PROTECTED LEAVES (RBAC-6) are EXEMPT from this branch: `contest.*` must NOT
+  //    satisfy `contest.pii`. Steps 1-3 (admin floor, `*`, exact match) already
+  //    ran, so admin, a `*` holder, and an explicit `contest.pii` grant still pass
+  //    — only the segment-wildcard shortcut is closed for the protected leaf.
   const dot = needed.indexOf('.');
-  if (dot !== -1) {
+  if (dot !== -1 && !WILDCARD_PROTECTED_PERMISSIONS.has(needed)) {
     let idx = dot;
     while (idx !== -1) {
       if (has(`${needed.slice(0, idx)}.*`)) return true;

@@ -1,8 +1,37 @@
 import { eq, and, inArray, sql } from 'drizzle-orm';
 import { roles, rolePermissions, userRoles, isPermissionGrant, filterKnownPermissions } from '@commonpub/schema';
+import { hasPermissionPure } from '@commonpub/auth';
 import type { DB } from '../types.js';
 import { createAuditEntry } from '../admin/admin.js';
 import { SYSTEM_ROLE_SEEDS } from './seed.js';
+
+/**
+ * The acting user's own effective grants — the CEILING for any role they mint,
+ * edit, or assign (RBAC-5). `primaryRole` feeds the admin floor, so a platform
+ * admin (`primaryRole === 'admin'`) or a `*` holder passes every grant
+ * unconditionally, while a non-admin `roles.manage` holder may only confer
+ * grants they themselves hold. Built by the route from
+ * `event.context.cpubPermissions` + the authoritative enriched `users.role`.
+ */
+export interface ActorGrants {
+  permissions: ReadonlySet<string>;
+  primaryRole: string;
+}
+
+/**
+ * Privilege-ceiling guard (RBAC-5): reject any requested grant the actor does
+ * not themselves hold. Evaluated through `hasPermissionPure` so the check is
+ * uniform with enforcement — admin floor + `*` pass everything, a `contest.*`
+ * actor "holds" `contest.manage` (segment wildcard) but — composed with the
+ * RBAC-6 protected-leaf fix — NOT `contest.pii`. Prevents a non-admin
+ * `roles.manage` holder from minting/self-assigning a role that grants a
+ * permission above their own set (full self-escalation). Throws
+ * `GRANT_EXCEEDS_CEILING`; the route maps it to 403.
+ */
+function enforceGrantCeiling(grants: readonly string[], actor: ActorGrants): void {
+  const exceeded = grants.filter((g) => !hasPermissionPure(actor.permissions, g, actor.primaryRole));
+  if (exceeded.length > 0) throw new Error('GRANT_EXCEEDS_CEILING');
+}
 
 /** System role keys are reserved — custom roles may not reuse them (a custom
  *  role keyed 'admin' would otherwise slip the `*` wildcard past sanitizeGrants). */
@@ -90,11 +119,17 @@ export async function createRole(
   db: DB,
   input: CreateRoleInput,
   actorId: string,
+  actor: ActorGrants,
 ): Promise<{ id: string }> {
   const key = input.key.trim().toLowerCase();
   // Reserved system keys can never be (re)created as custom roles — this also
   // closes the `*`-via-key='admin' escalation in sanitizeGrants.
   if (RESERVED_ROLE_KEYS.has(key)) throw new Error('ROLE_KEY_RESERVED');
+
+  const grants = sanitizeGrants(input.permissions ?? [], key);
+  // RBAC-5 ceiling: reject grants above the actor's own set BEFORE any write.
+  enforceGrantCeiling(grants, actor);
+
   const [existing] = await db.select({ id: roles.id }).from(roles).where(eq(roles.key, key)).limit(1);
   if (existing) throw new Error('ROLE_KEY_TAKEN');
 
@@ -103,7 +138,6 @@ export async function createRole(
     .values({ key, name: input.name.trim(), description: input.description ?? null, isSystem: false, priority: null })
     .returning({ id: roles.id });
 
-  const grants = sanitizeGrants(input.permissions ?? [], key);
   if (grants.length) {
     await db.insert(rolePermissions).values(grants.map((permissionKey) => ({ roleId: role!.id, permissionKey })));
   }
@@ -129,20 +163,41 @@ export async function updateRole(
   roleId: string,
   input: UpdateRoleInput,
   actorId: string,
+  actor: ActorGrants,
 ): Promise<void> {
   const [role] = await db.select().from(roles).where(eq(roles.id, roleId)).limit(1);
   if (!role) throw new Error('ROLE_NOT_FOUND');
+
+  // Metadata-only edits must respect the ceiling too (RBAC-5): you can't touch a role
+  // whose EXISTING grants you don't hold — blocks a non-admin roles.manage holder from
+  // renaming/re-describing the admin role (or any role above their own set) via a
+  // `{ name }`-only PUT that skips the permissions branch below.
+  const existingGrants = await db
+    .select({ permissionKey: rolePermissions.permissionKey })
+    .from(rolePermissions)
+    .where(eq(rolePermissions.roleId, roleId));
+  enforceGrantCeiling(existingGrants.map((r) => r.permissionKey), actor);
+
+  // Compute + ceiling-check the grants BEFORE any write, so a rejected edit
+  // leaves the role's name/description untouched too (no half-applied update).
+  let grants: string[] | null = null;
+  if (input.permissions !== undefined) {
+    grants = sanitizeGrants(input.permissions, role.key);
+    // The admin role must always retain its full bypass — never let an edit
+    // strip `*` and accidentally lock the instance out of admin capabilities.
+    if (role.key === 'admin' && !grants.includes('*')) grants = ['*', ...grants];
+    // RBAC-5 ceiling: reject grants above the actor's own set. Evaluated on the
+    // FINAL grants (incl. the forced admin `*`), so a non-admin can never edit
+    // the admin role — only a `*`/admin actor clears that ceiling.
+    enforceGrantCeiling(grants, actor);
+  }
 
   const set: Record<string, unknown> = {};
   if (input.name !== undefined) set.name = input.name.trim();
   if (input.description !== undefined) set.description = input.description;
   if (Object.keys(set).length) await db.update(roles).set(set).where(eq(roles.id, roleId));
 
-  if (input.permissions !== undefined) {
-    let grants = sanitizeGrants(input.permissions, role.key);
-    // The admin role must always retain its full bypass — never let an edit
-    // strip `*` and accidentally lock the instance out of admin capabilities.
-    if (role.key === 'admin' && !grants.includes('*')) grants = ['*', ...grants];
+  if (grants !== null) {
     await db.delete(rolePermissions).where(eq(rolePermissions.roleId, roleId));
     if (grants.length) {
       await db.insert(rolePermissions).values(grants.map((permissionKey) => ({ roleId, permissionKey })));
@@ -154,7 +209,7 @@ export async function updateRole(
     action: 'role.updated',
     targetType: 'role',
     targetId: roleId,
-    metadata: { key: role.key, ...(input.permissions !== undefined ? { permissions: sanitizeGrants(input.permissions, role.key) } : {}) },
+    metadata: { key: role.key, ...(grants !== null ? { permissions: grants } : {}) },
   });
 }
 
@@ -185,12 +240,24 @@ export async function setUserCustomRoles(
   userId: string,
   roleIds: string[],
   grantedBy: string,
+  actor: ActorGrants,
 ): Promise<void> {
   // Resolve which of the requested roles are custom (non-system).
   const requested = roleIds.length
     ? await db.select({ id: roles.id }).from(roles).where(and(inArray(roles.id, roleIds), eq(roles.isSystem, false)))
     : [];
   const customIds = new Set(requested.map((r) => r.id));
+
+  // RBAC-5 ceiling: an actor may only ASSIGN a role whose every grant they
+  // themselves hold — otherwise a non-admin `roles.manage` holder could assign a
+  // pre-existing high-privilege role to escalate. Admin / `*` holders clear it.
+  if (customIds.size > 0) {
+    const grantRows = await db
+      .select({ permissionKey: rolePermissions.permissionKey })
+      .from(rolePermissions)
+      .where(inArray(rolePermissions.roleId, [...customIds]));
+    enforceGrantCeiling(grantRows.map((r) => r.permissionKey), actor);
+  }
 
   // ATOMIC read-modify-write: compute the diff and apply both the remove and add
   // inside one transaction so a partial failure can't leave the user with a

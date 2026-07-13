@@ -66,6 +66,17 @@ export const PERMISSIONS = [
 
 export type PermissionKey = (typeof PERMISSIONS)[number];
 
+/**
+ * Protected LEAF permissions: keys a SEGMENT wildcard (`<prefix>.*`) must NOT
+ * satisfy. A role built with `contest.*` gains `contest.create`/`contest.manage`
+ * but NOT `contest.pii` — the enforced entrant-PII boundary (RBAC-6). The full
+ * wildcard `*`, the admin floor, and an EXACT `contest.pii` grant still satisfy
+ * it (those precede the segment-wildcard branch in `hasPermissionPure`), so
+ * admin (`*`) and staff (seeded `contest.pii` exactly) keep PII access; only the
+ * wildcard shortcut is closed. See packages/auth/src/permissions.ts step 4.
+ */
+export const WILDCARD_PROTECTED_PERMISSIONS: ReadonlySet<string> = new Set(['contest.pii']);
+
 const PERMISSION_SET: ReadonlySet<string> = new Set(PERMISSIONS);
 
 /** Valid first segments for `<prefix>.*` segment-wildcard grants. */
