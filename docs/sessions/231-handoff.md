@@ -1,8 +1,9 @@
-# Session 231 Handoff — audit (6 rounds) + content/hub privacy fix (item #1, committed, INCOMPLETE)
+# Session 231 Handoff — security batch (content/hub privacy + GDPR export + RBAC), all committed on-branch
 
 Date: 2026-07-12. Branch **`session-231-content-privacy`** (NOT pushed / published / deployed).
-Commits: `c6d80423` (plans) + `b6e8049e` (P-1/P-2 privacy fix) + `891b86b3` (handoff) + `df0486f3`
-(**P-1b — remaining leak sites, round-7/8 audit**). Nothing rolled to instances yet.
+Fix commits: `b6e8049e` (privacy P-1/P-2) + `df0486f3` (P-1b remaining leak sites) + `3de11931` (GDPR
+export completeness) + `e3cf8c8c` (RBAC privilege ceiling); plus `c6d80423` (plans) + doc-update
+commits. **All three security items (#1 privacy, #2 GDPR, #3 RBAC) are COMPLETE.** Nothing rolled yet.
 
 ## TL;DR
 

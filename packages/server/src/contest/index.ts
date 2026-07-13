@@ -15,6 +15,7 @@ export {
 
 export {
   listContestEntries,
+  canViewContestEntryDetail,
   getContestEntry,
   submitContestEntry,
   withdrawContestEntry,

@@ -612,6 +612,7 @@ export {
   canViewContest,
   advanceContestStage,
   isEliminated,
+  canViewContestEntryDetail,
   getContestEntry,
   submitStageArtifact,
   validateStageArtifactFields,

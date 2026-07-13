@@ -30,15 +30,30 @@ floor — the crypto/network/concurrency/UI boundaries are all mocked, so "SOLID
 |---|------|-----|-------|--------|---------|--------|
 | 1 | **Content & hub privacy enforcement** | P1/P0 | LIVE, unauth, all 3 | ~1-1.5 sess | no | `content-privacy-enforcement.md` |
 | 2 | **GDPR data-export completeness** | P2 | LIVE, all 3, legal | ~0.5 sess | no | §GDPR below |
-| 3 | **RBAC privilege ceiling + PII-wildcard + event.create gate** | P2 | latent/live | ~0.5 sess | no | §RBAC below |
+| 3 | **RBAC privilege ceiling + PII-wildcard** (DONE `e3cf8c8c`; event.create left ungated on purpose) | P2 | latent | ~0.5 sess | no | §RBAC below |
 | 4 | **Phase 0 — outbox test date-bomb** | P1 (test-only) | CI | ~0.25 sess | no | `federation-email-audit-fixes.md` Phase 0 |
-| 5 | **Federation live P2s** — negative-page 500 (1a), counter inflation (1b), inbox amplification (2a) | P2 | LIVE-if-federating | ~1 sess | 2a: 1 mig | fixes plan Ph1/2a + round-5 |
+| 5 | **Federation live P2s** — negative-page 500 (1a), counter inflation (1b), **contest-notif dedup collision (1c)**, inbox amplification (2a) | P2 | LIVE-if-federating | ~1 sess | 2a: 1 mig | fixes plan Ph1/2a + round-5 |
 | 6 | **Mirror ingestion gating (2b, upgraded → P1)** — storage ungated entirely, not just the cap | P1 | latent | ~0.5 sess | maybe col | fixes plan 2b + round-5 |
-| 7 | **Federation latent-flag hardening** — private-hub gate (2e), backfill actor-binding (2c), P3 batch | P2/P3 | latent | ~1-1.5 sess | some | fixes plan Ph2/3 |
+| 7 | **Federation + email latent hardening** — private-hub gate (2e), backfill actor-binding (2c), sanitizer DOMPurify (2d, P3), **email P3s** (List-Unsubscribe GET, send-time unsubscribe recheck, empty-AUTH_SECRET tokens, broadcast drain-gate/idempotency) | P2/P3 | latent | ~1-1.5 sess | some | fixes plan Ph2/3 |
 | 8 | **Contest communications** (preference center, contest emails, reminders, winner) | feature | — | ~5-7 sess | migs | `contest-communications.md` |
 
 **Do 1-3 first** (all live/legal, all server-only no-migration, all cheap), then 4, then the
 federation work **behind behavioral gates**, and treat 8 as separate feature investment.
+
+**Cross-plan dependencies + tracked residuals** (so nothing is lost):
+- **#8 (contest comms) depends on 3 of #7's email P3s** — the List-Unsubscribe GET handler, the
+  send-time unsubscribe recheck, and the broadcast drain-gate/idempotency (see
+  `federation-email-audit-fixes.md` "contest-plan dependencies"). Sequence #7's email items before
+  #8's email/broadcast work.
+- **1c** (contest-notif dedup) is specced in BOTH `federation-email-audit-fixes.md` Phase 1c AND
+  `contest-communications.md` Phase 1 — **do it once; #5/Phase-1c owns it**, contest-comms points to it.
+- **Privacy P-1b LOW residuals** (in `content-privacy-enforcement.md`): anon `getHubBySlug` stub still
+  returns the real hub id (no-requesterId path shared by write/AP callers → needs a read-scoped
+  resolver); `createComment` write-abuse (a non-member can post into a private hub); `profileVisibility`
+  latent surface (enum exists, no writer); the P-3 CI grep guard (regression backstop).
+- **Latent perf smell** (session-231 audit): `listEvents` + `searchProducts` do a full `hubs WHERE
+  privacy='private'` scan per request to build the exclusion. Correct but O(private-hubs) per call —
+  add an index / cache if an instance grows many private hubs.
 
 ---
 
@@ -98,12 +113,13 @@ wildcard-exempt protected leaf in `hasPermissionPure`, OR reject `contest.*` as 
 `isPermissionGrant` (`schema/permissions.ts:90-92`). (Prefer the protected-leaf approach so other
 `contest.*` perms still wildcard.)
 
-**RBAC-7 — `event.create` unenforced (LIVE); `contest.create` is a dead key.** `event.create`: NO
-gate at all — `events/index.post.ts:27-40` only `requireFeature('events')`+`requireAuth`, so **any
-authenticated user creates events.** **Fix:** add `requirePermission(event,'event.create')`.
-`contest.create`: creation IS gated, but by a *different* mechanism (`contestCreationPolicy` against
-`users.role`, `contest/contest.ts:36-41`), so the RBAC key is dead — **wire it into
-`contests/index.post.ts` or drop it** (also `content.read` is a dead key — drop or wire).
+**RBAC-7 — `event.create` DELIBERATELY LEFT UNGATED (shipped `e3cf8c8c`).** The round-6 draft said
+"add `requirePermission(event,'event.create')`", but the RBAC audit found `event.create` is seeded to
+**staff/admin only** — with `features.rbac` OFF (default) a normal member resolves to no grants, so a
+bare gate would **403 every member's event creation** (a regression). It was left ungated (doc comment
+only); the catalog key stays for a **future `config.instance.eventCreation` policy** (mirroring
+`contestCreationPolicy`), not a permission gate. `contest.create`/`content.read` remain dead keys,
+**kept** for forward-compat (not dropped).
 
 **RBAC-8 (P3) — revocation cache staleness.** `PERMISSIONS_CACHE_TTL_MS=30_000`, per-process
 (`utils/permissions.ts:25`); `invalidatePermissions` clears only the local node, so a revoked grant

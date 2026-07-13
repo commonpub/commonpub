@@ -1,4 +1,4 @@
-import { getContestBySlug, getContestEntry, canViewContest, isContestJudge, shouldRevealScores } from '@commonpub/server';
+import { getContestBySlug, getContestEntry, canViewContest, canViewContestEntryDetail, isContestJudge, shouldRevealScores } from '@commonpub/server';
 import type { ContestEntryItem } from '@commonpub/server';
 
 /**
@@ -40,8 +40,7 @@ export default defineEventHandler(async (event): Promise<ContestEntryItem> => {
   // but the entrant or a privileged viewer. Without the visibility half (P-1b), a
   // members/private published entry passes the draft gate and leaks its
   // title/slug/cover to any viewer of the public contest.
-  const contentPublic = entry.contentStatus === 'published' && entry.contentVisibility === 'public';
-  if (!contentPublic && !privileged && !isEntrant) {
+  if (!canViewContestEntryDetail(entry, { privileged, isEntrant })) {
     throw createError({ statusCode: 404, statusMessage: 'Entry not found' });
   }
 

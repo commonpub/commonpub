@@ -25,7 +25,7 @@ import { createProduct, addContentProduct, listProductContent, listHubGallery } 
 import { createHub } from '../hub/hub.js';
 import { createPath, createModule, createLesson, publishPath, getLessonBySlug } from '../learning/learning.js';
 import { createComment, listComments, toggleBookmark, listUserBookmarks } from '../social/social.js';
-import { createContest, submitContestEntry, listContestEntries, getContestEntry } from '../contest/index.js';
+import { createContest, submitContestEntry, listContestEntries, getContestEntry, canViewContestEntryDetail } from '../contest/index.js';
 
 type Visibility = 'public' | 'members' | 'private';
 
@@ -349,6 +349,16 @@ describe('P-1 content visibility enforcement', () => {
       expect(relatedIds).not.toContain(mem.id);
       expect(relatedIds).not.toContain(priv.id);
     });
+
+    it('DOES include another public published same-type item (not just always-empty)', async () => {
+      // Positive side: a public project by a different author must appear, so the test
+      // distinguishes "correctly filters non-public" from "related is always empty".
+      const other = await createTestUser(db, { username: `p1b-rel-${Date.now()}` });
+      const otherPub = await createContent(db, other.id, { type: 'project', title: 'Other Public Build', visibility: 'public' });
+      await db.update(contentItems).set({ status: 'published', publishedAt: new Date() }).where(eq(contentItems.id, otherPub.id));
+      const detail = await getContentBySlug(db, pub.slug, undefined);
+      expect((detail!.related ?? []).map((r) => r.id)).toContain(otherPub.id);
+    });
   });
 
   // ---- P-1b: getUserByUsername profile stats ----
@@ -451,6 +461,23 @@ describe('P-1 content visibility enforcement', () => {
       const fetched = await getContestEntry(db, entry!.id);
       expect(fetched!.contentStatus).toBe('published');
       expect(fetched!.contentVisibility).toBe('members');
+    });
+
+    // The detail route's actual 404 combination lives in the pure canViewContestEntryDetail
+    // (unit-tested here so an &&/||/negation bug is caught — a source-string route test can't).
+    it('canViewContestEntryDetail gates the boolean combination correctly', () => {
+      const anon = { privileged: false, isEntrant: false };
+      // public published → open to anyone
+      expect(canViewContestEntryDetail({ contentStatus: 'published', contentVisibility: 'public' }, anon)).toBe(true);
+      // published members/private → hidden from non-entrant, non-privileged
+      expect(canViewContestEntryDetail({ contentStatus: 'published', contentVisibility: 'members' }, anon)).toBe(false);
+      expect(canViewContestEntryDetail({ contentStatus: 'published', contentVisibility: 'private' }, anon)).toBe(false);
+      // draft placeholder → hidden from a non-entrant
+      expect(canViewContestEntryDetail({ contentStatus: 'draft', contentVisibility: 'public' }, anon)).toBe(false);
+      // the entrant sees their own non-public entry
+      expect(canViewContestEntryDetail({ contentStatus: 'draft', contentVisibility: 'private' }, { privileged: false, isEntrant: true })).toBe(true);
+      // a privileged viewer (owner/manager/judge) sees a non-public entry
+      expect(canViewContestEntryDetail({ contentStatus: 'published', contentVisibility: 'members' }, { privileged: true, isEntrant: false })).toBe(true);
     });
   });
 });

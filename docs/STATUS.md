@@ -12,6 +12,24 @@
 
 ## TL;DR — where things stand
 
+**Session 231 (2026-07-12) — SECURITY BATCH committed on branch `session-231-content-privacy`, NOT
+pushed/published/rolled.** A 6-round audit found a **live, unauthenticated, systemic content/hub
+privacy leak** on all 3 instances: content `visibility` (members/private) and private-hub
+posts/rosters/gallery/events were readable by anyone across ~19+ read paths (only
+`resolveContentQuery`/`content-ap`/`public-v1` enforced it; the session-204 fix patched one sibling
+and missed the rest). Fixed + committed (P-1/P-2 `b6e8049e`, P-1b `df0486f3`) plus **GDPR data-export
+completeness** (`3de11931` — was missing ~15 subject-data tables) and an **RBAC privilege-ceiling**
+fix (`e3cf8c8c` — `roles.manage` self-escalation + `contest.pii` wildcard leak). Master plan:
+`docs/plans/session-231-remediation-roadmap.md`; detail: `docs/plans/content-privacy-enforcement.md`;
+session log: `docs/sessions/231-handoff.md`. **To ROLL:** publish **schema → auth → server → layer**
+(RBAC touched auth + schema) + CLI re-pin + both consumer lockfiles + a **Meilisearch reindex step**
+(`configureContentIndex` re-run + full reindex BEFORE the new `visibility` filter is trusted, else
+search fails closed). Then **curl each leak site UNAUTHENTICATED before/after on all 3**: `/api/hubs`
+(private hubs must not list), `/api/events`, `/api/content/<members-slug>`,
+`/api/hubs/<private-slug>/posts`. No migration. RBAC changes latent behind `features.rbac` except the
+`contest.pii` matcher. Remaining roadmap: #4 Phase 0 outbox test (the "flakes" below), #5-7 federation
+(behind behavioral harnesses), #8 contest communications.
+
 **Session 230 (2026-07-07) — SHIPPED + ROLLED to all 3. Live stack: schema 0.56.0 / config 0.30.0 /
 server 2.104.0 / test-utils 0.5.10 / layer 0.96.0, migration 0039.** Handoff: `docs/sessions/230-handoff.md`.
 Five releases: (1) **per-instance SEO branding** (fixes "CommonPub" in unfurls — `og:site_name` +
@@ -26,7 +44,9 @@ shadows the layer); (5) **platform-admin community-settings override** (server 2
 instance admins (`admin.access`) can edit ANY community's settings (banner etc.) without membership —
 `updateHub { asPlatformAdmin }` + Settings link via `useCan('admin.access')`; non-admin non-members
 403. Both new flags default **OFF** (enable via `/admin/features`; deveco has them ON). Full suites
-green (5 pre-existing email-outbox PGlite flakes aside); browser + release audit verified. Bugs caught
+green (5 **deterministic email-outbox date-bomb failures** — session-231 Phase 0, test-only, fix
+pending: the tests enqueue at real `now()` but drain with a hardcoded `2026-07-01` fake clock → 0
+rows claimed; NOT "PGlite flakes"); browser + release audit verified. Bugs caught
 + fixed: picker `limit=200`>max→400; unlabeled admin flags; deveco CI TS2322 (typed-route manifest
 collapse in deveco's settings.vue fork). **Follow-up wrap-up (server 2.105.0 / layer 0.97.0):** the two
 F2 UI slices are DONE (steward + admin discussion moderation controls; unlink button on share posts,

@@ -1,4 +1,4 @@
-import { eq, and, or, desc, sql } from 'drizzle-orm';
+import { eq, and, or, desc, sql, isNull } from 'drizzle-orm';
 import { contests, contestEntries, users, contentItems } from '@commonpub/schema';
 import type { DB } from '../types.js';
 import { normalizePagination, countRows } from '../query.js';
@@ -57,6 +57,7 @@ export async function listContestEntries(
   const livePublicEntry = and(
     eq(contentItems.status, 'published'),
     eq(contentItems.visibility, 'public'),
+    isNull(contentItems.deletedAt),
   )!;
   const contentVisible = opts.onlyPublishedContent
     ? (opts.viewerId
@@ -156,6 +157,21 @@ export async function listContestEntries(
  * per-judge scores. Server-internal: the route layer gates who may see the
  * artifacts/scores (judges/owner/admin + the entrant themselves).
  */
+/**
+ * Entry-detail read gate (session-227 draft gate + P-1b visibility): a proposal DRAFT
+ * placeholder OR a published-but-members/private entry must not be openable by direct URL
+ * — 404 for anyone but the entrant or a privileged viewer (owner / `contest.manage` / judge).
+ * A public-published entry is open to all. Extracted as a pure function so the boolean
+ * combination is unit-testable (a source-string route test can't catch an `&&`/`||`/negation bug).
+ */
+export function canViewContestEntryDetail(
+  entry: { contentStatus?: string; contentVisibility?: string },
+  viewer: { privileged: boolean; isEntrant: boolean },
+): boolean {
+  const contentPublic = entry.contentStatus === 'published' && entry.contentVisibility === 'public';
+  return contentPublic || viewer.privileged || viewer.isEntrant;
+}
+
 export async function getContestEntry(db: DB, entryId: string): Promise<ContestEntryItem | null> {
   const rows = await db
     .select({
