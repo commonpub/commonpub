@@ -35,6 +35,13 @@ export interface FeatureFlags {
    * `contests` is also on.
    */
   contestPii: boolean;
+  /**
+   * Automatic contest deadline reminder emails to registered participants
+   * (7 days / 48 hours / 24 hours / 1 hour before the deadline). Default OFF.
+   * Inert unless this AND emailNotifications are both on. No effect unless
+   * `contests` is also on.
+   */
+  contestReminders: boolean;
   /** Enable events system (listing, RSVP, calendar) */
   events: boolean;
   /** Enable learning paths (enrollment, progress, certificates) */

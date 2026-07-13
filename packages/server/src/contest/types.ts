@@ -239,3 +239,27 @@ export interface AdvanceStageInput {
 
 /** The transaction handle drizzle passes to `db.transaction(async (tx) => …)`. */
 export type ContestTx = Parameters<Parameters<DB['transaction']>[0]>[0];
+
+/**
+ * The per-instance context the contest email producers need to build a message:
+ * the public site URL + name for links/branding and the AUTH_SECRET that signs
+ * the per-recipient unsubscribe token. Supplied by the caller (route or worker)
+ * so the pure server functions stay free of runtimeConfig.
+ */
+export interface ContestEmailContext {
+  /** Public origin, e.g. `https://commonpub.io` (no trailing slash). */
+  siteUrl: string;
+  /** Human-readable instance name for the email header/subject. */
+  siteName: string;
+  /** AUTH_SECRET — signs the per-recipient one-click unsubscribe token. */
+  secret: string;
+}
+
+/** One participant registered for a contest (audience for confirmation + reminders). */
+export interface ContestRegistrantItem {
+  userId: string;
+  username: string;
+  displayName: string | null;
+  avatarUrl: string | null;
+  registeredAt: Date;
+}

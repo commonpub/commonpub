@@ -281,6 +281,13 @@
       "when": 1783381343892,
       "tag": "0039_striped_loa",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1783915487083,
+      "tag": "0040_sleepy_madelyne_pryor",
+      "breakpoints": true
     }
   ]
 }

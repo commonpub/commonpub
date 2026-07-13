@@ -59,18 +59,29 @@ export async function shouldEmailNotification(
 
 /**
  * Get user email and username for sending notification emails. Returns null unless
- * the address is verified (we never email an unverified address).
+ * the address is verified (we never email an unverified address) AND the user has
+ * not globally opted out (`unsubscribedAll`). This is the single mailability gate:
+ * per-type notification prefs are layered on top by `shouldEmailNotification`, but
+ * the hard global opt-out is enforced here so every caller (instant notifications,
+ * contest registration confirmations, and any future one) honors it by default.
  */
 export async function getNotificationEmailTarget(
   db: DB,
   userId: string,
 ): Promise<{ email: string; username: string } | null> {
   const [row] = await db
-    .select({ email: users.email, username: users.username, emailVerified: users.emailVerified })
+    .select({
+      email: users.email,
+      username: users.username,
+      emailVerified: users.emailVerified,
+      emailNotifications: users.emailNotifications,
+    })
     .from(users)
     .where(eq(users.id, userId))
     .limit(1);
 
   if (!row || !row.emailVerified) return null;
+  const prefs = (row.emailNotifications ?? undefined) as EmailNotificationPrefs | undefined;
+  if (prefs?.unsubscribedAll) return null;
   return { email: row.email, username: row.username };
 }

@@ -91,6 +91,73 @@ export const emailTemplates = {
   },
 
   /**
+   * Contest registration confirmation. Sent transactionally when a participant
+   * registers for a contest (gated on emailNotifications + a verified address).
+   * Confirms the sign-up and surfaces the submission deadline + a link back to
+   * the contest page. Carries an unsubscribe link (it is a participation email).
+   */
+  contestRegistrationConfirmation(
+    siteName: string,
+    username: string,
+    contest: { title: string; url: string; deadline?: string },
+    unsubscribeUrl?: string,
+    branding?: EmailBranding,
+  ): EmailMessage & { to: '' } {
+    const safeName = escapeHtml(siteName);
+    const safeUsername = escapeHtml(username);
+    const safeTitle = escapeHtml(contest.title);
+    const safeUrl = escapeHtml(contest.url);
+    const safeUnsub = unsubscribeUrl ? escapeHtml(unsubscribeUrl) : undefined;
+    const deadlineLine = contest.deadline
+      ? `<p>The submission deadline is <strong>${escapeHtml(contest.deadline)}</strong>. We will send you reminders as it approaches.</p>`
+      : '<p>We will send you reminders as the submission deadline approaches.</p>';
+    return {
+      to: '' as const,
+      subject: `You are registered for ${contest.title} -- ${siteName}`,
+      html: wrapTemplate(safeName, `
+        <h2 style="color:#fff;margin:0 0 16px;">Hi ${safeUsername},</h2>
+        <p>You are now registered for <strong>${safeTitle}</strong>.</p>
+        ${deadlineLine}
+        ${button('View the contest', safeUrl, branding)}
+      `, { unsubscribeUrl: safeUnsub, branding }),
+      text: `You are registered for ${contest.title}.${contest.deadline ? ` The submission deadline is ${contest.deadline}.` : ''}\n${contest.url}`,
+    };
+  },
+
+  /**
+   * Contest deadline reminder. Sent by the reminder sweep to every registered
+   * participant at each milestone (7 days, 48 hours, 24 hours, 1 hour before the
+   * deadline), exactly once per participant per milestone. Bulk mail: carries a
+   * per-recipient unsubscribe link.
+   */
+  contestDeadlineReminder(
+    siteName: string,
+    username: string,
+    contest: { title: string; url: string; deadline: string; timeRemaining: string },
+    unsubscribeUrl?: string,
+    branding?: EmailBranding,
+  ): EmailMessage & { to: '' } {
+    const safeName = escapeHtml(siteName);
+    const safeUsername = escapeHtml(username);
+    const safeTitle = escapeHtml(contest.title);
+    const safeUrl = escapeHtml(contest.url);
+    const safeDeadline = escapeHtml(contest.deadline);
+    const safeRemaining = escapeHtml(contest.timeRemaining);
+    const safeUnsub = unsubscribeUrl ? escapeHtml(unsubscribeUrl) : undefined;
+    return {
+      to: '' as const,
+      subject: `${contest.timeRemaining} left to submit: ${contest.title} -- ${siteName}`,
+      html: wrapTemplate(safeName, `
+        <h2 style="color:#fff;margin:0 0 16px;">Hi ${safeUsername},</h2>
+        <p>The submission deadline for <strong>${safeTitle}</strong> is in about <strong>${safeRemaining}</strong>.</p>
+        <p>Submissions close on <strong>${safeDeadline}</strong>. Make sure your entry is in before then.</p>
+        ${button('Go to the contest', safeUrl, branding)}
+      `, { unsubscribeUrl: safeUnsub, branding }),
+      text: `${contest.timeRemaining} left to submit for ${contest.title}. Submissions close on ${contest.deadline}.\n${contest.url}`,
+    };
+  },
+
+  /**
    * Admin broadcast (email Phase 3). Body is PLAIN TEXT rendered as escaped
    * paragraphs (no operator HTML), plus an optional themed CTA button. Honors
    * branding + an unsubscribe link (it is bulk mail).

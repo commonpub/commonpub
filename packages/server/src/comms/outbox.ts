@@ -8,7 +8,7 @@ import type { EmailAdapter, EmailMessage, EmailSendResult } from '../email.js';
 // templates or who sends what — it just reliably delivers rows with batching,
 // throttling, retry/backoff, and a crash-safe claim. See schema/comms.ts.
 
-export type EmailCategory = 'notification' | 'digest' | 'broadcast';
+export type EmailCategory = 'notification' | 'digest' | 'broadcast' | 'reminder';
 
 export interface OutboxMessage {
   toEmail: string;

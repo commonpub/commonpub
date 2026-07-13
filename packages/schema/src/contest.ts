@@ -419,12 +419,64 @@ export const contestEntryPrivateFields = pgTable('contest_entry_private_fields',
   index('idx_contest_entry_private_fields_contest_id').on(t.contestId),
 ]);
 
+// --- Contest Registrations (participant sign-up) ---
+// A user's intent to participate in a contest. UNLIKE contest_entries, this needs
+// no attached content -- it is the audience record for the registration-confirmation
+// and deadline-reminder emails. A user can be registered without having entered.
+// Instance-local; never federated (matches every other contest table).
+export const contestRegistrations = pgTable('contest_registrations', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  contestId: uuid('contest_id')
+    .notNull()
+    .references(() => contests.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [
+  unique('uq_contest_registrations_contest_user').on(t.contestId, t.userId),
+  index('idx_contest_registrations_contest_id').on(t.contestId),
+  index('idx_contest_registrations_user_id').on(t.userId),
+]);
+
+// --- Contest Reminder Sends (idempotency ledger) ---
+// One row per (contest, participant, milestone) that has been ENQUEUED. The
+// UNIQUE constraint + `ON CONFLICT DO NOTHING RETURNING` is the claim: the sweep
+// only emails the rows it actually inserts, so a milestone is delivered exactly
+// once per participant even across worker ticks and multiple replicas.
+export const contestReminderSends = pgTable('contest_reminder_sends', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  contestId: uuid('contest_id')
+    .notNull()
+    .references(() => contests.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  /** 'deadline_T7d' | 'deadline_T48h' | 'deadline_T24h' | 'deadline_T1h' */
+  milestone: text('milestone').notNull(),
+  sentAt: timestamp('sent_at', { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [
+  unique('uq_contest_reminder_sends_contest_user_milestone').on(t.contestId, t.userId, t.milestone),
+  index('idx_contest_reminder_sends_contest_id').on(t.contestId),
+]);
+
 // --- Relations ---
 
 export const contestsRelations = relations(contests, ({ one, many }) => ({
   createdBy: one(users, { fields: [contests.createdById], references: [users.id] }),
   entries: many(contestEntries),
   judgeList: many(contestJudges),
+  registrations: many(contestRegistrations),
+}));
+
+export const contestRegistrationsRelations = relations(contestRegistrations, ({ one }) => ({
+  contest: one(contests, { fields: [contestRegistrations.contestId], references: [contests.id] }),
+  user: one(users, { fields: [contestRegistrations.userId], references: [users.id] }),
+}));
+
+export const contestReminderSendsRelations = relations(contestReminderSends, ({ one }) => ({
+  contest: one(contests, { fields: [contestReminderSends.contestId], references: [contests.id] }),
+  user: one(users, { fields: [contestReminderSends.userId], references: [users.id] }),
 }));
 
 export const contestEntriesRelations = relations(contestEntries, ({ one }) => ({
@@ -471,3 +523,7 @@ export type ContestAgreementAcceptanceRow = typeof contestAgreementAcceptances.$
 export type NewContestAgreementAcceptanceRow = typeof contestAgreementAcceptances.$inferInsert;
 export type ContestEntryPrivateFieldsRow = typeof contestEntryPrivateFields.$inferSelect;
 export type NewContestEntryPrivateFieldsRow = typeof contestEntryPrivateFields.$inferInsert;
+export type ContestRegistrationRow = typeof contestRegistrations.$inferSelect;
+export type NewContestRegistrationRow = typeof contestRegistrations.$inferInsert;
+export type ContestReminderSendRow = typeof contestReminderSends.$inferSelect;
+export type NewContestReminderSendRow = typeof contestReminderSends.$inferInsert;

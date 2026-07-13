@@ -25,6 +25,9 @@ export interface FeatureFlags {
   /** Offer PII field types in the submission-form builder (Phase 4). Default OFF.
    *  PII access is always gated server-side by `contest.pii.read`. */
   contestPii: boolean;
+  /** Automatic contest deadline reminder emails to registered participants.
+   *  Default OFF; inert unless emailNotifications is also on. */
+  contestReminders: boolean;
   events: boolean;
   learning: boolean;
   explainers: boolean;
@@ -80,6 +83,7 @@ let hydrated = false;
 export const DEFAULT_FLAGS: FeatureFlags = {
   content: true, social: true, hubs: true, docs: true, video: true,
   contests: false, contestStageSubmissions: true, contestProposals: false, contestPii: false,
+  contestReminders: false,
   events: false, learning: true, explainers: true,
   editorial: true, federation: false, admin: false, themeStudio: true, emailNotifications: false,
   publicApi: false, contentImport: true,
@@ -186,6 +190,7 @@ export function useFeatures() {
     contestStageSubmissions: computed(() => flags.value.contestStageSubmissions),
     contestProposals: computed(() => flags.value.contestProposals),
     contestPii: computed(() => flags.value.contestPii),
+    contestReminders: computed(() => flags.value.contestReminders),
     events: computed(() => flags.value.events),
     learning: computed(() => flags.value.learning),
     explainers: computed(() => flags.value.explainers),

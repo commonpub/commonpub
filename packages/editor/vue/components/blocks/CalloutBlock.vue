@@ -2,7 +2,7 @@
 /**
  * Callout block — variant picker (info/tip/warning/danger) + editable body.
  */
-import { computed } from 'vue';
+import { computed, ref, onMounted, watch } from 'vue';
 import { sanitizeBlockHtml } from '../../utils.js';
 
 const props = defineProps<{
@@ -15,6 +15,25 @@ const emit = defineEmits<{
 
 const html = computed(() => (props.content.html as string) ?? '');
 const variant = computed(() => (props.content.variant as string) ?? 'info');
+
+const bodyEl = ref<HTMLElement | null>(null);
+
+// The body is an *uncontrolled* contenteditable: we seed it once on mount and
+// only write back on genuine external changes. Binding it with `v-html` instead
+// would re-assign `innerHTML` on every keystroke (the value echoes back through
+// the parent), destroying the text node and collapsing the caret to offset 0,
+// which reverses typed input character by character. Guarding the write (the
+// same pattern TextBlock uses for its TipTap editor) keeps the caret stable.
+onMounted(() => {
+  if (bodyEl.value) bodyEl.value.innerHTML = html.value;
+});
+
+watch(html, (newHtml: string): void => {
+  const el = bodyEl.value;
+  if (el && newHtml !== el.innerHTML) {
+    el.innerHTML = newHtml;
+  }
+});
 
 const variants = [
   { value: 'info', icon: 'fa-circle-info', label: 'Info', color: 'var(--accent)' },
@@ -50,11 +69,11 @@ function onBodyInput(event: Event): void {
     <div class="cpub-callout-body">
       <div class="cpub-callout-label" :style="{ color: currentVariant.color }">{{ currentVariant.label }}</div>
       <div
+        ref="bodyEl"
         class="cpub-callout-text"
         contenteditable="true"
         data-placeholder="Callout text..."
         @input="onBodyInput"
-        v-html="html"
       />
     </div>
   </div>

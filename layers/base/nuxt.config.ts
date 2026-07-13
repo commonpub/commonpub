@@ -109,6 +109,7 @@ export default defineNuxtConfig({
         contestStageSubmissions: true,
         contestProposals: false,
         contestPii: false,
+        contestReminders: false,
         events: false,
         learning: true,
         explainers: true,

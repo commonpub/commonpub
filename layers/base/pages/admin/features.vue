@@ -27,6 +27,7 @@ const flagMeta: Record<string, { label: string; description: string; icon: strin
   contestStageSubmissions: { label: 'Contest Stage Submissions', description: 'Per-stage submission forms for multi-round contests', icon: 'fa-solid fa-file-pen' },
   contestProposals: { label: 'Contest Proposals', description: 'Form-first proposal entries with a draft placeholder project', icon: 'fa-solid fa-clipboard-list' },
   contestPii: { label: 'Contest PII Fields', description: 'Offer personal-data fields (email, address) in submission forms', icon: 'fa-solid fa-user-shield' },
+  contestReminders: { label: 'Contest Deadline Reminders', description: 'Automatic deadline reminder emails to registered participants (needs Email Notifications)', icon: 'fa-solid fa-bell' },
   learning: { label: 'Learning', description: 'Learning paths and courses', icon: 'fa-solid fa-graduation-cap' },
   explainers: { label: 'Explainers', description: 'Interactive explainer modules', icon: 'fa-solid fa-lightbulb' },
   editorial: { label: 'Editorial', description: 'Staff picks and content categories', icon: 'fa-solid fa-pen-fancy' },

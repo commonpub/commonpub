@@ -623,6 +623,14 @@ export {
   getEntryPrivateData,
   buildContestExport,
   toCsv,
+  registerForContest,
+  unregisterForContest,
+  isRegisteredForContest,
+  listContestRegistrants,
+  getRegistrantCount,
+  sweepContestReminders,
+  formatDeadlineUtc,
+  CONTEST_REMINDER_MILESTONES,
 } from './contest/index.js';
 export type {
   ContestListItem,
@@ -642,6 +650,11 @@ export type {
   SubmitProposalResult,
   EntryPrivateData,
   ContestExport,
+  ContestEmailContext,
+  ContestRegistrantItem,
+  RegisterForContestResult,
+  SweepContestRemindersContext,
+  SweepContestRemindersResult,
 } from './contest/index.js';
 export {
   listContestJudges,

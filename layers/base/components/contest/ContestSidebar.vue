@@ -8,11 +8,27 @@ const props = defineProps<{
   canManage?: boolean;
   /** True when the viewer is an accepted, non-guest judge able to score. */
   canJudge?: boolean;
+  /** Whether a user session exists (drives register vs. log-in-to-register). */
+  isAuthenticated?: boolean;
+  /** Whether the current viewer is registered for this contest. */
+  registered?: boolean;
+  /** Public count of registered participants. */
+  registrantCount?: number;
+  /** In-flight register/unregister request (disables the toggle). */
+  registering?: boolean;
 }>();
 
 const emit = defineEmits<{
   (e: 'copy-link'): void;
+  (e: 'register'): void;
+  (e: 'unregister'): void;
 }>();
+
+// Registration is open only while a contest is upcoming or active (mirrors the
+// server's REGISTERABLE_STATUSES). Past that, the card is informational only.
+const REGISTERABLE = ['upcoming', 'active'];
+const canRegister = computed(() => REGISTERABLE.includes(props.contest?.status ?? ''));
+const loginLink = computed(() => `/auth/login?redirect=/contests/${props.contest?.slug ?? ''}`);
 
 type StepState = 'done' | 'current' | 'upcoming';
 interface TimelineStep { label: string; date: string | null; state: StepState; icon: string }
@@ -89,6 +105,56 @@ function statusClass(status: string): string {
       <p v-else-if="contest?.status === 'cancelled'" class="cpub-sb-cancelled">This contest was cancelled.</p>
     </div>
 
+    <!-- REGISTRATION -->
+    <div v-if="canRegister || (registrantCount ?? 0) > 0" class="cpub-sb-card cpub-sb-register">
+      <div class="cpub-sb-title"><i class="fa-solid fa-user-plus"></i> Registration</div>
+
+      <p class="cpub-sb-regcount">
+        <strong>{{ registrantCount ?? 0 }}</strong>
+        {{ (registrantCount ?? 0) === 1 ? 'participant registered' : 'participants registered' }}
+      </p>
+
+      <template v-if="canRegister">
+        <!-- Anonymous: send to sign-in, returning to this contest. -->
+        <NuxtLink v-if="!isAuthenticated" :to="loginLink" class="cpub-btn cpub-btn-primary cpub-sb-regbtn">
+          <i class="fa-solid fa-right-to-bracket"></i> Log in to register
+        </NuxtLink>
+
+        <!-- Registered: confirmed state + a toggle to cancel. State is carried by
+             text + icon (not colour alone) and aria-pressed for assistive tech. -->
+        <template v-else-if="registered">
+          <p class="cpub-sb-regstate">
+            <i class="fa-solid fa-circle-check"></i> You are registered
+          </p>
+          <button
+            type="button"
+            class="cpub-btn cpub-sb-regbtn cpub-sb-regcancel"
+            :aria-pressed="true"
+            :disabled="registering"
+            @click="emit('unregister')"
+          >
+            <i class="fa-solid fa-xmark"></i>
+            {{ registering ? 'Cancelling...' : 'Cancel registration' }}
+          </button>
+        </template>
+
+        <!-- Not registered: the primary CTA. -->
+        <button
+          v-else
+          type="button"
+          class="cpub-btn cpub-btn-primary cpub-sb-regbtn"
+          :aria-pressed="false"
+          :disabled="registering"
+          @click="emit('register')"
+        >
+          <i class="fa-solid fa-user-plus"></i>
+          {{ registering ? 'Registering...' : 'Register for this contest' }}
+        </button>
+
+        <p class="cpub-sb-reghint">Get a confirmation and deadline reminders by email.</p>
+      </template>
+    </div>
+
     <!-- LINKS -->
     <div class="cpub-sb-card">
       <div class="cpub-sb-title"><i class="fa-solid fa-share-nodes"></i> Share</div>
@@ -146,6 +212,15 @@ function statusClass(status: string): string {
 
 .cpub-sb-actions { display: flex; gap: 6px; flex-wrap: wrap; }
 .cpub-sb-btn { flex: 1; justify-content: center; }
+
+/* REGISTRATION */
+.cpub-sb-regcount { font-size: 12px; color: var(--text-dim); margin: 0 0 12px; }
+.cpub-sb-regcount strong { color: var(--text); font-family: var(--font-mono); }
+.cpub-sb-regbtn { width: 100%; justify-content: center; }
+.cpub-sb-regstate { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--green-text); margin: 0 0 8px; }
+.cpub-sb-regcancel { color: var(--text-dim); }
+.cpub-sb-regcancel:hover:not(:disabled) { color: var(--red-text); border-color: var(--red-border); background: var(--red-bg); }
+.cpub-sb-reghint { font-size: 11px; color: var(--text-faint); line-height: 1.5; margin: 10px 0 0; }
 .cpub-sb-link { width: 100%; text-align: center; display: block; margin-top: 12px; }
 .cpub-sb-judge { color: var(--accent); border-color: var(--accent-border); }
 </style>

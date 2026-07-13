@@ -2,7 +2,7 @@
 /**
  * Blockquote block — styled quote with editable body and attribution.
  */
-import { computed } from 'vue';
+import { computed, ref, onMounted, watch } from 'vue';
 import { sanitizeBlockHtml } from '../../utils.js';
 
 const props = defineProps<{
@@ -15,6 +15,23 @@ const emit = defineEmits<{
 
 const html = computed(() => (props.content.html as string) ?? '');
 const attribution = computed(() => (props.content.attribution as string) ?? '');
+
+const bodyEl = ref<HTMLElement | null>(null);
+
+// Uncontrolled contenteditable: seed once, write back only on genuine external
+// changes. Binding with `v-html` would re-assign `innerHTML` on every keystroke
+// (the value echoes back via the parent), collapsing the caret to offset 0 and
+// reversing typed input. Guarding the write keeps the caret stable.
+onMounted(() => {
+  if (bodyEl.value) bodyEl.value.innerHTML = html.value;
+});
+
+watch(html, (newHtml: string): void => {
+  const el = bodyEl.value;
+  if (el && newHtml !== el.innerHTML) {
+    el.innerHTML = newHtml;
+  }
+});
 
 function onBodyInput(event: Event): void {
   const el = event.target as HTMLElement;
@@ -31,11 +48,11 @@ function onAttributionInput(event: Event): void {
     <div class="cpub-quote-bar" aria-hidden="true" />
     <div class="cpub-quote-body">
       <div
+        ref="bodyEl"
         class="cpub-quote-text"
         contenteditable="true"
         data-placeholder="Enter quote..."
         @input="onBodyInput"
-        v-html="html"
       />
       <input
         class="cpub-quote-attribution"

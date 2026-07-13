@@ -13,6 +13,9 @@ const { isAuthenticated, isAdmin, user } = useAuth();
 const { data: contest } = await useFetch(`/api/contests/${slug}`);
 const { data: apiEntriesData, refresh: refreshEntries } = useLazyFetch<{ items: Serialized<ContestEntryItem>[]; total: number }>(`/api/contests/${slug}/entries`);
 const { data: judgesData, refresh: refreshJudges } = useLazyFetch<ContestJudgeItem[]>(`/api/contests/${slug}/judges`);
+// Registration state (viewer's own + public count). Drives the sidebar register
+// toggle. Lazy — the register card isn't above the fold and can hydrate late.
+const { data: registrationData } = useLazyFetch<{ registered: boolean; count: number }>(`/api/contests/${slug}/register`);
 
 useSeoMeta({
   title: () => `${contest.value?.title || 'Contest'}, ${useSiteName()}`,
@@ -269,6 +272,52 @@ async function submitEntry(): Promise<void> {
   }
 }
 
+// Registration (participant intent, independent of any entry). Local state is
+// seeded from the fetch and then reconciled from each POST/DELETE response.
+const registered = ref(false);
+const registrantCount = ref(0);
+const registering = ref(false);
+watch(
+  registrationData,
+  (d) => {
+    if (d) {
+      registered.value = d.registered;
+      registrantCount.value = d.count;
+    }
+  },
+  { immediate: true },
+);
+
+async function register(): Promise<void> {
+  if (registering.value) return;
+  registering.value = true;
+  try {
+    const res = await $fetch<{ registered: boolean; count: number }>(`/api/contests/${slug}/register`, { method: 'POST' });
+    registered.value = res.registered;
+    registrantCount.value = res.count;
+    toast.success('You are registered for this contest');
+  } catch (err: unknown) {
+    toast.error(extractError(err));
+  } finally {
+    registering.value = false;
+  }
+}
+
+async function unregister(): Promise<void> {
+  if (registering.value) return;
+  registering.value = true;
+  try {
+    const res = await $fetch<{ registered: boolean; count: number }>(`/api/contests/${slug}/register`, { method: 'DELETE' });
+    registered.value = res.registered;
+    registrantCount.value = res.count;
+    toast.success('Registration cancelled');
+  } catch (err: unknown) {
+    toast.error(extractError(err));
+  } finally {
+    registering.value = false;
+  }
+}
+
 async function withdrawEntry(entryId: string): Promise<void> {
   try {
     await $fetch(`/api/contests/${slug}/entries/${entryId}`, { method: 'DELETE' });
@@ -502,7 +551,19 @@ async function withdrawEntry(entryId: string): Promise<void> {
           </div>
         </div>
 
-        <ContestSidebar :contest="c" :is-owner="isOwner" :can-manage="canManage" :can-judge="canJudge" @copy-link="copyLink" />
+        <ContestSidebar
+          :contest="c"
+          :is-owner="isOwner"
+          :can-manage="canManage"
+          :can-judge="canJudge"
+          :is-authenticated="isAuthenticated"
+          :registered="registered"
+          :registrant-count="registrantCount"
+          :registering="registering"
+          @copy-link="copyLink"
+          @register="register"
+          @unregister="unregister"
+        />
       </div>
     </div>
   </div>

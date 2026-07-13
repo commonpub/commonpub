@@ -37,6 +37,10 @@ export const featureFlagsSchema = z.object({
   // Offer PII field types in the submission-form builder (Phase 4). Default OFF.
   // Access to stored PII is always gated by `contest.pii` regardless.
   contestPii: z.boolean().default(false),
+  // Automatic contest deadline reminder emails to registered participants.
+  // Default OFF; the reminder sweep is inert unless this AND emailNotifications
+  // are on (the outbox worker only drains when emailNotifications is on).
+  contestReminders: z.boolean().default(false),
   events: z.boolean().default(false),
   learning: z.boolean().default(true),
   explainers: z.boolean().default(true),

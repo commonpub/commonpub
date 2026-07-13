@@ -50,6 +50,25 @@ export {
 export { buildContestExport, toCsv } from './export.js';
 export type { ContestExport } from './export.js';
 
+export {
+  registerForContest,
+  unregisterForContest,
+  isRegisteredForContest,
+  listContestRegistrants,
+  getRegistrantCount,
+} from './registrations.js';
+export type { RegisterForContestResult } from './registrations.js';
+
+export {
+  sweepContestReminders,
+  formatDeadlineUtc,
+  CONTEST_REMINDER_MILESTONES,
+} from './reminders.js';
+export type {
+  SweepContestRemindersContext,
+  SweepContestRemindersResult,
+} from './reminders.js';
+
 export type {
   ContestListItem,
   ContestDetail,
@@ -67,6 +86,8 @@ export type {
   AgreementAcceptanceInput,
   StageSource,
   ContestTx,
+  ContestEmailContext,
+  ContestRegistrantItem,
 } from './types.js';
 
 export type {
