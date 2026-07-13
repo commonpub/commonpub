@@ -631,6 +631,8 @@ export {
   sweepContestReminders,
   formatDeadlineUtc,
   CONTEST_REMINDER_MILESTONES,
+  parseContestEmailCopy,
+  getContestEmailCopy,
 } from './contest/index.js';
 export type {
   ContestListItem,

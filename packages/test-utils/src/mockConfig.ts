@@ -22,6 +22,7 @@ export function createTestConfig(overrides?: Partial<CommonPubConfig>): CommonPu
       contestProposals: false,
       contestPii: false,
       contestReminders: false,
+      contestEmailEditor: false,
       events: false,
       learning: true,
       explainers: true,

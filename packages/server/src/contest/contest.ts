@@ -75,6 +75,7 @@ export async function createContest(
         maxEntriesPerUser: input.maxEntriesPerUser ?? null,
         visibility: input.visibility ?? 'public',
         visibleToRoles: input.visibleToRoles ?? null,
+        emailCopy: input.emailCopy ?? null,
         startDate: new Date(input.startDate),
         endDate: new Date(input.endDate),
         judgingEndDate: input.judgingEndDate ? new Date(input.judgingEndDate) : null,
@@ -163,6 +164,9 @@ export async function updateContest(
   if (data.maxEntriesPerUser !== undefined) updates.maxEntriesPerUser = data.maxEntriesPerUser;
   if (data.visibility !== undefined) updates.visibility = data.visibility;
   if (data.visibleToRoles !== undefined) updates.visibleToRoles = data.visibleToRoles;
+  // Per-contest email copy override (session 232). Null clears it (revert to
+  // built-in default copy). Organizer-only; never returned in public responses.
+  if (data.emailCopy !== undefined) updates.emailCopy = data.emailCopy;
   if (data.startDate !== undefined) updates.startDate = new Date(data.startDate);
   if (data.endDate !== undefined) updates.endDate = new Date(data.endDate);
   if (data.judgingEndDate !== undefined) updates.judgingEndDate = data.judgingEndDate ? new Date(data.judgingEndDate) : null;

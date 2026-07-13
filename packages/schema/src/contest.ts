@@ -143,6 +143,15 @@ export interface ContestStageSubmission {
   submittedAt: string;
 }
 
+/** Per-contest email copy override (session 232). Organizers customize the
+ *  subject + plain-text intro of the two contest participation emails; all other
+ *  chrome (unsubscribe link, CTA, deadline line, branded shell) stays system-owned.
+ *  Absent/empty per field ⇒ the built-in default. Stored in `contests.email_copy`. */
+export interface ContestEmailCopy {
+  confirmation?: { subject?: string; intro?: string };
+  reminder?: { subject?: string; intro?: string };
+}
+
 /** @v2 — Contest system. Tables defined but not yet referenced in application code. */
 export const contests = pgTable('contests', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -237,6 +246,9 @@ export const contests = pgTable('contests', {
     .references(() => users.id, { onDelete: 'cascade' }),
   communityVotingEnabled: boolean('community_voting_enabled').default(false).notNull(),
   entryCount: integer('entry_count').default(0).notNull(),
+  /** Per-contest email copy override (session 232). Organizer-only; never
+   *  serialized into public contest responses. Null ⇒ built-in default copy. */
+  emailCopy: jsonb('email_copy').$type<ContestEmailCopy>(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 }, (t) => [

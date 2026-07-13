@@ -41,6 +41,12 @@ export const featureFlagsSchema = z.object({
   // Default OFF; the reminder sweep is inert unless this AND emailNotifications
   // are on (the outbox worker only drains when emailNotifications is on).
   contestReminders: z.boolean().default(false),
+  // Per-contest email-template editor (session 232): organizers customize the
+  // subject + plain-text intro of the confirmation + reminder emails per contest.
+  // Default OFF. Gates the editor UI + preview route AND the send-side application
+  // of any stored override (flag off ⇒ every send uses built-in default copy).
+  // No effect unless `contests` is also on.
+  contestEmailEditor: z.boolean().default(false),
   events: z.boolean().default(false),
   learning: z.boolean().default(true),
   explainers: z.boolean().default(true),

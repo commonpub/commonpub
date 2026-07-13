@@ -42,6 +42,16 @@ export interface FeatureFlags {
    * `contests` is also on.
    */
   contestReminders: boolean;
+  /**
+   * Per-contest email-template editor (session 232). When ON, a contest editor
+   * can customize the subject + plain-text intro of the registration-confirmation
+   * and deadline-reminder emails per contest (tokens interpolated + HTML-escaped
+   * server-side; all other chrome system-owned). Default OFF. Gates the editor UI
+   * + preview route AND the send-side application of a stored override, so turning
+   * it off reverts every send to the built-in default. No effect unless `contests`
+   * is also on.
+   */
+  contestEmailEditor: boolean;
   /** Enable events system (listing, RSVP, calendar) */
   events: boolean;
   /** Enable learning paths (enrollment, progress, certificates) */

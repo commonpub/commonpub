@@ -8,6 +8,7 @@ import { enqueueEmail } from '../comms/outbox.js';
 import { buildUnsubscribeLinks } from '../comms/unsubscribe.js';
 import { getEmailBranding } from '../comms/branding.js';
 import { getNotificationEmailTarget } from '../notification/emailPrefs.js';
+import { parseContestEmailCopy } from './emailCopy.js';
 import { formatDeadlineUtc } from './reminders.js';
 import type { ContestEmailContext, ContestRegistrantItem } from './types.js';
 
@@ -48,6 +49,7 @@ export async function registerForContest(
       title: contests.title,
       slug: contests.slug,
       endDate: contests.endDate,
+      emailCopy: contests.emailCopy,
     })
     .from(contests)
     .where(eq(contests.id, input.contestId))
@@ -79,6 +81,9 @@ export async function registerForContest(
       if (target) {
         const { pageUrl, headers } = buildUnsubscribeLinks(email.siteUrl, input.userId, email.secret);
         const branding = await getEmailBranding(db);
+        // Apply the per-contest copy override only when the editor feature is on,
+        // so turning the flag off reverts every send to the built-in default.
+        const copy = config.features.contestEmailEditor ? parseContestEmailCopy(contest.emailCopy).confirmation : undefined;
         const tpl = emailTemplates.contestRegistrationConfirmation(
           email.siteName,
           target.username,
@@ -89,6 +94,7 @@ export async function registerForContest(
           },
           pageUrl,
           branding,
+          copy,
         );
         await enqueueEmail(db, {
           toEmail: target.email,

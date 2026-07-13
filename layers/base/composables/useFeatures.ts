@@ -28,6 +28,9 @@ export interface FeatureFlags {
   /** Automatic contest deadline reminder emails to registered participants.
    *  Default OFF; inert unless emailNotifications is also on. */
   contestReminders: boolean;
+  /** Per-contest email-template editor: customize confirmation + reminder copy.
+   *  Default OFF; also gates send-side application of a stored override. */
+  contestEmailEditor: boolean;
   events: boolean;
   learning: boolean;
   explainers: boolean;
@@ -83,7 +86,7 @@ let hydrated = false;
 export const DEFAULT_FLAGS: FeatureFlags = {
   content: true, social: true, hubs: true, docs: true, video: true,
   contests: false, contestStageSubmissions: true, contestProposals: false, contestPii: false,
-  contestReminders: false,
+  contestReminders: false, contestEmailEditor: false,
   events: false, learning: true, explainers: true,
   editorial: true, federation: false, admin: false, themeStudio: true, emailNotifications: false,
   publicApi: false, contentImport: true,
@@ -191,6 +194,7 @@ export function useFeatures() {
     contestProposals: computed(() => flags.value.contestProposals),
     contestPii: computed(() => flags.value.contestPii),
     contestReminders: computed(() => flags.value.contestReminders),
+    contestEmailEditor: computed(() => flags.value.contestEmailEditor),
     events: computed(() => flags.value.events),
     learning: computed(() => flags.value.learning),
     explainers: computed(() => flags.value.explainers),

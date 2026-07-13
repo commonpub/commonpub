@@ -1,4 +1,4 @@
-import type { ContestStatus, ContestStage, ContestStageSubmission, ContestImageMeta, ContestCoverPlacement } from '@commonpub/schema';
+import type { ContestStatus, ContestStage, ContestStageSubmission, ContestImageMeta, ContestCoverPlacement, ContestEmailCopy } from '@commonpub/schema';
 import type { DB } from '../types.js';
 
 // Shared contest types — the single home for the contest module's interfaces so
@@ -147,6 +147,9 @@ export interface CreateContestInput {
   startDate: string;
   endDate: string;
   judgingEndDate?: string;
+  /** Per-contest email copy override (session 232). Null clears it. Deliberately
+   *  NOT part of the public `ContestDetail` DTO — organizer-only, never returned. */
+  emailCopy?: ContestEmailCopy | null;
   createdBy: string;
 }
 

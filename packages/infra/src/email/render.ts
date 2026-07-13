@@ -19,6 +19,38 @@ export function escapeHtml(str: string): string {
     .replace(/'/g, '&#x27;');
 }
 
+/**
+ * Interpolate a fixed token allow-list into PLAIN text (email subject / text
+ * body). Unknown `{tokens}` are left literal. Values are inserted raw — callers
+ * use this only where no HTML is emitted. `String.replace(fn)` is single-pass, so
+ * a value that itself contains `{token}` is never re-expanded (no double interp).
+ */
+export function interpolateTokens(input: string, tokens: Record<string, string>): string {
+  return input.replace(/\{(\w+)\}/g, (m, k: string) => (Object.prototype.hasOwnProperty.call(tokens, k) ? tokens[k]! : m));
+}
+
+/**
+ * Render organizer-supplied plain-text intro as escaped `<p>` paragraphs with
+ * tokens interpolated as HTML-ESCAPED values. Blank lines split paragraphs (the
+ * broadcast pattern). This is the ONLY way organizer copy reaches the HTML body,
+ * so there is no injection surface: the paragraph text is escaped first (leaving
+ * literal `{token}` intact, since braces aren't escaped), then each token is
+ * replaced with an escaped value. Unknown tokens stay literal; no re-expansion.
+ */
+export function escapedParagraphsWithTokens(input: string, tokens: Record<string, string>): string {
+  return input
+    .split(/\r?\n\r?\n|\r?\n/)
+    .map((p) => p.trim())
+    .filter(Boolean)
+    .map(
+      (p) =>
+        `<p>${escapeHtml(p).replace(/\{(\w+)\}/g, (m, k: string) =>
+          Object.prototype.hasOwnProperty.call(tokens, k) ? escapeHtml(tokens[k]!) : m,
+        )}</p>`,
+    )
+    .join('');
+}
+
 /** Validated accent color (defends the render even if a bad value slipped past write-validation). */
 export function brandAccent(branding?: EmailBranding): string {
   const c = branding?.accentColor;

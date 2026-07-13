@@ -58,6 +58,42 @@ export const contestJudgingCriterionSchema = z.object({
 });
 export type ContestJudgingCriterion = z.infer<typeof contestJudgingCriterionSchema>;
 
+// Per-contest email copy override (session 232). Organizers customize ONLY the
+// subject + plain-text intro of the two contest participation emails; the tokens
+// are interpolated + HTML-escaped server-side and all other chrome (unsubscribe,
+// CTA, deadline line) is system-owned — there is no organizer HTML, so no
+// injection surface. `.strict()` rejects unknown keys; empty/absent ⇒ default.
+const CONTEST_EMAIL_SUBJECT_MAX = 200;
+const CONTEST_EMAIL_INTRO_MAX = 2000;
+export const contestEmailTemplateCopySchema = z
+  .object({
+    subject: z.string().trim().max(CONTEST_EMAIL_SUBJECT_MAX).optional(),
+    intro: z.string().trim().max(CONTEST_EMAIL_INTRO_MAX).optional(),
+  })
+  .strict();
+export const contestEmailCopySchema = z
+  .object({
+    confirmation: contestEmailTemplateCopySchema.optional(),
+    reminder: contestEmailTemplateCopySchema.optional(),
+  })
+  .strict();
+export type ContestEmailCopyInput = z.infer<typeof contestEmailCopySchema>;
+
+// Which of the two contest emails a preview/editor request targets.
+export const contestEmailTemplateKeySchema = z.enum(['confirmation', 'reminder']);
+export type ContestEmailTemplateKey = z.infer<typeof contestEmailTemplateKeySchema>;
+
+// Live-preview request: render one template with the UNSAVED copy. Validated with
+// the same field schema as the stored override, so preview can't render arbitrary
+// HTML (the branding-preview safety model, applied per-contest).
+export const contestEmailPreviewSchema = z
+  .object({
+    template: contestEmailTemplateKeySchema,
+    copy: contestEmailTemplateCopySchema,
+  })
+  .strict();
+export type ContestEmailPreviewInput = z.infer<typeof contestEmailPreviewSchema>;
+
 // Per-stage submission-template field types (Phase 4 extends the original
 // text/textarea/url trio). `agreement` + `address` and any field flagged `pii`
 // are partitioned OUT of the public `stageSubmissions.fields` artifact at submit
@@ -240,6 +276,8 @@ export const createContestSchema = z
     maxEntriesPerUser: z.number().int().positive().max(1000).optional(),
     visibility: contestVisibilitySchema.optional(),
     visibleToRoles: z.array(userRoleSchema).max(5).optional(),
+    // Per-contest email copy override (session 232). Null clears the override.
+    emailCopy: contestEmailCopySchema.nullable().optional(),
   })
   .refine((d) => new Date(d.endDate) > new Date(d.startDate), {
     message: 'End date must be after the start date',
@@ -286,6 +324,8 @@ export const updateContestSchema = z
     maxEntriesPerUser: z.number().int().positive().max(1000).optional(),
     visibility: contestVisibilitySchema.optional(),
     visibleToRoles: z.array(userRoleSchema).max(5).optional(),
+    // Per-contest email copy override (session 232). Null clears the override.
+    emailCopy: contestEmailCopySchema.nullable().optional(),
   })
   // `judges` + `stakeholders` are intentionally NOT updatable here — they are
   // managed via the dedicated /judges and /stakeholders endpoints.

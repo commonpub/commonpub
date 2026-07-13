@@ -2,7 +2,14 @@
  *  the caller fills). All HTML goes through the render kernel (escape + branded
  *  shell + themed button), so templates never hand-roll markup or colors. */
 import type { EmailMessage, EmailBranding } from './types.js';
-import { escapeHtml, wrapTemplate, button, brandAccent } from './render.js';
+import { escapeHtml, wrapTemplate, button, brandAccent, interpolateTokens, escapedParagraphsWithTokens } from './render.js';
+
+/** Per-contest email copy override (session 232): organizer-customized subject +
+ *  plain-text intro. Absent/empty per field ⇒ the built-in default for that field. */
+export interface ContestEmailCopyOverride {
+  subject?: string;
+  intro?: string;
+}
 
 export const emailTemplates = {
   verification(siteName: string, verifyUrl: string, branding?: EmailBranding): EmailMessage & { to: '' } {
@@ -102,25 +109,37 @@ export const emailTemplates = {
     contest: { title: string; url: string; deadline?: string },
     unsubscribeUrl?: string,
     branding?: EmailBranding,
+    copy?: ContestEmailCopyOverride,
   ): EmailMessage & { to: '' } {
     const safeName = escapeHtml(siteName);
     const safeUsername = escapeHtml(username);
     const safeTitle = escapeHtml(contest.title);
     const safeUrl = escapeHtml(contest.url);
     const safeUnsub = unsubscribeUrl ? escapeHtml(unsubscribeUrl) : undefined;
+    // Tokens available to a confirmation override (no `{timeRemaining}` here).
+    const tokens = { contestTitle: contest.title, deadline: contest.deadline ?? '', username, contestUrl: contest.url };
+    // Deadline line + CTA + unsubscribe are system-owned in BOTH paths.
     const deadlineLine = contest.deadline
       ? `<p>The submission deadline is <strong>${escapeHtml(contest.deadline)}</strong>. We will send you reminders as it approaches.</p>`
       : '<p>We will send you reminders as the submission deadline approaches.</p>';
+    // Override subject/intro when supplied (tokenized); else the built-in default.
+    // The tokenizer runs ONLY on the override branch, so a default title that
+    // legitimately contains `{...}` is never interpolated.
+    const subject = copy?.subject ? interpolateTokens(copy.subject, tokens) : `You are registered for ${contest.title} -- ${siteName}`;
+    const leadHtml = copy?.intro
+      ? escapedParagraphsWithTokens(copy.intro, tokens)
+      : `<h2 style="color:#fff;margin:0 0 16px;">Hi ${safeUsername},</h2>
+        <p>You are now registered for <strong>${safeTitle}</strong>.</p>`;
+    const leadText = copy?.intro ? interpolateTokens(copy.intro, tokens) : `You are registered for ${contest.title}.`;
     return {
       to: '' as const,
-      subject: `You are registered for ${contest.title} -- ${siteName}`,
+      subject,
       html: wrapTemplate(safeName, `
-        <h2 style="color:#fff;margin:0 0 16px;">Hi ${safeUsername},</h2>
-        <p>You are now registered for <strong>${safeTitle}</strong>.</p>
+        ${leadHtml}
         ${deadlineLine}
         ${button('View the contest', safeUrl, branding)}
       `, { unsubscribeUrl: safeUnsub, branding }),
-      text: `You are registered for ${contest.title}.${contest.deadline ? ` The submission deadline is ${contest.deadline}.` : ''}\n${contest.url}`,
+      text: `${leadText}${contest.deadline ? ` The submission deadline is ${contest.deadline}.` : ''}\n${contest.url}`,
     };
   },
 
@@ -136,6 +155,7 @@ export const emailTemplates = {
     contest: { title: string; url: string; deadline: string; timeRemaining: string },
     unsubscribeUrl?: string,
     branding?: EmailBranding,
+    copy?: ContestEmailCopyOverride,
   ): EmailMessage & { to: '' } {
     const safeName = escapeHtml(siteName);
     const safeUsername = escapeHtml(username);
@@ -144,16 +164,27 @@ export const emailTemplates = {
     const safeDeadline = escapeHtml(contest.deadline);
     const safeRemaining = escapeHtml(contest.timeRemaining);
     const safeUnsub = unsubscribeUrl ? escapeHtml(unsubscribeUrl) : undefined;
+    // The reminder override additionally exposes `{timeRemaining}`.
+    const tokens = { contestTitle: contest.title, deadline: contest.deadline, username, timeRemaining: contest.timeRemaining, contestUrl: contest.url };
+    // "Submissions close on ..." line + CTA + unsubscribe are system-owned.
+    const closeLine = `<p>Submissions close on <strong>${safeDeadline}</strong>. Make sure your entry is in before then.</p>`;
+    const subject = copy?.subject ? interpolateTokens(copy.subject, tokens) : `${contest.timeRemaining} left to submit: ${contest.title} -- ${siteName}`;
+    const leadHtml = copy?.intro
+      ? escapedParagraphsWithTokens(copy.intro, tokens)
+      : `<h2 style="color:#fff;margin:0 0 16px;">Hi ${safeUsername},</h2>
+        <p>The submission deadline for <strong>${safeTitle}</strong> is in about <strong>${safeRemaining}</strong>.</p>`;
+    const leadText = copy?.intro
+      ? interpolateTokens(copy.intro, tokens)
+      : `${contest.timeRemaining} left to submit for ${contest.title}.`;
     return {
       to: '' as const,
-      subject: `${contest.timeRemaining} left to submit: ${contest.title} -- ${siteName}`,
+      subject,
       html: wrapTemplate(safeName, `
-        <h2 style="color:#fff;margin:0 0 16px;">Hi ${safeUsername},</h2>
-        <p>The submission deadline for <strong>${safeTitle}</strong> is in about <strong>${safeRemaining}</strong>.</p>
-        <p>Submissions close on <strong>${safeDeadline}</strong>. Make sure your entry is in before then.</p>
+        ${leadHtml}
+        ${closeLine}
         ${button('Go to the contest', safeUrl, branding)}
       `, { unsubscribeUrl: safeUnsub, branding }),
-      text: `${contest.timeRemaining} left to submit for ${contest.title}. Submissions close on ${contest.deadline}.\n${contest.url}`,
+      text: `${leadText} Submissions close on ${contest.deadline}.\n${contest.url}`,
     };
   },
 

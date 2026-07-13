@@ -7,6 +7,7 @@ import { enqueueEmails } from '../comms/outbox.js';
 import type { OutboxMessage } from '../comms/outbox.js';
 import { buildUnsubscribeLinks } from '../comms/unsubscribe.js';
 import { getEmailBranding } from '../comms/branding.js';
+import { parseContestEmailCopy } from './emailCopy.js';
 import type { ContestEmailContext } from './types.js';
 
 // Automatic contest deadline reminders. A single sweep, safe to run on every
@@ -88,6 +89,7 @@ export async function sweepContestReminders(
       title: contests.title,
       slug: contests.slug,
       endDate: contests.endDate,
+      emailCopy: contests.emailCopy,
     })
     .from(contests)
     .where(and(
@@ -105,6 +107,9 @@ export async function sweepContestReminders(
     const msLeft = contest.endDate.getTime() - now.getTime();
     const contestUrl = `${ctx.siteUrl}/contests/${contest.slug}`;
     const deadline = formatDeadlineUtc(contest.endDate);
+    // Apply the per-contest reminder copy override only when the editor feature
+    // is on; otherwise every reminder uses the built-in default copy.
+    const reminderCopy = config.features.contestEmailEditor ? parseContestEmailCopy(contest.emailCopy).reminder : undefined;
 
     for (const milestone of CONTEST_REMINDER_MILESTONES) {
       // Only milestones whose window the deadline has entered.
@@ -143,6 +148,7 @@ export async function sweepContestReminders(
           { title: contest.title, url: contestUrl, deadline, timeRemaining: milestone.label },
           pageUrl,
           branding,
+          reminderCopy,
         );
         return {
           toEmail: r.email,

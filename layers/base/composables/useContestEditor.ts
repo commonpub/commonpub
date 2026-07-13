@@ -14,8 +14,20 @@
  * round-trip bug and no per-field re-conversion at save (the Phase 1 datetime fix).
  */
 import { ref, computed, watch, nextTick, type Ref, type ComputedRef } from 'vue';
-import type { ContestStage, ContestImageMeta, ContestCoverPlacement } from '@commonpub/schema';
+import type { ContestStage, ContestImageMeta, ContestCoverPlacement, ContestEmailCopy } from '@commonpub/schema';
 import type { ContestTemplateSeed } from '../utils/contestTemplates';
+
+/** Flat form shape for the two contest emails (empty string ⇒ built-in default).
+ *  Loaded separately from the contest (the public DTO never carries email copy)
+ *  via the organizer-gated GET, so it needs its own loaded flag before it can be
+ *  included in a save payload — otherwise a save that never opened the Emails tab
+ *  would clobber stored copy with an empty override. */
+export interface ContestEmailCopyForm {
+  confirmationSubject: string;
+  confirmationIntro: string;
+  reminderSubject: string;
+  reminderIntro: string;
+}
 
 export type ContestFormat = 'markdown' | 'html';
 export type ContestVisibility = 'public' | 'unlisted' | 'private';
@@ -126,11 +138,18 @@ export interface UseContestEditor {
   criteria: Ref<ContestCriterionRow[]>;
   stages: Ref<ContestStage[]>;
   currentStageId: Ref<string | null>;
+  emailCopy: Ref<ContestEmailCopyForm>;
+  /** True once the organizer-only email copy has been fetched into `emailCopy`;
+   *  gates whether a save includes `emailCopy` (so it isn't clobbered when unset). */
+  emailCopyLoaded: Ref<boolean>;
   // status
   saving: Ref<boolean>;
   formDirty: Ref<boolean>;
   dateError: ComputedRef<string>;
   canSubmit: ComputedRef<boolean>;
+  /** Populate `emailCopy` from a fetched override without marking the form dirty,
+   *  and flag it loaded so subsequent saves include it. Called by the Emails tab. */
+  setEmailCopy: (c: ContestEmailCopy) => void;
   // helpers
   slugify: (s: string) => string;
   toggleType: (type: string) => void;
@@ -195,6 +214,8 @@ export function useContestEditor(opts: UseContestEditorOptions): UseContestEdito
   const criteria = ref<ContestCriterionRow[]>([]);
   const stages = ref<ContestStage[]>([]);
   const currentStageId = ref<string | null>(null);
+  const emailCopy = ref<ContestEmailCopyForm>({ confirmationSubject: '', confirmationIntro: '', reminderSubject: '', reminderIntro: '' });
+  const emailCopyLoaded = ref(false);
 
   const saving = ref(false);
   const formDirty = ref(false);
@@ -316,6 +337,33 @@ export function useContestEditor(opts: UseContestEditorOptions): UseContestEdito
     void nextTick(() => { hydrating = false; });
   }
 
+  function setEmailCopy(c: ContestEmailCopy): void {
+    hydrating = true;
+    emailCopy.value = {
+      confirmationSubject: c.confirmation?.subject ?? '',
+      confirmationIntro: c.confirmation?.intro ?? '',
+      reminderSubject: c.reminder?.subject ?? '',
+      reminderIntro: c.reminder?.intro ?? '',
+    };
+    emailCopyLoaded.value = true;
+    void nextTick(() => { hydrating = false; });
+  }
+
+  // Assemble the flat form into the stored override shape. Empty (after trim) ⇒
+  // that field/template falls back to the built-in default; entirely empty ⇒ null
+  // (clears any stored override).
+  function assembleEmailCopy(f: ContestEmailCopyForm): ContestEmailCopy | null {
+    const confirmation = { subject: f.confirmationSubject.trim() || undefined, intro: f.confirmationIntro.trim() || undefined };
+    const reminder = { subject: f.reminderSubject.trim() || undefined, intro: f.reminderIntro.trim() || undefined };
+    const hasConfirmation = !!(confirmation.subject || confirmation.intro);
+    const hasReminder = !!(reminder.subject || reminder.intro);
+    if (!hasConfirmation && !hasReminder) return null;
+    return {
+      ...(hasConfirmation ? { confirmation } : {}),
+      ...(hasReminder ? { reminder } : {}),
+    };
+  }
+
   function buildPayload(): Record<string, unknown> {
     const prizeData = prizes.value
       .filter((p) => p.title.trim() || p.description.trim() || p.category.trim() || (typeof p.place === 'number' && p.place > 0))
@@ -366,6 +414,9 @@ export function useContestEditor(opts: UseContestEditorOptions): UseContestEdito
       prizesDescription: prizesDescription.value || undefined,
       prizes: prizeData,
       judgingCriteria: criteriaData,
+      // Only send email copy once it has been loaded into the tab, so a save that
+      // never opened the Emails tab leaves any stored override untouched.
+      ...(emailCopyLoaded.value ? { emailCopy: assembleEmailCopy(emailCopy.value) } : {}),
     };
   }
 
@@ -407,7 +458,7 @@ export function useContestEditor(opts: UseContestEditorOptions): UseContestEdito
     [title, slugInput, subheading, description, descriptionBlocks, rulesBlocks, prizesBlocks, rules,
       descriptionFormat, rulesFormat, prizesDescriptionFormat, bannerUrl, coverImageUrl, bannerMeta, coverMeta, coverPlacement, startDate, endDate,
       judgingEndDate, communityVotingEnabled, judgingVisibility, eligibleContentTypes, maxEntriesPerUser,
-      visibility, visibleToRoles, showPrizes, prizesDescription, prizes, criteria, stages, currentStageId],
+      visibility, visibleToRoles, showPrizes, prizesDescription, prizes, criteria, stages, currentStageId, emailCopy],
     () => { if (!hydrating) formDirty.value = true; },
     { deep: true },
   );
@@ -422,8 +473,10 @@ export function useContestEditor(opts: UseContestEditorOptions): UseContestEdito
     rules, descriptionFormat, rulesFormat, prizesDescriptionFormat, bannerUrl, coverImageUrl, bannerMeta, coverMeta, coverPlacement, startDate,
     endDate, judgingEndDate, communityVotingEnabled, judgingVisibility, eligibleContentTypes, maxEntriesPerUser,
     visibility, visibleToRoles, showPrizes, prizesDescription, prizes, criteria, stages, currentStageId,
+    emailCopy, emailCopyLoaded,
     saving, formDirty, dateError, canSubmit,
     slugify: slugifyContest, toggleType, toggleRole, addPrize, removePrize, prizeLabel,
+    setEmailCopy,
     hydrate, applyTemplate, buildPayload, save,
   };
 }

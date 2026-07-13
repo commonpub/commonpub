@@ -66,7 +66,7 @@ const {
   description, descriptionFormat, rules, rulesFormat, prizesDescription, prizesDescriptionFormat,
   bannerUrl, coverImageUrl, bannerMeta, coverMeta, coverPlacement, startDate, endDate, judgingEndDate, communityVotingEnabled,
   judgingVisibility, eligibleContentTypes, maxEntriesPerUser, visibility, visibleToRoles,
-  showPrizes, prizes, criteria, stages, currentStageId,
+  showPrizes, prizes, criteria, stages, currentStageId, emailCopy, setEmailCopy,
   saving, formDirty, dateError, canSubmit, slugify, toggleType, toggleRole, addPrize, removePrize, prizeLabel, save,
 } = editor;
 
@@ -76,6 +76,9 @@ const {
 const { features } = useFeatures();
 const proposalsEnabled = computed(() => features.value.contestProposals === true);
 const piiEnabled = computed(() => features.value.contestPii === true);
+// The per-contest email editor needs a persisted contest (per-contest preview +
+// save), so it is edit-only, and gated on its feature flag.
+const emailEditorEnabled = computed(() => props.mode === 'edit' && features.value.contestEmailEditor === true);
 
 // --- Hoisted body block editors (the one refactor: a single left palette inserts
 // into the CURRENTLY-active body, so the three useBlockEditor instances live here
@@ -85,7 +88,7 @@ const overviewEditor = useBlockEditor(seedBodyBlocks(descriptionBlocks.value, de
 const rulesEditor = useBlockEditor(seedBodyBlocks(rulesBlocks.value, rules.value, rulesFormat.value), blockDefaults);
 const prizesEditor = useBlockEditor(seedBodyBlocks(prizesBlocks.value, prizesDescription.value, prizesDescriptionFormat.value), blockDefaults);
 
-type BodyTab = 'overview' | 'rules' | 'prizes' | 'stages';
+type BodyTab = 'overview' | 'rules' | 'prizes' | 'stages' | 'emails';
 const activeTab = ref<BodyTab>('overview');
 const bodyMode = ref<'write' | 'preview' | 'code'>('write');
 // The Stages tab has no block editor; it falls back to overview (the palette is
@@ -470,8 +473,8 @@ const reviewStages = computed(() => (contest.value?.stages ?? []).filter((s) => 
 
     <div class="cpub-ce-shell">
       <!-- LEFT: block palette — inserts into the currently-active body. Hidden on
-           the Stages tab (a form, not a block body), giving the editor more room. -->
-      <aside v-show="activeTab !== 'stages'" class="cpub-ce-library" aria-label="Block palette">
+           the Stages + Emails tabs (forms, not block bodies), giving them more room. -->
+      <aside v-show="activeTab !== 'stages' && activeTab !== 'emails'" class="cpub-ce-library" aria-label="Block palette">
         <EditorBlocks :groups="contestBlockGroups" :block-editor="activeBodyEditor" />
       </aside>
 
@@ -482,6 +485,7 @@ const reviewStages = computed(() => (contest.value?.stages ?? []).filter((s) => 
           :groups="contestBlockGroups"
           :active-tab="activeTab"
           :mode="bodyMode"
+          :show-emails="emailEditorEnabled"
           @update:active-tab="activeTab = $event"
           @update:mode="bodyMode = $event"
         >
@@ -559,8 +563,13 @@ const reviewStages = computed(() => (contest.value?.stages ?? []).filter((s) => 
               />
             </div>
           </template>
+
+          <!-- Emails tab: per-contest email copy editor with a live preview. -->
+          <template v-if="emailEditorEnabled" #emails>
+            <ContestEmailEditor :slug="slug" v-model="emailCopy" @load="setEmailCopy" />
+          </template>
         </ContestBodyCanvas>
-        <p v-if="activeTab !== 'stages'" class="cpub-form-hint cpub-ce-body-hint">
+        <p v-if="activeTab !== 'stages' && activeTab !== 'emails'" class="cpub-form-hint cpub-ce-body-hint">
           The <strong>Overview</strong>, <strong>Rules</strong>, and <strong>Prizes</strong> bodies are blocks
           (headings, lists, images, callouts, and the <strong>Judges Showcase</strong>), like the project and blog
           editors. Add blocks from the palette on the left. The <strong>Stages</strong> tab holds the timeline +

@@ -13,9 +13,9 @@
  */
 import { BlockCanvas, type BlockEditor, type BlockTypeGroup } from '@commonpub/editor/vue';
 
-// 'stages' is a FORM tab (not a block body): it renders the `#stages` slot and has
-// no Write/Preview/Code mode. The three block tabs share one BlockCanvas.
-type BodyTab = 'overview' | 'rules' | 'prizes' | 'stages';
+// 'stages' and 'emails' are FORM tabs (not block bodies): each renders its own slot
+// and has no Write/Preview/Code mode. The three block tabs share one BlockCanvas.
+type BodyTab = 'overview' | 'rules' | 'prizes' | 'stages' | 'emails';
 type BodyMode = 'write' | 'preview' | 'code';
 
 const props = defineProps<{
@@ -23,6 +23,8 @@ const props = defineProps<{
   groups: BlockTypeGroup[];
   activeTab: BodyTab;
   mode: BodyMode;
+  /** Show the Emails tab (edit mode + the contestEmailEditor feature). */
+  showEmails?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -30,14 +32,19 @@ const emit = defineEmits<{
   'update:mode': [mode: BodyMode];
 }>();
 
-const TABS: { key: BodyTab; label: string; icon: string }[] = [
-  { key: 'overview', label: 'Overview', icon: 'fa-circle-info' },
-  { key: 'rules', label: 'Rules', icon: 'fa-file-lines' },
-  { key: 'prizes', label: 'Prizes', icon: 'fa-trophy' },
-  { key: 'stages', label: 'Stages', icon: 'fa-diagram-project' },
-];
-// Block tabs share the canvas + the Write/Preview/Code switch; 'stages' is a form.
-const isBlockTab = computed(() => props.activeTab !== 'stages');
+// The Emails tab is edit-only + feature-gated, so it's appended conditionally.
+const TABS = computed<{ key: BodyTab; label: string; icon: string }[]>(() => {
+  const base: { key: BodyTab; label: string; icon: string }[] = [
+    { key: 'overview', label: 'Overview', icon: 'fa-circle-info' },
+    { key: 'rules', label: 'Rules', icon: 'fa-file-lines' },
+    { key: 'prizes', label: 'Prizes', icon: 'fa-trophy' },
+    { key: 'stages', label: 'Stages', icon: 'fa-diagram-project' },
+  ];
+  if (props.showEmails) base.push({ key: 'emails', label: 'Emails', icon: 'fa-envelope' });
+  return base;
+});
+// Block tabs share the canvas + the Write/Preview/Code switch; 'stages'/'emails' are forms.
+const isBlockTab = computed(() => props.activeTab !== 'stages' && props.activeTab !== 'emails');
 const MODES: { key: BodyMode; label: string; icon: string }[] = [
   { key: 'write', label: 'Write', icon: 'fa-pen' },
   { key: 'preview', label: 'Preview', icon: 'fa-eye' },
@@ -57,13 +64,14 @@ function focusTab(key: BodyTab): void {
   void nextTick(() => document.getElementById(`cpub-cbc-tab-${key}`)?.focus());
 }
 function onTabKey(e: KeyboardEvent, key: BodyTab): void {
-  const i = TABS.findIndex((t) => t.key === key);
+  const tabs = TABS.value;
+  const i = tabs.findIndex((t) => t.key === key);
   if (i < 0) return;
   let next: BodyTab | null = null;
-  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') next = TABS[(i + 1) % TABS.length]!.key;
-  else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') next = TABS[(i - 1 + TABS.length) % TABS.length]!.key;
-  else if (e.key === 'Home') next = TABS[0]!.key;
-  else if (e.key === 'End') next = TABS[TABS.length - 1]!.key;
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') next = tabs[(i + 1) % tabs.length]!.key;
+  else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') next = tabs[(i - 1 + tabs.length) % tabs.length]!.key;
+  else if (e.key === 'Home') next = tabs[0]!.key;
+  else if (e.key === 'End') next = tabs[tabs.length - 1]!.key;
   if (!next) return;
   e.preventDefault();
   emit('update:activeTab', next);
@@ -109,6 +117,8 @@ function onTabKey(e: KeyboardEvent, key: BodyTab): void {
     <div class="cpub-cbc-panel" role="tabpanel" tabindex="0" :aria-labelledby="`cpub-cbc-tab-${activeTab}`">
       <!-- Stages: a form tab (timeline + submission forms + advancement). -->
       <slot v-if="activeTab === 'stages'" name="stages" />
+      <!-- Emails: a form tab (per-contest email copy editor + live preview). -->
+      <slot v-else-if="activeTab === 'emails'" name="emails" />
       <template v-else>
         <!-- Overview-only lead (inline banner + cover); the parent fills the slot. -->
         <div v-if="activeTab === 'overview' && mode === 'write'" class="cpub-cbc-lead">

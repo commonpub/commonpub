@@ -110,6 +110,7 @@ export default defineNuxtConfig({
         contestProposals: false,
         contestPii: false,
         contestReminders: false,
+        contestEmailEditor: false,
         events: false,
         learning: true,
         explainers: true,
