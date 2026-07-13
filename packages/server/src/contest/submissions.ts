@@ -2,6 +2,7 @@ import { eq, and, sql } from 'drizzle-orm';
 import {
   contests,
   contestEntries,
+  contestRegistrations,
   contestAgreementAcceptances,
   contestEntryPrivateFields,
 } from '@commonpub/schema';
@@ -291,6 +292,15 @@ export async function submitContestProposal(db: DB, args: SubmitProposalArgs): P
         .where(eq(contests.id, contestId));
 
       await recordPrivateAndAgreements(tx, { contestId, entryId: inserted.id, userId, stageId, pii, agreements, ip });
+
+      // Submitting a proposal IS registering: add the entrant to the reminder
+      // audience so they never also have to click "register" (idempotent, silent
+      // — deadline reminders still reach them via this row).
+      await tx
+        .insert(contestRegistrations)
+        .values({ contestId, userId })
+        .onConflictDoNothing();
+
       return inserted.id;
     });
 

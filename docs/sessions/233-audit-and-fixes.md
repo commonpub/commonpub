@@ -77,6 +77,29 @@ curl checklist and the RBAC breaking-signature fork note.
 - Live browser: email editor round-trip, injection escaping, deadline fix, hub-post-ap private/public AP
   deref, registration register/cancel.
 
+## Follow-on UX — registration/entry unification (operator asked: "why register AND submit?")
+
+The two concepts are deliberate — `contest_registrations` is the reminder AUDIENCE (people to nudge
+toward submitting), `contest_entries` is an actual submission. But making a participant do both explicitly
+is cumbersome. Resolved by making entry IMPLY registration instead of merging them:
+
+- **Auto-register on entry + proposal.** `submitContestEntry` and `submitContestProposal` now insert an
+  idempotent `contest_registrations` row inside the same transaction as the entry (silent — no
+  confirmation email, since the user's action was "submit", not "register"; deadline reminders still reach
+  them). So entering never requires a separate register click.
+- **Standalone register reframed as the optional path.** `ContestSidebar.vue` CTA is now "Get deadline
+  reminders" (was "Register for this contest"), the registered state reads "You'll get deadline reminders"
+  with a "Turn off reminders" toggle, and the hint says "Submitting an entry registers you automatically.
+  Opt in here to get deadline reminders even before you enter." So the card is clearly the low-commitment
+  "remind me before I enter" path, not a required step.
+
+Rejected the "entry-only, drop standalone register" option: it breaks the deadline-reminder feature (you
+could not nudge people who signed up but have not entered yet — the whole point of the reminders).
+
+Tests: auto-register asserted in `contest.integration` (entry path) + `contest-proposals.integration`
+(proposal path). Full server (1688) + layer (1483) suites + typecheck green. Browser-verified the reframed
+card + the register toggle.
+
 ## State / next
 Still an operator-supervised roll (nothing pushed/published/deployed). Versions unchanged at pre-roll
 numbers. The roll sequence + expanded 8-package publish set + curl checklist live in `233-kickoff.md`.

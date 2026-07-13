@@ -1,5 +1,5 @@
 import { eq, and, or, desc, sql, isNull } from 'drizzle-orm';
-import { contests, contestEntries, users, contentItems } from '@commonpub/schema';
+import { contests, contestEntries, contestRegistrations, users, contentItems } from '@commonpub/schema';
 import type { DB } from '../types.js';
 import { normalizePagination, countRows } from '../query.js';
 import { isEliminated } from './stages.js';
@@ -285,6 +285,15 @@ export async function submitContestEntry(
       .update(contests)
       .set({ entryCount: sql`${contests.entryCount} + 1` })
       .where(eq(contests.id, contestId));
+
+    // Submitting an entry IS registering: put the entrant in the reminder
+    // audience so they never have to also click "register". Idempotent, and
+    // silent by design (no confirmation email — the user's action was "submit",
+    // not "register"; deadline reminders still reach them via this row).
+    await tx
+      .insert(contestRegistrations)
+      .values({ contestId, userId })
+      .onConflictDoNothing();
 
     return inserted;
   });

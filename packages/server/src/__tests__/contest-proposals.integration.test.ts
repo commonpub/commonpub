@@ -19,6 +19,7 @@ import {
   contests,
   contestEntries,
   contestEntryPrivateFields,
+  contestRegistrations,
   contentItems,
 } from '@commonpub/schema';
 import type { ContestSubmissionTemplateField } from '@commonpub/schema';
@@ -176,6 +177,11 @@ describe('contest proposals (form-first)', () => {
     // entryCount bumped.
     const [c] = await db.select({ n: contests.entryCount }).from(contests).where(eq(contests.id, contest.id));
     expect(c!.n).toBe(1);
+
+    // Submitting a proposal auto-registers the entrant for deadline reminders.
+    const reg = await db.select().from(contestRegistrations).where(eq(contestRegistrations.userId, entrant.id));
+    expect(reg).toHaveLength(1);
+    expect(reg[0]!.contestId).toBe(contest.id);
 
     // Returns the ACTUAL created type so the client routes to the right editor.
     expect(res.contentType).toBe('project');

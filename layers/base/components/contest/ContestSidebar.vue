@@ -120,11 +120,12 @@ function statusClass(status: string): string {
           <i class="fa-solid fa-right-to-bracket"></i> Log in to register
         </NuxtLink>
 
-        <!-- Registered: confirmed state + a toggle to cancel. State is carried by
-             text + icon (not colour alone) and aria-pressed for assistive tech. -->
+        <!-- Registered (explicitly, or automatically by submitting an entry):
+             confirmed state + a toggle to opt out of reminders. State is carried
+             by text + icon (not colour alone) and aria-pressed for assistive tech. -->
         <template v-else-if="registered">
           <p class="cpub-sb-regstate">
-            <i class="fa-solid fa-circle-check"></i> You are registered
+            <i class="fa-solid fa-circle-check"></i> You'll get deadline reminders
           </p>
           <button
             type="button"
@@ -133,12 +134,14 @@ function statusClass(status: string): string {
             :disabled="registering"
             @click="emit('unregister')"
           >
-            <i class="fa-solid fa-xmark"></i>
-            {{ registering ? 'Cancelling...' : 'Cancel registration' }}
+            <i class="fa-solid fa-bell-slash"></i>
+            {{ registering ? 'Saving...' : 'Turn off reminders' }}
           </button>
         </template>
 
-        <!-- Not registered: the primary CTA. -->
+        <!-- Not registered: an OPTIONAL low-commitment opt-in. Submitting an entry
+             registers you automatically, so this is only for people who want the
+             deadline nudges before (or without) entering. -->
         <button
           v-else
           type="button"
@@ -147,11 +150,11 @@ function statusClass(status: string): string {
           :disabled="registering"
           @click="emit('register')"
         >
-          <i class="fa-solid fa-user-plus"></i>
-          {{ registering ? 'Registering...' : 'Register for this contest' }}
+          <i class="fa-solid fa-bell"></i>
+          {{ registering ? 'Saving...' : 'Get deadline reminders' }}
         </button>
 
-        <p class="cpub-sb-reghint">Get a confirmation and deadline reminders by email.</p>
+        <p class="cpub-sb-reghint">Submitting an entry registers you automatically. Opt in here to get deadline reminders even before you enter.</p>
       </template>
     </div>
 

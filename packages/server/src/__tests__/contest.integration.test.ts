@@ -29,8 +29,8 @@ import {
 import { createContent, publishContent } from '../content/content.js';
 import { addContestJudge, acceptJudgeInvite, listContestJudges, isContestJudge, updateJudgeRole } from '../contest/judges.js';
 import { voteOnContestEntry, removeContestEntryVote, getContestEntryVotes } from '../voting/voting.js';
-import { notifications } from '@commonpub/schema';
-import { eq } from 'drizzle-orm';
+import { notifications, contestRegistrations } from '@commonpub/schema';
+import { eq, and } from 'drizzle-orm';
 
 describe('contest integration', () => {
   let db: DB;
@@ -354,6 +354,14 @@ describe('contest integration', () => {
 
     const { items: entries } = await listContestEntries(db, contest.id);
     expect(entries.length).toBeGreaterThanOrEqual(1);
+
+    // Submitting an entry auto-registers the entrant (so they land in the
+    // deadline-reminder audience without a separate "register" click).
+    const reg = await db
+      .select({ id: contestRegistrations.id })
+      .from(contestRegistrations)
+      .where(and(eq(contestRegistrations.contestId, contest.id), eq(contestRegistrations.userId, participantId)));
+    expect(reg).toHaveLength(1);
   });
 
   it('judges a contest entry', async () => {
