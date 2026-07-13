@@ -66,9 +66,12 @@ the outbox date-bomb. A completeness re-sweep found NO un-catalogued sites. **De
 `getHubBySlug` stub still returns the real hub id (no-requesterId path is shared by write/AP callers;
 needs a read-scoped resolver); `createComment` write-abuse into a private hub (write-behavior change).
 
-**Privacy fix (#1) COMPLETE + GDPR export (#2) COMPLETE**, both on-branch. **Next: RBAC #3**
-(roles.manage privilege ceiling + self-assign guard; `contest.*` must not subsume `contest.pii`;
-gate `event.create`; drop/wire the dead `contest.create`/`content.read` keys). Then roll the batch. **The eventual
+**Security batch #1-#3 all COMPLETE on-branch** (privacy `b6e8049e`+`df0486f3`, GDPR `3de11931`,
+RBAC `e3cf8c8c`). **Next: ROLL the batch.** NOTE: RBAC touched `packages/auth` + `packages/schema`,
+so the roll publishes **schema → auth → server → layer** (more than the server+layer of #1/#2) +
+CLI re-pin + both consumer lockfiles. No migration. Include the **Meili reindex** step (from #1).
+curl the leak sites unauthenticated before/after; RBAC changes are latent behind `features.rbac`
+except the `contest.pii` matcher (verify no operator hand-built a `contest.*` role expecting PII). **The eventual
 roll** (recommended before too much else stacks up): publish `@commonpub/server` + `@commonpub/layer`,
 deploy to all 3 **with the Meili reindex step**, and curl each leak site UNAUTHENTICATED before/after
 (esp. `/api/hubs`, `/api/events`, `/api/content/<members-slug>`, `/api/hubs/<private-slug>/posts`).
@@ -82,9 +85,12 @@ deploy to all 3 **with the Meili reindex step**, and curl each leak site UNAUTHE
    (report/flag rows projected to own fields; referral never enumerates referred users); secrets
    (keypairs/sessions/accounts) + audit_logs excluded; JSDoc corrected. Tests assert subject-present /
    third-party-absent / secret-absent. No migration.
-3. **RBAC** — `roles.manage` has no privilege ceiling (self-escalation, full exploit path);
-   `contest.*` subsumes `contest.pii`; `event.create` unenforced (any user creates events);
-   `contest.create`/`content.read` are dead keys.
+3. **RBAC** — **DONE (commit `e3cf8c8c`).** Privilege ceiling on createRole/updateRole/
+   setUserCustomRoles (+ metadata-only edits + self-assign guard) — a `roles.manage` holder can no
+   longer mint/self-assign grants above their own; `contest.pii` is now a wildcard-protected leaf
+   (`contest.*` no longer reaches it; admin `*` + staff exact-grant still do). `event.create` left
+   ungated on purpose (gating would 403 every member — seeded to staff/admin only); dead keys kept.
+   Latent behind `features.rbac` except the matcher. Tests assert deny+allow sides. No migration.
 4. **Phase 0** — email-outbox test date-bomb (test-only; also correct the STATUS/230-handoff "PGlite
    flake" note).
 5-7. **Federation** live P2s + latent hardening + mirror-quota (deeper: storage ungated entirely) —

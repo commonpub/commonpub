@@ -9,8 +9,10 @@
 
 - **#1 Content/hub privacy — DONE** (P-1 `b6e8049e`, P-2, P-1b `df0486f3`). Roll-ready.
 - **#2 GDPR export completeness — DONE** (`3de11931`).
-- **#3 RBAC — NEXT.** Then #4 Phase 0 (test-only), #5-7 federation (behind behavioral harnesses),
-  #8 contest comms. Nothing pushed/published/rolled yet; roll the security batch (#1-#3) together.
+- **#3 RBAC hardening — DONE** (`e3cf8c8c`; touched packages/auth + packages/schema).
+- **NEXT: ROLL the security batch (#1-#3)** — publish schema→auth→server→layer + CLI re-pin + both
+  lockfiles + Meili reindex; curl-verify. Then #4 Phase 0 (test-only), #5-7 federation (behind
+  behavioral harnesses), #8 contest comms. Nothing pushed/published/rolled yet.
 
 ## The one-line story
 
