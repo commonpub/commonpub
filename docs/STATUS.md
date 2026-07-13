@@ -12,6 +12,24 @@
 
 ## TL;DR — where things stand
 
+**Session 233 (2026-07-13) — THE 231/232/233 STACK IS ROLLED. Published + on `main` + deployed.**
+The `contest-registration-reminders` branch (24 commits: the P1 security batch + contest registration/
+reminders + per-contest email editor + auto-register-on-entry) fast-forwarded to `main`. **Published (npm,
+verified):** schema 0.57.0, config 0.31.0, test-utils 0.5.11, infra 0.14.0, editor 0.10.0, auth 0.10.0,
+server 2.106.0, layer 0.98.0. **Migrations 0040 (contest_registrations + contest_reminder_sends) + 0041
+(contests.email_copy)** — additive, applied by CI `db-migrate.mjs` on deploy. **Deployed:** commonpub.io
+(push-to-main → deploy.yml) + deveco.io (pins bumped `^0.98/^2.106/^0.57/^0.31` + pnpm-lock regen → push).
+New flags `contestReminders` + `contestEmailEditor` ship **OFF**. Two MORE live leaks closed this session
+(pre-roll re-audit): `hub-post-ap` middleware served private-hub post Notes over AP unauthenticated (live
+where `federateHubs` on = commonpub+deveco), and `public/v1/hubs/[slug]` leaked private-hub metadata (live
+where `publicApi` on = deveco). Also fixed: reminder milestone burst/stale-label + garbled ICU deadline.
+Detail: `docs/sessions/233-audit-and-fixes.md`. **OPERATOR REMAINDERS:** (1) **heatsync** — not in this
+workspace; bump its `@commonpub/*` pins (both lockfiles — pnpm-lock tracked) + push. (2) **Meili reindex**
+`POST /api/admin/search/reindex` per instance — NOT an outage (contentSearch falls back to Postgres FTS,
+still visibility-filtered/secure), but restores Meili-quality search; needs a live admin session. (3) CLI
+re-pin (schema^0.57/server^2.106/layer^0.98) → crates.io tag. (4) Flip `contestReminders`/`contestEmailEditor`
+ON per instance via `/admin/features` when wanted (DB override, no redeploy).
+
 **Session 231 (2026-07-12) — SECURITY BATCH committed on branch `session-231-content-privacy`, NOT
 pushed/published/rolled.** A 6-round audit found a **live, unauthenticated, systemic content/hub
 privacy leak** on all 3 instances: content `visibility` (members/private) and private-hub
