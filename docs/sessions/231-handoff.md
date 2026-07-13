@@ -1,7 +1,8 @@
 # Session 231 Handoff — audit (6 rounds) + content/hub privacy fix (item #1, committed, INCOMPLETE)
 
 Date: 2026-07-12. Branch **`session-231-content-privacy`** (NOT pushed / published / deployed).
-Two commits: `c6d80423` (plans) + `b6e8049e` (the privacy fix). Nothing rolled to instances yet.
+Commits: `c6d80423` (plans) + `b6e8049e` (P-1/P-2 privacy fix) + `891b86b3` (handoff) + `df0486f3`
+(**P-1b — remaining leak sites, round-7/8 audit**). Nothing rolled to instances yet.
 
 ## TL;DR
 
@@ -55,12 +56,23 @@ in `content-privacy-enforcement.md` → "Phase P-1b"):
   `listPosts` share-enrichment; anon gets real hub id in the private-hub stub (defense-in-depth).
 - **Deferred to federation 2e:** the hub ActivityPub surface (latent behind `federateHubs`, OFF).
 
-**Next action (recommended): Phase P-1b** — fix the HIGH + MEDIUM sites (all the same 1-2-line
-`visibleContentWhere`/hub-privacy pattern), add tests, commit, THEN roll the whole privacy fix.
+**P-1b is now DONE (commit `df0486f3`).** An ultracode workflow (completeness-audit → implement →
+adversarial verify) closed all HIGH+MEDIUM sites: listHubs privacy filter, getLessonBySlug linked
+content, related-content in getContentBySlug, search/trending, listContestEntries (viewer-own
+exempt), poll-options, bookmarks + listPosts share-enrichment, product detail/search, profile stat
+aggregates, and — the HIGH residual the verifiers caught — the **bare `/api/events` feed** (private-
+hub events incl. `onlineUrl`). 72 privacy tests pass; both typechecks clean; full suite green except
+the outbox date-bomb. A completeness re-sweep found NO un-catalogued sites. **Deferred (LOW):** anon
+`getHubBySlug` stub still returns the real hub id (no-requesterId path is shared by write/AP callers;
+needs a read-scoped resolver); `createComment` write-abuse into a private hub (write-behavior change).
+
+**Next action (recommended): ROLL the privacy fix** — publish `@commonpub/server` + `@commonpub/layer`,
+deploy to all 3 with the Meili reindex step, and curl each leak site UNAUTHENTICATED before/after
+(esp. `/api/hubs`, `/api/events`, `/api/content/<members-slug>`, `/api/hubs/<private-slug>/posts`).
 
 ## Remaining roadmap (verified priority — `session-231-remediation-roadmap.md`)
 
-1. **Content/hub privacy** — P-1/P-2 committed; **P-1b pending** (above). Roll all 3 after P-1b.
+1. **Content/hub privacy** — P-1/P-2/**P-1b all committed**. **Ready to ROLL** to all 3 (next action).
 2. **GDPR data-export completeness** (P2, live) — export omits ~15 tables of subject data (referral
    graph, all hub forum posts/replies, videos, learning paths, products, reports, certificates, files,
    edit history, held IPs); JSDoc falsely claims Art. 20 parity. Fix loci in the roadmap. MUST exclude

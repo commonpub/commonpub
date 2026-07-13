@@ -170,12 +170,28 @@ pre-existing Phase-0 outbox date-bomb failures remain.
 
 ---
 
-## Phase P-1b — additional leak sites (round-7 adversarial audit, NOT yet fixed)
+## Phase P-1b — additional leak sites (round-7 adversarial audit) — SHIPPED (commit `df0486f3`)
 
-> The round-7 audit confirmed the committed fix (b6e8049e) is CORRECT (no regressions; sound
-> predicate; the 5 write routes each self-authorize) but the original 19-site list was INCOMPLETE.
-> These sites are still-live pre-existing leaks of the same class. Ranked; each has a fix locus. The
-> fix pattern is the same `visibleContentWhere(requesterId)` / hub-privacy predicate.
+> The round-7 audit confirmed the P-1/P-2 fix (b6e8049e) is CORRECT but the original 19-site list was
+> INCOMPLETE. **P-1b (commit `df0486f3`) closed the HIGH + MEDIUM sites below** via the same
+> `visibleContentWhere`/hub-privacy pattern (an ultracode workflow implemented + adversarially
+> verified them; a completeness re-sweep found no un-catalogued sites — only the two residuals it
+> didn't initially close, both since fixed). 72 privacy tests pass; server+reference typecheck clean;
+> full suite green except the outbox date-bomb.
+>
+> **FIXED in P-1b:** listHubs privacy filter (+ public/v1/hubs, sitemap); getLessonBySlug linked
+> content; related-content in getContentBySlug; search/trending; listContestEntries (viewer-own
+> exempt); poll-options (requireHubReadAccess); listUserBookmarks + listPosts share-enrichment
+> (public-only); getProductBySlug/searchProducts; profile stat aggregates; **listEvents bare feed
+> (private-hub events incl. onlineUrl — the HIGH residual the workflow flagged, fixed + tested).**
+>
+> **DEFERRED (LOW, documented):** (1) anon `getHubBySlug` stub still returns the real hub id — the
+> no-requesterId path is shared by write/AP callers that legitimately need the real id, so a blanket
+> redact would break them; needs a read-scoped resolver, not the naive "site 8" change. (2)
+> `createComment` WRITE lets a non-member post a comment onto a private-hub post (notification
+> injection) — a write-behavior change needing a product decision. Neither is a read leak.
+>
+> Original round-7 catalog (fix loci) below, for the record.
 
 **HIGH (unauthenticated):**
 - **`GET /api/hubs` (+ `public/v1/hubs`, sitemap) lists PRIVATE hubs with full metadata.** `listHubs`
