@@ -225,8 +225,11 @@ transport (`NUXT_RESEND_*`) — today only deveco has email on, console sink, so
 pastes into `packages/infra/src/email/templates.ts` — confirmation subject :116 / body :118-121;
 reminder subject :149 / body :151-154.
 
-**NEW BACKLOG (this handoff's follow-up ask): per-contest email-template EDITING UI in the contest
-editor.** Today the two contest email bodies are hardcoded instance-global copy in templates.ts;
-organizers can't customize per-contest copy without a code change. Next session explores building a
-contest-editor panel to edit that copy (with the safe plain-text+CTA pattern, per-contest override with
-built-in fallback). Kickoff: `docs/sessions/232-kickoff.md`.
+**DONE (session 232): per-contest email-template EDITING UI.** Shipped on this same branch
+(`contest-registration-reminders`, commits `3398feae` + audit polish `a96197d3`). Organizers can now edit
+the confirmation + reminder subject/intro per contest (safe plain-text + fixed token allow-list, override
+with built-in fallback), behind a new default-OFF `contestEmailEditor` flag. Audited by 3 independent
+reviewers (no P0/P1; byte-identical defaults; no leak; additive migration 0041) and verified live in a
+real browser round-trip. See `docs/sessions/232-contest-email-template-editor.md`. **This branch now
+bundles THREE unrolled workstreams — the P1 security batch, registration+reminders, and the email editor
+— so any roll ships all three (see the roll note below + `docs/sessions/233-kickoff.md`).**

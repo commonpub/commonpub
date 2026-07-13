@@ -64,6 +64,30 @@ contract + component test incl. v-model, preview, per-template tokens, axe). No 
   top-level `server/index.ts` named re-export block; a new flag touches 5+ files. Rebuild upstream dist
   (schema/config/infra/server) before the consumer typechecks.
 
+## Deep audit (post-build) — 3 independent reviewers + live browser verify
+
+Commit `3398feae` was audited by three parallel reviewers (correctness/security, cruft/conventions/a11y,
+regression/roll-readiness). **No P0/P1.** Confirmed: token values HTML-escaped (no injection), no double
+interpolation, `__proto__`/`constructor` token names left literal via the `hasOwnProperty` guard, byte-
+identical default template output, all three routes gated (`contests` + `contestEmailEditor` + owner/
+`contest.manage`/`isContestEditor`), `email_copy` never in the public DTO, true kill-switch on the send
+paths, `emailCopyLoaded` prevents clobbering, additive lock-safe migration, flag registered at all sites.
+
+Audit polish applied (commit `a96197d3`, no behavior change):
+- a11y: the Emails template selector was a broken `radiogroup` (role=radio, no arrow-key/roving-tabindex)
+  → `role="group"` + `aria-pressed` toggle buttons (matches the body-mode switcher).
+- **Fixed a latent `vue-tsc` error in the component test** (TS7053 on the emitted-event index) that
+  esbuild/vitest didn't flag but the strict reference typecheck (CI) does — it would have failed CI.
+- Dropped 3 unused type exports (`ContestEmailCopyInput` dup of the interface, `ContestEmailTemplateKey`,
+  `ContestEmailPreviewInput`).
+
+Informational (no action): subject header-injection is non-exploitable (nodemailer/Resend sanitize; the
+default subject already interpolates `contest.title` raw — pre-existing); the *write* path isn't flag-
+gated, only *apply* is (intended kill-switch-on-apply — flipping the flag ON later activates any stored
+copy); `background:#fff` on the preview iframe is a matched exception (mirrors the branding editor).
+
+Re-verified after polish: schema/server/reference typecheck clean; layer 1483 pass; component test green.
+
 ## Not done / next
 
 - **Live browser run** (docker :5433 + `db:push` for `email_copy` + nuxt dev + enable `contestEmailEditor`
