@@ -179,6 +179,63 @@ export async function isBookmarked(
   return result.length > 0;
 }
 
+/**
+ * Whether `requesterId` may READ or WRITE comments on a comment target, gating on
+ * the target's parent visibility. One source of truth shared by the comment read
+ * path (listComments) and the write path (createComment + the route), so a target
+ * that can't be read also can't be commented on. Deliberately fail-closed with NO
+ * platform-admin branch — identical parity with the read path (admins reach a
+ * private hub's threads via the hub UI, which resolves membership/admin
+ * separately). Content targets gate on `visibleContentWhere`; `post` on hub
+ * privacy + active membership; `lesson` on the path's published status (or author);
+ * `video`/default has no privacy concept and is served.
+ */
+export async function canAccessCommentTarget(
+  db: DB,
+  targetType: CommentTargetType,
+  targetId: string,
+  requesterId?: string,
+): Promise<boolean> {
+  const CONTENT_TARGETS = new Set<CommentTargetType>(['project', 'article', 'blog', 'explainer']);
+  if (CONTENT_TARGETS.has(targetType)) {
+    const [row] = await db
+      .select({ id: contentItems.id })
+      .from(contentItems)
+      .where(and(eq(contentItems.id, targetId), visibleContentWhere(requesterId)))
+      .limit(1);
+    return !!row;
+  }
+  if (targetType === 'post') {
+    const [post] = await db
+      .select({ hubId: hubPosts.hubId, privacy: hubs.privacy })
+      .from(hubPosts)
+      .innerJoin(hubs, eq(hubPosts.hubId, hubs.id))
+      .where(eq(hubPosts.id, targetId))
+      .limit(1);
+    if (!post) return false;
+    if (post.privacy !== 'private') return true;
+    if (!requesterId) return false;
+    const [member] = await db
+      .select({ status: hubMembers.status })
+      .from(hubMembers)
+      .where(and(eq(hubMembers.hubId, post.hubId), eq(hubMembers.userId, requesterId)))
+      .limit(1);
+    return member?.status === 'active';
+  }
+  if (targetType === 'lesson') {
+    const [row] = await db
+      .select({ status: learningPaths.status, authorId: learningPaths.authorId })
+      .from(learningLessons)
+      .innerJoin(learningModules, eq(learningLessons.moduleId, learningModules.id))
+      .innerJoin(learningPaths, eq(learningModules.pathId, learningPaths.id))
+      .where(eq(learningLessons.id, targetId))
+      .limit(1);
+    if (!row) return false;
+    return row.status === 'published' || (!!requesterId && row.authorId === requesterId);
+  }
+  return true; // video / no privacy concept
+}
+
 export async function listComments(
   db: DB,
   targetType: CommentTargetType,
@@ -194,63 +251,9 @@ export async function listComments(
    */
   requesterId?: string,
 ): Promise<CommentItem[]> {
-  // Gate content-item comment threads on the parent's visibility. If the parent is not
-  // readable by this viewer, return no comments rather than leaking them.
-  const CONTENT_TARGETS = new Set<CommentTargetType>(['project', 'article', 'blog', 'explainer']);
-  if (CONTENT_TARGETS.has(targetType)) {
-    const [parent] = await db
-      .select({
-        authorId: contentItems.authorId,
-        status: contentItems.status,
-        visibility: contentItems.visibility,
-        deletedAt: contentItems.deletedAt,
-      })
-      .from(contentItems)
-      .where(eq(contentItems.id, targetId))
-      .limit(1);
-    if (!parent) return [];
-    const readable =
-      parent.deletedAt === null &&
-      ((parent.status === 'published' && parent.visibility === 'public') ||
-        (!!requesterId && parent.authorId === requesterId));
-    if (!readable) return [];
-  }
-
-  // Hub `post` comments: a private hub's post comments are members-only. Public/unlisted
-  // hubs serve by design. (Fail-closed: the generic endpoint has no platform-admin context;
-  // admins read a private hub's threads via the hub UI, which resolves membership/admin.)
-  if (targetType === 'post') {
-    const [post] = await db
-      .select({ hubId: hubPosts.hubId, privacy: hubs.privacy })
-      .from(hubPosts)
-      .innerJoin(hubs, eq(hubPosts.hubId, hubs.id))
-      .where(eq(hubPosts.id, targetId))
-      .limit(1);
-    if (!post) return [];
-    if (post.privacy === 'private') {
-      if (!requesterId) return [];
-      const [member] = await db
-        .select({ status: hubMembers.status })
-        .from(hubMembers)
-        .where(and(eq(hubMembers.hubId, post.hubId), eq(hubMembers.userId, requesterId)))
-        .limit(1);
-      if (member?.status !== 'active') return [];
-    }
-  }
-
-  // Learning `lesson` comments: a lesson on a non-published path is author-only (mirrors
-  // getLessonBySlug / site 17). `video` has no privacy field, so it is not gated here.
-  if (targetType === 'lesson') {
-    const [row] = await db
-      .select({ status: learningPaths.status, authorId: learningPaths.authorId })
-      .from(learningLessons)
-      .innerJoin(learningModules, eq(learningLessons.moduleId, learningModules.id))
-      .innerJoin(learningPaths, eq(learningModules.pathId, learningPaths.id))
-      .where(eq(learningLessons.id, targetId))
-      .limit(1);
-    if (!row) return [];
-    if (row.status !== 'published' && row.authorId !== requesterId) return [];
-  }
+  // Gate the thread on the parent's read-visibility (shared with the write path).
+  // A parent this viewer can't read returns no comments rather than leaking them.
+  if (!(await canAccessCommentTarget(db, targetType, targetId, requesterId))) return [];
 
   const { limit: safeLimit, offset: safeOffset } = normalizePagination({ limit, offset }, { limit: 20 });
 
@@ -336,6 +339,14 @@ export async function createComment(
     parentId?: string;
   },
 ): Promise<CommentItem> {
+  // Enforce parent read-access on the WRITE path (defense-in-depth; the route
+  // pre-checks and 404s). Without this, a non-member who knows a raw UUID could
+  // inject a comment + author notification into a private hub's post or onto
+  // members/private/draft content. Shared predicate = read/write parity.
+  if (!(await canAccessCommentTarget(db, input.targetType, input.targetId, authorId))) {
+    throw new Error('You do not have access to comment on this target');
+  }
+
   const [row] = await db
     .insert(comments)
     .values({

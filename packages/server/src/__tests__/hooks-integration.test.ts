@@ -10,7 +10,7 @@ import type { DB } from '../types.js';
 import { createTestDB, createTestUser, closeTestDB } from './helpers/testdb.js';
 import { onHook, clearHooks } from '../hooks.js';
 import type { HookPayloads } from '../hooks.js';
-import { createContent, onContentPublished } from '../content/content.js';
+import { createContent, publishContent, onContentPublished } from '../content/content.js';
 import { createComment, toggleLike } from '../social/social.js';
 import { createHub } from '../hub/hub.js';
 import { joinHub, leaveHub } from '../hub/members.js';
@@ -151,13 +151,14 @@ describe('hook wiring integration', () => {
       const calls: Array<HookPayloads['comment:created']> = [];
       onHook('comment:created', async (p) => { calls.push(p); });
 
-      // Create content to comment on
+      // Create + publish content so a non-author (user2Id) may comment on it
+      // (comments now require parent read-access; drafts are author-only).
       const content = await createContent(db, userId, {
         type: 'article',
         title: 'Comment Hook Article',
         slug: 'comment-hook-article',
-        status: 'published',
       });
+      await publishContent(db, content.id, userId);
 
       const comment = await createComment(db, user2Id, {
         targetType: 'article',

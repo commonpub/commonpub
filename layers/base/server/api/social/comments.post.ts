@@ -1,4 +1,4 @@
-import { createComment, onContentCommented } from '@commonpub/server';
+import { createComment, canAccessCommentTarget, onContentCommented } from '@commonpub/server';
 import type { CommentItem } from '@commonpub/server';
 import { createCommentSchema } from '@commonpub/schema';
 
@@ -11,6 +11,13 @@ export default defineEventHandler(async (event): Promise<CommentItem> => {
   const db = useDB();
   const config = useConfig();
   const input = await parseBody(event, createCommentSchema);
+
+  // Gate the write on parent read-access. 404 (not 403) so we don't disclose the
+  // existence of a private-hub post or members-only item to a non-viewer. The
+  // server createComment re-checks as a backstop for any other caller.
+  if (!(await canAccessCommentTarget(db, input.targetType, input.targetId, user.id))) {
+    throw createError({ statusCode: 404, statusMessage: 'Not found' });
+  }
 
   const comment = await createComment(db, user.id, input);
 

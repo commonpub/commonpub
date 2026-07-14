@@ -4,6 +4,7 @@ export {
   isBookmarked,
   listComments,
   createComment,
+  canAccessCommentTarget,
   deleteComment,
   toggleBookmark,
   onContentLiked,

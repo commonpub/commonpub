@@ -39,7 +39,7 @@ import {
 } from '../hub/index.js';
 import { createProduct, listHubProducts, listHubGallery, getProductBySlug, searchProducts } from '../product/product.js';
 import { createContent } from '../content/content.js';
-import { createComment, listComments } from '../social/social.js';
+import { createComment, listComments, canAccessCommentTarget } from '../social/social.js';
 import { listEvents } from '../events/events.js';
 import { buildHubGroupActor } from '../federation/hubFederation.js';
 
@@ -146,6 +146,19 @@ describe('P-2 hub read-access enforcement', () => {
       expect(await listComments(db, 'post', privPostId, undefined, undefined, strangerId)).toHaveLength(0);
       expect(await listComments(db, 'post', privPostId)).toHaveLength(0); // anon
       expect((await listComments(db, 'post', privPostId, undefined, undefined, memberId)).length).toBeGreaterThan(0);
+    });
+
+    it('blocks a non-member from WRITING a comment into a private-hub post; allows a member', async () => {
+      // Write-side parity with the read gate: a stranger cannot inject a comment
+      // (+ author notification) into a private hub by knowing the post id.
+      expect(await canAccessCommentTarget(db, 'post', privPostId, strangerId)).toBe(false);
+      await expect(
+        createComment(db, strangerId, { targetType: 'post', targetId: privPostId, content: 'injection' }),
+      ).rejects.toThrow();
+      expect(await canAccessCommentTarget(db, 'post', privPostId, memberId)).toBe(true);
+      await expect(
+        createComment(db, memberId, { targetType: 'post', targetId: privPostId, content: 'hi team' }),
+      ).resolves.toBeDefined();
     });
   });
 

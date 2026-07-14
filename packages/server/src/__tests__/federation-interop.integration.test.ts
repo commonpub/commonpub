@@ -16,6 +16,7 @@ import {
   toggleFederatedBuildMark,
   isFederatedBuildMarked,
   createContent,
+  publishContent,
 } from '../content/content.js';
 import { toggleLike, createComment, followUser } from '../social/social.js';
 import { searchFederatedContent, listRemoteReplies } from '../federation/timeline.js';
@@ -85,6 +86,9 @@ describe('federation interop (session 099)', () => {
       type: 'article',
       title: 'Local Article for Notifications',
     });
+    // Publish so a non-author (userB) may comment on it (comments now require
+    // parent read-access; drafts are author-only).
+    await publishContent(db, localContent.id, userA);
     localContentId = localContent.id;
   });
 

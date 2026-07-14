@@ -24,7 +24,7 @@ import { searchWithPostgres, searchContent, type MeiliClient } from '../search/c
 import { createProduct, addContentProduct, listProductContent, listHubGallery } from '../product/product.js';
 import { createHub } from '../hub/hub.js';
 import { createPath, createModule, createLesson, publishPath, getLessonBySlug } from '../learning/learning.js';
-import { createComment, listComments, toggleBookmark, listUserBookmarks } from '../social/social.js';
+import { createComment, listComments, canAccessCommentTarget, toggleBookmark, listUserBookmarks } from '../social/social.js';
 import { createContest, submitContestEntry, listContestEntries, getContestEntry, canViewContestEntryDetail } from '../contest/index.js';
 
 type Visibility = 'public' | 'members' | 'private';
@@ -127,6 +127,27 @@ describe('P-1 content visibility enforcement', () => {
   });
 
   // ---- Sites 3/4: feed contract via listContent ----
+  describe('createComment write gate (comments inherit parent visibility)', () => {
+    it('blocks a non-author from commenting on members-only content; allows the author + public', async () => {
+      // Write-side of P-1: a non-author cannot inject a comment (+ notification)
+      // onto members/private/draft content by knowing its id.
+      expect(await canAccessCommentTarget(db, 'project', mem.id, otherId)).toBe(false);
+      await expect(
+        createComment(db, otherId, { targetType: 'project', targetId: mem.id, content: 'injection' }),
+      ).rejects.toThrow();
+      // The author may comment on their own members-only item.
+      expect(await canAccessCommentTarget(db, 'project', mem.id, authorId)).toBe(true);
+      await expect(
+        createComment(db, authorId, { targetType: 'project', targetId: mem.id, content: 'my note' }),
+      ).resolves.toBeDefined();
+      // Anyone may comment on published+public content (no over-block).
+      expect(await canAccessCommentTarget(db, 'project', pub.id, otherId)).toBe(true);
+      await expect(
+        createComment(db, otherId, { targetType: 'project', targetId: pub.id, content: 'nice' }),
+      ).resolves.toBeDefined();
+    });
+  });
+
   describe('listContent feed contract (status=published + visibility=public)', () => {
     it('returns only public items for the visibility=public filter the feeds pass', async () => {
       const { items } = await listContent(db, { status: 'published', visibility: 'public' });
