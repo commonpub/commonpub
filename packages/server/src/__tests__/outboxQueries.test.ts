@@ -8,6 +8,7 @@ import {
   countInstanceOutboxItems,
   getOutboxPage,
   getInstanceOutboxPage,
+  getHubOutboxPage,
 } from '../federation/outboxQueries.js';
 
 const DOMAIN = 'test.example.com';
@@ -139,6 +140,31 @@ describe('outbox queries (content projection)', () => {
     it('past-end page returns empty', async () => {
       const page = await getOutboxPage(db, `https://${DOMAIN}/users/alice`, 10, 3);
       expect(page.length).toBe(0);
+    });
+  });
+
+  describe('pagination clamp (negative / zero page → first page, never a 500)', () => {
+    it('instance outbox: page=-1 resolves to the first page, not a negative-OFFSET error', async () => {
+      const first = await getInstanceOutboxPage(db, DOMAIN, 1, 3);
+      const neg = await getInstanceOutboxPage(db, DOMAIN, -1, 3);
+      expect(neg.length).toBe(3);
+      expect(neg.map((x) => String((x.object as Record<string, unknown>).id))).toEqual(
+        first.map((x) => String((x.object as Record<string, unknown>).id)),
+      );
+    });
+
+    it('per-user outbox: page=0 resolves to the first page', async () => {
+      const first = await getOutboxPage(db, `https://${DOMAIN}/users/alice`, 1, 2);
+      const zero = await getOutboxPage(db, `https://${DOMAIN}/users/alice`, 0, 2);
+      expect(zero.map((x) => String((x.object as Record<string, unknown>).id))).toEqual(
+        first.map((x) => String((x.object as Record<string, unknown>).id)),
+      );
+    });
+
+    it('hub outbox: page=-1 resolves (empty queue) instead of throwing on negative OFFSET', async () => {
+      await expect(
+        getHubOutboxPage(db, `https://${DOMAIN}/hubs/example/actor`, -1, 20),
+      ).resolves.toEqual([]);
     });
   });
 });

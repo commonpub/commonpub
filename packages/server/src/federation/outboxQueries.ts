@@ -62,7 +62,10 @@ async function getContentOutboxPage(
   pageSize: number,
   authorId?: string,
 ): Promise<Record<string, unknown>[]> {
-  const offset = (page - 1) * pageSize;
+  // Clamp page>=1 so a negative/zero ?page= can't produce a negative OFFSET
+  // (Postgres rejects negative OFFSET → unauth 500 on the public outbox routes).
+  const safePage = Math.max(Math.trunc(page), 1);
+  const offset = (safePage - 1) * pageSize;
   const where = and(
     eq(contentItems.status, 'published'),
     eq(contentItems.visibility, 'public'),
@@ -181,7 +184,10 @@ export async function getHubOutboxPage(
   page: number,
   pageSize = DEFAULT_PAGE_SIZE,
 ): Promise<Record<string, unknown>[]> {
-  const offset = (page - 1) * pageSize;
+  // Clamp page>=1 so a negative/zero ?page= can't produce a negative OFFSET
+  // (Postgres rejects negative OFFSET → unauth 500 on the public outbox routes).
+  const safePage = Math.max(Math.trunc(page), 1);
+  const offset = (safePage - 1) * pageSize;
   const rows = await db
     .select({ payload: activities.payload })
     .from(activities)
