@@ -585,6 +585,67 @@ describe('federated timeline integration', () => {
       expect(after!.commentCount).toBe(beforeCount + 1);
     });
 
+    it('does NOT increment commentCount for an id-less reply, but still logs the Create', async () => {
+      const { createContent, publishContent } = await import('../content/content.js');
+      const local = await createContent(db, userId, { type: 'article', title: 'Idless Reply Target' });
+      await publishContent(db, local.id, userId);
+      const localUri = `https://${DOMAIN}/content/${local.slug}`;
+      const { contentItems: ci, activities } = await import('@commonpub/schema');
+      const [before] = await db.select({ c: ci.commentCount }).from(ci).where(eq(ci.id, local.id));
+      const actBefore = (await db.select().from(activities)).length;
+
+      // An id-less Create{Note, inReplyTo} cannot be deduped, so it must NOT mutate
+      // counts (else a peer could POST it repeatedly and inflate commentCount).
+      await handlers.onCreate(REMOTE_ALICE, {
+        type: 'Note',
+        content: '<p>id-less reply</p>',
+        inReplyTo: localUri,
+        attributedTo: REMOTE_ALICE,
+      });
+
+      const [after] = await db.select({ c: ci.commentCount }).from(ci).where(eq(ci.id, local.id));
+      expect(after!.c).toBe(before!.c); // no increment
+      // The unconditional tail Create log still runs (we didn't over-block ingestion).
+      expect((await db.select().from(activities)).length).toBeGreaterThan(actBefore);
+    });
+
+    it('counts an id-bearing reply exactly once across replays (replay dedup)', async () => {
+      const { createContent, publishContent } = await import('../content/content.js');
+      const local = await createContent(db, userId, { type: 'article', title: 'Replay Reply Target' });
+      await publishContent(db, local.id, userId);
+      const localUri = `https://${DOMAIN}/content/${local.slug}`;
+      const { contentItems: ci } = await import('@commonpub/schema');
+      const [before] = await db.select({ c: ci.commentCount }).from(ci).where(eq(ci.id, local.id));
+
+      const reply = {
+        type: 'Note' as const,
+        id: `https://${REMOTE_DOMAIN}/notes/replay-reply`,
+        content: '<p>replayed reply</p>',
+        inReplyTo: localUri,
+        attributedTo: REMOTE_ALICE,
+      };
+      await handlers.onCreate(REMOTE_ALICE, reply);
+      await handlers.onCreate(REMOTE_ALICE, reply); // redelivery
+
+      const [after] = await db.select({ c: ci.commentCount }).from(ci).where(eq(ci.id, local.id));
+      expect(after!.c).toBe(before!.c + 1); // once, not twice
+    });
+
+    it('counts two DISTINCT replies to the same parent (no undercount)', async () => {
+      const { createContent, publishContent } = await import('../content/content.js');
+      const local = await createContent(db, userId, { type: 'article', title: 'Distinct Replies Target' });
+      await publishContent(db, local.id, userId);
+      const localUri = `https://${DOMAIN}/content/${local.slug}`;
+      const { contentItems: ci } = await import('@commonpub/schema');
+      const [before] = await db.select({ c: ci.commentCount }).from(ci).where(eq(ci.id, local.id));
+
+      await handlers.onCreate(REMOTE_ALICE, { type: 'Note', id: `https://${REMOTE_DOMAIN}/notes/distinct-a`, content: '<p>a</p>', inReplyTo: localUri, attributedTo: REMOTE_ALICE });
+      await handlers.onCreate(REMOTE_ALICE, { type: 'Note', id: `https://${REMOTE_DOMAIN}/notes/distinct-b`, content: '<p>b</p>', inReplyTo: localUri, attributedTo: REMOTE_ALICE });
+
+      const [after] = await db.select({ c: ci.commentCount }).from(ci).where(eq(ci.id, local.id));
+      expect(after!.c).toBe(before!.c + 2); // both count (key is the reply id, not actor+parent)
+    });
+
     it('does not increment counts when inReplyTo is from local domain (loop guard)', async () => {
       // A Note with inReplyTo pointing to our own domain should still be rejected
       // by the loop prevention (objectUri check on the Note itself, not the parent)

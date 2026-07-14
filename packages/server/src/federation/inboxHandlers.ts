@@ -28,6 +28,7 @@ import { buildContentPath } from '../query.js';
 import { resolveRemoteActor } from './federation.js';
 import { matchMirrorForContent } from './mirroring.js';
 import { handleHubFollow, handleHubUnfollow } from './hubFederation.js';
+import { recordActivitySeen } from './activityDedup.js';
 import { createNotification } from '../notification/notification.js';
 import { isPrivateUrl, safeFetch } from '../import/ssrf.js';
 import {
@@ -798,9 +799,19 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
           });
       }
 
-      // If this is a reply (Note with inReplyTo), increment comment count on the parent
+      // If this is a reply (Note with inReplyTo), increment comment count on the parent.
       const inReplyTo = typeof object.inReplyTo === 'string' ? object.inReplyTo : null;
-      if (inReplyTo) {
+      // Idempotency: apply the reply store/count side-effects at most once per reply
+      // Note. Route-level replay dedup keys on the Create's TOP-LEVEL id and is skipped
+      // when that id is absent, so a signed peer could POST an id-less Create{Note,
+      // inReplyTo:<our content>} repeatedly and inflate commentCount unbounded. Key on
+      // the reply Note's own id (`objectUri`) via the existing processed_activities
+      // ledger, namespaced `reply:` so it can't collide with top-level-activity claims.
+      // An id-less reply cannot be deduped and so must NOT mutate counts; distinct
+      // replies (distinct object.id) each still count. (Trade-off: a reply lost after
+      // its dedup marker is claimed is not retried on redelivery — acceptable for a
+      // best-effort count vs. the unbounded-inflation it prevents.)
+      if (inReplyTo && objectUri && (await recordActivitySeen(db, `reply:${objectUri}`))) {
         // Check if parent is local content (by slug match)
         try {
           const parentUrl = new URL(inReplyTo);
