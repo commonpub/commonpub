@@ -12,6 +12,18 @@
 
 ## TL;DR — where things stand
 
+**Session 235 (2026-07-14) — THE 234 REMEDIATION BATCH IS ROLLED. Published + on `main` + deployed to all 3.**
+npm: **ui 0.13.2 / server 2.107.0 / layer 0.99.0** (dep order, layer last so `workspace:*` freezes to
+exact). **NO migration. NO new flag.** commonpub.io ff-merged + deployed; deveco (regen `pnpm-lock.yaml`) +
+heatsync (regen BOTH lockfiles) bumped layer `^0.98→^0.99` + server `^2.106→^2.107` — CI+Deploy green. CLI
+tag `create-commonpub-v0.5.22` → crates.io 0.5.22. Fixes now LIVE: comment-write access gate (HIGH), outbox
+negative-page 500 clamp, id-less reply dedup, ENV_FLAG_MAP parity, StatBar/kbd WCAG AA, P-3 CI tripwire.
+Verified all 3: health ok, 34 flags (contest OFF unchanged), `/actor/outbox?page=-5 → 200` (was 500).
+**Landmine:** layer 0.x caret `^0.98` does NOT auto-cross to 0.99 — hand-edit CLI + fork pins. deveco local
+`nuxt typecheck` is flaky (DOM-lib/OOM in untouched files); its CLEAN CI is the gate (green). **OPERATOR
+REMAINDERS:** behavioral live-test of the comment-write gate (2 accounts + private hub → non-member POST
+404); a11y StatBar browser render; Meili reindex per instance. Detail: `docs/sessions/235-roll.md`.
+
 **Session 233 (2026-07-13) — THE 231/232/233 STACK IS ROLLED. Published + on `main` + deployed.**
 The `contest-registration-reminders` branch (24 commits: the P1 security batch + contest registration/
 reminders + per-contest email editor + auto-register-on-entry) fast-forwarded to `main`. **Published (npm,
