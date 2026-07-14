@@ -13,6 +13,10 @@ import {
   INSTANCE_DESCRIPTION_SETTING_KEY,
 } from '@commonpub/server';
 import siteConfig from '~/commonpub.config';
+// Flag → env-var map. Every boolean FeatureFlags key must have an entry; the
+// env-flag-map-parity test enforces it. Own zero-import module so the test can
+// import the map without pulling the @commonpub/server barrel.
+import { ENV_FLAG_MAP } from './envFlagMap';
 
 /** Parse a boolean env var. Returns undefined if not set. */
 function envBool(key: string): boolean | undefined {
@@ -21,33 +25,6 @@ function envBool(key: string): boolean | undefined {
   return val !== 'false' && val !== '0';
 }
 
-const ENV_FLAG_MAP: Record<string, string> = {
-  content: 'FEATURE_CONTENT',
-  social: 'FEATURE_SOCIAL',
-  hubs: 'FEATURE_HUBS',
-  docs: 'FEATURE_DOCS',
-  video: 'FEATURE_VIDEO',
-  contests: 'FEATURE_CONTESTS',
-  contestReminders: 'FEATURE_CONTEST_REMINDERS',
-  events: 'FEATURE_EVENTS',
-  learning: 'FEATURE_LEARNING',
-  explainers: 'FEATURE_EXPLAINERS',
-  editorial: 'FEATURE_EDITORIAL',
-  federation: 'FEATURE_FEDERATION',
-  federateHubs: 'FEATURE_FEDERATE_HUBS',
-  seamlessFederation: 'FEATURE_SEAMLESS_FEDERATION',
-  admin: 'FEATURE_ADMIN',
-  emailNotifications: 'FEATURE_EMAIL_NOTIFICATIONS',
-  adminBroadcast: 'FEATURE_ADMIN_BROADCAST',
-  requireTermsAcceptance: 'FEATURE_REQUIRE_TERMS_ACCEPTANCE',
-  contentImport: 'FEATURE_CONTENT_IMPORT',
-  actAsRegistry: 'FEATURE_ACT_AS_REGISTRY',
-  announceToRegistry: 'FEATURE_ANNOUNCE_TO_REGISTRY',
-  publicApiMetricsFederation: 'FEATURE_PUBLIC_API_METRICS_FEDERATION',
-  referralLinks: 'FEATURE_REFERRAL_LINKS',
-  featuredHub: 'FEATURE_FEATURED_HUB',
-  hubGovernance: 'FEATURE_HUB_GOVERNANCE',
-};
 
 /** Base config (config.ts + env overrides) — computed once at startup */
 let baseConfig: CommonPubConfig | null = null;
