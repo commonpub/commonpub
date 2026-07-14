@@ -44,10 +44,10 @@ pub fn generate_hex_token(byte_len: usize) -> String {
 // requires federation). The lockstep-pin rule still holds: bump `@commonpub/server`
 // alongside `@commonpub/layer` whenever server crosses minor, else pnpm hoists an
 // older server and the layer's server-subpath imports resolve to undefined.
-const COMMONPUB_CONFIG_VERSION: &str = "^0.30.0";
-const COMMONPUB_LAYER_VERSION: &str = "^0.97.0";
-const COMMONPUB_SCHEMA_VERSION: &str = "^0.56.0";
-const COMMONPUB_SERVER_VERSION: &str = "^2.105.0";
+const COMMONPUB_CONFIG_VERSION: &str = "^0.31.0";
+const COMMONPUB_LAYER_VERSION: &str = "^0.98.0";
+const COMMONPUB_SCHEMA_VERSION: &str = "^0.57.0";
+const COMMONPUB_SERVER_VERSION: &str = "^2.106.0";
 
 // pnpm pin for the generated Dockerfile. `pnpm@latest` is a time-bomb:
 // pnpm ≥10.11 fails `install --frozen-lockfile` on packages with
