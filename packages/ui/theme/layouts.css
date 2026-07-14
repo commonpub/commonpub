@@ -185,7 +185,9 @@
 
 .cpub-stat-bar-label {
   font-size: var(--text-xs);
-  color: var(--text-faint);
+  /* --text-dim (not --text-faint) to clear WCAG AA 4.5:1 on --surface2 in both
+     themes; --text-faint was 2.30:1 (light). See theme-contrast.test.ts. */
+  color: var(--text-dim);
   text-transform: uppercase;
   letter-spacing: var(--tracking-wide);
   font-family: var(--font-mono);

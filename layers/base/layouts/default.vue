@@ -421,7 +421,10 @@ const userUsername = computed(() => user.value?.username ?? '');
    put a box-shadow glow on every :focus-visible, which would draw a second
    ring inside the form's ring (the deveco double-trace bug). */
 .cpub-search-input:focus-visible { outline: none; box-shadow: none; }
-.cpub-kbd { margin-left: auto; font-size: 10px; font-family: var(--font-mono); padding: 2px 6px; background: var(--surface3); border: var(--border-width-default) solid var(--border2); color: var(--text-faint); }
+/* --text (not --text-faint) so the keycap glyph clears WCAG AA on --surface3 in
+   both themes (--text-faint was 2.10:1 light); --text-dim is marginal (4.44:1)
+   on surface3, so use full --text. See theme-contrast.test.ts. */
+.cpub-kbd { margin-left: auto; font-size: 10px; font-family: var(--font-mono); padding: 2px 6px; background: var(--surface3); border: var(--border-width-default) solid var(--border2); color: var(--text); }
 
 .cpub-icon-btn { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; background: transparent; border: var(--border-width-default) solid transparent; color: var(--text-dim); font-size: 13px; position: relative; transition: all 0.15s; text-decoration: none; }
 .cpub-icon-btn:hover { background: var(--surface2); border-color: var(--border); color: var(--text); }
