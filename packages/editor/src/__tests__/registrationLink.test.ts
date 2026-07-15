@@ -20,10 +20,14 @@ describe('buildRegistrationHref', () => {
     expect(buildRegistrationHref({ url: '#signup' })).toBe('#signup');
   });
 
-  it('falls back to the register page for an unsafe url (javascript:, data:, protocol-relative)', () => {
+  it('falls back to the register page for an unsafe url (javascript:, data:, protocol-relative, backslash)', () => {
     expect(buildRegistrationHref({ url: 'javascript:alert(1)' })).toBe(REGISTRATION_DEFAULT_URL);
     expect(buildRegistrationHref({ url: 'data:text/html,<script>1</script>' })).toBe(REGISTRATION_DEFAULT_URL);
     expect(buildRegistrationHref({ url: '//evil.com' })).toBe(REGISTRATION_DEFAULT_URL);
+    // Backslash variants a browser normalizes `\`→`/` into an off-site //host.
+    expect(buildRegistrationHref({ url: '/\\evil.com' })).toBe(REGISTRATION_DEFAULT_URL);
+    expect(buildRegistrationHref({ url: '/\\/evil.com' })).toBe(REGISTRATION_DEFAULT_URL);
+    expect(buildRegistrationHref({ url: '\\\\evil.com' })).toBe(REGISTRATION_DEFAULT_URL);
   });
 
   it('appends a referral code to http(s)/root targets, respecting existing query', () => {

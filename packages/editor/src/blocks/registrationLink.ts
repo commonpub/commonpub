@@ -40,10 +40,13 @@ type MaybeContent = RegistrationLinkContent | Record<string, unknown>;
  */
 export function buildRegistrationHref(content: MaybeContent): string {
   const rawUrl = typeof content.url === 'string' ? content.url.trim() : '';
-  // URL_LINK_STRICT permits any `/`-prefixed value, which includes
-  // protocol-relative `//evil.com` (navigates off-site). A registration CTA
-  // must not become an open redirect, so reject `//` explicitly.
-  const safe = !!rawUrl && URL_LINK_STRICT.test(rawUrl) && !rawUrl.startsWith('//');
+  // URL_LINK_STRICT permits any `/`-prefixed value, which includes off-site
+  // targets a browser resolves against the current origin: protocol-relative
+  // `//evil.com` AND backslash variants `/\evil.com` / `/\/evil.com` (the URL
+  // parser normalizes `\` → `/`, so `/\evil.com` becomes `//evil.com`). A
+  // registration CTA must not become an open redirect, so reject any leading
+  // `/` immediately followed by another `/` or `\`.
+  const safe = !!rawUrl && URL_LINK_STRICT.test(rawUrl) && !/^\/[/\\]/.test(rawUrl);
   const base = safe ? rawUrl : REGISTRATION_DEFAULT_URL;
   const ref = typeof content.ref === 'string' ? content.ref.trim() : '';
   if (!ref) return base;
