@@ -358,14 +358,16 @@ export function useContestEditor(opts: UseContestEditorOptions): UseContestEdito
   // that field/template falls back to the built-in default; entirely empty ⇒ null
   // (clears any stored override).
   function assembleEmailCopy(f: ContestEmailCopyForm): ContestEmailCopy | null {
+    // bodyBlocks supersede the legacy plain-text intro at render; once blocks
+    // exist, drop the stale intro so bodyBlocks is the single source of truth.
     const confirmation = {
       subject: f.confirmationSubject.trim() || undefined,
-      intro: f.confirmationIntro.trim() || undefined,
+      intro: f.confirmationBlocks.length ? undefined : (f.confirmationIntro.trim() || undefined),
       bodyBlocks: f.confirmationBlocks.length ? f.confirmationBlocks : undefined,
     };
     const reminder = {
       subject: f.reminderSubject.trim() || undefined,
-      intro: f.reminderIntro.trim() || undefined,
+      intro: f.reminderBlocks.length ? undefined : (f.reminderIntro.trim() || undefined),
       bodyBlocks: f.reminderBlocks.length ? f.reminderBlocks : undefined,
     };
     const hasConfirmation = !!(confirmation.subject || confirmation.intro || confirmation.bodyBlocks);

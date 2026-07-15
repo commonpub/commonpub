@@ -121,7 +121,10 @@ export function renderEmailBlocks(blocks: unknown, opts?: RenderEmailBlocksOptio
         break;
       }
       case 'image': {
-        const url = typeof content.url === 'string' ? content.url : '';
+        // The block editor's ImageBlock writes `src`; older/AP content uses `url`.
+        const url =
+          (typeof content.url === 'string' && content.url) ? content.url
+          : typeof content.src === 'string' ? content.src : '';
         if (!HTTP.test(url)) break;
         const alt = typeof content.alt === 'string' ? content.alt : '';
         htmlParts.push(

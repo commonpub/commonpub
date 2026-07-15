@@ -11,8 +11,10 @@
  * includes `emailCopy` once loaded). Empty field = built-in default, mirroring the
  * admin email-branding editor. Preview uses a sandboxed iframe srcdoc (never v-html).
  */
+import { useBlockEditor, BlockCanvas, type BlockTypeGroup } from '@commonpub/editor/vue';
 import type { ContestEmailCopy } from '@commonpub/schema';
 import type { ContestEmailCopyForm } from '../../composables/useContestEditor';
+import { seedEmailBlocks } from '../../utils/contestEmailDefaults';
 
 const props = defineProps<{ slug: string; modelValue: ContestEmailCopyForm }>();
 const emit = defineEmits<{ 'update:modelValue': [v: ContestEmailCopyForm]; load: [c: ContestEmailCopy] }>();
@@ -34,10 +36,47 @@ const subject = computed<string>({
   get: () => (active.value === 'confirmation' ? props.modelValue.confirmationSubject : props.modelValue.reminderSubject),
   set: (v) => patch(active.value === 'confirmation' ? { confirmationSubject: v } : { reminderSubject: v }),
 });
-const intro = computed<string>({
-  get: () => (active.value === 'confirmation' ? props.modelValue.confirmationIntro : props.modelValue.reminderIntro),
-  set: (v) => patch(active.value === 'confirmation' ? { confirmationIntro: v } : { reminderIntro: v }),
-});
+// Legacy plain-text intro (session 232) — no longer an editable field (the block
+// body supersedes it), but still read from the loaded copy to seed the editor +
+// as a preview fallback until the organizer edits.
+const intro = computed<string>(() =>
+  active.value === 'confirmation' ? props.modelValue.confirmationIntro : props.modelValue.reminderIntro,
+);
+
+// --- Block-editor email BODY (M3). Two editors (one per template), each seeded
+// ONCE from the loaded copy under a `hydrating` guard. Sync is strictly one-way
+// editor -> form (patch), so a genuine block edit marks the form dirty + refreshes
+// the preview, while the initial seed + parent echo never loop back into the editor
+// (we NEVER watch modelValue to re-seed). ---
+const confirmationEditor = useBlockEditor();
+const reminderEditor = useBlockEditor();
+const activeEditor = computed(() => (active.value === 'confirmation' ? confirmationEditor : reminderEditor));
+let hydrating = false;
+
+// Email-safe palette — ONLY the block types renderEmailBlocks supports; any other
+// type would render in the editor but be silently dropped from the sent email.
+const emailBlockGroups: BlockTypeGroup[] = [
+  {
+    name: 'Text',
+    blocks: [
+      { type: 'paragraph', label: 'Text', icon: 'fa-align-left', description: 'Body text' },
+      { type: 'heading', label: 'Heading', icon: 'fa-heading', description: 'Section heading' },
+      { type: 'blockquote', label: 'Quote', icon: 'fa-quote-left', description: 'Quotation' },
+    ],
+  },
+  {
+    name: 'Blocks',
+    blocks: [
+      { type: 'callout', label: 'Callout', icon: 'fa-circle-info', description: 'Highlighted note', attrs: { variant: 'info' } },
+      { type: 'image', label: 'Image', icon: 'fa-image', description: 'Upload or link an image' },
+      { type: 'horizontal_rule', label: 'Divider', icon: 'fa-minus', description: 'Horizontal rule' },
+      { type: 'registrationLink', label: 'Registration Link', icon: 'fa-user-plus', description: 'Sign-up CTA button' },
+    ],
+  },
+];
+
+watch(() => confirmationEditor.blocks.value, () => { if (!hydrating) patch({ confirmationBlocks: confirmationEditor.toBlockTuples() }); }, { deep: true });
+watch(() => reminderEditor.blocks.value, () => { if (!hydrating) patch({ reminderBlocks: reminderEditor.toBlockTuples() }); }, { deep: true });
 
 // --- Live preview (debounced, server-rendered, sandboxed iframe) ---
 const previewHtml = ref('');
@@ -45,9 +84,17 @@ let previewTimer: ReturnType<typeof setTimeout> | undefined;
 
 async function refreshPreview(): Promise<void> {
   try {
+    const blocks = activeEditor.value.toBlockTuples();
     const res = await $fetch<{ html: string; subject: string }>(`/api/contests/${props.slug}/email-preview`, {
       method: 'POST',
-      body: { template: active.value, copy: { subject: subject.value.trim() || undefined, intro: intro.value.trim() || undefined } },
+      body: {
+        template: active.value,
+        copy: {
+          subject: subject.value.trim() || undefined,
+          intro: intro.value.trim() || undefined,
+          bodyBlocks: blocks.length ? blocks : undefined,
+        },
+      },
     });
     previewHtml.value = res.html;
   } catch {
@@ -61,12 +108,20 @@ watch([active, () => props.modelValue], () => {
 });
 
 onMounted(async () => {
+  let stored: ContestEmailCopy | undefined;
   try {
-    const stored = await $fetch<ContestEmailCopy>(`/api/contests/${props.slug}/email-copy`);
+    stored = await $fetch<ContestEmailCopy>(`/api/contests/${props.slug}/email-copy`);
     emit('load', stored);
   } catch {
-    // No stored override (or transient error) — the form stays at its defaults.
+    // No stored override (or transient error) — seed from built-in defaults.
   }
+  // Seed both block editors ONCE from the loaded copy (blocks > intro > defaults),
+  // under `hydrating` so the seed does not emit a form change / mark it dirty.
+  hydrating = true;
+  confirmationEditor.fromBlockTuples(seedEmailBlocks(stored?.confirmation?.bodyBlocks, stored?.confirmation?.intro, 'confirmation'));
+  reminderEditor.fromBlockTuples(seedEmailBlocks(stored?.reminder?.bodyBlocks, stored?.reminder?.intro, 'reminder'));
+  await nextTick();
+  hydrating = false;
   void refreshPreview();
 });
 
@@ -81,9 +136,6 @@ const searching = ref(false);
 const sending = ref(false);
 let userTimer: ReturnType<typeof setTimeout> | undefined;
 
-const activeBlocks = computed<unknown[]>(() =>
-  active.value === 'confirmation' ? props.modelValue.confirmationBlocks : props.modelValue.reminderBlocks,
-);
 const canSendTest = computed(
   () => !sending.value && (!!selectedUser.value || /.+@.+\..+/.test(testEmail.value.trim())),
 );
@@ -112,10 +164,11 @@ async function sendTest(): Promise<void> {
   if (!canSendTest.value) return;
   sending.value = true;
   try {
+    const blocks = activeEditor.value.toBlockTuples();
     const copyPayload = {
       subject: subject.value.trim() || undefined,
       intro: intro.value.trim() || undefined,
-      bodyBlocks: activeBlocks.value.length ? activeBlocks.value : undefined,
+      bodyBlocks: blocks.length ? blocks : undefined,
     };
     const body = selectedUser.value
       ? { template: active.value, copy: copyPayload, toUserId: selectedUser.value.id }
@@ -160,10 +213,13 @@ async function sendTest(): Promise<void> {
           <input v-model="subject" type="text" maxlength="200" class="cpub-form-input" placeholder="Use the built-in default subject" />
         </label>
 
-        <label class="cpub-form-field">
-          <span class="cpub-form-label">Intro</span>
-          <textarea v-model="intro" rows="6" maxlength="2000" class="cpub-form-input cpub-cee-intro" placeholder="Use the built-in default message. Blank lines start new paragraphs."></textarea>
-        </label>
+        <div class="cpub-cee-field">
+          <span class="cpub-form-label">Body</span>
+          <p class="cpub-form-hint">Compose the email body with blocks. Add a <strong>Registration Link</strong> block for a sign-up button. It opens with the built-in default message you can edit.</p>
+          <div class="cpub-cee-body">
+            <BlockCanvas :key="active" :block-editor="activeEditor" :block-types="emailBlockGroups" />
+          </div>
+        </div>
 
         <div class="cpub-cee-tokens">
           <span class="cpub-form-label">Available tokens</span>
@@ -262,7 +318,13 @@ async function sendTest(): Promise<void> {
 
 .cpub-cee-cols { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); align-items: start; }
 .cpub-cee-form { display: flex; flex-direction: column; gap: var(--space-3); }
-.cpub-cee-intro { resize: vertical; font-family: inherit; }
+.cpub-cee-field { display: flex; flex-direction: column; gap: 4px; }
+.cpub-cee-body {
+  border: var(--border-width-default) solid var(--border);
+  background: var(--surface);
+  min-height: 220px;
+  padding: 8px;
+}
 
 .cpub-cee-tokens { display: flex; flex-direction: column; gap: 6px; }
 .cpub-cee-token-list { display: flex; flex-wrap: wrap; gap: 6px; list-style: none; margin: 0; padding: 0; }

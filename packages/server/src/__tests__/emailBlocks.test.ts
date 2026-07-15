@@ -54,11 +54,16 @@ describe('renderEmailBlocks', () => {
     expect(html).toContain('/auth/register');
   });
 
-  it('only allows http(s) images', () => {
+  it('only allows http(s) images, and reads the editor `src` field as well as `url`', () => {
     const ok = renderEmailBlocks([['image', { url: 'https://cdn.example.com/a.png', alt: 'A' }]]);
     expect(ok.html).toContain('<img src="https://cdn.example.com/a.png"');
+    // ImageBlock (the block editor) writes `src`, not `url`.
+    const srcImg = renderEmailBlocks([['image', { src: 'https://cdn.example.com/b.png', alt: 'B' }]]);
+    expect(srcImg.html).toContain('<img src="https://cdn.example.com/b.png"');
     const bad = renderEmailBlocks([['image', { url: 'javascript:alert(1)' }]]);
     expect(bad.html).toBe('');
+    const badSrc = renderEmailBlocks([['image', { src: 'javascript:alert(1)' }]]);
+    expect(badSrc.html).toBe('');
   });
 
   it('drops unknown / email-unsafe block types (quiz, slider, video, etc.)', () => {
