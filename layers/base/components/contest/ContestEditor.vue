@@ -198,6 +198,15 @@ const contestBlockGroups: BlockTypeGroup[] = [
   },
 ];
 
+// Registration-link CTA block — gated by the `registrationBlock` flag (default ON).
+// Droppable into every contest body editor (overview / rules / prizes) since they
+// all share this palette. A core block, so it edits + renders with no extra wiring.
+if (features.value.registrationBlock) {
+  (contestBlockGroups.find((g) => g.name === 'Basic') ?? contestBlockGroups[0])?.blocks.push({
+    type: 'registrationLink', label: 'Registration Link', icon: 'fa-user-plus', description: 'Sign-up call-to-action button',
+  });
+}
+
 // Draft contests autosave (background PUT once edits settle); published contests
 // save on an explicit action. Create has no slug yet, so it never autosaves.
 const isDraftAutosave = computed(() => props.mode === 'edit' && contest.value?.status === 'draft');
