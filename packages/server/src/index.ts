@@ -634,6 +634,7 @@ export {
   CONTEST_REMINDER_MILESTONES,
   parseContestEmailCopy,
   getContestEmailCopy,
+  buildContestEmailCopyOverride,
 } from './contest/index.js';
 export type {
   ContestListItem,
@@ -858,6 +859,9 @@ export {
   emailTemplates,
 } from './email.js';
 export type { EmailAdapter, EmailMessage, EmailSendResult, EmailBranding } from './email.js';
+export { renderEmailBlocks } from './emailBlocks.js';
+export type { RenderedEmailBody, RenderEmailBlocksOptions } from './emailBlocks.js';
+export { defaultContestEmailBlocks } from './contest/emailDefaults.js';
 
 // Public API (admin-scoped Bearer keys for external consumers)
 export * from './publicApi/index.js';

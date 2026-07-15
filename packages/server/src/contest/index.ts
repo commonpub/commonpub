@@ -69,7 +69,9 @@ export type {
   SweepContestRemindersResult,
 } from './reminders.js';
 
-export { parseContestEmailCopy, getContestEmailCopy } from './emailCopy.js';
+export { parseContestEmailCopy, getContestEmailCopy, buildContestEmailCopyOverride } from './emailCopy.js';
+export { defaultContestEmailBlocks } from './emailDefaults.js';
+export type { ContestEmailKind } from './emailDefaults.js';
 
 export type {
   ContestListItem,

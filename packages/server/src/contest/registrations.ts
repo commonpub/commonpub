@@ -8,7 +8,7 @@ import { enqueueEmail } from '../comms/outbox.js';
 import { buildUnsubscribeLinks } from '../comms/unsubscribe.js';
 import { getEmailBranding } from '../comms/branding.js';
 import { getNotificationEmailTarget } from '../notification/emailPrefs.js';
-import { parseContestEmailCopy } from './emailCopy.js';
+import { parseContestEmailCopy, buildContestEmailCopyOverride } from './emailCopy.js';
 import { formatDeadlineUtc } from './reminders.js';
 import type { ContestEmailContext, ContestRegistrantItem } from './types.js';
 
@@ -83,15 +83,18 @@ export async function registerForContest(
         const branding = await getEmailBranding(db);
         // Apply the per-contest copy override only when the editor feature is on,
         // so turning the flag off reverts every send to the built-in default.
-        const copy = config.features.contestEmailEditor ? parseContestEmailCopy(contest.emailCopy).confirmation : undefined;
+        const copyField = config.features.contestEmailEditor ? parseContestEmailCopy(contest.emailCopy).confirmation : undefined;
+        const contestUrl = `${email.siteUrl}/contests/${contest.slug}`;
+        const deadline = formatDeadlineUtc(contest.endDate);
+        // Render the block body (if any) to email-safe HTML with this recipient's tokens.
+        const copy = buildContestEmailCopyOverride(copyField, {
+          tokens: { username: target.username, contestTitle: contest.title, deadline, contestUrl },
+          accent: branding?.accentColor,
+        });
         const tpl = emailTemplates.contestRegistrationConfirmation(
           email.siteName,
           target.username,
-          {
-            title: contest.title,
-            url: `${email.siteUrl}/contests/${contest.slug}`,
-            deadline: formatDeadlineUtc(contest.endDate),
-          },
+          { title: contest.title, url: contestUrl, deadline },
           pageUrl,
           branding,
           copy,

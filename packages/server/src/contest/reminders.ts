@@ -7,7 +7,7 @@ import { enqueueEmails } from '../comms/outbox.js';
 import type { OutboxMessage } from '../comms/outbox.js';
 import { buildUnsubscribeLinks } from '../comms/unsubscribe.js';
 import { getEmailBranding } from '../comms/branding.js';
-import { parseContestEmailCopy } from './emailCopy.js';
+import { parseContestEmailCopy, buildContestEmailCopyOverride } from './emailCopy.js';
 import type { ContestEmailContext } from './types.js';
 
 // Automatic contest deadline reminders. A single sweep, safe to run on every
@@ -150,7 +150,7 @@ export async function sweepContestReminders(
     const timeRemaining = humanizeTimeRemaining(msLeft);
     // Apply the per-contest reminder copy override only when the editor feature
     // is on; otherwise every reminder uses the built-in default copy.
-    const reminderCopy = config.features.contestEmailEditor ? parseContestEmailCopy(contest.emailCopy).reminder : undefined;
+    const reminderField = config.features.contestEmailEditor ? parseContestEmailCopy(contest.emailCopy).reminder : undefined;
 
     // Atomic claim: insert one ledger row per eligible (verified, not globally
     // unsubscribed) registrant and return only the rows we actually inserted,
@@ -179,13 +179,19 @@ export async function sweepContestReminders(
 
     const messages: OutboxMessage[] = recipients.map((r) => {
       const { pageUrl, headers } = buildUnsubscribeLinks(ctx.siteUrl, r.userId, ctx.secret);
+      // Render the block body (if any) per-recipient so `{username}` resolves to
+      // each participant; the rest of the tokens are contest-wide.
+      const copy = buildContestEmailCopyOverride(reminderField, {
+        tokens: { username: r.username, contestTitle: contest.title, deadline, timeRemaining, contestUrl },
+        accent: branding?.accentColor,
+      });
       const tpl = emailTemplates.contestDeadlineReminder(
         ctx.siteName,
         r.username,
         { title: contest.title, url: contestUrl, deadline, timeRemaining },
         pageUrl,
         branding,
-        reminderCopy,
+        copy,
       );
       return {
         toEmail: r.email,

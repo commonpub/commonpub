@@ -1,4 +1,4 @@
-import { emailTemplates, getContestBySlug, getEmailBranding, isContestEditor, formatDeadlineUtc } from '@commonpub/server';
+import { emailTemplates, getContestBySlug, getEmailBranding, isContestEditor, formatDeadlineUtc, renderEmailBlocks } from '@commonpub/server';
 import { contestEmailPreviewSchema } from '@commonpub/schema';
 
 /**
@@ -36,6 +36,22 @@ export default defineEventHandler(async (event): Promise<{ html: string; subject
   // Preview uses the signed-in organizer's own username as the sample recipient
   // token, mirroring the real send substitution (`target.username`), so the
   // preview shows exactly what a recipient would see rather than a stray placeholder.
+  const tokens = {
+    username: user.username,
+    contestTitle: contest.title,
+    deadline: deadline ?? '',
+    timeRemaining: '24 hours',
+    contestUrl,
+  };
+  // Render the block body (if any) to email-safe HTML; empty ⇒ fall back to the
+  // legacy intro / built-in default inside the template.
+  const body = renderEmailBlocks(copy?.bodyBlocks, { accent: branding?.accentColor, tokens });
+  const copyForTemplate = {
+    subject: copy?.subject,
+    intro: copy?.intro,
+    bodyHtml: body.html || undefined,
+    bodyText: body.text || undefined,
+  };
   const rendered =
     template === 'reminder'
       ? emailTemplates.contestDeadlineReminder(
@@ -44,7 +60,7 @@ export default defineEventHandler(async (event): Promise<{ html: string; subject
           { title: contest.title, url: contestUrl, deadline, timeRemaining: '24 hours' },
           sampleUnsub,
           branding,
-          copy,
+          copyForTemplate,
         )
       : emailTemplates.contestRegistrationConfirmation(
           siteName,
@@ -52,7 +68,7 @@ export default defineEventHandler(async (event): Promise<{ html: string; subject
           { title: contest.title, url: contestUrl, deadline },
           sampleUnsub,
           branding,
-          copy,
+          copyForTemplate,
         );
 
   return { html: rendered.html, subject: rendered.subject };

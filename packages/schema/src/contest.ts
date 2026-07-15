@@ -147,9 +147,17 @@ export interface ContestStageSubmission {
  *  subject + plain-text intro of the two contest participation emails; all other
  *  chrome (unsubscribe link, CTA, deadline line, branded shell) stays system-owned.
  *  Absent/empty per field ⇒ the built-in default. Stored in `contests.email_copy`. */
+export interface ContestEmailCopyField {
+  subject?: string;
+  /** Legacy plain-text body (session 232). Superseded by `bodyBlocks` when set. */
+  intro?: string;
+  /** BlockTuple[] body — the house block editor, rendered email-safe by the
+   *  server's renderEmailBlocks. Untyped jsonb mirrors `content_items.content`. */
+  bodyBlocks?: unknown[];
+}
 export interface ContestEmailCopy {
-  confirmation?: { subject?: string; intro?: string };
-  reminder?: { subject?: string; intro?: string };
+  confirmation?: ContestEmailCopyField;
+  reminder?: ContestEmailCopyField;
 }
 
 /** @v2 — Contest system. Tables defined but not yet referenced in application code. */

@@ -58,17 +58,23 @@ export const contestJudgingCriterionSchema = z.object({
 });
 export type ContestJudgingCriterion = z.infer<typeof contestJudgingCriterionSchema>;
 
-// Per-contest email copy override (session 232). Organizers customize ONLY the
-// subject + plain-text intro of the two contest participation emails; the tokens
-// are interpolated + HTML-escaped server-side and all other chrome (unsubscribe,
-// CTA, deadline line) is system-owned — there is no organizer HTML, so no
-// injection surface. `.strict()` rejects unknown keys; empty/absent ⇒ default.
+// Per-contest email copy override (session 232). Organizers customize the
+// subject + body of the two contest participation emails; the CTA, deadline line
+// and unsubscribe chrome stay system-owned. `.strict()` rejects unknown keys;
+// empty/absent ⇒ the built-in default.
+//   - `subject`: plain text, tokenized + HTML-escaped server-side.
+//   - `bodyBlocks`: BlockTuple[] body (the house block editor, same jsonb shape as
+//     `descriptionBlocks`). Rendered to an EMAIL-SAFE HTML subset by the server's
+//     renderEmailBlocks — no organizer raw HTML reaches the wire unsanitized.
+//   - `intro`: legacy plain-text body (session 232). Retained for back-compat +
+//     rollback; a `bodyBlocks` override supersedes it at render time.
 const CONTEST_EMAIL_SUBJECT_MAX = 200;
 const CONTEST_EMAIL_INTRO_MAX = 2000;
 export const contestEmailTemplateCopySchema = z
   .object({
     subject: z.string().trim().max(CONTEST_EMAIL_SUBJECT_MAX).optional(),
     intro: z.string().trim().max(CONTEST_EMAIL_INTRO_MAX).optional(),
+    bodyBlocks: z.array(z.array(z.unknown())).max(200).optional(),
   })
   .strict();
 export const contestEmailCopySchema = z

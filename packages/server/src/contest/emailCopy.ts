@@ -1,7 +1,39 @@
 import { eq } from 'drizzle-orm';
 import { contests, contestEmailCopySchema } from '@commonpub/schema';
-import type { ContestEmailCopy } from '@commonpub/schema';
+import type { ContestEmailCopy, ContestEmailCopyField } from '@commonpub/schema';
 import type { DB } from '../types.js';
+import { renderEmailBlocks } from '../emailBlocks.js';
+
+/** The shape a contest email template consumes: subject/intro plus a pre-rendered,
+ *  email-safe block body (html + text). Mirrors infra's ContestEmailCopyOverride. */
+export interface ContestEmailCopyRendered {
+  subject?: string;
+  intro?: string;
+  bodyHtml?: string;
+  bodyText?: string;
+}
+
+/**
+ * Transform a stored per-template copy field ({subject, intro, bodyBlocks}) into
+ * the shape an email template consumes ({subject, intro, bodyHtml, bodyText}),
+ * rendering the block body to email-safe HTML with the recipient's `{token}`
+ * values. Returns undefined when the field is absent, so the template falls back
+ * to its built-in default. An empty block body yields no bodyHtml/bodyText, so
+ * the legacy `intro` (or default) still applies.
+ */
+export function buildContestEmailCopyOverride(
+  field: ContestEmailCopyField | undefined,
+  opts?: { tokens?: Record<string, string>; accent?: string },
+): ContestEmailCopyRendered | undefined {
+  if (!field) return undefined;
+  const body = renderEmailBlocks(field.bodyBlocks, opts);
+  return {
+    subject: field.subject,
+    intro: field.intro,
+    bodyHtml: body.html || undefined,
+    bodyText: body.text || undefined,
+  };
+}
 
 // Per-contest email copy override (session 232). An organizer customizes the
 // subject + plain-text intro of the two contest participation emails; the value
