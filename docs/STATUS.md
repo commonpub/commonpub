@@ -12,6 +12,20 @@
 
 ## TL;DR — where things stand
 
+**Session 237 (2026-07-15) — EMAIL FEATURES BATCH ROLLED to all 3.** npm **schema 0.58 / config 0.32 /
+editor 0.11 / infra 0.15 / server 2.108 / test-utils 0.5.12 / layer 0.100**, CLI **create-commonpub 0.5.23**,
+**NO migration**. Live went 34→**36 flags** (added `registrationBlock` default ON, `emailUnverified` default
+OFF). Shipped: block-editor email BODIES (bodyBlocks→email-safe HTML renderer; the block-editor UI "M3" is
+NOT built — editor still Subject+Intro textarea), the `registrationLink` CTA block, `emailUnverified`
+(unverified users receive mail when ON — deveco = ON with its new Resend transport; others OFF = no change),
+contest **send-a-test-email** (arbitrary email or fuzzy-searched user, organizer-gated, `[TEST]` subject),
+admin broadcast picker showing display names, and the `alex`→username preview fix. Pre-roll ultracode audit
+(zero-assumptions) → GO_WITH_CAVEAT; all caveats were deploy-mechanics (0.x caret crosses on all five 0.x
+packages → CLI + both fork pins hand-edited + lockfiles regenerated). **deveco `requireEmailVerification`
+was deliberately HELD** (staged but reverted before push — would lock out all existing unverified users;
+enable only after backfilling `email_verified=true`). Verified all 3: health ok, 36 flags, test-send unauth
+→401, deveco CI green. Detail: `docs/sessions/237-email-features-roll.md`.
+
 **Session 235 (2026-07-14) — THE 234 REMEDIATION BATCH IS ROLLED. Published + on `main` + deployed to all 3.**
 npm: **ui 0.13.2 / server 2.107.0 / layer 0.99.0** (dep order, layer last so `workspace:*` freezes to
 exact). **NO migration. NO new flag.** commonpub.io ff-merged + deployed; deveco (regen `pnpm-lock.yaml`) +
