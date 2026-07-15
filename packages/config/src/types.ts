@@ -66,6 +66,8 @@ export interface FeatureFlags {
   federateHubs: boolean;
   /** Enable editorial curation (staff picks, content categories, homepage editorial section) */
   editorial: boolean;
+  /** Registration-link CTA block in the block-editor palette. Default ON. */
+  registrationBlock: boolean;
   /** Enable admin panel (user management, reports, instance settings) */
   admin: boolean;
   /** Enable the guided theme generator (theme-studio) in the admin theme builder (default: true) */

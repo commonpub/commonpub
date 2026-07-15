@@ -27,6 +27,7 @@ export function createTestConfig(overrides?: Partial<CommonPubConfig>): CommonPu
       learning: true,
       explainers: true,
       editorial: true,
+      registrationBlock: true,
       federation: false,
       seamlessFederation: false,
       federateHubs: false,
