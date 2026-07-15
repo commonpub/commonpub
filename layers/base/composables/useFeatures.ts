@@ -35,6 +35,9 @@ export interface FeatureFlags {
   learning: boolean;
   explainers: boolean;
   editorial: boolean;
+  /** Registration-link CTA block in the block-editor palette. Default ON;
+   *  gates only the palette — already-authored blocks always render. */
+  registrationBlock: boolean;
   federation: boolean;
   admin: boolean;
   /** Guided theme generator (theme-studio) in the admin theme builder. Default ON. */
@@ -88,7 +91,7 @@ export const DEFAULT_FLAGS: FeatureFlags = {
   contests: false, contestStageSubmissions: true, contestProposals: false, contestPii: false,
   contestReminders: false, contestEmailEditor: false,
   events: false, learning: true, explainers: true,
-  editorial: true, federation: false, admin: false, themeStudio: true, emailNotifications: false,
+  editorial: true, registrationBlock: true, federation: false, admin: false, themeStudio: true, emailNotifications: false,
   publicApi: false, contentImport: true,
   layoutEngine: false,
   rbac: false,

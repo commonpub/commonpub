@@ -34,6 +34,7 @@ import BlockJudgesShowcaseView from './BlockJudgesShowcaseView.vue';
 import BlockSponsorsView from './BlockSponsorsView.vue';
 import BlockCompareColumnsView from './BlockCompareColumnsView.vue';
 import BlockRoadmapView from './BlockRoadmapView.vue';
+import BlockRegistrationLinkView from './BlockRegistrationLinkView.vue';
 import type { BlockTuple } from '@commonpub/editor';
 
 const props = defineProps<{
@@ -63,6 +64,7 @@ const componentMap: Record<string, unknown> = {
   horizontal_rule: BlockDividerView,
   video: BlockVideoView,
   embed: BlockEmbedView,
+  registrationLink: BlockRegistrationLinkView,
   partsList: BlockPartsListView,
   buildStep: BlockBuildStepView,
   toolList: BlockToolListView,

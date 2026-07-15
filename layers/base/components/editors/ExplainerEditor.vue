@@ -57,6 +57,14 @@ const blockTypes: BlockTypeGroup[] = [
   },
 ];
 
+// Registration-link CTA block — gated by the `registrationBlock` flag (default ON).
+const { features } = useFeatures();
+if (features.value.registrationBlock) {
+  blockTypes[blockTypes.length - 1]?.blocks.push({
+    type: 'registrationLink', label: 'Registration Link', icon: 'fa-user-plus', description: 'Sign-up call-to-action button',
+  });
+}
+
 // Interactive block types for counting
 const INTERACTIVE_TYPES = new Set(['interactiveSlider', 'slider', 'quiz', 'checkpoint']);
 

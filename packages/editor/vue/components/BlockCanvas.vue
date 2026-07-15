@@ -39,6 +39,7 @@ import CheckpointBlock from './blocks/CheckpointBlock.vue';
 import MathBlock from './blocks/MathBlock.vue';
 import SectionHeaderBlock from './blocks/SectionHeaderBlock.vue';
 import MarkdownBlock from './blocks/MarkdownBlock.vue';
+import RegistrationLinkBlock from './blocks/RegistrationLinkBlock.vue';
 
 const BLOCK_COMPONENTS: Record<string, Component> = {
   paragraph: TextBlock,
@@ -71,6 +72,7 @@ const BLOCK_COMPONENTS: Record<string, Component> = {
   orderedList: TextBlock,
   sectionHeader: SectionHeaderBlock,
   markdown: MarkdownBlock,
+  registrationLink: RegistrationLinkBlock,
 };
 
 const props = defineProps<{

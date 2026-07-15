@@ -54,6 +54,10 @@ export const featureFlagsSchema = z.object({
   seamlessFederation: z.boolean().default(false),
   federateHubs: z.boolean().default(false),
   editorial: z.boolean().default(true),
+  // Registration-link CTA block in the block editor (droppable into any
+  // content + the contest email body). Default ON — gates only the editor
+  // PALETTE; already-authored blocks always render regardless.
+  registrationBlock: z.boolean().default(true),
   admin: z.boolean().default(false),
   // Guided theme generator (@commonpub/theme-studio) in the admin theme
   // builder. Default ON — the granular token editor is unaffected when off.

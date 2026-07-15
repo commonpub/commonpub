@@ -3,6 +3,13 @@
 // Block type system
 export type { BlockTuple, TypedBlockTuple, BlockDefinition } from './blocks/types.js';
 export {
+  REGISTRATION_DEFAULT_URL,
+  buildRegistrationHref,
+  registrationLabel,
+  registrationVariant,
+} from './blocks/registrationLink.js';
+export type { RegistrationLinkContent } from './blocks/registrationLink.js';
+export {
   textContentSchema,
   headingContentSchema,
   codeContentSchema,

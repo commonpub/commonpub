@@ -44,6 +44,14 @@ const blockTypes: BlockTypeGroup[] = [
   },
 ];
 
+// Registration-link CTA block — gated by the `registrationBlock` flag (default ON).
+const { features } = useFeatures();
+if (features.value.registrationBlock) {
+  blockTypes.find((g) => g.name === 'Rich')?.blocks.push({
+    type: 'registrationLink', label: 'Registration Link', icon: 'fa-user-plus', description: 'Sign-up call-to-action button',
+  });
+}
+
 // --- Left panel tabs ---
 const activeLeftTab = ref<'modules' | 'structure' | 'assets'>('modules');
 

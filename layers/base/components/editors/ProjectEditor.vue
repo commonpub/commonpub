@@ -55,6 +55,14 @@ const blockTypes: BlockTypeGroup[] = [
   },
 ];
 
+// Registration-link CTA block — gated by the `registrationBlock` flag (default ON).
+const { features } = useFeatures();
+if (features.value.registrationBlock) {
+  (blockTypes.find((g) => g.name === 'Rich') ?? blockTypes[blockTypes.length - 1])?.blocks.push({
+    type: 'registrationLink', label: 'Registration Link', icon: 'fa-user-plus', description: 'Sign-up call-to-action button',
+  });
+}
+
 // --- SEO preview ---
 const seoDomain = computed(() => {
   try { return new URL(useRequestURL().origin).hostname; } catch { return 'example.com'; }

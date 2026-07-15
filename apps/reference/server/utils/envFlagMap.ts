@@ -27,6 +27,7 @@ export const ENV_FLAG_MAP: Record<string, string> = {
   seamlessFederation: 'FEATURE_SEAMLESS_FEDERATION',
   federateHubs: 'FEATURE_FEDERATE_HUBS',
   editorial: 'FEATURE_EDITORIAL',
+  registrationBlock: 'FEATURE_REGISTRATION_BLOCK',
   admin: 'FEATURE_ADMIN',
   themeStudio: 'FEATURE_THEME_STUDIO',
   emailNotifications: 'FEATURE_EMAIL_NOTIFICATIONS',
