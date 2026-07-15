@@ -12,6 +12,19 @@
 
 ## TL;DR — where things stand
 
+**Session 238 (2026-07-15) — M3 (block-editor email UI) ROLLED to all 3.** npm **server 2.109 / layer 0.101**
+(only these two; no migration, no new flag — stays 36 flags), CLI **create-commonpub 0.5.24**. The contest
+email editor's Intro textarea is now a real **block editor**: two useBlockEditor instances (one per template),
+seeded once (bodyBlocks > legacy intro-as-paragraphs > built-in default) under a `hydrating` guard, strictly
+one-way editor→form sync; email-safe palette (text/heading/quote/callout/image/divider/registrationLink only);
+preview + send-test post bodyBlocks; assembleEmailCopy clears the stale intro once blocks exist. Server fixes:
+`renderEmailBlocks` decodes TipTap entities (was double-escaping — "Q&A"→"Q&amp;A") and reads image
+`content.src` as well as `.url`. Built via ultracode design→build→adversarial-review (review PASS on
+reactivity/dirty-flag; caught + fixed the double-escape + stale-intro); visually verified live (editor seeds
+the default template, preview renders blocks with token interpolation). Verified all 3: health ok, 36 flags,
+deveco CI green. Detail: `docs/sessions/238-m3-roll.md`. NOTE: layer 0.100→0.101 crossed a 0.x minor — CLI +
+both fork pins hand-edited again ([[feedback_caret_semver_0x_minor_bump]]).
+
 **Session 237 (2026-07-15) — EMAIL FEATURES BATCH ROLLED to all 3.** npm **schema 0.58 / config 0.32 /
 editor 0.11 / infra 0.15 / server 2.108 / test-utils 0.5.12 / layer 0.100**, CLI **create-commonpub 0.5.23**,
 **NO migration**. Live went 34→**36 flags** (added `registrationBlock` default ON, `emailUnverified` default
