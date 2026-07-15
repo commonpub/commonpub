@@ -71,6 +71,7 @@ export type {
   LessonType,
   VideoPlatform,
   ContestStatus,
+  ContestRegistrationFields,
   CreateContentCategoryInput,
   UpdateContentCategoryInput,
 } from '@commonpub/schema';
@@ -627,6 +628,7 @@ export {
   registerForContest,
   unregisterForContest,
   isRegisteredForContest,
+  getViewerRegistration,
   listContestRegistrants,
   getRegistrantCount,
   sweepContestReminders,
@@ -657,6 +659,7 @@ export type {
   ContestEmailContext,
   ContestRegistrantItem,
   RegisterForContestResult,
+  ContestRegistrationTier,
   SweepContestRemindersContext,
   SweepContestRemindersResult,
 } from './contest/index.js';

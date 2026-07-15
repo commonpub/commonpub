@@ -31,6 +31,9 @@ export interface FeatureFlags {
   /** Per-contest email-template editor: customize confirmation + reminder copy.
    *  Default OFF; also gates send-side application of a stored override. */
   contestEmailEditor: boolean;
+  /** Two-tier contest signup card (register + reminders-only) with optional info
+   *  form + status-aware onboarding copy. Default ON; off ⇒ simple reminders opt-in. */
+  contestSignup: boolean;
   events: boolean;
   learning: boolean;
   explainers: boolean;
@@ -91,7 +94,7 @@ let hydrated = false;
 export const DEFAULT_FLAGS: FeatureFlags = {
   content: true, social: true, hubs: true, docs: true, video: true,
   contests: false, contestStageSubmissions: true, contestProposals: false, contestPii: false,
-  contestReminders: false, contestEmailEditor: false,
+  contestReminders: false, contestEmailEditor: false, contestSignup: true,
   events: false, learning: true, explainers: true,
   editorial: true, registrationBlock: true, federation: false, admin: false, themeStudio: true, emailNotifications: false, emailUnverified: false,
   publicApi: false, contentImport: true,
@@ -200,6 +203,7 @@ export function useFeatures() {
     contestPii: computed(() => flags.value.contestPii),
     contestReminders: computed(() => flags.value.contestReminders),
     contestEmailEditor: computed(() => flags.value.contestEmailEditor),
+    contestSignup: computed(() => flags.value.contestSignup),
     events: computed(() => flags.value.events),
     learning: computed(() => flags.value.learning),
     explainers: computed(() => flags.value.explainers),

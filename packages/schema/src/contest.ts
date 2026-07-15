@@ -440,6 +440,19 @@ export const contestEntryPrivateFields = pgTable('contest_entry_private_fields',
 ]);
 
 // --- Contest Registrations (participant sign-up) ---
+// Optional, self-reported info collected on registration (all fields optional;
+// see `contestRegistrationFieldsSchema` for validation). Kept here (the table
+// module) so the jsonb column can be typed without a reverse import from the
+// validators. `experience`/`team` are closed sets; `building` is free text.
+export interface ContestRegistrationFields {
+  /** "What are you thinking of building?" — free text, capped in the validator. */
+  building?: string;
+  /** Self-reported experience level. */
+  experience?: 'first' | 'some' | 'experienced';
+  /** Team status — solo, already have a team, or looking for teammates. */
+  team?: 'solo' | 'have' | 'looking';
+}
+
 // A user's intent to participate in a contest. UNLIKE contest_entries, this needs
 // no attached content -- it is the audience record for the registration-confirmation
 // and deadline-reminder emails. A user can be registered without having entered.
@@ -452,6 +465,15 @@ export const contestRegistrations = pgTable('contest_registrations', {
   userId: uuid('user_id')
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
+  // Two-tier signup (session 239). `full` = a counted participant (the audience
+  // for confirmation + all updates + reminders); `reminders` = a lower-commitment
+  // opt-in that gets deadline reminders but is NOT counted as a participant.
+  // Default `full` so every pre-existing row (all counted) keeps its meaning.
+  tier: text('tier').notNull().default('full'),
+  // Optional, self-reported signup info collected at the high-intent post-register
+  // moment (never required, never blocks registration): what they plan to build,
+  // experience level, team status. Shape validated by contestRegistrationFieldsSchema.
+  fields: jsonb('fields').$type<ContestRegistrationFields>(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 }, (t) => [
   unique('uq_contest_registrations_contest_user').on(t.contestId, t.userId),

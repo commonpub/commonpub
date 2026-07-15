@@ -387,6 +387,40 @@ export type ContestTransitionInput = z.infer<typeof contestTransitionSchema>;
 export const contestStatusSchema = z.enum(contestStatusEnum.enumValues);
 export type ContestStatus = z.infer<typeof contestStatusSchema>;
 
+// --- Contest signup (two-tier registration + optional self-reported info) ---
+
+/** The two registration tiers. `full` = counted participant; `reminders` = reminders-only opt-in. */
+export const contestRegistrationTierSchema = z.enum(['full', 'reminders']);
+export type ContestRegistrationTier = z.infer<typeof contestRegistrationTierSchema>;
+
+/**
+ * Optional info collected at registration. Every field is optional — registration
+ * is never blocked on it; it's the "tell the organizers a bit about you" prompt
+ * shown at the high-intent post-register moment. `building` is trimmed and capped;
+ * `experience`/`team` are closed sets. An empty/absent object is valid.
+ */
+export const contestRegistrationFieldsSchema = z.object({
+  building: z.string().trim().max(280).optional(),
+  experience: z.enum(['first', 'some', 'experienced']).optional(),
+  team: z.enum(['solo', 'have', 'looking']).optional(),
+});
+export type ContestRegistrationFieldsInput = z.infer<typeof contestRegistrationFieldsSchema>;
+
+/**
+ * POST body for registering: which tier, plus the optional info. A bare POST with
+ * no body (the low-friction one-click register, and the fallback UI) must still
+ * parse — the preprocess coerces an absent/empty body to `{}`, which then defaults
+ * `tier` to `full`. So an empty request means "register me as a full participant".
+ */
+export const contestRegisterSchema = z.preprocess(
+  (v) => (v === undefined || v === null || v === '' ? {} : v),
+  z.object({
+    tier: contestRegistrationTierSchema.default('full'),
+    fields: contestRegistrationFieldsSchema.optional(),
+  }),
+);
+export type ContestRegisterInput = z.infer<typeof contestRegisterSchema>;
+
 // --- Contest filters ---
 
 export const contestFiltersSchema = z.object({

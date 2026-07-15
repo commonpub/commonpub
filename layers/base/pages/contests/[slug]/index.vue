@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Serialized, ContestEntryItem, ContestJudgeItem } from '@commonpub/server';
+import type { Serialized, ContestEntryItem, ContestJudgeItem, ContestRegistrationFields } from '@commonpub/server';
 
 const route = useRoute();
 const router = useRouter();
@@ -15,7 +15,7 @@ const { data: apiEntriesData, refresh: refreshEntries } = useLazyFetch<{ items: 
 const { data: judgesData, refresh: refreshJudges } = useLazyFetch<ContestJudgeItem[]>(`/api/contests/${slug}/judges`);
 // Registration state (viewer's own + public count). Drives the sidebar register
 // toggle. Lazy — the register card isn't above the fold and can hydrate late.
-const { data: registrationData } = useLazyFetch<{ registered: boolean; count: number }>(`/api/contests/${slug}/register`);
+const { data: registrationData } = useLazyFetch<{ registered: boolean; tier: 'full' | 'reminders' | null; fields: ContestRegistrationFields | null; count: number }>(`/api/contests/${slug}/register`);
 
 useSeoMeta({
   title: () => `${contest.value?.title || 'Contest'}, ${useSiteName()}`,
@@ -275,6 +275,8 @@ async function submitEntry(): Promise<void> {
 // Registration (participant intent, independent of any entry). Local state is
 // seeded from the fetch and then reconciled from each POST/DELETE response.
 const registered = ref(false);
+const registrationTier = ref<'full' | 'reminders' | null>(null);
+const registrationFields = ref<ContestRegistrationFields | null>(null);
 const registrantCount = ref(0);
 const registering = ref(false);
 watch(
@@ -282,20 +284,33 @@ watch(
   (d) => {
     if (d) {
       registered.value = d.registered;
+      registrationTier.value = d.tier;
+      registrationFields.value = d.fields;
       registrantCount.value = d.count;
     }
   },
   { immediate: true },
 );
 
-async function register(): Promise<void> {
+async function register(payload?: { tier: 'full' | 'reminders'; fields?: ContestRegistrationFields }): Promise<void> {
   if (registering.value) return;
   registering.value = true;
+  const tier = payload?.tier ?? 'full';
+  const wasFull = registrationTier.value === 'full';
   try {
-    const res = await $fetch<{ registered: boolean; count: number }>(`/api/contests/${slug}/register`, { method: 'POST' });
+    const res = await $fetch<{ registered: boolean; tier: 'full' | 'reminders'; count: number }>(
+      `/api/contests/${slug}/register`,
+      { method: 'POST', body: payload ?? { tier } },
+    );
     registered.value = res.registered;
+    registrationTier.value = res.tier;
     registrantCount.value = res.count;
-    toast.success('You are registered for this contest');
+    // Reflect the info the viewer just submitted so the form stays in sync.
+    if (payload?.fields) registrationFields.value = payload.fields;
+    // Tailor the confirmation to what actually happened.
+    if (res.tier === 'reminders') toast.success("You'll get deadline reminders");
+    else if (payload?.fields && wasFull) toast.success('Your details were saved');
+    else toast.success("You're registered for this contest");
   } catch (err: unknown) {
     toast.error(extractError(err));
   } finally {
@@ -309,6 +324,8 @@ async function unregister(): Promise<void> {
   try {
     const res = await $fetch<{ registered: boolean; count: number }>(`/api/contests/${slug}/register`, { method: 'DELETE' });
     registered.value = res.registered;
+    registrationTier.value = null;
+    registrationFields.value = null;
     registrantCount.value = res.count;
     toast.success('Registration cancelled');
   } catch (err: unknown) {
@@ -558,6 +575,8 @@ async function withdrawEntry(entryId: string): Promise<void> {
           :can-judge="canJudge"
           :is-authenticated="isAuthenticated"
           :registered="registered"
+          :tier="registrationTier"
+          :saved-fields="registrationFields"
           :registrant-count="registrantCount"
           :registering="registering"
           @copy-link="copyLink"

@@ -8,6 +8,7 @@ import {
   registerForContest,
   unregisterForContest,
   isRegisteredForContest,
+  getViewerRegistration,
   listContestRegistrants,
   getRegistrantCount,
 } from '../contest/registrations.js';
@@ -66,7 +67,7 @@ describe('contest registrations', () => {
   it('registers a user and reports registered', async () => {
     const contestId = await makeContest(db, organizerId);
     const res = await registerForContest(db, cfg({ emailNotifications: false }), { contestId, userId });
-    expect(res).toEqual({ registered: true, alreadyRegistered: false });
+    expect(res).toEqual({ registered: true, alreadyRegistered: false, tier: 'full' });
 
     const rows = await db.select().from(contestRegistrations).where(eq(contestRegistrations.contestId, contestId));
     expect(rows).toHaveLength(1);
@@ -78,7 +79,7 @@ describe('contest registrations', () => {
     const contestId = await makeContest(db, organizerId);
     await registerForContest(db, cfg({ emailNotifications: false }), { contestId, userId });
     const second = await registerForContest(db, cfg({ emailNotifications: false }), { contestId, userId });
-    expect(second).toEqual({ registered: false, alreadyRegistered: true });
+    expect(second).toEqual({ registered: false, alreadyRegistered: true, tier: 'full' });
 
     const rows = await db.select().from(contestRegistrations).where(eq(contestRegistrations.contestId, contestId));
     expect(rows).toHaveLength(1);
@@ -184,5 +185,56 @@ describe('contest registrations', () => {
     expect(list.items.map((i) => i.userId).sort()).toEqual([userId, u2.id].sort());
     expect(list.items[0]).toHaveProperty('username');
     expect(list.items[0]).toHaveProperty('registeredAt');
+  });
+
+  // --- Two-tier signup (session 239) ---
+
+  it('a reminders-only signup is NOT counted as a participant, but is registered', async () => {
+    const contestId = await makeContest(db, organizerId);
+    const res = await registerForContest(db, cfg({ emailNotifications: false }), { contestId, userId, tier: 'reminders' });
+    expect(res).toEqual({ registered: true, alreadyRegistered: false, tier: 'reminders' });
+    // Excluded from the participant count + list, but a registration row exists.
+    expect(await getRegistrantCount(db, contestId)).toBe(0);
+    expect((await listContestRegistrants(db, contestId)).total).toBe(0);
+    expect(await isRegisteredForContest(db, contestId, userId)).toBe(true);
+    expect(await getViewerRegistration(db, contestId, userId)).toMatchObject({ tier: 'reminders' });
+  });
+
+  it('re-registering reminders→full UPGRADES the tier (never downgrades)', async () => {
+    const contestId = await makeContest(db, organizerId);
+    await registerForContest(db, cfg({ emailNotifications: false }), { contestId, userId, tier: 'reminders' });
+    // Upgrade to full.
+    const up = await registerForContest(db, cfg({ emailNotifications: false }), { contestId, userId, tier: 'full' });
+    expect(up.tier).toBe('full');
+    expect(await getRegistrantCount(db, contestId)).toBe(1);
+    // A subsequent reminders call does NOT downgrade a full participant.
+    const back = await registerForContest(db, cfg({ emailNotifications: false }), { contestId, userId, tier: 'reminders' });
+    expect(back.tier).toBe('full');
+    expect(await getRegistrantCount(db, contestId)).toBe(1);
+  });
+
+  it('persists + updates optional signup fields, exposed via viewer + list', async () => {
+    const contestId = await makeContest(db, organizerId);
+    await registerForContest(db, cfg({ emailNotifications: false }), {
+      contestId, userId, fields: { building: 'A soil sensor', experience: 'some', team: 'looking' },
+    });
+    expect(await getViewerRegistration(db, contestId, userId)).toEqual({
+      tier: 'full',
+      fields: { building: 'A soil sensor', experience: 'some', team: 'looking' },
+    });
+    // The organizer's registrant list carries the collected info.
+    const list = await listContestRegistrants(db, contestId);
+    expect(list.items[0]!.fields).toMatchObject({ building: 'A soil sensor', team: 'looking' });
+
+    // An info-only re-register updates the fields; a bare re-register keeps them.
+    await registerForContest(db, cfg({ emailNotifications: false }), { contestId, userId, fields: { building: 'A weather station' } });
+    expect((await getViewerRegistration(db, contestId, userId))!.fields).toEqual({ building: 'A weather station' });
+    await registerForContest(db, cfg({ emailNotifications: false }), { contestId, userId });
+    expect((await getViewerRegistration(db, contestId, userId))!.fields).toEqual({ building: 'A weather station' });
+  });
+
+  it('getViewerRegistration returns null when not registered', async () => {
+    const contestId = await makeContest(db, organizerId);
+    expect(await getViewerRegistration(db, contestId, userId)).toBeNull();
   });
 });

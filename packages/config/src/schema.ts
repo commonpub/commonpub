@@ -47,6 +47,13 @@ export const featureFlagsSchema = z.object({
   // of any stored override (flag off ⇒ every send uses built-in default copy).
   // No effect unless `contests` is also on.
   contestEmailEditor: z.boolean().default(false),
+  // Two-tier contest signup card (session 239): explicit "Register for this contest"
+  // + a lower-commitment "Just get reminders" tier, an optional post-register info
+  // form (what you're building / experience / team), and status-aware "what's next"
+  // onboarding copy. Default ON (the intended default registration experience);
+  // when off the card falls back to the simple single reminders opt-in. No effect
+  // unless `contests` is also on.
+  contestSignup: z.boolean().default(true),
   events: z.boolean().default(false),
   learning: z.boolean().default(true),
   explainers: z.boolean().default(true),

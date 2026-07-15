@@ -52,6 +52,16 @@ export interface FeatureFlags {
    * is also on.
    */
   contestEmailEditor: boolean;
+  /**
+   * Two-tier contest signup card (session 239). When ON, the contest page's
+   * registration card offers an explicit "Register for this contest" plus a
+   * lower-commitment "Just get reminders" tier, collects optional self-reported
+   * info (what you're building / experience / team) at the post-register moment,
+   * and shows status-aware "what's next" onboarding copy. Default ON; when off the
+   * card falls back to the simple single reminders opt-in. No effect unless
+   * `contests` is also on.
+   */
+  contestSignup: boolean;
   /** Enable events system (listing, RSVP, calendar) */
   events: boolean;
   /** Enable learning paths (enrollment, progress, certificates) */

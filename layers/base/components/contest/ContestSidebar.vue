@@ -1,5 +1,7 @@
 <script setup lang="ts">
-import type { Serialized, ContestDetail } from '@commonpub/server';
+import type { Serialized, ContestDetail, ContestRegistrationFields } from '@commonpub/server';
+
+type Tier = 'full' | 'reminders';
 
 const props = defineProps<{
   contest: Serialized<ContestDetail> | null;
@@ -12,6 +14,10 @@ const props = defineProps<{
   isAuthenticated?: boolean;
   /** Whether the current viewer is registered for this contest. */
   registered?: boolean;
+  /** Viewer's registration tier (`full` / `reminders` / null) — drives the rich signup card. */
+  tier?: Tier | null;
+  /** Viewer's saved signup info (prefills the optional form). */
+  savedFields?: ContestRegistrationFields | null;
   /** Public count of registered participants. */
   registrantCount?: number;
   /** In-flight register/unregister request (disables the toggle). */
@@ -20,9 +26,13 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'copy-link'): void;
-  (e: 'register'): void;
+  (e: 'register', payload?: { tier: Tier; fields?: ContestRegistrationFields }): void;
   (e: 'unregister'): void;
 }>();
+
+// The two-tier signup card is the default registration experience; when the flag
+// is off, fall back to the simple single reminders opt-in below.
+const { contestSignup } = useFeatures();
 
 // Registration is open only while a contest is upcoming or active (mirrors the
 // server's REGISTERABLE_STATUSES). Past that, the card is informational only.
@@ -105,8 +115,19 @@ function statusClass(status: string): string {
       <p v-else-if="contest?.status === 'cancelled'" class="cpub-sb-cancelled">This contest was cancelled.</p>
     </div>
 
-    <!-- REGISTRATION -->
-    <div v-if="canRegister || (registrantCount ?? 0) > 0" class="cpub-sb-card cpub-sb-register">
+    <!-- REGISTRATION — the two-tier signup card (default), or the simple opt-in fallback -->
+    <ContestSignup
+      v-if="contestSignup"
+      :contest="contest"
+      :is-authenticated="isAuthenticated"
+      :tier="tier"
+      :saved-fields="savedFields"
+      :registrant-count="registrantCount"
+      :registering="registering"
+      @register="(payload) => emit('register', payload)"
+      @unregister="emit('unregister')"
+    />
+    <div v-else-if="canRegister || (registrantCount ?? 0) > 0" class="cpub-sb-card cpub-sb-register">
       <div class="cpub-sb-title"><i class="fa-solid fa-user-plus"></i> Registration</div>
 
       <p class="cpub-sb-regcount">

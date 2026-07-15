@@ -19,6 +19,7 @@ function makeConfig(idOverrides: Partial<CommonPubConfig['features']['identity']
       contests: false, contestStageSubmissions: true, contestProposals: false, contestPii: false,
       contestReminders: false,
       contestEmailEditor: false,
+      contestSignup: true,
       events: false, learning: true, explainers: true,
       editorial: true, registrationBlock: true, federation: false, seamlessFederation: false,
       federateHubs: false, admin: false, themeStudio: true, emailNotifications: false, emailUnverified: false, adminBroadcast: false, requireTermsAcceptance: false,

@@ -1,19 +1,21 @@
 import {
   getContestBySlug,
   canViewContest,
-  isRegisteredForContest,
+  getViewerRegistration,
   getRegistrantCount,
 } from '@commonpub/server';
+import type { ContestRegistrationFields } from '@commonpub/schema';
 
 /**
  * GET /api/contests/:slug/register
- * The current viewer's registration state for a contest plus the public
- * registrant count. Drives the initial state of the register button. Anonymous
- * callers get `registered: false` (the count is public). 404s an unknown slug
- * and, for a non-public contest, one the viewer can't see (so we never leak that
- * it exists). Feature-gated behind `contests`.
+ * The current viewer's registration state for a contest — whether registered, at
+ * which tier, and their saved info (to prefill the optional form) — plus the
+ * public participant count. Drives the initial state of the signup card. Anonymous
+ * callers get `registered: false` (the count is public). 404s an unknown slug and,
+ * for a non-public contest, one the viewer can't see (so we never leak that it
+ * exists). Feature-gated behind `contests`.
  */
-export default defineEventHandler(async (event): Promise<{ registered: boolean; count: number }> => {
+export default defineEventHandler(async (event): Promise<{ registered: boolean; tier: 'full' | 'reminders' | null; fields: ContestRegistrationFields | null; count: number }> => {
   requireFeature('contests');
   const db = useDB();
   const { slug } = parseParams(event, { slug: 'string' });
@@ -26,10 +28,10 @@ export default defineEventHandler(async (event): Promise<{ registered: boolean; 
     throw createError({ statusCode: 404, statusMessage: 'Contest not found' });
   }
 
-  const [registered, count] = await Promise.all([
-    user ? isRegisteredForContest(db, contest.id, user.id) : Promise.resolve(false),
+  const [reg, count] = await Promise.all([
+    user ? getViewerRegistration(db, contest.id, user.id) : Promise.resolve(null),
     getRegistrantCount(db, contest.id),
   ]);
 
-  return { registered, count };
+  return { registered: !!reg, tier: reg?.tier ?? null, fields: reg?.fields ?? null, count };
 });

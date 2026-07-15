@@ -295,6 +295,13 @@
       "when": 1783919603918,
       "tag": "0041_rapid_catseye",
       "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1784157418458,
+      "tag": "0042_even_amazoness",
+      "breakpoints": true
     }
   ]
 }

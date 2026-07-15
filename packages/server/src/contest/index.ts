@@ -54,10 +54,11 @@ export {
   registerForContest,
   unregisterForContest,
   isRegisteredForContest,
+  getViewerRegistration,
   listContestRegistrants,
   getRegistrantCount,
 } from './registrations.js';
-export type { RegisterForContestResult } from './registrations.js';
+export type { RegisterForContestResult, ContestRegistrationTier } from './registrations.js';
 
 export {
   sweepContestReminders,

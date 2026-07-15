@@ -53,8 +53,8 @@ describe('GET /api/contests/:slug/register', () => {
     expect(get).toMatch(/canViewContest\(/);
   });
 
-  it('resolves the viewer registration via isRegisteredForContest', () => {
-    expect(get).toMatch(/isRegisteredForContest\(/);
+  it('resolves the viewer registration (tier + fields) via getViewerRegistration', () => {
+    expect(get).toMatch(/getViewerRegistration\(/);
   });
 });
 
