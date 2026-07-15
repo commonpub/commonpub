@@ -16,7 +16,8 @@ const $fetch = vi.fn(async (url: string) => {
   if (String(url).includes('email-copy')) return { confirmation: { subject: 'Stored subject' } };
   return {};
 });
-Object.assign(globalThis, { $fetch });
+const toast = { success: vi.fn(), error: vi.fn(), info: vi.fn() };
+Object.assign(globalThis, { $fetch, useToast: () => toast });
 
 beforeEach(() => $fetch.mockClear());
 
