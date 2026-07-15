@@ -9,7 +9,7 @@ import { render, fireEvent } from '@testing-library/vue';
 import axe from 'axe-core';
 import ContestEmailEditor from '../contest/ContestEmailEditor.vue';
 
-const EMPTY = { confirmationSubject: '', confirmationIntro: '', reminderSubject: '', reminderIntro: '' };
+const EMPTY = { confirmationSubject: '', confirmationIntro: '', confirmationBlocks: [], reminderSubject: '', reminderIntro: '', reminderBlocks: [] };
 
 const $fetch = vi.fn(async (url: string) => {
   if (String(url).includes('email-preview')) return { html: '<p>PREVIEW_BODY</p>', subject: 'Sub' };

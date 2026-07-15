@@ -25,8 +25,11 @@ import type { ContestTemplateSeed } from '../utils/contestTemplates';
 export interface ContestEmailCopyForm {
   confirmationSubject: string;
   confirmationIntro: string;
+  /** Block-editor body (BlockTuple[]) — supersedes intro at render. */
+  confirmationBlocks: unknown[];
   reminderSubject: string;
   reminderIntro: string;
+  reminderBlocks: unknown[];
 }
 
 export type ContestFormat = 'markdown' | 'html';
@@ -214,7 +217,7 @@ export function useContestEditor(opts: UseContestEditorOptions): UseContestEdito
   const criteria = ref<ContestCriterionRow[]>([]);
   const stages = ref<ContestStage[]>([]);
   const currentStageId = ref<string | null>(null);
-  const emailCopy = ref<ContestEmailCopyForm>({ confirmationSubject: '', confirmationIntro: '', reminderSubject: '', reminderIntro: '' });
+  const emailCopy = ref<ContestEmailCopyForm>({ confirmationSubject: '', confirmationIntro: '', confirmationBlocks: [], reminderSubject: '', reminderIntro: '', reminderBlocks: [] });
   const emailCopyLoaded = ref(false);
 
   const saving = ref(false);
@@ -342,8 +345,10 @@ export function useContestEditor(opts: UseContestEditorOptions): UseContestEdito
     emailCopy.value = {
       confirmationSubject: c.confirmation?.subject ?? '',
       confirmationIntro: c.confirmation?.intro ?? '',
+      confirmationBlocks: c.confirmation?.bodyBlocks ?? [],
       reminderSubject: c.reminder?.subject ?? '',
       reminderIntro: c.reminder?.intro ?? '',
+      reminderBlocks: c.reminder?.bodyBlocks ?? [],
     };
     emailCopyLoaded.value = true;
     void nextTick(() => { hydrating = false; });
@@ -353,10 +358,18 @@ export function useContestEditor(opts: UseContestEditorOptions): UseContestEdito
   // that field/template falls back to the built-in default; entirely empty ⇒ null
   // (clears any stored override).
   function assembleEmailCopy(f: ContestEmailCopyForm): ContestEmailCopy | null {
-    const confirmation = { subject: f.confirmationSubject.trim() || undefined, intro: f.confirmationIntro.trim() || undefined };
-    const reminder = { subject: f.reminderSubject.trim() || undefined, intro: f.reminderIntro.trim() || undefined };
-    const hasConfirmation = !!(confirmation.subject || confirmation.intro);
-    const hasReminder = !!(reminder.subject || reminder.intro);
+    const confirmation = {
+      subject: f.confirmationSubject.trim() || undefined,
+      intro: f.confirmationIntro.trim() || undefined,
+      bodyBlocks: f.confirmationBlocks.length ? f.confirmationBlocks : undefined,
+    };
+    const reminder = {
+      subject: f.reminderSubject.trim() || undefined,
+      intro: f.reminderIntro.trim() || undefined,
+      bodyBlocks: f.reminderBlocks.length ? f.reminderBlocks : undefined,
+    };
+    const hasConfirmation = !!(confirmation.subject || confirmation.intro || confirmation.bodyBlocks);
+    const hasReminder = !!(reminder.subject || reminder.intro || reminder.bodyBlocks);
     if (!hasConfirmation && !hasReminder) return null;
     return {
       ...(hasConfirmation ? { confirmation } : {}),
