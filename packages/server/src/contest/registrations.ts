@@ -77,7 +77,7 @@ export async function registerForContest(
   // enforced by getNotificationEmailTarget), never on the reminders flag.
   if (config.features.emailNotifications && email) {
     try {
-      const target = await getNotificationEmailTarget(db, input.userId);
+      const target = await getNotificationEmailTarget(db, input.userId, config.features.emailUnverified);
       if (target) {
         const { pageUrl, headers } = buildUnsubscribeLinks(email.siteUrl, input.userId, email.secret);
         const branding = await getEmailBranding(db);

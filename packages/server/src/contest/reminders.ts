@@ -164,7 +164,7 @@ export async function sweepContestReminders(
         FROM contest_registrations cr
         INNER JOIN users u ON u.id = cr.user_id
         WHERE cr.contest_id = ${contest.id}
-          AND u.email_verified = true
+          ${config.features.emailUnverified ? sql`` : sql`AND u.email_verified = true`}
           AND (u.email_notifications ->> 'unsubscribedAll') IS DISTINCT FROM 'true'
         ON CONFLICT (contest_id, user_id, milestone) DO NOTHING
         RETURNING user_id

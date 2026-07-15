@@ -68,6 +68,7 @@ export async function shouldEmailNotification(
 export async function getNotificationEmailTarget(
   db: DB,
   userId: string,
+  allowUnverified = false,
 ): Promise<{ email: string; username: string } | null> {
   const [row] = await db
     .select({
@@ -80,7 +81,11 @@ export async function getNotificationEmailTarget(
     .where(eq(users.id, userId))
     .limit(1);
 
-  if (!row || !row.emailVerified) return null;
+  // Verified-address gate — skipped when the operator opts into emailing
+  // unverified addresses (`features.emailUnverified`); the global opt-out below
+  // is always honored.
+  if (!row) return null;
+  if (!allowUnverified && !row.emailVerified) return null;
   const prefs = (row.emailNotifications ?? undefined) as EmailNotificationPrefs | undefined;
   if (prefs?.unsubscribedAll) return null;
   return { email: row.email, username: row.username };

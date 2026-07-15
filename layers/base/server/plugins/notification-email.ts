@@ -56,7 +56,7 @@ export default defineNitroPlugin((nitro) => {
         );
         if (!should) return;
 
-        const target = await getNotificationEmailTarget(freshDb, notification.userId);
+        const target = await getNotificationEmailTarget(freshDb, notification.userId, config.features.emailUnverified);
         if (!target) return;
 
         const { pageUrl, headers } = unsubLinks(notification.userId);
@@ -110,6 +110,7 @@ export default defineNitroPlugin((nitro) => {
   ): Promise<void> {
     try {
       const db = useDB();
+      const config = useConfig();
       const now = new Date();
       const hour = now.getUTCHours();
 
@@ -143,7 +144,8 @@ export default defineNitroPlugin((nitro) => {
         .from(users)
         .where(and(
           isNotNull(users.emailNotifications),
-          eq(users.emailVerified, true),
+          // Verified gate — skipped when features.emailUnverified is on.
+          ...(config.features.emailUnverified ? [] : [eq(users.emailVerified, true)]),
         ));
 
       const messages: OutboxMessage[] = [];

@@ -10,5 +10,5 @@ export default defineEventHandler(async (event): Promise<{ count: number }> => {
   requireFeature('admin');
   requirePermission(event, 'broadcast.send');
   const audience = await parseBody(event, broadcastAudienceSchema);
-  return { count: await countBroadcastRecipients(useDB(), audience) };
+  return { count: await countBroadcastRecipients(useDB(), audience, useConfig().features.emailUnverified) };
 });

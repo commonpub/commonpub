@@ -19,5 +19,5 @@ export default defineEventHandler(async (event): Promise<{ broadcastId: string; 
   const secret = (rc.authSecret as string) || '';
 
   const input = await parseBody(event, broadcastInputSchema);
-  return await sendBroadcast(db, { ...input, sentBy: admin.id, siteName, siteUrl, secret });
+  return await sendBroadcast(db, { ...input, sentBy: admin.id, siteName, siteUrl, secret }, config.features.emailUnverified);
 });

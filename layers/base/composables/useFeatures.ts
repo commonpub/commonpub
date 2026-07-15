@@ -43,6 +43,8 @@ export interface FeatureFlags {
   /** Guided theme generator (theme-studio) in the admin theme builder. Default ON. */
   themeStudio: boolean;
   emailNotifications: boolean;
+  /** Deliver email to unverified addresses (verification then gates sign-in only). Default OFF. */
+  emailUnverified: boolean;
   publicApi: boolean;
   contentImport: boolean;
   /**
@@ -91,7 +93,7 @@ export const DEFAULT_FLAGS: FeatureFlags = {
   contests: false, contestStageSubmissions: true, contestProposals: false, contestPii: false,
   contestReminders: false, contestEmailEditor: false,
   events: false, learning: true, explainers: true,
-  editorial: true, registrationBlock: true, federation: false, admin: false, themeStudio: true, emailNotifications: false,
+  editorial: true, registrationBlock: true, federation: false, admin: false, themeStudio: true, emailNotifications: false, emailUnverified: false,
   publicApi: false, contentImport: true,
   layoutEngine: false,
   rbac: false,

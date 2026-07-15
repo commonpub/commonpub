@@ -24,9 +24,9 @@ export interface SendBroadcastInput extends BroadcastInput {
 
 // Verified + not-globally-unsubscribed. `->> 'unsubscribedAll' IS DISTINCT FROM
 // 'true'` includes users with no prefs row (null) and those who haven't opted out.
-function audienceWhere(audience: BroadcastAudience) {
+function audienceWhere(audience: BroadcastAudience, allowUnverified = false) {
   const conds = [
-    eq(users.emailVerified, true),
+    ...(allowUnverified ? [] : [eq(users.emailVerified, true)]),
     sql`(${users.emailNotifications} ->> 'unsubscribedAll') IS DISTINCT FROM 'true'`,
   ];
   if (audience !== 'all') {
@@ -37,11 +37,15 @@ function audienceWhere(audience: BroadcastAudience) {
 }
 
 /** Estimated recipient count for an audience (verified, not unsubscribed). */
-export async function countBroadcastRecipients(db: DB, audience: BroadcastAudience): Promise<number> {
+export async function countBroadcastRecipients(
+  db: DB,
+  audience: BroadcastAudience,
+  allowUnverified = false,
+): Promise<number> {
   const [row] = await db
     .select({ count: sql<number>`count(*)::int` })
     .from(users)
-    .where(audienceWhere(audience));
+    .where(audienceWhere(audience, allowUnverified));
   return row?.count ?? 0;
 }
 
@@ -50,11 +54,12 @@ const ENQUEUE_CHUNK = 500;
 export async function sendBroadcast(
   db: DB,
   input: SendBroadcastInput,
+  allowUnverified = false,
 ): Promise<{ broadcastId: string; recipientCount: number }> {
   const recipients = await db
     .select({ id: users.id, email: users.email, username: users.username })
     .from(users)
-    .where(audienceWhere(input.audience));
+    .where(audienceWhere(input.audience, allowUnverified));
 
   const branding = await getEmailBranding(db);
 

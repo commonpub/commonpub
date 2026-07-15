@@ -72,6 +72,9 @@ export interface FeatureFlags {
   themeStudio: boolean;
   /** Enable email notifications (instant + digest emails for likes, comments, follows, mentions) */
   emailNotifications: boolean;
+  /** Deliver notification/reminder/broadcast email to unverified addresses too
+   *  (verification then gates sign-in only). Default OFF. Deliverability caveat. */
+  emailUnverified: boolean;
   /** Enable admin broadcast emails to users (email Phase 3). */
   adminBroadcast: boolean;
   /** Require re-acceptance of the Terms when instance.termsVersion is bumped (GDPR Phase 2). */

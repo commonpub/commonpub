@@ -109,6 +109,21 @@ describe('getNotificationEmailTarget', () => {
     expect(target).toBeNull();
   });
 
+  it('returns the target for an unverified user when allowUnverified is true', async () => {
+    const user = await createTestUser(db, { username: 'unverified-allowed' });
+    // emailVerified defaults false; allowUnverified bypasses the verified gate.
+    expect(await getNotificationEmailTarget(db, user.id, false)).toBeNull();
+    const target = await getNotificationEmailTarget(db, user.id, true);
+    expect(target).not.toBeNull();
+    expect(target!.username).toBe('unverified-allowed');
+  });
+
+  it('still honors the global opt-out even when allowUnverified is true', async () => {
+    const user = await createTestUser(db, { username: 'unverified-optout' });
+    await db.update(users).set({ emailNotifications: { unsubscribedAll: true } }).where(eq(users.id, user.id));
+    expect(await getNotificationEmailTarget(db, user.id, true)).toBeNull();
+  });
+
   it('returns null for nonexistent user', async () => {
     const target = await getNotificationEmailTarget(db, '00000000-0000-0000-0000-000000000000');
     expect(target).toBeNull();
