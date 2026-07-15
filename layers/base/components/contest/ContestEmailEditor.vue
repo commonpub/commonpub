@@ -75,8 +75,20 @@ const emailBlockGroups: BlockTypeGroup[] = [
   },
 ];
 
-watch(() => confirmationEditor.blocks.value, () => { if (!hydrating) patch({ confirmationBlocks: confirmationEditor.toBlockTuples() }); }, { deep: true });
-watch(() => reminderEditor.blocks.value, () => { if (!hydrating) patch({ reminderBlocks: reminderEditor.toBlockTuples() }); }, { deep: true });
+// One-way editor -> form. When blocks exist they supersede the legacy intro, so
+// clear the form's intro too (single source of truth in state, not just in the
+// saved payload) — otherwise a later clear-all would resurrect a stale intro
+// instead of falling back to the built-in default.
+watch(() => confirmationEditor.blocks.value, () => {
+  if (hydrating) return;
+  const b = confirmationEditor.toBlockTuples();
+  patch(b.length ? { confirmationBlocks: b, confirmationIntro: '' } : { confirmationBlocks: b });
+}, { deep: true });
+watch(() => reminderEditor.blocks.value, () => {
+  if (hydrating) return;
+  const b = reminderEditor.toBlockTuples();
+  patch(b.length ? { reminderBlocks: b, reminderIntro: '' } : { reminderBlocks: b });
+}, { deep: true });
 
 // --- Live preview (debounced, server-rendered, sandboxed iframe) ---
 const previewHtml = ref('');

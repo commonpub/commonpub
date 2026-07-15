@@ -39,6 +39,15 @@ describe('renderEmailBlocks', () => {
     expect(text).toContain('hi');
   });
 
+  it('decodes TipTap entities so html-backed text is escaped exactly once (no double-escape)', () => {
+    // The block editor emits `<p>Q&amp;A &lt;3 &quot;hi&quot;</p>` for the typed text `Q&A <3 "hi"`.
+    const { html, text } = renderEmailBlocks([['paragraph', { html: '<p>Q&amp;A &lt;3 &quot;hi&quot;</p>' }]]);
+    expect(text).toBe('Q&A <3 "hi"');
+    expect(html).toContain('Q&amp;A &lt;3 &quot;hi&quot;');
+    expect(html).not.toContain('&amp;amp;');
+    expect(html).not.toContain('&amp;lt;');
+  });
+
   it('renders a registrationLink block as a safe CTA anchor', () => {
     const { html, text } = renderEmailBlocks([
       ['registrationLink', { label: 'Enter now', url: '/auth/register', ref: 'abc' }],

@@ -35,6 +35,21 @@ function stripTags(s: string): string {
   return s.replace(/<[^>]*>/g, '');
 }
 
+/** Decode the HTML entities the block editor (TipTap getHTML) emits, so the
+ *  downstream esc() escapes the text exactly ONCE (else `Q&A` typed in a block
+ *  becomes `Q&amp;A` in the sent email). `&amp;` is decoded LAST so a literal
+ *  `&amp;lt;` becomes `&lt;`, not `<`. */
+function decodeEntities(s: string): string {
+  return s
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#0?39;/g, "'")
+    .replace(/&#x27;/gi, "'")
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&');
+}
+
 /** Replace `{token}` placeholders from a value map. Applied to raw text BEFORE
  *  escaping, so a token value is itself HTML-escaped downstream (safe). Unknown
  *  tokens are left verbatim (mirrors the legacy intro tokenizer). */
@@ -43,11 +58,13 @@ function interpolate(s: string, tokens?: Record<string, string>): string {
   return s.replace(/\{(\w+)\}/g, (m, k) => tokens[k] ?? m);
 }
 
-/** Best-effort plain text from a block's content, regardless of exact shape. */
+/** Best-effort plain text from a block's content, regardless of exact shape.
+ *  html/content are TipTap output (tags + entities) → strip tags + decode
+ *  entities to raw text; the caller re-escapes exactly once. */
 function blockText(content: Record<string, unknown>): string {
   if (typeof content.text === 'string') return content.text;
-  if (typeof content.html === 'string') return stripTags(content.html);
-  if (typeof content.content === 'string') return stripTags(content.content);
+  if (typeof content.html === 'string') return decodeEntities(stripTags(content.html));
+  if (typeof content.content === 'string') return decodeEntities(stripTags(content.content));
   return '';
 }
 
