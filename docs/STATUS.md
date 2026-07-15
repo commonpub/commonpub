@@ -12,6 +12,21 @@
 
 ## TL;DR — where things stand
 
+**Session 239 (2026-07-15) — TWO-TIER CONTEST SIGNUP ROLLED to all 3.** npm **schema 0.59 / config 0.33 /
+server 2.110 / test-utils 0.5.13 / layer 0.103**, CLI **create-commonpub 0.5.26**, **migration 0042**
+(additive: `contest_registrations` += `tier` default `'full'` + `fields` jsonb — existing rows become
+counted participants). Live went 36→**37 flags** (added `contestSignup`, default ON). The contest page
+registration card is now a two-tier signup: "Register for this contest" (counted `full` participant) +
+"Just get reminders" (reminders-only tier, not counted, still gets deadline nudges, has an upgrade CTA).
+One-click register never blocks; an OPTIONAL post-register form collects building / experience / team
+(all optional, persists + prefills, organizer sees it in the registrant list); status-aware "what's next"
+copy sets expectations per contest status. `contestSignup` off ⇒ the old simple reminders opt-in. Also
+(layer-0.102 sub-roll): `registrationLink` block now drops into the contest BODY editors
+(overview/rules/prizes), not just the email/article editors. Verified all 3: health ok, 37 flags,
+db:migrate succeeded, heatsync register GET returns `{count,fields,registered,tier}`. Detail:
+`docs/sessions/239-contest-signup.md`. NOTE: schema/config/layer/test-utils each crossed a 0.x minor —
+CLI + BOTH forks hand-edited + lockfiles regenerated.
+
 **Session 238 (2026-07-15) — M3 (block-editor email UI) ROLLED to all 3.** npm **server 2.109 / layer 0.101**
 (only these two; no migration, no new flag — stays 36 flags), CLI **create-commonpub 0.5.24**. The contest
 email editor's Intro textarea is now a real **block editor**: two useBlockEditor instances (one per template),
