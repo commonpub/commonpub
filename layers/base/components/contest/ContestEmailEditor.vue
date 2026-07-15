@@ -69,6 +69,66 @@ onMounted(async () => {
   }
   void refreshPreview();
 });
+
+// --- Send a test of the ACTIVE template to an arbitrary email or a chosen user ---
+type UserHit = { id: string; username: string; displayName: string | null; avatarUrl: string | null };
+const toast = useToast();
+const testEmail = ref('');
+const userQuery = ref('');
+const userResults = ref<UserHit[]>([]);
+const selectedUser = ref<UserHit | null>(null);
+const searching = ref(false);
+const sending = ref(false);
+let userTimer: ReturnType<typeof setTimeout> | undefined;
+
+const activeBlocks = computed<unknown[]>(() =>
+  active.value === 'confirmation' ? props.modelValue.confirmationBlocks : props.modelValue.reminderBlocks,
+);
+const canSendTest = computed(
+  () => !sending.value && (!!selectedUser.value || /.+@.+\..+/.test(testEmail.value.trim())),
+);
+
+function onUserSearch(): void {
+  if (userTimer) clearTimeout(userTimer);
+  const q = userQuery.value.trim();
+  if (q.length < 2) { userResults.value = []; searching.value = false; return; }
+  searching.value = true;
+  userTimer = setTimeout(async () => {
+    try {
+      userResults.value = await $fetch<UserHit[]>(`/api/contests/${props.slug}/user-search`, { query: { q, limit: 8 } });
+    } catch { userResults.value = []; }
+    finally { searching.value = false; }
+  }, 250);
+}
+function pickUser(u: UserHit): void {
+  selectedUser.value = u;
+  userQuery.value = '';
+  userResults.value = [];
+  testEmail.value = '';
+}
+function clearUser(): void { selectedUser.value = null; }
+
+async function sendTest(): Promise<void> {
+  if (!canSendTest.value) return;
+  sending.value = true;
+  try {
+    const copyPayload = {
+      subject: subject.value.trim() || undefined,
+      intro: intro.value.trim() || undefined,
+      bodyBlocks: activeBlocks.value.length ? activeBlocks.value : undefined,
+    };
+    const body = selectedUser.value
+      ? { template: active.value, copy: copyPayload, toUserId: selectedUser.value.id }
+      : { template: active.value, copy: copyPayload, toEmail: testEmail.value.trim() };
+    const res = await $fetch<{ sent: true; to: string }>(`/api/contests/${props.slug}/email-test`, { method: 'POST', body });
+    toast.success(`Test ${active.value === 'reminder' ? 'reminder' : 'confirmation'} email sent to ${res.to}`);
+  } catch (e: unknown) {
+    const msg = (e as { data?: { statusMessage?: string } })?.data?.statusMessage;
+    toast.error(msg || 'Failed to send test email');
+  } finally {
+    sending.value = false;
+  }
+}
 </script>
 
 <template>
@@ -126,6 +186,65 @@ onMounted(async () => {
         <div v-else class="cpub-cee-frame-empty">Preview unavailable</div>
       </div>
     </div>
+
+    <div class="cpub-cee-test">
+      <span class="cpub-form-label">Send a test</span>
+      <p class="cpub-form-hint">
+        Send the {{ active === 'reminder' ? 'deadline reminder' : 'registration confirmation' }} (with your current
+        draft) to any email address, or search for a user to send it to their address.
+      </p>
+      <div class="cpub-cee-test-row">
+        <span v-if="selectedUser" class="cpub-cee-chip">
+          <i class="fa-solid fa-user"></i> {{ selectedUser.displayName || selectedUser.username }}
+          <button type="button" class="cpub-cee-chip-x" aria-label="Clear recipient" @click="clearUser">×</button>
+        </span>
+        <template v-else>
+          <input
+            v-model="testEmail"
+            type="email"
+            class="cpub-form-input cpub-cee-test-email"
+            placeholder="name@example.com"
+            aria-label="Test recipient email"
+          />
+          <div class="cpub-cee-usersearch">
+            <input
+              v-model="userQuery"
+              type="text"
+              class="cpub-form-input"
+              placeholder="or search a user…"
+              aria-label="Search users"
+              @input="onUserSearch"
+            />
+            <div v-if="userResults.length" class="cpub-cee-userdrop">
+              <button
+                v-for="u in userResults"
+                :key="u.id"
+                type="button"
+                class="cpub-cee-userdrop-item"
+                @click="pickUser(u)"
+              >
+                <span class="cpub-cee-userdrop-name">{{ u.displayName || u.username }}</span>
+                <span class="cpub-cee-userdrop-handle">@{{ u.username }}</span>
+              </button>
+            </div>
+            <div v-else-if="searching" class="cpub-cee-userdrop">
+              <span class="cpub-cee-userdrop-empty">Searching…</span>
+            </div>
+            <div v-else-if="userQuery.length >= 2" class="cpub-cee-userdrop">
+              <span class="cpub-cee-userdrop-empty">No users found</span>
+            </div>
+          </div>
+        </template>
+        <button
+          type="button"
+          class="cpub-btn cpub-btn-primary cpub-cee-test-send"
+          :disabled="!canSendTest"
+          @click="sendTest"
+        >
+          {{ sending ? 'Sending…' : 'Send test' }}
+        </button>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -161,4 +280,38 @@ onMounted(async () => {
 }
 
 @media (max-width: 760px) { .cpub-cee-cols { grid-template-columns: 1fr; } }
+
+/* --- Send a test --- */
+.cpub-cee-test {
+  display: flex; flex-direction: column; gap: 6px;
+  padding-top: var(--space-3);
+  border-top: var(--border-width-default) solid var(--border);
+}
+.cpub-cee-test-row { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px; }
+.cpub-cee-test-email { flex: 1 1 220px; min-width: 180px; }
+.cpub-cee-usersearch { position: relative; flex: 1 1 220px; min-width: 180px; }
+.cpub-cee-userdrop {
+  position: absolute; top: calc(100% + 2px); left: 0; right: 0; z-index: 20;
+  background: var(--surface); border: var(--border-width-default) solid var(--border);
+  box-shadow: var(--shadow-md); max-height: 240px; overflow-y: auto;
+}
+.cpub-cee-userdrop-item {
+  display: flex; align-items: baseline; gap: 8px; width: 100%;
+  padding: 8px 12px; background: transparent; border: none; cursor: pointer; text-align: left;
+}
+.cpub-cee-userdrop-item:hover { background: var(--surface2); }
+.cpub-cee-userdrop-name { color: var(--text); font-size: var(--text-sm); }
+.cpub-cee-userdrop-handle { color: var(--text-dim); font-family: var(--font-mono); font-size: var(--text-xs); }
+.cpub-cee-userdrop-empty { display: block; padding: 8px 12px; color: var(--text-dim); font-size: var(--text-sm); }
+.cpub-cee-chip {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 6px 12px; background: var(--accent-bg); color: var(--accent-text);
+  border: var(--border-width-default) solid var(--accent);
+}
+.cpub-cee-chip i { color: var(--accent); }
+.cpub-cee-chip-x {
+  background: transparent; border: none; color: var(--accent-text); cursor: pointer;
+  font-size: var(--text-lg); line-height: 1; padding: 0;
+}
+.cpub-cee-test-send { flex: 0 0 auto; align-self: flex-start; }
 </style>

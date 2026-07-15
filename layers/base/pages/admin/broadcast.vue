@@ -13,10 +13,11 @@ const ctaUrl = ref('');
 
 const audienceKind = ref<'all' | 'role' | 'specific'>('all');
 const role = ref<'member' | 'pro' | 'verified' | 'staff' | 'admin'>('member');
-const selected = ref<Array<{ id: string; username: string }>>([]);
+type PickUser = { id: string; username: string; displayName?: string | null };
+const selected = ref<PickUser[]>([]);
 
 const search = ref('');
-const results = ref<Array<{ id: string; username: string }>>([]);
+const results = ref<PickUser[]>([]);
 
 const recipientCount = ref<number | null>(null);
 const sending = ref(false);
@@ -73,12 +74,12 @@ watch(search, (q) => {
   if (!q.trim()) { results.value = []; return; }
   searchTimer = setTimeout(async () => {
     try {
-      const r = await $fetch<{ items: Array<{ id: string; username: string }> }>('/api/admin/users', { query: { search: q, limit: 8 } });
-      results.value = r.items.map((u) => ({ id: u.id, username: u.username }));
+      const r = await $fetch<{ items: PickUser[] }>('/api/admin/users', { query: { search: q, limit: 8 } });
+      results.value = r.items.map((u) => ({ id: u.id, username: u.username, displayName: u.displayName }));
     } catch { results.value = []; }
   }, 250);
 });
-function addUser(u: { id: string; username: string }): void {
+function addUser(u: PickUser): void {
   if (!selected.value.find((x) => x.id === u.id)) selected.value.push(u);
   search.value = '';
   results.value = [];
@@ -170,10 +171,15 @@ function fmtDate(d: string): string {
         <label for="bc-usearch" class="cpub-bc-label">Find users</label>
         <input id="bc-usearch" v-model="search" type="text" class="cpub-bc-input" placeholder="Search by username" />
         <ul v-if="results.length" class="cpub-bc-results">
-          <li v-for="u in results" :key="u.id"><button type="button" @click="addUser(u)">@{{ u.username }}</button></li>
+          <li v-for="u in results" :key="u.id">
+            <button type="button" @click="addUser(u)">
+              <span class="cpub-bc-result-name">{{ u.displayName || u.username }}</span>
+              <span class="cpub-bc-result-handle">@{{ u.username }}</span>
+            </button>
+          </li>
         </ul>
         <div v-if="selected.length" class="cpub-bc-chips">
-          <span v-for="u in selected" :key="u.id" class="cpub-bc-chip">@{{ u.username }} <button type="button" aria-label="Remove" @click="removeUser(u.id)">×</button></span>
+          <span v-for="u in selected" :key="u.id" class="cpub-bc-chip">{{ u.displayName || u.username }} <button type="button" aria-label="Remove" @click="removeUser(u.id)">×</button></span>
         </div>
       </div>
 
@@ -215,8 +221,10 @@ function fmtDate(d: string): string {
 .cpub-bc-aud { display: flex; gap: 16px; font-size: 13px; color: var(--text); }
 .cpub-bc-aud label { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
 .cpub-bc-results { list-style: none; margin: 4px 0 0; padding: 0; border: var(--border-width-default) solid var(--border); background: var(--surface); }
-.cpub-bc-results li button { display: block; width: 100%; text-align: left; padding: 6px 10px; background: none; border: none; color: var(--text); font-size: 13px; cursor: pointer; }
+.cpub-bc-results li button { display: flex; align-items: baseline; gap: 8px; width: 100%; text-align: left; padding: 6px 10px; background: none; border: none; color: var(--text); font-size: 13px; cursor: pointer; }
 .cpub-bc-results li button:hover { background: var(--surface2); }
+.cpub-bc-result-name { color: var(--text); }
+.cpub-bc-result-handle { color: var(--text-dim); font-family: var(--font-mono); font-size: var(--text-xs); }
 .cpub-bc-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .cpub-bc-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; padding: 2px 8px; border: var(--border-width-default) solid var(--border2); background: var(--surface2); }
 .cpub-bc-chip button { background: none; border: none; color: var(--text-dim); cursor: pointer; font-size: 14px; }

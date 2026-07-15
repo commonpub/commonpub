@@ -1,5 +1,22 @@
 import { describe, it, expect } from 'vitest';
-import { contestEmailCopySchema } from '../validators/contest.js';
+import { contestEmailCopySchema, contestEmailTestSchema } from '../validators/contest.js';
+
+describe('contestEmailTestSchema', () => {
+  const base = { template: 'confirmation' as const, copy: {} };
+  it('requires exactly one recipient (email XOR user)', () => {
+    expect(contestEmailTestSchema.safeParse(base).success).toBe(false); // neither
+    expect(contestEmailTestSchema.safeParse({ ...base, toEmail: 'a@b.com', toUserId: '00000000-0000-0000-0000-000000000000' }).success).toBe(false); // both
+    expect(contestEmailTestSchema.safeParse({ ...base, toEmail: 'a@b.com' }).success).toBe(true);
+    expect(contestEmailTestSchema.safeParse({ ...base, toUserId: '00000000-0000-0000-0000-000000000000' }).success).toBe(true);
+  });
+  it('rejects a malformed email or non-uuid user', () => {
+    expect(contestEmailTestSchema.safeParse({ ...base, toEmail: 'not-an-email' }).success).toBe(false);
+    expect(contestEmailTestSchema.safeParse({ ...base, toUserId: 'nope' }).success).toBe(false);
+  });
+  it('rejects unknown keys (strict)', () => {
+    expect(contestEmailTestSchema.safeParse({ ...base, toEmail: 'a@b.com', evil: 1 }).success).toBe(false);
+  });
+});
 
 // Per-contest email copy override (session 232). Organizers customize the subject
 // + plain-text intro of the two contest participation emails; everything else is

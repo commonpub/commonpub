@@ -97,6 +97,22 @@ export const contestEmailPreviewSchema = z
   })
   .strict();
 
+// Send-a-test-email request: render one template with the UNSAVED copy (same
+// safety model as preview) and deliver it to an arbitrary email OR a chosen user
+// (the server resolves that user's email — never trusts a client-supplied address
+// for a userId). Exactly one recipient form is required.
+export const contestEmailTestSchema = z
+  .object({
+    template: contestEmailTemplateKeySchema,
+    copy: contestEmailTemplateCopySchema,
+    toEmail: z.string().trim().email().max(320).optional(),
+    toUserId: z.string().uuid().optional(),
+  })
+  .strict()
+  .refine((d) => !!d.toEmail !== !!d.toUserId, {
+    message: 'Provide exactly one recipient: an email address or a user',
+  });
+
 // Per-stage submission-template field types (Phase 4 extends the original
 // text/textarea/url trio). `agreement` + `address` and any field flagged `pii`
 // are partitioned OUT of the public `stageSubmissions.fields` artifact at submit
