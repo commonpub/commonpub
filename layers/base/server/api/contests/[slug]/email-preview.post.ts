@@ -33,11 +33,14 @@ export default defineEventHandler(async (event): Promise<{ html: string; subject
   // A placeholder unsubscribe href keeps the system chrome visible in the preview.
   const sampleUnsub = `${origin}/unsubscribe`;
 
+  // Preview uses the signed-in organizer's own username as the sample recipient
+  // token, mirroring the real send substitution (`target.username`), so the
+  // preview shows exactly what a recipient would see rather than a stray placeholder.
   const rendered =
     template === 'reminder'
       ? emailTemplates.contestDeadlineReminder(
           siteName,
-          'alex',
+          user.username,
           { title: contest.title, url: contestUrl, deadline, timeRemaining: '24 hours' },
           sampleUnsub,
           branding,
@@ -45,7 +48,7 @@ export default defineEventHandler(async (event): Promise<{ html: string; subject
         )
       : emailTemplates.contestRegistrationConfirmation(
           siteName,
-          'alex',
+          user.username,
           { title: contest.title, url: contestUrl, deadline },
           sampleUnsub,
           branding,

@@ -9,15 +9,16 @@ import { emailBrandingSchema } from '@commonpub/schema';
  */
 export default defineEventHandler(async (event): Promise<{ html: string; subject: string }> => {
   requireFeature('admin');
-  requirePermission(event, 'email.manage');
+  const user = requirePermission(event, 'email.manage');
   const config = useConfig();
   const siteName = config.instance.name || 'CommonPub';
   const branding = await parseBody(event, emailBrandingSchema);
 
   // A digest sample exercises the header, accent links, action area, footer + unsubscribe.
+  // Uses the signed-in admin's own username as the sample recipient (what they'd see).
   const template = emailTemplates.notificationDigest(
     siteName,
-    'alex',
+    user.username,
     [
       { text: 'Sam liked your project', url: '#' },
       { text: 'New follower: jordan', url: '#' },
