@@ -293,13 +293,19 @@ export async function submitContestProposal(db: DB, args: SubmitProposalArgs): P
 
       await recordPrivateAndAgreements(tx, { contestId, entryId: inserted.id, userId, stageId, pii, agreements, ip });
 
-      // Submitting a proposal IS registering: add the entrant to the reminder
-      // audience so they never also have to click "register" (idempotent, silent
-      // — deadline reminders still reach them via this row).
+      // Submitting a proposal IS registering as a FULL participant: add the
+      // entrant to the reminder audience so they never also have to click
+      // "register" (idempotent, silent — deadline reminders still reach them via
+      // this row). On conflict UPGRADE the tier to `full` so a prior
+      // reminders-only opt-in who submits is counted (getRegistrantCount/list are
+      // full-only); `fields` is left untouched to preserve any collected info.
       await tx
         .insert(contestRegistrations)
         .values({ contestId, userId })
-        .onConflictDoNothing();
+        .onConflictDoUpdate({
+          target: [contestRegistrations.contestId, contestRegistrations.userId],
+          set: { tier: 'full' },
+        });
 
       return inserted.id;
     });

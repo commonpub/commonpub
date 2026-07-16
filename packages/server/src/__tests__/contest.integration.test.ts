@@ -9,6 +9,7 @@ import {
   updateContest,
   deleteContest,
   submitContestEntry,
+  getRegistrantCount,
   judgeContestEntry,
   transitionContestStatus,
   listContestEntries,
@@ -358,10 +359,34 @@ describe('contest integration', () => {
     // Submitting an entry auto-registers the entrant (so they land in the
     // deadline-reminder audience without a separate "register" click).
     const reg = await db
-      .select({ id: contestRegistrations.id })
+      .select({ id: contestRegistrations.id, tier: contestRegistrations.tier })
       .from(contestRegistrations)
       .where(and(eq(contestRegistrations.contestId, contest.id), eq(contestRegistrations.userId, participantId)));
     expect(reg).toHaveLength(1);
+    // A fresh auto-registration is a FULL participant.
+    expect(reg[0]!.tier).toBe('full');
+  });
+
+  it('upgrades a reminders-only opt-in to a full participant when they submit an entry', async () => {
+    const contest = await createContest(db, makeContestInput({ title: 'Reminders-then-Entry Contest' }));
+    await transitionContestStatus(db, contest.id, organizerId, 'active');
+
+    // The entrant first opted into reminders only (tier='reminders' → not counted).
+    await db.insert(contestRegistrations).values({ contestId: contest.id, userId: participantId, tier: 'reminders' });
+    expect(await getRegistrantCount(db, contest.id)).toBe(0);
+
+    const content = await createContent(db, participantId, { type: 'project', title: 'Late Entry' });
+    await publishContent(db, content.id, participantId);
+    await submitContestEntry(db, contest.id, content.id, participantId);
+
+    // Submitting an entry is unambiguous full participation → the existing
+    // reminders row must be UPGRADED (onConflictDoUpdate), not left untouched.
+    const [r] = await db
+      .select({ tier: contestRegistrations.tier })
+      .from(contestRegistrations)
+      .where(and(eq(contestRegistrations.contestId, contest.id), eq(contestRegistrations.userId, participantId)));
+    expect(r!.tier).toBe('full');
+    expect(await getRegistrantCount(db, contest.id)).toBe(1);
   });
 
   it('judges a contest entry', async () => {

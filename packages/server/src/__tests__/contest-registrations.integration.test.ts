@@ -163,6 +163,25 @@ describe('contest registrations', () => {
     expect(await db.select().from(emailOutbox)).toHaveLength(1);
   });
 
+  it('does NOT send a participant confirmation for a reminders-only signup', async () => {
+    const contestId = await makeContest(db, organizerId);
+    await registerForContest(db, cfg({ emailNotifications: true }), { contestId, userId, tier: 'reminders' }, EMAIL);
+    // A reminders opt-in is not a participant, so the "you are registered" email must not fire.
+    expect(await db.select().from(emailOutbox)).toHaveLength(0);
+  });
+
+  it('sends the participant confirmation at the moment of a reminders→full upgrade', async () => {
+    const contestId = await makeContest(db, organizerId);
+    await registerForContest(db, cfg({ emailNotifications: true }), { contestId, userId, tier: 'reminders' }, EMAIL);
+    expect(await db.select().from(emailOutbox)).toHaveLength(0); // still none
+    // Upgrading to full is the moment they become a participant → confirm now, once.
+    await registerForContest(db, cfg({ emailNotifications: true }), { contestId, userId, tier: 'full' }, EMAIL);
+    expect(await db.select().from(emailOutbox)).toHaveLength(1);
+    // A further full re-register does not double-send.
+    await registerForContest(db, cfg({ emailNotifications: true }), { contestId, userId, tier: 'full' }, EMAIL);
+    expect(await db.select().from(emailOutbox)).toHaveLength(1);
+  });
+
   it('unregister removes the row and reflects in isRegistered', async () => {
     const contestId = await makeContest(db, organizerId);
     await registerForContest(db, cfg({ emailNotifications: false }), { contestId, userId });

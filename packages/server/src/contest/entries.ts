@@ -286,14 +286,21 @@ export async function submitContestEntry(
       .set({ entryCount: sql`${contests.entryCount} + 1` })
       .where(eq(contests.id, contestId));
 
-    // Submitting an entry IS registering: put the entrant in the reminder
-    // audience so they never have to also click "register". Idempotent, and
-    // silent by design (no confirmation email — the user's action was "submit",
-    // not "register"; deadline reminders still reach them via this row).
+    // Submitting an entry IS registering as a FULL participant: put the entrant
+    // in the reminder audience so they never have to also click "register".
+    // Idempotent, and silent by design (no confirmation email — the user's action
+    // was "submit", not "register"; deadline reminders still reach them via this
+    // row). On conflict UPGRADE the tier to `full`: a user who first clicked "Just
+    // get reminders" (tier='reminders') and then submits an entry is unambiguously
+    // a participant, so they must be counted (getRegistrantCount/list are full-only).
+    // `fields` is left untouched so any collected signup info is preserved.
     await tx
       .insert(contestRegistrations)
       .values({ contestId, userId })
-      .onConflictDoNothing();
+      .onConflictDoUpdate({
+        target: [contestRegistrations.contestId, contestRegistrations.userId],
+        set: { tier: 'full' },
+      });
 
     return inserted;
   });

@@ -72,9 +72,56 @@ export async function registerForContest(
     return { registered: false, alreadyRegistered: false, error: 'Contest is not open for registration' };
   }
 
+  // The participant-confirmation email ("You are now registered for …"). Best-effort,
+  // gated on emailNotifications + a supplied email context + a mailable target
+  // (verified-or-emailUnverified AND not globally unsubscribed). Fired ONLY when a
+  // user becomes a FULL participant — a genuine full registration OR a reminders→full
+  // upgrade — never for a reminders-only opt-in, whose UI + the participant count say
+  // they are not a participant; sending "you are registered" there would be a lie.
+  // Bind the already-null-checked contest so the closure captures a non-nullable
+  // reference (TS widens outer-scope narrowing back inside a nested function).
+  const contestRow = contest;
+  async function sendParticipantConfirmation(): Promise<void> {
+    if (!(config.features.emailNotifications && email)) return;
+    try {
+      const target = await getNotificationEmailTarget(db, input.userId, config.features.emailUnverified);
+      if (!target) return;
+      const { pageUrl, headers } = buildUnsubscribeLinks(email.siteUrl, input.userId, email.secret);
+      const branding = await getEmailBranding(db);
+      // Apply the per-contest copy override only when the editor feature is on,
+      // so turning the flag off reverts every send to the built-in default.
+      const copyField = config.features.contestEmailEditor ? parseContestEmailCopy(contestRow.emailCopy).confirmation : undefined;
+      const contestUrl = `${email.siteUrl}/contests/${contestRow.slug}`;
+      const deadline = formatDeadlineUtc(contestRow.endDate);
+      // Render the block body (if any) to email-safe HTML with this recipient's tokens.
+      const copy = buildContestEmailCopyOverride(copyField, {
+        tokens: { username: target.username, contestTitle: contestRow.title, deadline, contestUrl },
+        accent: branding?.accentColor,
+      });
+      const tpl = emailTemplates.contestRegistrationConfirmation(
+        email.siteName,
+        target.username,
+        { title: contestRow.title, url: contestUrl, deadline },
+        pageUrl,
+        branding,
+        copy,
+      );
+      await enqueueEmail(db, {
+        toEmail: target.email,
+        userId: input.userId,
+        subject: tpl.subject,
+        html: tpl.html,
+        text: tpl.text,
+        headers,
+        category: 'reminder',
+      });
+    } catch (err) {
+      console.error('[contest-registration] confirmation email enqueue failed:', err instanceof Error ? err.message : err);
+    }
+  }
+
   // Claim a new row. onConflictDoNothing distinguishes a genuine first-time
-  // registration (row returned → send the confirmation) from a re-register (no
-  // row → reconcile tier/fields below, no email).
+  // registration (row returned) from a re-register (no row → reconcile below).
   const [inserted] = await db
     .insert(contestRegistrations)
     .values({ contestId: input.contestId, userId: input.userId, tier, fields: input.fields })
@@ -82,75 +129,41 @@ export async function registerForContest(
     .returning({ id: contestRegistrations.id });
 
   if (!inserted) {
-    // Existing registration: upgrade reminders→full (never downgrade) and update
-    // fields only when a new object is supplied. Skip the write entirely when
-    // there is nothing to change, then report the current tier.
-    const upgrade = tier === 'full';
+    // Existing registration. Read the prior tier so we can (a) upgrade
+    // reminders→full without ever downgrading and (b) know when this call is the
+    // moment the user becomes a participant (so we confirm then, not before).
+    const [existing] = await db
+      .select({ tier: contestRegistrations.tier })
+      .from(contestRegistrations)
+      .where(and(eq(contestRegistrations.contestId, input.contestId), eq(contestRegistrations.userId, input.userId)))
+      .limit(1);
+    const priorTier = (existing?.tier as ContestRegistrationTier) ?? 'full';
+
+    // Update fields only when a new object is supplied; upgrade tier only on a
+    // genuine reminders→full transition. Skip the write when nothing changes.
     const set: Partial<{ tier: ContestRegistrationTier; fields: ContestRegistrationFields | null }> = {};
-    if (upgrade) set.tier = 'full';
+    if (tier === 'full' && priorTier !== 'full') set.tier = 'full';
     if (input.fields !== undefined) set.fields = input.fields;
 
-    let finalTier: ContestRegistrationTier;
+    let finalTier: ContestRegistrationTier = priorTier;
     if (Object.keys(set).length > 0) {
       const [updated] = await db
         .update(contestRegistrations)
         .set(set)
         .where(and(eq(contestRegistrations.contestId, input.contestId), eq(contestRegistrations.userId, input.userId)))
         .returning({ tier: contestRegistrations.tier });
-      finalTier = (updated?.tier as ContestRegistrationTier) ?? tier;
-    } else {
-      const [row] = await db
-        .select({ tier: contestRegistrations.tier })
-        .from(contestRegistrations)
-        .where(and(eq(contestRegistrations.contestId, input.contestId), eq(contestRegistrations.userId, input.userId)))
-        .limit(1);
-      finalTier = (row?.tier as ContestRegistrationTier) ?? tier;
+      finalTier = (updated?.tier as ContestRegistrationTier) ?? finalTier;
     }
+
+    // A reminders→full upgrade is the moment they become a participant. The
+    // first-insert path never confirmed the reminders row, so confirm now.
+    if (priorTier !== 'full' && finalTier === 'full') await sendParticipantConfirmation();
     return { registered: false, alreadyRegistered: true, tier: finalTier };
   }
 
-  // Confirmation email (best-effort). Gated on emailNotifications + a supplied
-  // email context + a mailable target (verified AND not globally unsubscribed,
-  // enforced by getNotificationEmailTarget), never on the reminders flag.
-  if (config.features.emailNotifications && email) {
-    try {
-      const target = await getNotificationEmailTarget(db, input.userId, config.features.emailUnverified);
-      if (target) {
-        const { pageUrl, headers } = buildUnsubscribeLinks(email.siteUrl, input.userId, email.secret);
-        const branding = await getEmailBranding(db);
-        // Apply the per-contest copy override only when the editor feature is on,
-        // so turning the flag off reverts every send to the built-in default.
-        const copyField = config.features.contestEmailEditor ? parseContestEmailCopy(contest.emailCopy).confirmation : undefined;
-        const contestUrl = `${email.siteUrl}/contests/${contest.slug}`;
-        const deadline = formatDeadlineUtc(contest.endDate);
-        // Render the block body (if any) to email-safe HTML with this recipient's tokens.
-        const copy = buildContestEmailCopyOverride(copyField, {
-          tokens: { username: target.username, contestTitle: contest.title, deadline, contestUrl },
-          accent: branding?.accentColor,
-        });
-        const tpl = emailTemplates.contestRegistrationConfirmation(
-          email.siteName,
-          target.username,
-          { title: contest.title, url: contestUrl, deadline },
-          pageUrl,
-          branding,
-          copy,
-        );
-        await enqueueEmail(db, {
-          toEmail: target.email,
-          userId: input.userId,
-          subject: tpl.subject,
-          html: tpl.html,
-          text: tpl.text,
-          headers,
-          category: 'reminder',
-        });
-      }
-    } catch (err) {
-      console.error('[contest-registration] confirmation email enqueue failed:', err instanceof Error ? err.message : err);
-    }
-  }
-
+  // Genuine first registration. Only a FULL registration gets the participant
+  // confirmation; a reminders-only opt-in deliberately gets none.
+  if (tier === 'full') await sendParticipantConfirmation();
   return { registered: true, alreadyRegistered: false, tier };
 }
 

@@ -68,9 +68,12 @@ const milestone = computed<{ label: string; date: string | null; hint: string | 
   const dEnd = daysUntil(c.endDate);
   switch (status.value) {
     case 'upcoming':
-      return { label: 'Submissions open', date: start, hint: dStart != null ? humanizeDays(dStart) : null };
+      // Suppress the countdown hint when the start date is already past (status
+      // not yet advanced) — otherwise humanizeDays(<0) would read a contradictory
+      // "today" next to a visibly past date. The date itself still shows.
+      return { label: 'Submissions open', date: start, hint: dStart != null && dStart >= 0 ? humanizeDays(dStart) : null };
     case 'active':
-      return { label: 'Submissions close', date: end, hint: dEnd != null ? humanizeDays(dEnd) : null };
+      return { label: 'Submissions close', date: end, hint: dEnd != null && dEnd >= 0 ? humanizeDays(dEnd) : null };
     case 'judging':
       return { label: 'Judging in progress', date: null, hint: 'Results announced soon' };
     case 'completed':
@@ -235,7 +238,9 @@ function saveInfo(): void {
       </template>
 
       <!-- Full participant: the optional "tell us about you" form -->
-      <template v-if="isFull">
+      <!-- Only offer the info form while registration is still open: saveInfo()
+           POSTs to register, which 400s once the contest leaves upcoming/active. -->
+      <template v-if="isFull && canRegister">
         <button
           type="button"
           class="cpub-su-infotoggle"
@@ -321,7 +326,8 @@ function saveInfo(): void {
 .cpub-su-remind { color: var(--text-dim); }
 .cpub-su-remind:hover:not(:disabled) { color: var(--text); border-color: var(--accent-border); }
 
-.cpub-su-hint { font-size: 11px; color: var(--text-faint); line-height: 1.5; margin: 2px 0 0; }
+/* text-dim (not text-faint) so this instructional hint copy clears WCAG AA (~5.5:1). */
+.cpub-su-hint { font-size: 11px; color: var(--text-dim); line-height: 1.5; margin: 2px 0 0; }
 
 .cpub-su-state { display: flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 700; margin: 0 0 8px; }
 .cpub-su-state-full { color: var(--green-text); }
@@ -332,7 +338,7 @@ function saveInfo(): void {
 /* Optional info form */
 .cpub-su-infotoggle { display: flex; align-items: center; gap: 7px; width: 100%; background: none; border: none; padding: 8px 0; cursor: pointer; font-size: 12px; font-weight: 600; color: var(--text-dim); font-family: inherit; text-align: left; }
 .cpub-su-infotoggle:hover { color: var(--text); }
-.cpub-su-optional { margin-left: auto; font-size: 9px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: .06em; color: var(--text-faint); border: var(--border-width-default) solid var(--border2); padding: 1px 5px; }
+.cpub-su-optional { margin-left: auto; font-size: 9px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: .06em; color: var(--text-dim); border: var(--border-width-default) solid var(--border2); padding: 1px 5px; }
 
 .cpub-su-form { display: flex; flex-direction: column; gap: 12px; padding: 4px 0 12px; }
 .cpub-su-field { border: none; padding: 0; margin: 0; min-width: 0; }
