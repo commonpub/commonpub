@@ -1,6 +1,6 @@
 # CommonPub — Status & Operator Runbook
 
-> **Living doc — your "come back later" reference.** Snapshot updated 2026-06-19 (sessions 203-204).
+> **Living doc — your "come back later" reference.** Snapshot updated 2026-07-16 (through session 240).
 > Verify any version/flag claim before trusting it: `npm view @commonpub/<pkg> version`,
 > `curl https://<instance>/api/features`, `cargo search create-commonpub`.
 > Companion docs: **`docs/ROADMAP.md`** (prioritized remaining work — the master backlog), the
@@ -536,17 +536,19 @@ a minute (`curl deveco.io/api/content?limit=5`, today's timestamp).
 
 ## 📌 Reference
 
-### Published versions (verified 2026-07-07 — session 230 hub root perms + steward/unlink UI)
+### Published versions (verified 2026-07-16 — session 240 stage-aware deadlines + audit fixes)
 | Package | Version | | Package | Version |
 |---|---|---|---|---|
-| @commonpub/schema | **0.56.0** | | @commonpub/infra | 0.13.0 |
-| @commonpub/config | **0.30.0** | | @commonpub/editor | 0.9.0 |
+| @commonpub/schema | **0.59.0** | | @commonpub/infra | **0.17.0** |
+| @commonpub/config | **0.33.0** | | @commonpub/editor | **0.11.0** |
 | @commonpub/protocol | 0.14.0 | | @commonpub/explainer | 0.8.0 |
-| @commonpub/auth | 0.9.0 | | @commonpub/docs | 0.6.3 |
-| @commonpub/server | **2.105.0** | | @commonpub/learning | 0.5.2 |
-| @commonpub/ui | 0.13.1 | | @commonpub/test-utils | **0.5.10** |
-| @commonpub/layer | **0.97.0** | | @commonpub/theme-studio | 0.6.1 |
-| create-commonpub (crates.io) | **0.5.21** (pins ^0.56/^0.30/^2.105/^0.97 — current) | | | |
+| @commonpub/auth | **0.10.0** | | @commonpub/docs | 0.6.3 |
+| @commonpub/server | **2.113.0** | | @commonpub/learning | 0.5.2 |
+| @commonpub/ui | **0.13.2** | | @commonpub/test-utils | **0.5.13** |
+| @commonpub/layer | **0.106.0** | | @commonpub/theme-studio | 0.6.1 |
+| create-commonpub (crates.io) | **0.5.29** (pins ^0.59/^0.33/^2.113/^0.106 — current) | | | |
+
+_Live on all 3 instances (commonpub.io, deveco.io, heatsynclabs.io): 37 feature flags, latest migration 0042._
 
 **Session 227 GDPR Phase 2 enforcement + CLI re-pin (2026-06-26) — SHIPPED + ROLLED to all 3.**
 Adversarial review of GDPR Phase 2 (no P0; auth/CSRF/IDOR/spoofing/injection clean). Added a
