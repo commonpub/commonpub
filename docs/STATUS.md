@@ -12,6 +12,18 @@
 
 ## TL;DR — where things stand
 
+**Session 240 (2026-07-16) — STAGE-AWARE CONTEST DEADLINES ROLLED to all 3.** npm **infra 0.16 /
+server 2.112 / layer 0.105**, CLI **create-commonpub 0.5.28**, **NO migration**, still **37 flags**.
+Contest confirmation emails + deadline reminders now key off the NEXT upcoming stage deadline (e.g. the
+proposal submission), not the far-off final `endDate` — via a new `nextContestDeadline(contest, now)`
+helper. The reminder sweep fires 7d/48h/24h/1h before EACH stage deadline (stage-scoped ledger key, no
+migration; classic contests keep the old key so nothing re-fires). The system "submission deadline is …"
+paragraph is now suppressed when the organizer authors a custom email body, so they control the copy;
+`{deadline}` is stage-aware. Consent-checkbox ask (Q2): the submission-form `agreement`/`checkbox` field
+already does this (audited, `contestPii`-gated, on for deveco) — added a one-click "US entity attestation"
+preset. Verified: staged-contest email preview shows the proposal date; full server suite 1722 green.
+Detail: `docs/sessions/240-stage-aware-deadlines.md`.
+
 **Session 239 (2026-07-15) — TWO-TIER CONTEST SIGNUP ROLLED to all 3.** npm **schema 0.59 / config 0.33 /
 server 2.110 / test-utils 0.5.13 / layer 0.103**, CLI **create-commonpub 0.5.26**, **migration 0042**
 (additive: `contest_registrations` += `tier` default `'full'` + `fields` jsonb — existing rows become
