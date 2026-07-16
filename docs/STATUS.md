@@ -27,6 +27,14 @@ db:migrate succeeded, heatsync register GET returns `{count,fields,registered,ti
 `docs/sessions/239-contest-signup.md`. NOTE: schema/config/layer/test-utils each crossed a 0.x minor —
 CLI + BOTH forks hand-edited + lockfiles regenerated.
 
+**Session 239 audit fixes (2026-07-15) — server 2.111 / layer 0.104, CLI 0.5.27, NO migration.** A 5-lens
+ultracode adversarial audit (refute-by-default verify) confirmed 5 findings (all P2/P3; security lens clean;
+1 refuted). Fixed: auto-register-on-entry now upgrades a reminders-only opt-in to a counted full participant;
+the confirmation email is tier-aware (reminders-only no longer gets a "you are registered" email; it fires at
+the reminders→full upgrade instead); the optional info form is gated on `canRegister`; the milestone hint no
+longer shows "TODAY" on a stale-status contest; hint copy meets WCAG AA (`--text-dim`). Server 89 tests green,
+nuxt typecheck clean, fixes visually re-verified. Detail in `docs/sessions/239-contest-signup.md`.
+
 **Session 238 (2026-07-15) — M3 (block-editor email UI) ROLLED to all 3.** npm **server 2.109 / layer 0.101**
 (only these two; no migration, no new flag — stays 36 flags), CLI **create-commonpub 0.5.24**. The contest
 email editor's Intro textarea is now a real **block editor**: two useBlockEditor instances (one per template),

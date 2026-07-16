@@ -48,6 +48,31 @@ new `getViewerRegistration` returns tier+fields. The reminder sweep serves BOTH 
 - Migration is additive with safe defaults, so existing registrants become `tier='full'`
   (correct — they were all counted).
 
+## Adversarial audit + fixes (rolled: server 2.111 / layer 0.104, CLI 0.5.27, NO migration)
+
+A 5-lens ultracode adversarial audit (each finding independently verified by a refute-by-default
+skeptic) raised 6, confirmed **5** (all P2/P3 after verification — **security lens clean**, no
+P0/P1 survived), refuted 1 (textarea `maxlength` is standard). All 5 fixed:
+
+1. **(P2) auto-register-on-entry didn't upgrade tier.** `entries.ts` + `submissions.ts` used
+   `.onConflictDoNothing()` — a reminders-only opt-in who then submits an entry stayed `tier='reminders'`
+   and was excluded from the (now full-only) count/list despite being a real entrant. → `onConflictDoUpdate`
+   set `tier='full'` (preserves `fields`). Matches `registerForContest`'s own upgrade semantics.
+2. **(P2) confirmation email wasn't tier-aware.** A reminders-only signup got a "You are now registered"
+   participant email (contradicting its tier + the count). → extracted `sendParticipantConfirmation()`;
+   fires ONLY when a user becomes a full participant (genuine full registration OR reminders→full upgrade),
+   never for a reminders-only opt-in. Also closes the gap where an upgrading user previously got no email.
+3. **(P3) info form offered on closed contests** where Save 400s. → gated `v-if="isFull && canRegister"`.
+4. **(P3) milestone "TODAY" on a stale-status contest** (past startDate still `upcoming`). → suppress the
+   countdown hint when the day count is negative (`dStart >= 0`); the date itself still shows.
+5. **(P3) hint/optional copy failed WCAG AA** (`--text-faint` ~2.5:1). → `--text-dim` (~5.5:1).
+
+Tests added: tier-aware confirmation (reminders→no email; upgrade→exactly one email; full re-register→no
+double-send) + a reminders row upgraded to full when the user submits an entry. Server 89 tests green;
+nuxt typecheck clean; milestone + contrast fixes visually re-verified (screenshot `50`). Note: the tier-aware
+closure tripped the vue-tsc-strict-vs-vitest gap (TS widens a captured `contest` inside a nested function) —
+bound a narrowed `const contestRow = contest` before the closure.
+
 ## Open questions / next
 - Contest Signup **widget** as a droppable block (vs. the built-in sidebar card) — not built.
 - resend-verification + verify-reminder UX (still the prerequisite before
