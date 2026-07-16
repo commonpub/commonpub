@@ -55,6 +55,33 @@ correct binding moment — not at one-click registration.)
 **Added:** a one-click **"US entity attestation"** preset (`contestSubmissionTemplates.ts`,
 `US_ENTITY_TERMS`) so it's a single click in the Add-field menu.
 
+## Adversarial audit + fixes (rolled: infra 0.17 / server 2.113 / layer 0.106, CLI 0.5.29, NO migration)
+
+A 5-lens ultracode audit (refute-by-default verify) raised 9, confirmed **7** (all P2/P3 — no P0/P1;
+2 refuted), deduping to **5 distinct issues**, all fixed:
+
+1. **(P2) deploy-time duplicate reminder for staged contests.** The un-scoped→stage-scoped ledger-key
+   transition would re-fire a milestone a registrant already got under the old key. → the scoped claim
+   now carries a `NOT EXISTS` guard against the legacy un-scoped `milestone.key`, so the transition
+   never re-fires.
+2. **(P3) reserved stage-id misclassification.** `isContestOwnDeadline(stageId)` string-matched `final`/
+   `core-*`; a user stage with such an id (reachable via raw API) mis-keyed. → `nextContestDeadline` now
+   returns `isOwnDeadline` from stage **provenance** (explicit vs synthesized/fallback), not the id
+   string; `isContestOwnDeadline` dropped.
+3. **(P3) past deadline in the confirmation email** for a contest still `active` after its endDate. →
+   confirmation + preview + test-send show the deadline only when it's in the future.
+4. **(P3) sweep perf.** Dropping the `endDate<=horizon` bound made it load every live contest's heavy
+   `stages`+`emailCopy` jsonb each tick. → **two-phase load**: a light select resolves the deadline +
+   filters to the in-window contests, then a heavy select fetches `emailCopy`/title/slug only for those
+   survivors. Dead `horizon` removed.
+5. **(P3) HTML/text suppression divergence.** The deadline line was suppressed on `bodyHtml` but the
+   text part gated on `bodyText`; a text-less authored body (image/divider-only) made the two MIME
+   parts disagree. → both parts (and the leadText fallback) now key off `bodyHtml`.
+
+Refuted (correct): "custom body drops the deadline" (intended — the organizer owns the copy) and
+"endDate>last-stage sends a false cycle" (wrong premise — endDate IS submission close). Tests added:
+legacy-key dedup, `final`-id provenance. Full server suite 1724 green; nuxt typecheck clean.
+
 ## Method
 Two parallel Explore recons (reminder-sweep internals; agreements/PII infra) mapped the systems
 before any code. Decisions confirmed via AskUserQuestion (Q1 full scope; Q2 relay-only).
