@@ -633,6 +633,7 @@ export {
   getRegistrantCount,
   sweepContestReminders,
   formatDeadlineUtc,
+  nextContestDeadline,
   CONTEST_REMINDER_MILESTONES,
   parseContestEmailCopy,
   getContestEmailCopy,

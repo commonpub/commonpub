@@ -1,7 +1,8 @@
-import { and, gte, lte, inArray, sql } from 'drizzle-orm';
+import { and, gte, inArray, sql } from 'drizzle-orm';
 import { contests } from '@commonpub/schema';
 import type { CommonPubConfig } from '@commonpub/config';
 import type { DB } from '../types.js';
+import { nextContestDeadline, isContestOwnDeadline } from './stages.js';
 import { emailTemplates } from '../email.js';
 import { enqueueEmails } from '../comms/outbox.js';
 import type { OutboxMessage } from '../comms/outbox.js';
@@ -106,33 +107,48 @@ export async function sweepContestReminders(
   const now = ctx.now ?? new Date();
   const horizon = new Date(now.getTime() + MAX_LEAD_MS);
 
-  // Contests still open for submission whose deadline is within the widest lead
-  // window. One row set, then we decide per-milestone below.
-  const due = await db
+  // Contests still live (final deadline not yet past). We can't SQL-filter on a
+  // per-stage `endsAt` (it lives in the `stages` jsonb), so we take the live set
+  // and resolve each contest's NEXT upcoming submission deadline in JS below,
+  // keeping only those whose next deadline is inside the widest lead window.
+  const live = await db
     .select({
       id: contests.id,
       title: contests.title,
       slug: contests.slug,
+      status: contests.status,
+      startDate: contests.startDate,
       endDate: contests.endDate,
+      judgingEndDate: contests.judgingEndDate,
+      stages: contests.stages,
+      currentStageId: contests.currentStageId,
       emailCopy: contests.emailCopy,
     })
     .from(contests)
     .where(and(
       inArray(contests.status, ['upcoming', 'active']),
       gte(contests.endDate, now),
-      lte(contests.endDate, horizon),
     ));
 
-  if (due.length === 0) return { contests: 0, enqueued: 0 };
+  if (live.length === 0) return { contests: 0, enqueued: 0 };
 
   const branding = await getEmailBranding(db);
   // Milestones tightest-first: the FIRST whose window the deadline has entered is
   // the single most-urgent one to send.
   const byUrgency = [...CONTEST_REMINDER_MILESTONES].reverse();
   let enqueued = 0;
+  let considered = 0;
 
-  for (const contest of due) {
-    const msLeft = contest.endDate.getTime() - now.getTime();
+  for (const contest of live) {
+    // Stage-aware target: the next upcoming submission-stage deadline (the
+    // proposal, then the prototype, ...), falling back to the contest's final
+    // `endDate`. So a staged contest reminds about the near stage deadline, not
+    // only the far-off final one.
+    const target = nextContestDeadline(contest, now);
+    const msLeft = target.at.getTime() - now.getTime();
+    // Only contests whose next deadline is within the widest lead window.
+    if (msLeft <= 0 || msLeft > MAX_LEAD_MS) continue;
+    considered++;
 
     // Fire only the SINGLE tightest milestone whose window the deadline has
     // entered (smallest leadMs with msLeft <= leadMs). Firing every entered
@@ -143,10 +159,16 @@ export async function sweepContestReminders(
     // deadline nears. `timeRemaining` below is the ACTUAL remaining time, never
     // the milestone's nominal name, so a late fire never states a wrong number.
     const milestone = byUrgency.find((m) => msLeft <= m.leadMs);
-    if (!milestone) continue; // beyond the widest window (already bounded out by `due`; defensive)
+    if (!milestone) continue; // beyond the widest window (bounded out above; defensive)
+
+    // Per-STAGE exactly-once: scope the ledger key by the stage so each stage
+    // deadline runs its own 7d/48h/24h/1h cycle. A classic/own-deadline contest
+    // keeps the historical UN-scoped key, so widening to stage-aware keys never
+    // re-fires a reminder that already went out under the old key.
+    const milestoneKey = isContestOwnDeadline(target.stageId) ? milestone.key : `${target.stageId}:${milestone.key}`;
 
     const contestUrl = `${ctx.siteUrl}/contests/${contest.slug}`;
-    const deadline = formatDeadlineUtc(contest.endDate);
+    const deadline = formatDeadlineUtc(target.at);
     const timeRemaining = humanizeTimeRemaining(msLeft);
     // Apply the per-contest reminder copy override only when the editor feature
     // is on; otherwise every reminder uses the built-in default copy.
@@ -160,7 +182,7 @@ export async function sweepContestReminders(
     const res = await db.execute(sql`
       WITH claimed AS (
         INSERT INTO contest_reminder_sends (contest_id, user_id, milestone)
-        SELECT cr.contest_id, cr.user_id, ${milestone.key}
+        SELECT cr.contest_id, cr.user_id, ${milestoneKey}
         FROM contest_registrations cr
         INNER JOIN users u ON u.id = cr.user_id
         WHERE cr.contest_id = ${contest.id}
@@ -208,5 +230,5 @@ export async function sweepContestReminders(
     enqueued += messages.length;
   }
 
-  return { contests: due.length, enqueued };
+  return { contests: considered, enqueued };
 }

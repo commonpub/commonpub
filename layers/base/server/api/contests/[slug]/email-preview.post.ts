@@ -1,4 +1,4 @@
-import { emailTemplates, getContestBySlug, getEmailBranding, isContestEditor, formatDeadlineUtc, renderEmailBlocks } from '@commonpub/server';
+import { emailTemplates, getContestBySlug, getEmailBranding, isContestEditor, formatDeadlineUtc, nextContestDeadline, renderEmailBlocks } from '@commonpub/server';
 import { contestEmailPreviewSchema } from '@commonpub/schema';
 
 /**
@@ -28,7 +28,9 @@ export default defineEventHandler(async (event): Promise<{ html: string; subject
   const siteName = config.instance.name || 'CommonPub';
   const origin = getRequestURL(event).origin;
   const contestUrl = `${origin}/contests/${contest.slug}`;
-  const deadline = formatDeadlineUtc(contest.endDate);
+  // Stage-aware: preview the NEXT upcoming stage deadline (e.g. the proposal),
+  // matching what the real send resolves, so a staged contest previews correctly.
+  const deadline = formatDeadlineUtc(nextContestDeadline(contest, new Date()).at);
   const branding = await getEmailBranding(db);
   // A placeholder unsubscribe href keeps the system chrome visible in the preview.
   const sampleUnsub = `${origin}/unsubscribe`;

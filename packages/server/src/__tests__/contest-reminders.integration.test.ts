@@ -191,4 +191,30 @@ describe('sweepContestReminders', () => {
     const res = await sweepContestReminders(db, cfg(), { ...CTX, now });
     expect(res.enqueued).toBe(0);
   });
+
+  it('reminds about the next STAGE deadline (proposal), not the far-off final endDate', async () => {
+    const now = new Date('2026-06-01T00:00:00Z');
+    const proposalDue = new Date(now.getTime() + 6 * DAY); // within the 7-day window
+    const finalEnd = new Date(now.getTime() + 60 * DAY);   // far beyond the window
+    const contestId = await makeContest(db, organizerId, finalEnd);
+    // Explicit stages: a near proposal submission + a distant prototype submission.
+    await db.update(contests).set({
+      stages: [
+        { id: 'proposal', name: 'Proposal', kind: 'submission', endsAt: proposalDue.toISOString() },
+        { id: 'prototype', name: 'Prototype', kind: 'submission', endsAt: finalEnd.toISOString() },
+      ],
+    }).where(eq(contests.id, contestId));
+    await register(db, contestId, verifiedId);
+
+    // Without stage-awareness the sweep would skip this contest entirely (endDate 60d
+    // out is beyond the window). With it, the proposal deadline (6d) fires the T7d.
+    const res = await sweepContestReminders(db, cfg(), { ...CTX, now });
+    expect(res.enqueued).toBe(1);
+    const ledger = await db.select().from(contestReminderSends);
+    // Stage-scoped ledger key so each stage runs its own cycle.
+    expect(ledger[0]!.milestone).toBe('proposal:deadline_T7d');
+    const [m] = await db.select().from(emailOutbox);
+    expect(m!.html).toContain(formatDeadlineUtc(proposalDue)); // the proposal date…
+    expect(m!.html).not.toContain(formatDeadlineUtc(finalEnd)); // …not the final date
+  });
 });

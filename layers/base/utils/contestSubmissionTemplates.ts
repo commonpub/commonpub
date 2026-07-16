@@ -20,6 +20,10 @@ type TemplateField = ContestSubmissionTemplateField;
 export const RULES_AGREEMENT_TERMS =
   'By entering, I confirm this submission is my own original work and I agree to the contest rules and code of conduct.';
 
+/** A ready-made eligibility attestation for US-entity-only contests (organiser can edit). */
+export const US_ENTITY_TERMS =
+  'I confirm that the entity I am entering on behalf of is a legally registered entity in the United States.';
+
 /** Make `base` unique within `taken` by appending `_2`, `_3`, … */
 function uniqueKey(taken: Set<string>, base: string): string {
   if (!taken.has(base)) return base;
@@ -74,6 +78,13 @@ export const FIELD_PRESETS: FieldPreset[] = [
     icon: 'fa-file-signature',
     pii: true,
     field: { label: 'Agreement', type: 'agreement', required: true, mustAccept: true, terms: RULES_AGREEMENT_TERMS },
+  },
+  {
+    id: 'us-entity',
+    label: 'US entity attestation',
+    icon: 'fa-flag-usa',
+    pii: true,
+    field: { label: 'Eligibility', type: 'agreement', required: true, mustAccept: true, terms: US_ENTITY_TERMS },
   },
 ];
 

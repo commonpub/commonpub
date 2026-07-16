@@ -1,6 +1,6 @@
 import { and, eq, isNull } from 'drizzle-orm';
 import { users } from '@commonpub/schema';
-import { emailTemplates, getContestBySlug, getEmailBranding, isContestEditor, formatDeadlineUtc, renderEmailBlocks } from '@commonpub/server';
+import { emailTemplates, getContestBySlug, getEmailBranding, isContestEditor, formatDeadlineUtc, nextContestDeadline, renderEmailBlocks } from '@commonpub/server';
 import { contestEmailTestSchema } from '@commonpub/schema';
 
 /**
@@ -49,7 +49,8 @@ export default defineEventHandler(async (event): Promise<{ sent: true; to: strin
   const siteName = config.instance.name || 'CommonPub';
   const origin = getRequestURL(event).origin;
   const contestUrl = `${origin}/contests/${contest.slug}`;
-  const deadline = formatDeadlineUtc(contest.endDate);
+  // Stage-aware deadline (next upcoming stage), matching the real send.
+  const deadline = formatDeadlineUtc(nextContestDeadline(contest, new Date()).at);
   const branding = await getEmailBranding(db);
   const unsub = `${origin}/unsubscribe`;
   const tokens = {

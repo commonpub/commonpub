@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { synthesizeStages, normalizeStages, currentStage } from '../contest/index.js';
+import { synthesizeStages, normalizeStages, currentStage, nextContestDeadline, isContestOwnDeadline } from '../contest/index.js';
 import type { ContestStage } from '@commonpub/schema';
 
 // Pure helpers — no DB. Phase B1 stage-timeline derivation + back-compat.
@@ -75,5 +75,57 @@ describe('currentStage', () => {
       { id: 'b', name: 'Judge', kind: 'review' },
     ];
     expect(currentStage({ ...base, status: 'judging', stages, currentStageId: 'gone' })?.id).toBe('b');
+  });
+});
+
+describe('nextContestDeadline', () => {
+  const now = new Date('2026-06-01T00:00:00.000Z');
+
+  it('falls back to the final endDate for a classic (stage-less) contest', () => {
+    const d = nextContestDeadline({ ...base, endDate: new Date('2026-08-01T00:00:00.000Z'), stages: [] }, now);
+    // Synthesized submission stage carries endsAt = endDate.
+    expect(d.at.toISOString()).toBe('2026-08-01T00:00:00.000Z');
+    expect(d.stageId).toBe('core-submission');
+    expect(isContestOwnDeadline(d.stageId)).toBe(true); // keeps the historical ledger key
+  });
+
+  it('returns the EARLIEST upcoming submission/interim stage deadline (the proposal), not the final', () => {
+    const stages: ContestStage[] = [
+      { id: 'proposal', name: 'Proposal', kind: 'submission', endsAt: '2026-07-01T00:00:00.000Z' },
+      { id: 'prototype', name: 'Prototype', kind: 'interim', endsAt: '2026-09-01T00:00:00.000Z' },
+      { id: 'judge', name: 'Judging', kind: 'review', endsAt: '2026-10-01T00:00:00.000Z' },
+    ];
+    const d = nextContestDeadline({ ...base, endDate: new Date('2026-11-08T16:00:00.000Z'), stages }, now);
+    expect(d.at.toISOString()).toBe('2026-07-01T00:00:00.000Z');
+    expect(d.stageId).toBe('proposal');
+    expect(isContestOwnDeadline(d.stageId)).toBe(false); // an explicit stage → stage-scoped ledger key
+  });
+
+  it('advances to the next stage deadline once an earlier one has passed', () => {
+    const stages: ContestStage[] = [
+      { id: 'proposal', name: 'Proposal', kind: 'submission', endsAt: '2026-05-01T00:00:00.000Z' }, // already past `now`
+      { id: 'prototype', name: 'Prototype', kind: 'submission', endsAt: '2026-09-01T00:00:00.000Z' },
+    ];
+    const d = nextContestDeadline({ ...base, endDate: new Date('2026-11-08T00:00:00.000Z'), stages }, now);
+    expect(d.stageId).toBe('prototype');
+  });
+
+  it('ignores non-submission stages (review/results/event) when picking the deadline', () => {
+    const stages: ContestStage[] = [
+      { id: 'r', name: 'Judging', kind: 'review', endsAt: '2026-06-15T00:00:00.000Z' },
+      { id: 's', name: 'Submit', kind: 'submission', endsAt: '2026-07-20T00:00:00.000Z' },
+    ];
+    const d = nextContestDeadline({ ...base, endDate: new Date('2026-08-01T00:00:00.000Z'), stages }, now);
+    expect(d.stageId).toBe('s'); // not the earlier review deadline
+  });
+
+  it('falls back to endDate when all submission stages are in the past', () => {
+    const stages: ContestStage[] = [
+      { id: 'proposal', name: 'Proposal', kind: 'submission', endsAt: '2026-05-01T00:00:00.000Z' },
+    ];
+    const d = nextContestDeadline({ ...base, endDate: new Date('2026-10-01T00:00:00.000Z'), stages }, now);
+    expect(d.stageId).toBe('final');
+    expect(d.at.toISOString()).toBe('2026-10-01T00:00:00.000Z');
+    expect(isContestOwnDeadline(d.stageId)).toBe(true);
   });
 });

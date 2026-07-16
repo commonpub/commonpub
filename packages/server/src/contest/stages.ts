@@ -57,3 +57,56 @@ export function currentStage(c: StageSource): ContestStage | null {
 export function isEliminated(entry: { stageState?: Array<{ status: string }> | null }): boolean {
   return !!entry.stageState?.some((s) => s.status === 'eliminated');
 }
+
+/** Stage kinds that represent a "something is due" deadline (an entrant must submit/refine by then). */
+const DUE_STAGE_KINDS = new Set(['submission', 'interim']);
+
+/** The next upcoming submission deadline for a contest + which stage it belongs to. */
+export interface NextContestDeadline {
+  /** The date to count down to / remind about. */
+  at: Date;
+  /**
+   * Stable id of the stage this deadline belongs to. A SYNTHESIZED (classic)
+   * contest resolves to `core-submission` and the no-stage fallback to `final`;
+   * both are treated as "the contest's own deadline" by callers that key state
+   * off it, so they keep their pre-stage behaviour. An EXPLICIT user stage yields
+   * its own id, letting callers scope per-stage state (e.g. the reminder ledger).
+   */
+  stageId: string;
+  /** Human name of the stage, or null for the bare `final` fallback. */
+  stageName: string | null;
+}
+
+/**
+ * The next upcoming SUBMISSION deadline for a contest, relative to `now`: the
+ * earliest future `endsAt` among the submission/interim stages — the moments an
+ * entrant actually has to have something in. Falls back to the contest's final
+ * `endDate` when there are no explicit stages, or none are still upcoming, so a
+ * classic (stage-less) contest resolves to its end date exactly as before.
+ *
+ * This is the single source of truth for the deadline shown in the registration
+ * confirmation email AND the milestone the reminder sweep counts down to, so a
+ * STAGED contest surfaces the proposal deadline first (then the next stage, then
+ * the final) instead of only the far-off final deadline.
+ */
+export function nextContestDeadline(c: StageSource, now: Date): NextContestDeadline {
+  const upcoming = normalizeStages(c)
+    .filter((s) => DUE_STAGE_KINDS.has(s.kind) && s.endsAt)
+    .map((s) => ({ at: new Date(s.endsAt as string), stageId: s.id, stageName: s.name }))
+    .filter((s) => !Number.isNaN(s.at.getTime()) && s.at.getTime() > now.getTime())
+    .sort((a, b) => a.at.getTime() - b.at.getTime());
+  if (upcoming.length > 0) return upcoming[0]!;
+  return { at: new Date(c.endDate), stageId: 'final', stageName: null };
+}
+
+/**
+ * Whether a resolved deadline is the contest's OWN deadline (the classic
+ * synthesized submission stage, or the bare final fallback) rather than an
+ * explicit user-defined sub-stage. Callers that persist per-deadline state (the
+ * reminder ledger) use this to keep the historical, un-scoped key for classic
+ * contests — so widening to stage-aware keys never re-fires a reminder that
+ * already went out under the old key.
+ */
+export function isContestOwnDeadline(stageId: string): boolean {
+  return stageId === 'final' || stageId.startsWith('core-');
+}

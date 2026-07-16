@@ -4,6 +4,7 @@ import type { ContestRegistrationFields } from '@commonpub/schema';
 import type { CommonPubConfig } from '@commonpub/config';
 import type { DB } from '../types.js';
 import { normalizePagination, countRows } from '../query.js';
+import { nextContestDeadline } from './stages.js';
 import { emailTemplates } from '../email.js';
 import { enqueueEmail } from '../comms/outbox.js';
 import { buildUnsubscribeLinks } from '../comms/unsubscribe.js';
@@ -58,7 +59,11 @@ export async function registerForContest(
       status: contests.status,
       title: contests.title,
       slug: contests.slug,
+      startDate: contests.startDate,
       endDate: contests.endDate,
+      judgingEndDate: contests.judgingEndDate,
+      stages: contests.stages,
+      currentStageId: contests.currentStageId,
       emailCopy: contests.emailCopy,
     })
     .from(contests)
@@ -92,7 +97,9 @@ export async function registerForContest(
       // so turning the flag off reverts every send to the built-in default.
       const copyField = config.features.contestEmailEditor ? parseContestEmailCopy(contestRow.emailCopy).confirmation : undefined;
       const contestUrl = `${email.siteUrl}/contests/${contestRow.slug}`;
-      const deadline = formatDeadlineUtc(contestRow.endDate);
+      // Stage-aware: for a staged contest the confirmation shows the NEXT upcoming
+      // stage deadline (e.g. the proposal submission), not the far-off final date.
+      const deadline = formatDeadlineUtc(nextContestDeadline(contestRow, new Date()).at);
       // Render the block body (if any) to email-safe HTML with this recipient's tokens.
       const copy = buildContestEmailCopyOverride(copyField, {
         tokens: { username: target.username, contestTitle: contestRow.title, deadline, contestUrl },

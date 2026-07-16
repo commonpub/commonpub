@@ -125,10 +125,16 @@ export const emailTemplates = {
     const safeUnsub = unsubscribeUrl ? escapeHtml(unsubscribeUrl) : undefined;
     // Tokens available to a confirmation override (no `{timeRemaining}` here).
     const tokens = { contestTitle: contest.title, deadline: contest.deadline ?? '', username, contestUrl: contest.url };
-    // Deadline line + CTA + unsubscribe are system-owned in BOTH paths.
-    const deadlineLine = contest.deadline
-      ? `<p>The submission deadline is <strong>${escapeHtml(contest.deadline)}</strong>. We will send you reminders as it approaches.</p>`
-      : '<p>We will send you reminders as the submission deadline approaches.</p>';
+    // Deadline line + CTA + unsubscribe are system-owned. The deadline line is
+    // suppressed when the organizer supplies a block body (copy.bodyHtml): once
+    // they author the body they OWN the copy, so we never inject an uneditable
+    // paragraph — they can place the (now stage-aware) `{deadline}` token wherever
+    // they want. The default (no custom body) still shows it.
+    const deadlineLine = copy?.bodyHtml
+      ? ''
+      : contest.deadline
+        ? `<p>The submission deadline is <strong>${escapeHtml(contest.deadline)}</strong>. We will send you reminders as it approaches.</p>`
+        : '<p>We will send you reminders as the submission deadline approaches.</p>';
     // Override subject/intro when supplied (tokenized); else the built-in default.
     // The tokenizer runs ONLY on the override branch, so a default title that
     // legitimately contains `{...}` is never interpolated.
@@ -152,7 +158,7 @@ export const emailTemplates = {
         ${deadlineLine}
         ${button('View the contest', safeUrl, branding)}
       `, { unsubscribeUrl: safeUnsub, branding }),
-      text: `${leadText}${contest.deadline ? ` The submission deadline is ${contest.deadline}.` : ''}\n${contest.url}`,
+      text: `${leadText}${!copy?.bodyText && contest.deadline ? ` The submission deadline is ${contest.deadline}.` : ''}\n${contest.url}`,
     };
   },
 
@@ -179,8 +185,13 @@ export const emailTemplates = {
     const safeUnsub = unsubscribeUrl ? escapeHtml(unsubscribeUrl) : undefined;
     // The reminder override additionally exposes `{timeRemaining}`.
     const tokens = { contestTitle: contest.title, deadline: contest.deadline, username, timeRemaining: contest.timeRemaining, contestUrl: contest.url };
-    // "Submissions close on ..." line + CTA + unsubscribe are system-owned.
-    const closeLine = `<p>Submissions close on <strong>${safeDeadline}</strong>. Make sure your entry is in before then.</p>`;
+    // "Submissions close on ..." line + CTA + unsubscribe are system-owned, and
+    // the close line is suppressed when the organizer supplies a block body so
+    // their copy owns it (the stage-aware `{deadline}`/`{timeRemaining}` tokens
+    // are available for them to use). The default still shows it.
+    const closeLine = copy?.bodyHtml
+      ? ''
+      : `<p>Submissions close on <strong>${safeDeadline}</strong>. Make sure your entry is in before then.</p>`;
     const subject = copy?.subject ? interpolateTokens(copy.subject, tokens) : `${contest.timeRemaining} left to submit: ${contest.title} -- ${siteName}`;
     // Body precedence: block-editor bodyHtml (already email-safe) > legacy intro
     // (escaped + tokenized) > built-in default.
@@ -203,7 +214,7 @@ export const emailTemplates = {
         ${closeLine}
         ${button('Go to the contest', safeUrl, branding)}
       `, { unsubscribeUrl: safeUnsub, branding }),
-      text: `${leadText} Submissions close on ${contest.deadline}.\n${contest.url}`,
+      text: `${leadText}${copy?.bodyText ? '' : ` Submissions close on ${contest.deadline}.`}\n${contest.url}`,
     };
   },
 
