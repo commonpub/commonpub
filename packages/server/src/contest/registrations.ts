@@ -99,7 +99,12 @@ export async function registerForContest(
       const contestUrl = `${email.siteUrl}/contests/${contestRow.slug}`;
       // Stage-aware: for a staged contest the confirmation shows the NEXT upcoming
       // stage deadline (e.g. the proposal submission), not the far-off final date.
-      const deadline = formatDeadlineUtc(nextContestDeadline(contestRow, new Date()).at);
+      // Only show it when it's in the FUTURE — a contest can sit in `active` after
+      // its endDate passed (status not yet advanced), and stating a past "deadline
+      // is …" to a new registrant is worse than omitting it (the template then
+      // reads "we'll send you reminders as the deadline approaches").
+      const nd = nextContestDeadline(contestRow, new Date());
+      const deadline = nd.at.getTime() > Date.now() ? formatDeadlineUtc(nd.at) : '';
       // Render the block body (if any) to email-safe HTML with this recipient's tokens.
       const copy = buildContestEmailCopyOverride(copyField, {
         tokens: { username: target.username, contestTitle: contestRow.title, deadline, contestUrl },

@@ -49,8 +49,9 @@ export default defineEventHandler(async (event): Promise<{ sent: true; to: strin
   const siteName = config.instance.name || 'CommonPub';
   const origin = getRequestURL(event).origin;
   const contestUrl = `${origin}/contests/${contest.slug}`;
-  // Stage-aware deadline (next upcoming stage), matching the real send.
-  const deadline = formatDeadlineUtc(nextContestDeadline(contest, new Date()).at);
+  // Stage-aware deadline (next upcoming stage), matching the real send; future-only.
+  const nd = nextContestDeadline(contest, new Date());
+  const deadline = nd.at.getTime() > Date.now() ? formatDeadlineUtc(nd.at) : '';
   const branding = await getEmailBranding(db);
   const unsub = `${origin}/unsubscribe`;
   const tokens = {

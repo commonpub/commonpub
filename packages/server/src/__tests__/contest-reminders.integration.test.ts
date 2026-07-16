@@ -217,4 +217,23 @@ describe('sweepContestReminders', () => {
     expect(m!.html).toContain(formatDeadlineUtc(proposalDue)); // the proposal date…
     expect(m!.html).not.toContain(formatDeadlineUtc(finalEnd)); // …not the final date
   });
+
+  it('does NOT re-fire a milestone already sent under the legacy un-scoped key (deploy transition)', async () => {
+    const now = new Date('2026-06-01T00:00:00Z');
+    const stageDue = new Date(now.getTime() + 6 * DAY);
+    const contestId = await makeContest(db, organizerId, new Date(now.getTime() + 60 * DAY));
+    await db.update(contests).set({
+      stages: [{ id: 'stg-1', name: 'Proposal', kind: 'submission', endsAt: stageDue.toISOString() }],
+    }).where(eq(contests.id, contestId));
+    await register(db, contestId, verifiedId);
+    // Simulate a pre-session-240 send: the old sweep already claimed the UN-scoped
+    // 'deadline_T7d' key for this (contest, user).
+    await db.insert(contestReminderSends).values({ contestId, userId: verifiedId, milestone: 'deadline_T7d' });
+
+    // The new stage-scoped sweep would use 'stg-1:deadline_T7d' (a new key), but the
+    // legacy guard treats the prior un-scoped send as already delivered → no re-fire.
+    const res = await sweepContestReminders(db, cfg(), { ...CTX, now });
+    expect(res.enqueued).toBe(0);
+    expect(await db.select().from(emailOutbox)).toHaveLength(0);
+  });
 });

@@ -147,8 +147,13 @@ export const emailTemplates = {
         ? escapedParagraphsWithTokens(copy.intro, tokens)
         : `<h2 style="color:#fff;margin:0 0 16px;">Hi ${safeUsername},</h2>
         <p>You are now registered for <strong>${safeTitle}</strong>.</p>`;
-    const leadText = copy?.bodyText
-      ? copy.bodyText
+    // Gate BOTH the leadText fallback and the text deadline line on `bodyHtml`
+    // (the "organizer authored a block body" signal), matching the HTML gate — a
+    // body of only non-text blocks (image w/o alt, divider) yields bodyHtml but no
+    // bodyText, and keying the text part off bodyText would make the two MIME parts
+    // disagree (text re-adds the deadline + a system-default lead the organizer never wrote).
+    const leadText = copy?.bodyHtml
+      ? (copy.bodyText ?? '')
       : copy?.intro ? interpolateTokens(copy.intro, tokens) : `You are registered for ${contest.title}.`;
     return {
       to: '' as const,
@@ -158,7 +163,7 @@ export const emailTemplates = {
         ${deadlineLine}
         ${button('View the contest', safeUrl, branding)}
       `, { unsubscribeUrl: safeUnsub, branding }),
-      text: `${leadText}${!copy?.bodyText && contest.deadline ? ` The submission deadline is ${contest.deadline}.` : ''}\n${contest.url}`,
+      text: `${leadText}${!copy?.bodyHtml && contest.deadline ? ` The submission deadline is ${contest.deadline}.` : ''}\n${contest.url}`,
     };
   },
 
@@ -201,8 +206,10 @@ export const emailTemplates = {
         ? escapedParagraphsWithTokens(copy.intro, tokens)
         : `<h2 style="color:#fff;margin:0 0 16px;">Hi ${safeUsername},</h2>
         <p>The submission deadline for <strong>${safeTitle}</strong> is in about <strong>${safeRemaining}</strong>.</p>`;
-    const leadText = copy?.bodyText
-      ? copy.bodyText
+    // Gate leadText on bodyHtml (matching the HTML gate) so a text-less authored
+    // body doesn't fall back to the system default lead in the plaintext part.
+    const leadText = copy?.bodyHtml
+      ? (copy.bodyText ?? '')
       : copy?.intro
         ? interpolateTokens(copy.intro, tokens)
         : `${contest.timeRemaining} left to submit for ${contest.title}.`;
@@ -214,7 +221,7 @@ export const emailTemplates = {
         ${closeLine}
         ${button('Go to the contest', safeUrl, branding)}
       `, { unsubscribeUrl: safeUnsub, branding }),
-      text: `${leadText}${copy?.bodyText ? '' : ` Submissions close on ${contest.deadline}.`}\n${contest.url}`,
+      text: `${leadText}${copy?.bodyHtml ? '' : ` Submissions close on ${contest.deadline}.`}\n${contest.url}`,
     };
   },
 

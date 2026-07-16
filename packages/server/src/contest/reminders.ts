@@ -2,7 +2,7 @@ import { and, gte, inArray, sql } from 'drizzle-orm';
 import { contests } from '@commonpub/schema';
 import type { CommonPubConfig } from '@commonpub/config';
 import type { DB } from '../types.js';
-import { nextContestDeadline, isContestOwnDeadline } from './stages.js';
+import { nextContestDeadline } from './stages.js';
 import { emailTemplates } from '../email.js';
 import { enqueueEmails } from '../comms/outbox.js';
 import type { OutboxMessage } from '../comms/outbox.js';
@@ -105,24 +105,23 @@ export async function sweepContestReminders(
   }
 
   const now = ctx.now ?? new Date();
-  const horizon = new Date(now.getTime() + MAX_LEAD_MS);
+  const byUrgency = [...CONTEST_REMINDER_MILESTONES].reverse();
 
-  // Contests still live (final deadline not yet past). We can't SQL-filter on a
-  // per-stage `endsAt` (it lives in the `stages` jsonb), so we take the live set
-  // and resolve each contest's NEXT upcoming submission deadline in JS below,
-  // keeping only those whose next deadline is inside the widest lead window.
-  const live = await db
+  // Phase 1 — LIGHT load: only the columns nextContestDeadline needs, for every
+  // live contest (final deadline not yet past). We can't SQL-filter on a per-stage
+  // `endsAt` (it lives in the `stages` jsonb), so we resolve each contest's next
+  // upcoming submission deadline in JS and keep only those inside the widest lead
+  // window. The heavy `emailCopy` (organizer block bodies) is deferred to phase 2
+  // so a far-off contest we immediately skip never loads it.
+  const liveLite = await db
     .select({
       id: contests.id,
-      title: contests.title,
-      slug: contests.slug,
       status: contests.status,
       startDate: contests.startDate,
       endDate: contests.endDate,
       judgingEndDate: contests.judgingEndDate,
       stages: contests.stages,
       currentStageId: contests.currentStageId,
-      emailCopy: contests.emailCopy,
     })
     .from(contests)
     .where(and(
@@ -130,42 +129,52 @@ export async function sweepContestReminders(
       gte(contests.endDate, now),
     ));
 
-  if (live.length === 0) return { contests: 0, enqueued: 0 };
+  // Resolve each live contest's stage-aware target (the next upcoming submission
+  // deadline — proposal, then prototype, …, falling back to the final endDate)
+  // and keep only those whose deadline has entered a milestone's lead window.
+  const due = liveLite
+    .map((c) => {
+      const target = nextContestDeadline(c, now);
+      const msLeft = target.at.getTime() - now.getTime();
+      return { id: c.id, target, msLeft };
+    })
+    .filter((d) => d.msLeft > 0 && d.msLeft <= MAX_LEAD_MS)
+    .map((d) => ({ ...d, milestone: byUrgency.find((m) => d.msLeft <= m.leadMs) }))
+    .filter((d): d is typeof d & { milestone: (typeof byUrgency)[number] } => !!d.milestone);
+
+  if (due.length === 0) return { contests: 0, enqueued: 0 };
+
+  // Phase 2 — HEAVY load: title/slug + the organizer emailCopy override, only for
+  // the handful of contests that survived the window filter.
+  const detailRows = await db
+    .select({ id: contests.id, title: contests.title, slug: contests.slug, emailCopy: contests.emailCopy })
+    .from(contests)
+    .where(inArray(contests.id, due.map((d) => d.id)));
+  const detailById = new Map(detailRows.map((r) => [r.id, r]));
 
   const branding = await getEmailBranding(db);
-  // Milestones tightest-first: the FIRST whose window the deadline has entered is
-  // the single most-urgent one to send.
-  const byUrgency = [...CONTEST_REMINDER_MILESTONES].reverse();
   let enqueued = 0;
-  let considered = 0;
 
-  for (const contest of live) {
-    // Stage-aware target: the next upcoming submission-stage deadline (the
-    // proposal, then the prototype, ...), falling back to the contest's final
-    // `endDate`. So a staged contest reminds about the near stage deadline, not
-    // only the far-off final one.
-    const target = nextContestDeadline(contest, now);
-    const msLeft = target.at.getTime() - now.getTime();
-    // Only contests whose next deadline is within the widest lead window.
-    if (msLeft <= 0 || msLeft > MAX_LEAD_MS) continue;
-    considered++;
+  for (const { id, target, msLeft, milestone } of due) {
+    const contest = detailById.get(id);
+    if (!contest) continue;
 
-    // Fire only the SINGLE tightest milestone whose window the deadline has
-    // entered (smallest leadMs with msLeft <= leadMs). Firing every entered
-    // milestone at once would send a BURST to anyone who registered late — or to
-    // a contest whose whole active window is shorter than the widest milestone —
-    // several mails landing together. The per-milestone ledger still guarantees
-    // exactly-once, and the next-tighter milestone fires on a later sweep as the
-    // deadline nears. `timeRemaining` below is the ACTUAL remaining time, never
-    // the milestone's nominal name, so a late fire never states a wrong number.
-    const milestone = byUrgency.find((m) => msLeft <= m.leadMs);
-    if (!milestone) continue; // beyond the widest window (bounded out above; defensive)
-
-    // Per-STAGE exactly-once: scope the ledger key by the stage so each stage
-    // deadline runs its own 7d/48h/24h/1h cycle. A classic/own-deadline contest
-    // keeps the historical UN-scoped key, so widening to stage-aware keys never
-    // re-fires a reminder that already went out under the old key.
-    const milestoneKey = isContestOwnDeadline(target.stageId) ? milestone.key : `${target.stageId}:${milestone.key}`;
+    // Fire the SINGLE tightest milestone whose window the deadline has entered
+    // (chosen above). The per-milestone ledger guarantees exactly-once; the
+    // next-tighter milestone fires on a later sweep. `timeRemaining` is the ACTUAL
+    // time left, never the milestone's nominal name, so a late fire never lies.
+    //
+    // Per-STAGE exactly-once: an EXPLICIT stage deadline gets its own scoped key so
+    // each stage runs its own 7d/48h/24h/1h cycle; a classic/own-deadline contest
+    // keeps the historical UN-scoped key (`isOwnDeadline` is derived from stage
+    // PROVENANCE, not the id string). `legacyGuard` additionally treats a prior
+    // send under the old un-scoped key as already delivered when we're now scoping,
+    // so the un-scoped→scoped transition (e.g. the session-240 deploy) never
+    // re-fires a milestone a registrant already received.
+    const milestoneKey = target.isOwnDeadline ? milestone.key : `${target.stageId}:${milestone.key}`;
+    const legacyGuard = target.isOwnDeadline
+      ? sql``
+      : sql`AND NOT EXISTS (SELECT 1 FROM contest_reminder_sends x WHERE x.contest_id = cr.contest_id AND x.user_id = cr.user_id AND x.milestone = ${milestone.key})`;
 
     const contestUrl = `${ctx.siteUrl}/contests/${contest.slug}`;
     const deadline = formatDeadlineUtc(target.at);
@@ -185,9 +194,10 @@ export async function sweepContestReminders(
         SELECT cr.contest_id, cr.user_id, ${milestoneKey}
         FROM contest_registrations cr
         INNER JOIN users u ON u.id = cr.user_id
-        WHERE cr.contest_id = ${contest.id}
+        WHERE cr.contest_id = ${id}
           ${config.features.emailUnverified ? sql`` : sql`AND u.email_verified = true`}
           AND (u.email_notifications ->> 'unsubscribedAll') IS DISTINCT FROM 'true'
+          ${legacyGuard}
         ON CONFLICT (contest_id, user_id, milestone) DO NOTHING
         RETURNING user_id
       )
@@ -230,5 +240,5 @@ export async function sweepContestReminders(
     enqueued += messages.length;
   }
 
-  return { contests: considered, enqueued };
+  return { contests: due.length, enqueued };
 }

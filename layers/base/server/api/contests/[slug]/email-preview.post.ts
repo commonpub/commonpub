@@ -29,8 +29,10 @@ export default defineEventHandler(async (event): Promise<{ html: string; subject
   const origin = getRequestURL(event).origin;
   const contestUrl = `${origin}/contests/${contest.slug}`;
   // Stage-aware: preview the NEXT upcoming stage deadline (e.g. the proposal),
-  // matching what the real send resolves, so a staged contest previews correctly.
-  const deadline = formatDeadlineUtc(nextContestDeadline(contest, new Date()).at);
+  // matching what the real send resolves; only when it's still in the future
+  // (a past deadline is omitted, mirroring the live send).
+  const nd = nextContestDeadline(contest, new Date());
+  const deadline = nd.at.getTime() > Date.now() ? formatDeadlineUtc(nd.at) : '';
   const branding = await getEmailBranding(db);
   // A placeholder unsubscribe href keeps the system chrome visible in the preview.
   const sampleUnsub = `${origin}/unsubscribe`;

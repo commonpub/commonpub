@@ -28,7 +28,6 @@ export {
   currentStage,
   isEliminated,
   nextContestDeadline,
-  isContestOwnDeadline,
 } from './stages.js';
 export type { NextContestDeadline } from './stages.js';
 

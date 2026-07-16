@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { synthesizeStages, normalizeStages, currentStage, nextContestDeadline, isContestOwnDeadline } from '../contest/index.js';
+import { synthesizeStages, normalizeStages, currentStage, nextContestDeadline } from '../contest/index.js';
 import type { ContestStage } from '@commonpub/schema';
 
 // Pure helpers — no DB. Phase B1 stage-timeline derivation + back-compat.
@@ -86,7 +86,7 @@ describe('nextContestDeadline', () => {
     // Synthesized submission stage carries endsAt = endDate.
     expect(d.at.toISOString()).toBe('2026-08-01T00:00:00.000Z');
     expect(d.stageId).toBe('core-submission');
-    expect(isContestOwnDeadline(d.stageId)).toBe(true); // keeps the historical ledger key
+    expect(d.isOwnDeadline).toBe(true); // keeps the historical ledger key
   });
 
   it('returns the EARLIEST upcoming submission/interim stage deadline (the proposal), not the final', () => {
@@ -98,7 +98,18 @@ describe('nextContestDeadline', () => {
     const d = nextContestDeadline({ ...base, endDate: new Date('2026-11-08T16:00:00.000Z'), stages }, now);
     expect(d.at.toISOString()).toBe('2026-07-01T00:00:00.000Z');
     expect(d.stageId).toBe('proposal');
-    expect(isContestOwnDeadline(d.stageId)).toBe(false); // an explicit stage → stage-scoped ledger key
+    expect(d.isOwnDeadline).toBe(false); // an explicit stage → stage-scoped ledger key
+  });
+
+  it('marks an explicit stage id of "final" as NOT own-deadline (provenance, not the id string)', () => {
+    // A user stage literally named/id'd 'final' must still get a scoped key — the
+    // own-deadline flag is derived from whether explicit stages exist, not the id.
+    const stages: ContestStage[] = [
+      { id: 'final', name: 'Final', kind: 'submission', endsAt: '2026-07-01T00:00:00.000Z' },
+    ];
+    const d = nextContestDeadline({ ...base, endDate: new Date('2026-11-08T00:00:00.000Z'), stages }, now);
+    expect(d.stageId).toBe('final');
+    expect(d.isOwnDeadline).toBe(false); // explicit stage → scoped, no collision with the endDate fallback
   });
 
   it('advances to the next stage deadline once an earlier one has passed', () => {
@@ -126,6 +137,6 @@ describe('nextContestDeadline', () => {
     const d = nextContestDeadline({ ...base, endDate: new Date('2026-10-01T00:00:00.000Z'), stages }, now);
     expect(d.stageId).toBe('final');
     expect(d.at.toISOString()).toBe('2026-10-01T00:00:00.000Z');
-    expect(isContestOwnDeadline(d.stageId)).toBe(true);
+    expect(d.isOwnDeadline).toBe(true);
   });
 });
