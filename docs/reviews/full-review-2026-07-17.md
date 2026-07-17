@@ -317,3 +317,20 @@ no legit-flow regression). It found real gaps in the session's own work, all now
 **Still open (product decision):** §2b(ii) federated-content storage policy (subscribed-only vs open discovery).
 Remaining register items #2/#3 SSO now DONE; the rest of the P2/P3 batch (#4 fork-hidden, #5 ordered-list
 data-loss, #6 reminder-drop, #7 build-mark race, #12 roleGuard fail-open, …) remain for a future session.
+
+---
+
+## Update 2026-07-17 (3) — P2/P3 register batches ROLLED
+
+Two more audited batches shipped + verified live on all 3:
+- **Batch A** (`editor 0.12.0` / `server 2.115.0` / `layer 0.106.4`): #4 fork-hidden, #5 ordered-list
+  data-loss (+ one-per-line), #6 reminder claim+enqueue transaction, #7 build-mark race, #10 storage-key.
+  The audit caught a **regression in #6** (per-contest tx with no try/catch → a deterministic failure would
+  re-throw every tick and starve all later contests) — fixed with per-contest isolation before roll.
+- **Batch B** (`protocol 0.15.0` / `auth 0.11.0` / `editor 0.13.0` / `server 2.116.0` / `layer 0.106.5`):
+  #9 HTTP-sig query-string, #16 digest case-insensitive, #15 SVG-href, #12 roleGuard fail-closed,
+  #23 Callout/Quote sanitize-on-read, #21 broadcast excludes suspended/deleted. **Audit clean** (0/0).
+
+**Register status:** #1,#4,#5,#6,#7,#9,#10,#12,#15,#16,#21,#23 DONE + the federation hardening (onCreate/
+§2c/§2e/§2b/backfill) + SSO #2/#3. **Remaining:** #11 (Undo-Like), #22 (comment parentId), #24 (editor
+table block), #19/#20 (schema-FK, need migration), build-script gaps. **§2b(ii)** = open product decision.

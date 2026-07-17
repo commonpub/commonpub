@@ -7,11 +7,11 @@ batch) + remediation. Everything below was verified live on all 3 instances.
 ## Where things stand (verified 2026-07-17)
 
 **Published + LIVE on commonpub.io / deveco.io / heatsynclabs.io** (all health ok, 37 flags, migration 0042):
-- `@commonpub/server` **2.115.0**, `@commonpub/layer` **0.106.4**, `@commonpub/editor` **0.12.0**
-  (this session's rolls; earlier steps went through server 2.114.0→.1, layer 0.106.1→.3).
-- Unchanged this session: schema 0.59 / config 0.33 / protocol 0.14 / auth 0.10 / ui 0.13.2 /
-  infra 0.17 / docs 0.6.3 / explainer 0.8 / learning 0.5.2 / theme-studio 0.6.1 / test-utils 0.5.13.
-  CLI create-commonpub 0.5.29.
+- `@commonpub/server` **2.116.0**, `@commonpub/layer` **0.106.5**, `@commonpub/editor` **0.13.0**,
+  `@commonpub/protocol` **0.15.0**, `@commonpub/auth` **0.11.0** (this session's rolls; the chain went
+  server 2.113→2.116, layer 0.106.0→.5, editor 0.11→.13, protocol 0.14→.15, auth 0.10→.11).
+- Unchanged this session: schema 0.59 / config 0.33 / ui 0.13.2 / infra 0.17 / docs 0.6.3 /
+  explainer 0.8 / learning 0.5.2 / theme-studio 0.6.1 / test-utils 0.5.13. CLI create-commonpub 0.5.29.
 - All repos (commonpub + both forks) clean + pushed.
 
 ## What shipped this session
@@ -69,14 +69,15 @@ Full docs: `docs/reference/codebase-analysis.md` (canonical inventory/architectu
   closes the open-storage flood; stops open discovery; breaks ~4 tests' current contract) vs *open*
   (current + the now-working per-mirror cap + a future retention job). Not a bug — a behavior choice.
 
+**DONE this session** (register #): #1 contest overflow, #4 fork-hidden, #5 ordered-list, #6 reminder-tx,
+#7 build-mark race, #9 sig query-string, #10 storage-key, #12 roleGuard fail-open, #15 SVG-href,
+#16 digest case, #21 broadcast suspended, #23 Callout/Quote sanitize — plus the federation hardening
+(onCreate/§2c/§2e/§2b cap/backfill binding) and SSO actor-host binding (#2/#3).
+
 **Remaining review-register items (documented, not yet done):**
-- P2: #3 federated-SSO callback (now covered by the shared exchange binding — **verify + close**).
-- P3 batch: #11 Undo(Like) decrement without a prior-Like check (needs the like-model); #12 `roleGuard`
-  fail-open on unknown role (auth); #9 HTTP-sig `(request-target)` drops query string (protocol —
-  breaks paginated authorized-fetch backfill); #15 SVG-data-URI in `<a href>` (protocol); #16 digest
-  case-sensitive (protocol); #21 broadcast audience includes suspended/soft-deleted; #22 `createComment`
-  parentId cross-target; #23 Callout/Quote editors seed unsanitized innerHTML; #24 parser emits
-  unregistered `table` block; #19/#20 self-FK / conversations FK (need MIGRATIONS — higher risk).
+- P3: #11 Undo(Like) decrement without a prior-Like check (server — needs the like-model); #22
+  `createComment` parentId cross-target (server); #24 parser emits an unregistered `table` block (editor —
+  add a tableContentSchema + register); #19/#20 self-FK / conversations FK (schema — need MIGRATIONS, higher risk).
 - Build-pipeline: add `typecheck`+`lint` to `layers/base`; `lint` to `packages/infra`.
 - Deferred P3: backfill cumulative mirror-cap (per-run bounded already); mirroring.ts soft-cap is
   non-atomic (bounded overshoot — fold into UPDATE if a hard cap is ever needed).
@@ -85,6 +86,12 @@ Full docs: `docs/reference/codebase-analysis.md` (canonical inventory/architectu
 
 ## Next
 1. Get the operator's call on **§2b(ii)**.
-2. Close the remaining register P2/P3s in package-grouped batches (protocol #9/#15/#16 together; auth #12;
-   editor #23/#24) — each: fix → full suite → adversarial audit → roll (server/editor/layer exact-pin path).
+2. Close the last register P3s (#11 Undo-Like, #22 comment-parentId, #24 editor table block) and the
+   schema-FK #19/#20 (needs a migration) — each: fix → full suite → adversarial audit → roll (exact-pin chain).
 3. Wire the two missing build scripts (layer typecheck/lint, infra lint) to shrink the CI blind spot.
+
+## Proven working loop (this session)
+fix → full package suite + typecheck → **adversarial audit workflow** (per-fix skeptics, default-refute) →
+apply audit findings → roll the exact-pin chain (leaves → server → layer, patch-bump forks to bust Docker
+cache) → background deploy-wait + `/api/health`. The audit caught a real regression in 3 of 5 batches
+(§2b cap no-op, backfill P1 bypass, reminder poison-pill) that green unit tests missed — do not skip it.
