@@ -14,7 +14,7 @@
  */
 import type { Redis, RedisOptions } from 'ioredis';
 
-export interface RedisClient extends Redis {}
+export type RedisClient = Redis;
 
 type IORedisCtor = new (url: string, options?: RedisOptions) => Redis;
 

@@ -61,6 +61,7 @@
     "prepublishOnly": "pnpm run build",
     "dev": "tsc --watch",
     "typecheck": "tsc --noEmit",
+    "lint": "eslint src/",
     "clean": "rm -rf dist",
     "test": "vitest run"
   },

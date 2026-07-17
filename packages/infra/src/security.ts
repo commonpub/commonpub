@@ -169,6 +169,7 @@ export class MemoryRateLimitStore implements RateLimitStore {
  * above) and the value namespace (this const) — identical to how `Error`,
  * `Map`, etc. are both types and constructors.
  */
+// eslint-disable-next-line no-redeclare -- intentional type+value dual namespace (see doc above)
 export const RateLimitStore: new () => RateLimitStore = MemoryRateLimitStore;
 
 /** Default rate limit tiers by route prefix */

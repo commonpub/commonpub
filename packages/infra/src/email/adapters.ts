@@ -29,7 +29,6 @@ export class SmtpEmailAdapter implements EmailAdapter {
 
   async send(message: EmailMessage): Promise<void> {
     // Dynamic import to keep nodemailer optional
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
     let nodemailer: Record<string, unknown>;
     try {
       nodemailer = await (Function('return import("nodemailer")')() as Promise<Record<string, unknown>>);
