@@ -102,6 +102,23 @@ describe('inbox handler edge cases', () => {
       expect(matches.length).toBe(1);
     });
 
+    it('rejects a Create whose object.id host differs from the actor host (attribution forgery)', async () => {
+      // Alice (remote.example.com) POSTs a signed Create squatting a THIRD party's
+      // URI (victim.example.com). Without host binding this injects forged content
+      // under victim's objectUri/originDomain; the guard must drop it.
+      const forgedUri = 'https://victim.example.com/u/x/blog/forged';
+      await handlers.onCreate(REMOTE_ALICE, {
+        type: 'Article',
+        id: forgedUri,
+        name: 'Forged',
+        content: '<p>injected under a foreign domain</p>',
+        attributedTo: 'https://victim.example.com/users/victim',
+      });
+
+      const { items } = await listFederatedTimeline(db);
+      expect(items.find(i => i.objectUri === forgedUri)).toBeUndefined();
+    });
+
     it('sanitizes dangerous HTML in content', async () => {
       await handlers.onCreate(REMOTE_BOB, {
         type: 'Article',

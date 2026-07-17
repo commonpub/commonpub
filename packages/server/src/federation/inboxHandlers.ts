@@ -585,6 +585,43 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
         }
       }
 
+      // Attribution binding (federation-hardening): a Create must originate from
+      // the authenticated actor's OWN host. assertActorMatchesSigner binds the
+      // top-level activity.actor to the HTTP signer, but the inner object.id host
+      // is otherwise unchecked — so a signed peer could POST a Create whose
+      // object.id points at a THIRD party's domain, injecting forged content into
+      // that domain's mirror feed and squatting its objectUri (Update/Delete both
+      // require an actorUri match, so the real owner could never correct it).
+      // Require object.id's host to equal the actor's host; log-and-skip on
+      // mismatch. Cross-instance re-broadcast must use Announce, not a raw Create
+      // with a foreign object.id. (Malformed URIs fall through — assertActorMatchesSigner
+      // and downstream null-handling already cover those.)
+      if (objectUri) {
+        let attributionMismatch = false;
+        try {
+          attributionMismatch = new URL(objectUri).hostname !== new URL(actorUri).hostname;
+        } catch {
+          // Unparseable actor/object URI — don't block; downstream null-handling covers it.
+          attributionMismatch = false;
+        }
+        if (attributionMismatch) {
+          console.warn(`[inbox] Rejected Create: object.id host of "${objectUri}" != actor host of "${actorUri}" (attribution forgery)`);
+          // Best-effort audit row — its own try/catch so a log failure can NEVER
+          // fall through and let the forged content be stored below.
+          try {
+            await db.insert(activities).values({
+              type: 'Create',
+              actorUri,
+              objectUri,
+              payload: { type: 'Create', actor: actorUri, object },
+              direction: 'inbound',
+              status: 'processed',
+            });
+          } catch { /* audit log is best-effort */ }
+          return;
+        }
+      }
+
       // Hub context: remote member posting to a local hub
       if (opts.hubContext && objectType === 'Note') {
         const inReplyTo = typeof object.inReplyTo === 'string' ? object.inReplyTo : null;
@@ -726,7 +763,7 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
       // Extract sender domain from actorUri for re-broadcast matching
       let senderDomain: string | undefined;
       try { senderDomain = new URL(actorUri).hostname; } catch { /* ignore */ }
-      const mirrorId = await matchMirrorForContent(db, originDomain, objectType, cpubType, tags, senderDomain);
+      const mirrorId = await matchMirrorForContent(db, originDomain, objectType, cpubType, tags, senderDomain, opts.federationConfig?.mirrorMaxItems);
 
       // Upsert federated content (objectUri is unique — prevents duplicates)
       // Handle URI migration: if the same actor has content with a different URI but same slug,
@@ -1388,6 +1425,22 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
                   noteActorUri = typeof first === 'string' ? first : ((first as Record<string, unknown>).id as string) ?? actorUri;
                 }
 
+                // Same-origin author authority (federation-hardening): the note's
+                // claimed author must live on the SAME host that actually served the
+                // note. A trusted hub may relay (Announce) posts from ANY instance —
+                // so we bind to the note's ORIGIN host, not the announcing hub's — but
+                // it cannot vouch for an author on a host it does not control. Without
+                // this, a mirrored/compromised hub could serve a Note with
+                // attributedTo = any third-party actor and get it ingested + displayed
+                // as that victim's hub post (the attribution forgery the raw-Create
+                // path already rejects). Skip ingest (and the author fetch) on mismatch.
+                let sameOriginAuthor = false;
+                try {
+                  sameOriginAuthor = new URL(noteActorUri).hostname === new URL(objectUri).hostname;
+                } catch { sameOriginAuthor = false; }
+                if (!sameOriginAuthor) {
+                  console.warn(`[inbox] Skipped Announce ingest: note author host of "${noteActorUri}" != note origin host of "${objectUri}" (attribution forgery)`);
+                } else {
                 // Resolve the post author
                 await resolveRemoteActor(db, noteActorUri);
 
@@ -1427,6 +1480,7 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
                   publishedAt: parseApDate(note.published) ?? undefined,
                   sharedContentMeta,
                 });
+                } // end same-origin author guard
               }
               } // end else (not self-announce)
             }

@@ -127,6 +127,19 @@ describe('instance mirroring integration', () => {
       expect(mirrorId).toBeNull();
     });
 
+    it('enforces the mirrorMaxItems soft cap (§2b)', async () => {
+      const capped = await createMirror(db, 'capped.example.com', 'https://capped.example.com/actor', 'pull', DOMAIN);
+      // Simulate the mirror having already accepted 5 items.
+      await db.update(instanceMirrors).set({ contentCount: 5 }).where(eq(instanceMirrors.id, capped.id));
+
+      // At/over the cap → reject (do not accept or increment).
+      expect(await matchMirrorForContent(db, 'capped.example.com', 'Article', 'blog', [], undefined, 5)).toBeNull();
+      // Under the cap → accept.
+      expect(await matchMirrorForContent(db, 'capped.example.com', 'Article', 'blog', [], undefined, 10)).not.toBeNull();
+      // No cap configured → accept (back-compat).
+      expect(await matchMirrorForContent(db, 'capped.example.com', 'Article', 'blog', [], undefined, undefined)).not.toBeNull();
+    });
+
     it('returns null for unknown domain', async () => {
       const mirrorId = await matchMirrorForContent(
         db,

@@ -486,6 +486,9 @@ export async function matchMirrorForContent(
   tags: Array<{ name: string }>,
   /** Domain of the actor who sent the activity (may differ from originDomain for re-broadcasts) */
   senderDomain?: string,
+  /** Soft per-mirror item cap (from federation config). When the mirror has already
+   *  accepted this many items, new content is rejected to bound DB growth. */
+  mirrorMaxItems?: number,
 ): Promise<string | null> {
   // Find active mirror for this origin domain
   let [mirror] = await db
@@ -534,10 +537,13 @@ export async function matchMirrorForContent(
     if (!hasMatchingTag) return null;
   }
 
-  // Apply quota — skip if mirror has already hit the configured max
-  // mirrorMaxItems is passed from federation config (not stored per-mirror)
-  // This is a soft limit — already-accepted content stays, new content is rejected
-  // The quota check uses the mirror's contentCount which is updated on each accept
+  // Apply quota — reject (don't accept/increment) once the mirror has hit the
+  // configured soft cap. mirrorMaxItems comes from federation config (not stored
+  // per-mirror); already-accepted content stays, only new content is refused. This
+  // bounds unbounded DB growth from a high-volume (or hostile) mirrored domain.
+  if (mirrorMaxItems != null && mirrorMaxItems > 0 && (mirror.contentCount ?? 0) >= mirrorMaxItems) {
+    return null;
+  }
 
   // Update mirror stats
   await db

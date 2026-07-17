@@ -1,4 +1,4 @@
-import { listFederatedHubPosts } from '@commonpub/server';
+import { getFederatedHub, listFederatedHubPosts } from '@commonpub/server';
 
 export default defineEventHandler(async (event) => {
   requireFeature('federation');
@@ -7,6 +7,13 @@ export default defineEventHandler(async (event) => {
   const db = useDB();
   const { id } = parseParams(event, { id: 'uuid' });
   const query = getQuery(event);
+
+  // Gate child content on parent-hub visibility: a hidden/unfollowed hub
+  // (getFederatedHub filters isHidden=false) must not keep serving its posts.
+  const hub = await getFederatedHub(db, id);
+  if (!hub) {
+    throw createError({ statusCode: 404, statusMessage: 'Federated hub not found' });
+  }
 
   return listFederatedHubPosts(db, id, {
     limit: query.limit ? Number(query.limit) : undefined,
