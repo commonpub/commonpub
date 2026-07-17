@@ -334,6 +334,28 @@
   text-align: left;
 }
 
+/* ── Remote-HTML overflow containment ──
+   `.cpub-prose` also renders arbitrary REMOTE author HTML on some surfaces (e.g. the
+   federated hub post page renders `v-html=sanitizeBlockHtml(post.content)`). A wide
+   remote <table>/<pre> there must scroll inside itself instead of forcing a sideways
+   PAGE scroll on mobile. But `.cpub-prose` is ALSO the shared class for LOCAL
+   editor-authored article/blog/lesson prose, where display:block+nowrap would wrongly
+   stop long-text cells wrapping and add desktop horizontal scroll. So gate the
+   containment behind an opt-in `.cpub-html-contain` marker applied only on remote
+   surfaces — never on local editor prose. Defined AFTER the base table rule so it wins
+   on the specificity tie. */
+.cpub-html-contain pre { overflow-x: auto; max-width: 100%; }
+.cpub-html-contain table { display: block; max-width: 100%; overflow-x: auto; }
+.cpub-html-contain table th,
+.cpub-html-contain table td { white-space: nowrap; }
+.cpub-html-contain img,
+.cpub-html-contain iframe,
+.cpub-html-contain video,
+.cpub-html-contain embed,
+.cpub-html-contain object,
+.cpub-html-contain canvas,
+.cpub-html-contain svg { max-width: 100%; }
+
 .cpub-prose th {
   background: var(--surface2);
   font-family: var(--font-mono);

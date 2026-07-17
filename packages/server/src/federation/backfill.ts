@@ -69,6 +69,15 @@ export interface BackfillOptions {
   since?: Date;
   /** Mirror ID — if provided, saves cursor for resume and checks quota */
   mirrorId?: string;
+  /**
+   * Federation config forwarded to the inbox handlers so the per-mirror
+   * `mirrorMaxItems` soft cap (enforced in matchMirrorForContent) applies to
+   * crawled items. Without this, backfilled Creates bypass the cap the live
+   * inbox enforces, letting a crawl overshoot the operator's ceiling.
+   */
+  federationConfig?: {
+    mirrorMaxItems?: number;
+  };
 }
 
 /** Best-effort publish timestamp (ms) of an AP activity, top-level `published` or `object.published`. */
@@ -134,7 +143,7 @@ export async function backfillFromOutbox(
     startUrl = actor.outbox;
   }
 
-  const handlers = createInboxHandlers({ db, domain });
+  const handlers = createInboxHandlers({ db, domain, federationConfig: opts.federationConfig });
   let nextPage: string | null = startUrl;
 
   // Attribution binding for the crawl path: unlike the live inbox (where

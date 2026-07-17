@@ -347,6 +347,22 @@ export async function createComment(
     throw new Error('You do not have access to comment on this target');
   }
 
+  // A reply must attach to a parent on the SAME target. Without this, a caller could
+  // pass a parentId belonging to a different target: the reply is invisible in that
+  // target's threading (the tree only links same-map parents) yet still increments the
+  // target's comment count, so displayed replies < counted replies. Require the parent
+  // to exist and match this target before insert.
+  if (input.parentId) {
+    const [parent] = await db
+      .select({ targetType: comments.targetType, targetId: comments.targetId })
+      .from(comments)
+      .where(eq(comments.id, input.parentId))
+      .limit(1);
+    if (!parent || parent.targetType !== input.targetType || parent.targetId !== input.targetId) {
+      throw new Error('Parent comment does not belong to this target');
+    }
+  }
+
   const [row] = await db
     .insert(comments)
     .values({

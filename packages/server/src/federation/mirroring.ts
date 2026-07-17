@@ -221,6 +221,8 @@ export async function approveMirrorRequest(
     maxItems?: number;
     filterContentTypes?: string[] | null;
     filterTags?: string[] | null;
+    /** Per-mirror soft cap forwarded to backfill so approval-time crawls honor the ceiling. */
+    mirrorMaxItems?: number;
   },
 ): Promise<MirrorRequestConfig> {
   const [req] = await db.select().from(mirrorRequests).where(eq(mirrorRequests.id, requestId)).limit(1);
@@ -301,6 +303,7 @@ export async function approveMirrorRequest(
       await backfillFromOutbox(db, req.remoteActorUri, localDomain, {
         maxItems: opts.maxItems,
         since,
+        ...(opts.mirrorMaxItems != null ? { federationConfig: { mirrorMaxItems: opts.mirrorMaxItems } } : {}),
       });
     } catch (err) {
       console.error('[mirroring] approve backfill failed:', err instanceof Error ? err.message : err);

@@ -289,4 +289,52 @@ describe('processInboxActivity', () => {
     expect(result.success).toBe(false);
     expect(result.error).toContain('Missing type or actor');
   });
+
+  describe('actor normalization (attribution-binding hardening)', () => {
+    it('normalizes an object-form actor to its string id before dispatch', async () => {
+      // Regression: a raw object actor used to reach handlers verbatim, so host-binding
+      // guards doing `new URL(actor)` threw and failed OPEN, letting a signed peer squat
+      // a third party's object.id. The handler must receive the plain string id.
+      const cbs = createMockCallbacks();
+      const result = await processInboxActivity(
+        {
+          type: 'Create',
+          actor: { id: 'https://evil.com/actor', type: 'Person' },
+          object: { id: 'https://victim.com/u/alice/blog/target', type: 'Article' },
+        },
+        cbs,
+      );
+      expect(result.success).toBe(true);
+      expect(cbs.onCreate).toHaveBeenCalledWith(
+        'https://evil.com/actor',
+        expect.objectContaining({ id: 'https://victim.com/u/alice/blog/target' }),
+      );
+    });
+
+    it('rejects an array-form actor (unbindable to a single signer)', async () => {
+      const cbs = createMockCallbacks();
+      const result = await processInboxActivity(
+        {
+          type: 'Create',
+          actor: ['https://a.com/actor', 'https://b.com/actor'],
+          object: { id: 'https://a.com/note/1', type: 'Note' },
+        },
+        cbs,
+      );
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Missing type or actor');
+      expect(cbs.onCreate).not.toHaveBeenCalled();
+    });
+
+    it('rejects an object-form actor with a non-string id', async () => {
+      const cbs = createMockCallbacks();
+      const result = await processInboxActivity(
+        { type: 'Like', actor: { id: { nested: true } }, object: 'https://a.com/note/1' },
+        cbs,
+      );
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Missing type or actor');
+      expect(cbs.onLike).not.toHaveBeenCalled();
+    });
+  });
 });

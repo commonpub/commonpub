@@ -390,6 +390,36 @@ describe('inbox handler edge cases', () => {
       expect(row!.likeCount).toBe(1);
       expect(row!.remoteLikeCount).toBe(1);
     });
+
+    // Session 242 audit: an Undo(Like) from an actor who never Liked must NOT decrement.
+    // Without the prior-Like gate, a remote peer could Undo(Like) content it never liked
+    // (with distinct activity ids to dodge replay dedup) and walk another user's counters
+    // to the GREATEST floor, zeroing legitimate likes.
+    it('Undo(Like) with no prior Like from the actor does not decrement counters', async () => {
+      const [content] = await db
+        .insert(contentItems)
+        .values({ authorId: localUserId, type: 'blog', title: 'Genuinely liked', slug: 'genuine-like', status: 'published' })
+        .returning();
+      const uri = `https://${LOCAL_DOMAIN}/content/${content!.id}`;
+
+      // Alice genuinely likes it → counters at 1.
+      await handlers.onLike(REMOTE_ALICE, uri);
+      let [row] = await db.select().from(contentItems).where(eq(contentItems.id, content!.id));
+      expect(row!.likeCount).toBe(1);
+      expect(row!.remoteLikeCount).toBe(1);
+
+      // Bob (who never liked) sends Undo(Like) → must be a no-op, not a decrement.
+      await handlers.onUndo(REMOTE_BOB, 'Like', uri);
+      [row] = await db.select().from(contentItems).where(eq(contentItems.id, content!.id));
+      expect(row!.likeCount).toBe(1);
+      expect(row!.remoteLikeCount).toBe(1);
+
+      // Alice's real Undo still works.
+      await handlers.onUndo(REMOTE_ALICE, 'Like', uri);
+      [row] = await db.select().from(contentItems).where(eq(contentItems.id, content!.id));
+      expect(row!.likeCount).toBe(0);
+      expect(row!.remoteLikeCount).toBe(0);
+    });
   });
 
   // --- onFollow with auto-accept ---

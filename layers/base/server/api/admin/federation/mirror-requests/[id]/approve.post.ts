@@ -16,5 +16,9 @@ export default defineEventHandler(async (event) => {
   const body = await parseBody(event, approveMirrorRequestSchema.optional()).catch(() => ({}));
   const config = useConfig();
 
-  return approveMirrorRequest(useDB(), id, config.instance.domain, body ?? {});
+  return approveMirrorRequest(useDB(), id, config.instance.domain, {
+    ...(body ?? {}),
+    // Forward the per-mirror cap so an approval-time backfill honors the operator ceiling.
+    ...(config.federation?.mirrorMaxItems != null ? { mirrorMaxItems: config.federation.mirrorMaxItems } : {}),
+  });
 });

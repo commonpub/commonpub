@@ -18,6 +18,15 @@ function bStr(block: BlockTuple, key: string): string {
 function bNum(block: BlockTuple, key: string): number {
   return Number((block[1] as Record<string, unknown>)[key]) || 0;
 }
+/** Table preview accessors — the `table` block stores { header: string[], rows: string[][] }. */
+function bHeader(block: BlockTuple): string[] {
+  const h = (block[1] as Record<string, unknown>).header;
+  return Array.isArray(h) ? h.map((c) => String(c ?? '')) : [];
+}
+function bRows(block: BlockTuple): string[][] {
+  const r = (block[1] as Record<string, unknown>).rows;
+  return Array.isArray(r) ? r.map((row) => (Array.isArray(row) ? row.map((c) => String(c ?? '')) : [])) : [];
+}
 
 const viewMode = ref<'edit' | 'split' | 'preview'>('split');
 const source = ref((props.content.source as string) || '');
@@ -109,6 +118,20 @@ onUnmounted(() => {
             </template>
             <template v-else-if="block[0] === 'divider'">
               <hr class="md-preview-hr" />
+            </template>
+            <template v-else-if="block[0] === 'table'">
+              <div class="md-preview-table-wrap">
+                <table class="md-preview-table">
+                  <thead v-if="bHeader(block).length">
+                    <tr><th v-for="(h, hi) in bHeader(block)" :key="hi">{{ h }}</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="(row, ri) in bRows(block)" :key="ri">
+                      <td v-for="(cell, ci) in row" :key="ci">{{ cell }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </template>
             <template v-else>
               <div class="md-preview-unknown">{{ block[0] }} block</div>
@@ -248,6 +271,17 @@ onUnmounted(() => {
   margin-bottom: 8px;
 }
 .md-preview-hr { border: none; border-top: var(--border-width-default) solid var(--border); margin: 12px 0; }
+/* Table preview — scroll wide tables inside the wrap instead of forcing page overflow. */
+.md-preview-table-wrap { max-width: 100%; overflow-x: auto; margin-bottom: 12px; }
+.md-preview-table { border-collapse: collapse; font-size: 13px; }
+.md-preview-table th,
+.md-preview-table td {
+  padding: 4px 8px;
+  border: var(--border-width-thin) solid var(--border2);
+  text-align: left;
+  white-space: nowrap;
+}
+.md-preview-table th { background: var(--surface2); font-weight: var(--font-weight-semibold); }
 .md-preview-unknown {
   padding: 6px 10px;
   background: var(--surface2);

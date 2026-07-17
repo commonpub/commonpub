@@ -53,6 +53,8 @@ export default defineEventHandler(async (event) => {
   const result = await backfillFromOutbox(db, mirror.remoteActorUri, domain, {
     ...(maxItems != null ? { maxItems } : {}),
     ...(since ? { since } : {}),
+    // Forward the per-mirror cap so crawled items honor the same ceiling the live inbox enforces.
+    ...(config.federation ? { federationConfig: { mirrorMaxItems: config.federation.mirrorMaxItems } } : {}),
   });
 
   return {

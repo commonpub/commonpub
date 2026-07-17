@@ -139,7 +139,7 @@ useHead({
 
       <!-- Content is sanitized server-side on ingest AND client-side here (defense-in-depth) -->
       <!-- eslint-disable-next-line vue/no-v-html -->
-      <div class="cpub-post-content cpub-prose" v-html="sanitizeBlockHtml(post.content || '')"></div>
+      <div class="cpub-post-content cpub-prose cpub-html-contain" v-html="sanitizeBlockHtml(post.content || '')"></div>
 
       <div class="cpub-post-meta">
         <div class="cpub-post-author">

@@ -101,7 +101,23 @@ export default defineEventHandler(async (event) => {
   if (existingLink) {
     const session = await createFederatedSession(db, existingLink.userId, ipAddress, userAgent);
     setBetterAuthSessionCookie(event, session.sessionToken, session.expiresAt);
-    return sendRedirect(event, loginState.returnTo ?? '/dashboard', 302);
+    // Only honor a same-origin returnTo. `returnTo` is attacker-suppliable via the /start
+    // query and would otherwise be a post-auth open redirect. Resolve it against a throwaway
+    // origin and keep it only if it stays on that origin — this defeats absolute URLs,
+    // protocol-relative ('//evil'), backslash tricks AND control-char tricks (a browser strips
+    // TAB/LF/CR before parsing, so a naive char-by-char regex is bypassable). We then forward
+    // only pathname+search+hash so no scheme/host can survive.
+    const safeReturnTo = ((rt: unknown): string => {
+      if (typeof rt !== 'string' || !rt) return '/dashboard';
+      try {
+        const u = new URL(rt, 'https://cpub.invalid');
+        if (u.origin !== 'https://cpub.invalid') return '/dashboard';
+        return u.pathname + u.search + u.hash;
+      } catch {
+        return '/dashboard';
+      }
+    })(loginState.returnTo);
+    return sendRedirect(event, safeReturnTo, 302);
   }
 
   // Outcome 2: a user is signed in locally and wants to add this link.

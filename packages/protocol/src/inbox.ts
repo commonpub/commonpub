@@ -31,7 +31,14 @@ export async function processInboxActivity(
   callbacks: InboxCallbacks,
 ): Promise<InboxResult> {
   const type = activity.type as string;
-  const actor = activity.actor as string;
+  // Normalize `actor` to its string id. AP allows actor to be a bare URI string
+  // or an object `{ id }`; the inbox signature check (assertActorMatchesSigner)
+  // already extracts `.id` from object-form actors, so if we passed the raw object
+  // downstream, host-binding guards that do `new URL(actor)` would throw and
+  // fail-open on a forged object-form actor. Extracting the id here keeps every
+  // handler's actorUri a plain string. Array-form actor is unsupported (we cannot
+  // bind a single signer host) and is rejected as a missing actor.
+  const actor = extractActorId(activity.actor);
 
   if (!type || !actor) {
     return { success: false, error: 'Missing type or actor' };
@@ -134,6 +141,21 @@ function extractObjectId(object: unknown): string | null {
   if (typeof object === 'string') return object;
   if (object && typeof object === 'object') {
     return ((object as Record<string, unknown>).id as string) ?? null;
+  }
+  return null;
+}
+
+/**
+ * Resolve an AP `actor` value to its string id. Accepts a bare URI string or an
+ * object `{ id: string }`; rejects arrays (multi-actor, unbindable to one signer)
+ * and non-string ids. Returns null when no usable string id is present, which the
+ * caller treats as a missing actor (activity rejected).
+ */
+function extractActorId(actor: unknown): string | null {
+  if (typeof actor === 'string') return actor;
+  if (actor && typeof actor === 'object' && !Array.isArray(actor)) {
+    const id = (actor as Record<string, unknown>).id;
+    return typeof id === 'string' ? id : null;
   }
   return null;
 }

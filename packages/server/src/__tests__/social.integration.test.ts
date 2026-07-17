@@ -100,6 +100,32 @@ describe('social integration', () => {
       expect(reply.parentId).toBe(parent.id);
     });
 
+    // Session 242 audit (#22): a reply must attach to a parent on the SAME target. A
+    // cross-target parentId was previously accepted — invisible in threading yet still
+    // incrementing the count (counted > displayed). It must now be rejected.
+    it('rejects a reply whose parentId belongs to a different target', async () => {
+      const other = await createContent(db, userA, { type: 'article', title: 'Other Article' });
+      await db
+        .update(contentItems)
+        .set({ status: 'published', publishedAt: new Date() })
+        .where(eq(contentItems.id, other.id));
+
+      const foreignParent = await createComment(db, userA, {
+        targetType: 'article',
+        targetId: other.id,
+        content: 'Parent on a different article',
+      });
+
+      await expect(
+        createComment(db, userB, {
+          targetType: 'article',
+          targetId: contentId,
+          parentId: foreignParent.id,
+          content: 'Reply pointing at a foreign parent',
+        }),
+      ).rejects.toThrow(/does not belong to this target/);
+    });
+
     it('deletes own comment', async () => {
       const comment = await createComment(db, userA, {
         targetType: 'article',

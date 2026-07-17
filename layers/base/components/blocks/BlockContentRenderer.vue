@@ -159,4 +159,14 @@ function onCheckpointReached(blockIndex: number): void {
 .cpub-block-fallback :deep(p) {
   margin-bottom: 14px;
 }
+
+/* Mobile overflow containment: this fallback renders sanitized arbitrary HTML
+   (unmapped/version-skewed block types carrying an `html` field, e.g. from a
+   federated peer). Without containment a wide <table>/<pre>/<img> forces a
+   sideways page scroll on mobile — mirrors BlockTextView/BlockMarkdownView. */
+.cpub-block-fallback :deep(pre) { overflow-x: auto; max-width: 100%; }
+.cpub-block-fallback :deep(table) { display: block; max-width: 100%; overflow-x: auto; }
+.cpub-block-fallback :deep(table th),
+.cpub-block-fallback :deep(table td) { white-space: nowrap; }
+.cpub-block-fallback :deep(img) { max-width: 100%; height: auto; }
 </style>

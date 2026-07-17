@@ -88,6 +88,14 @@ export type MarkdownContent = z.infer<typeof markdownContentSchema>;
 export const dividerContentSchema = z.object({});
 export type DividerContent = z.infer<typeof dividerContentSchema>;
 
+/** GFM table imported from markdown: a header row + body rows of plain-text cells.
+ * Matches the shape emitted by the markdown parser's mapTable (`{ header, rows }`). */
+export const tableContentSchema = z.object({
+  header: z.array(z.string()),
+  rows: z.array(z.array(z.string())),
+});
+export type TableContent = z.infer<typeof tableContentSchema>;
+
 export const partsListContentSchema = z.object({
   parts: z.array(z.object({
     name: z.string(),

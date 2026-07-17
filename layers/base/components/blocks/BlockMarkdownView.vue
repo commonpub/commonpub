@@ -119,6 +119,12 @@ h4.cpub-md-heading { font-size: 1rem; font-weight: 600; }
   color: var(--text-dim); font-style: italic; margin-bottom: 14px;
   overflow-wrap: break-word; word-break: break-word;
 }
+/* Contain wide media/tables in blockquote author HTML (rare, but same v-html class
+   as the other block views) so they scroll rather than break mobile layout. */
+.cpub-md-quote :deep(pre) { overflow-x: auto; max-width: 100%; }
+.cpub-md-quote :deep(table) { display: block; max-width: 100%; overflow-x: auto; }
+.cpub-md-quote :deep(table th),
+.cpub-md-quote :deep(table td) { white-space: nowrap; }
 
 .cpub-md-hr { border: none; border-top: var(--border-width-default) solid var(--border); margin: 20px 0; }
 </style>

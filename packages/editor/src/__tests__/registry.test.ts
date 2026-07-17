@@ -70,7 +70,7 @@ describe('Block Registry', () => {
     it('registers all core block types', () => {
       registerCoreBlocks();
       const blocks = listBlocks();
-      expect(blocks).toHaveLength(20);
+      expect(blocks).toHaveLength(21);
       const types = blocks.map((b) => b.type).sort();
       expect(types).toContain('text');
       expect(types).toContain('heading');
@@ -92,12 +92,24 @@ describe('Block Registry', () => {
       expect(types).toContain('checkpoint');
       expect(types).toContain('mathNotation');
       expect(types).toContain('sectionHeader');
+      expect(types).toContain('table');
     });
 
     it('is idempotent', () => {
       registerCoreBlocks();
       registerCoreBlocks();
-      expect(listBlocks()).toHaveLength(20);
+      expect(listBlocks()).toHaveLength(21);
+    });
+
+    it('validates the markdown-imported table block the parser emits', () => {
+      // Regression: mapTable emits ['table', { header, rows }] but the core registry
+      // never registered it, so validateBlock failed and the preview showed "unknown".
+      registerCoreBlocks();
+      expect(lookupBlock('table')).toBeDefined();
+      const ok = validateBlock(['table', { header: ['A', 'B'], rows: [['1', '2'], ['3', '4']] }]);
+      expect(ok.success).toBe(true);
+      const bad = validateBlock(['table', { header: 'nope', rows: [] }]);
+      expect(bad.success).toBe(false);
     });
   });
 });

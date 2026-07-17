@@ -261,7 +261,10 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
             if (mirror) {
               const { backfillFromOutbox } = await import('./backfill.js');
               // Fire and forget — don't block the Accept processing
-              backfillFromOutbox(db, actorUri, domain, opts.federationConfig?.mirrorMaxItems).catch(
+              backfillFromOutbox(db, actorUri, domain, {
+                maxItems: opts.federationConfig?.mirrorMaxItems,
+                federationConfig: opts.federationConfig,
+              }).catch(
                 (err: unknown) => console.error('[federation] auto-backfill failed:', err instanceof Error ? err.message : err),
               );
             }
@@ -361,9 +364,20 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
      */
     async onUndo(actorUri: string, objectType: string, objectId: string): Promise<void> {
       if (objectType === 'Like' && objectId) {
-        // Undo(Like): decrement like count on local, hub, or federated content
+        // Undo(Like): only act if this actor actually had a prior inbound Like for this
+        // object. onLike inserts exactly one such row per (actor, object) and dedups, so
+        // deleting it (with returning) is the authoritative "had a prior Like" signal AND
+        // clears the idempotency marker so a later re-Like is processed (audit session 204).
+        // Without this gate a remote actor could Undo(Like) content it never liked and
+        // deflate other users' legitimate like counts down to the GREATEST floor.
         let unliked = false;
-        try {
+        const removedLike = await db.delete(activities).where(and(
+          eq(activities.type, 'Like'),
+          eq(activities.actorUri, actorUri),
+          eq(activities.objectUri, objectId),
+          eq(activities.direction, 'inbound'),
+        )).returning({ id: activities.id });
+        if (removedLike.length > 0) try {
           const url = new URL(objectId).pathname;
           const segments = url.split('/').filter(Boolean);
 
@@ -435,15 +449,6 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
               .where(eq(federatedContent.objectUri, objectId));
           }
 
-          // Delete the original inbound Like activity so a later re-Like is processed.
-          // onLike's idempotency guard keys on this row; leaving it made re-Like a
-          // silent no-op (audit session 204).
-          await db.delete(activities).where(and(
-            eq(activities.type, 'Like'),
-            eq(activities.actorUri, actorUri),
-            eq(activities.objectUri, objectId),
-            eq(activities.direction, 'inbound'),
-          ));
         } catch {
           // Invalid URL — skip decrement
         }
@@ -601,8 +606,12 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
         try {
           attributionMismatch = new URL(objectUri).hostname !== new URL(actorUri).hostname;
         } catch {
-          // Unparseable actor/object URI — don't block; downstream null-handling covers it.
-          attributionMismatch = false;
+          // Unparseable actor/object URI — fail CLOSED. actorUri is normalized to a
+          // string id upstream (processInboxActivity) and the signature check already
+          // URL-parsed it, so a throw here means a malformed/hostile object.id we
+          // cannot attribute. Reject rather than store (an earlier fail-open here let
+          // an object-form actor bypass this binding entirely).
+          attributionMismatch = true;
         }
         if (attributionMismatch) {
           console.warn(`[inbox] Rejected Create: object.id host of "${objectUri}" != actor host of "${actorUri}" (attribution forgery)`);
