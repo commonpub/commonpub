@@ -271,3 +271,21 @@ Three review units returned placeholder/empty output and are **not** trustworthy
 7. **Add `typecheck` + `lint` scripts to `layers/base`** and `lint` to `packages/infra` (build-pipeline gap).
 
 All fixes above are **proposed only** — awaiting go-ahead before any implementation or roll.
+
+---
+
+## Update 2026-07-17 — fixes ROLLED (`@commonpub/server@2.114.0` / `@commonpub/layer@0.106.2`)
+
+Rolled + verified live on all 3 instances (health ok, deploys green):
+- **#1 (P1)** `onCreate` object.id host-binding — DONE + tested (regression test added).
+- **§2c (hub-mirroring)** Announce→ingest `note.attributedTo`→note-origin host binding — DONE + isolated test.
+- **§2b(i)** `mirrorMaxItems` cap now enforced in `matchMirrorForContent` (was dead code) — DONE + test.
+- **§2e** federated-hub child routes (`posts`/`members`/`post-detail`/`replies`) gated on parent-hub visibility — DONE.
+- Full `@commonpub/server` suite: 1728 tests pass; typecheck clean.
+
+**Deferred — needs a product decision (§2b ii):** gating `federatedContent` storage on an existing
+follow/mirror relationship (subscribed-only) vs. current open-discovery. Changes observable
+federation behavior + breaks the current test contract; awaiting the operator's call.
+
+Still open from the main register (not yet actioned): the Mastodon/federated SSO actor-host binding
+(#2/#3 — latent behind the off `signInWithRemote` flag), plus the P2/P3 batch (#4–#25).
