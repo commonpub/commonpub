@@ -125,10 +125,13 @@ export const SUBMISSION_TEMPLATE_FIELD_TYPES = [
   'email',
   'number',
   'select',
+  'radio',   // choice like `select`, rendered as a radio group (P1)
   'checkbox',
   'date',
+  'tel',     // phone number, lenient validation (P1)
   'agreement',
   'address',
+  'section', // display-only header/divider; not stored (P1)
 ] as const;
 export const submissionTemplateFieldTypeSchema = z.enum(SUBMISSION_TEMPLATE_FIELD_TYPES);
 export type SubmissionTemplateFieldType = (typeof SUBMISSION_TEMPLATE_FIELD_TYPES)[number];
@@ -164,8 +167,8 @@ export const submissionTemplateFieldSchema = z
     /** `agreement`-only: require an explicit accept to submit (default true). */
     mustAccept: z.boolean().optional(),
   })
-  .refine((f) => f.type !== 'select' || (Array.isArray(f.options) && f.options.length > 0), {
-    message: 'A select field needs at least one option',
+  .refine((f) => (f.type !== 'select' && f.type !== 'radio') || (Array.isArray(f.options) && f.options.length > 0), {
+    message: 'A choice field needs at least one option',
     path: ['options'],
   })
   .refine((f) => f.type !== 'agreement' || !!f.terms?.trim(), {

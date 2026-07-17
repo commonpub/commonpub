@@ -351,7 +351,7 @@ export async function getEntryPrivateData(db: DB, entryId: string): Promise<Entr
     .where(eq(contestEntryPrivateFields.entryId, entryId))
     .limit(1);
 
-  const agreements = await db
+  const agreementRows = await db
     .select({
       fieldKey: contestAgreementAcceptances.fieldKey,
       stageId: contestAgreementAcceptances.stageId,
@@ -362,6 +362,10 @@ export async function getEntryPrivateData(db: DB, entryId: string): Promise<Entr
     })
     .from(contestAgreementAcceptances)
     .where(eq(contestAgreementAcceptances.entryId, entryId));
+  // `stage_id` became nullable in P1 (registration-scoped acceptances have none),
+  // but this read is ENTRY-scoped where stageId is always set — coerce to keep the
+  // EntryPrivateData contract non-null.
+  const agreements = agreementRows.map((a) => ({ ...a, stageId: a.stageId ?? '' }));
 
   if (!priv && agreements.length === 0) return null;
 

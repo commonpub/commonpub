@@ -53,6 +53,12 @@ export function validateSubmissionFields(
   const agreements: AgreementAcceptanceInput[] = [];
 
   for (const field of template) {
+    // Section headers are display-only (title + help) — no value, nothing to
+    // validate or store. A stray value under a section key is rejected by the
+    // unknown-key guard above only if the key isn't in the template; a section's
+    // own key carries no data, so skip it entirely.
+    if (field.type === 'section') continue;
+
     const value = (values[field.key] ?? '').trim();
 
     // Agreements are consent, not data — recorded separately, never in the artifact.
@@ -108,9 +114,19 @@ export function validateSubmissionFields(
           return { ok: false, error: `${field.label} must be a valid date` };
         }
         break;
-      case 'select': {
+      case 'select':
+      case 'radio': {
+        // `radio` is a display variant of `select` — same value contract.
         const allowed = new Set((field.options ?? []).map((o) => o.value));
         if (!allowed.has(value)) return { ok: false, error: `${field.label}: choose one of the listed options` };
+        break;
+      }
+      case 'tel': {
+        // Lenient phone check: digits, spaces, and + ( ) - . only, 7–20 chars.
+        // Deliberately permissive (international formats vary); reject obvious junk.
+        if (!/^\+?[0-9 ().-]{7,20}$/.test(value)) {
+          return { ok: false, error: `${field.label} must be a valid phone number` };
+        }
         break;
       }
       case 'address': {

@@ -1,6 +1,5 @@
 import { and, eq, desc } from 'drizzle-orm';
 import { contests, contestRegistrations, users } from '@commonpub/schema';
-import type { ContestRegistrationFields } from '@commonpub/schema';
 import type { CommonPubConfig } from '@commonpub/config';
 import type { DB } from '../types.js';
 import { normalizePagination, countRows } from '../query.js';
@@ -49,7 +48,7 @@ export interface RegisterForContestResult {
 export async function registerForContest(
   db: DB,
   config: CommonPubConfig,
-  input: { contestId: string; userId: string; tier?: ContestRegistrationTier; fields?: ContestRegistrationFields },
+  input: { contestId: string; userId: string; tier?: ContestRegistrationTier; fields?: Record<string, string> },
   email?: ContestEmailContext,
 ): Promise<RegisterForContestResult> {
   const tier: ContestRegistrationTier = input.tier ?? 'full';
@@ -153,7 +152,7 @@ export async function registerForContest(
 
     // Update fields only when a new object is supplied; upgrade tier only on a
     // genuine reminders→full transition. Skip the write when nothing changes.
-    const set: Partial<{ tier: ContestRegistrationTier; fields: ContestRegistrationFields | null }> = {};
+    const set: Partial<{ tier: ContestRegistrationTier; fields: Record<string, string> | null }> = {};
     if (tier === 'full' && priorTier !== 'full') set.tier = 'full';
     if (input.fields !== undefined) set.fields = input.fields;
 
@@ -215,7 +214,7 @@ export async function getViewerRegistration(
   db: DB,
   contestId: string,
   userId: string,
-): Promise<{ tier: ContestRegistrationTier; fields: ContestRegistrationFields | null } | null> {
+): Promise<{ tier: ContestRegistrationTier; fields: Record<string, string> | null } | null> {
   const [row] = await db
     .select({ tier: contestRegistrations.tier, fields: contestRegistrations.fields })
     .from(contestRegistrations)

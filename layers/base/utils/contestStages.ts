@@ -246,10 +246,13 @@ export const TEMPLATE_FIELD_TYPE_LABEL: Record<ContestSubmissionTemplateField['t
   email: 'Email address',
   number: 'Number',
   select: 'Dropdown (select)',
+  radio: 'Choice (radio buttons)',
   checkbox: 'Checkbox',
   date: 'Date',
+  tel: 'Phone number',
   agreement: 'Agreement (terms to accept)',
   address: 'Mailing address',
+  section: 'Section header',
 };
 
 /** FontAwesome icon (no `fa-solid` prefix) for each stage kind. */

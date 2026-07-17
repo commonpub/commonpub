@@ -1146,6 +1146,22 @@ describe('submissionTemplateFieldSchema + stage submissionTemplate', () => {
     ).toBe(true);
   });
 
+  // --- P1 field types (section / radio / tel) ---
+  it('accepts the P1 scalar/display field types (section, tel)', () => {
+    for (const type of ['section', 'tel']) {
+      expect(submissionTemplateFieldSchema.safeParse({ ...field, type }).success, type).toBe(true);
+    }
+  });
+
+  it('radio needs at least one option (same refine as select)', () => {
+    const rad = { key: 'track', label: 'Track', type: 'radio', required: true };
+    expect(submissionTemplateFieldSchema.safeParse(rad).success).toBe(false);
+    expect(submissionTemplateFieldSchema.safeParse({ ...rad, options: [] }).success).toBe(false);
+    expect(
+      submissionTemplateFieldSchema.safeParse({ ...rad, options: [{ value: 'dev', label: 'Developer' }] }).success,
+    ).toBe(true);
+  });
+
   it('accepts an agreement field WITH terms and rejects one without', () => {
     const agr = { key: 'tos', label: 'Terms', type: 'agreement', required: true, mustAccept: true };
     expect(submissionTemplateFieldSchema.safeParse(agr).success).toBe(false);

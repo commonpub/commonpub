@@ -4,7 +4,6 @@ import {
   getViewerRegistration,
   getRegistrantCount,
 } from '@commonpub/server';
-import type { ContestRegistrationFields } from '@commonpub/schema';
 
 /**
  * GET /api/contests/:slug/register
@@ -15,7 +14,7 @@ import type { ContestRegistrationFields } from '@commonpub/schema';
  * for a non-public contest, one the viewer can't see (so we never leak that it
  * exists). Feature-gated behind `contests`.
  */
-export default defineEventHandler(async (event): Promise<{ registered: boolean; tier: 'full' | 'reminders' | null; fields: ContestRegistrationFields | null; count: number }> => {
+export default defineEventHandler(async (event): Promise<{ registered: boolean; tier: 'full' | 'reminders' | null; fields: Record<string, string> | null; count: number }> => {
   requireFeature('contests');
   const db = useDB();
   const { slug } = parseParams(event, { slug: 'string' });

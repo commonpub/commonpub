@@ -1,5 +1,5 @@
-import { pgTable, uuid, varchar, text, timestamp, integer, boolean, jsonb, unique, index } from 'drizzle-orm/pg-core';
-import { relations } from 'drizzle-orm';
+import { pgTable, uuid, varchar, text, timestamp, integer, boolean, jsonb, unique, index, check } from 'drizzle-orm/pg-core';
+import { relations, sql } from 'drizzle-orm';
 import { users } from './auth.js';
 import { contentItems } from './content.js';
 import { contestStatusEnum, judgeRoleEnum, judgingVisibilityEnum, contestVisibilityEnum, contestContentFormatEnum } from './enums.js';
@@ -111,14 +111,17 @@ export interface ContestSubmissionTemplateField {
     | 'email'
     | 'number'
     | 'select'
+    | 'radio'    // choice like `select`, rendered as a radio group (P1)
     | 'checkbox'
     | 'date'
+    | 'tel'      // phone number, lenient validation (P1)
     | 'agreement'
-    | 'address';
+    | 'address'
+    | 'section'; // display-only header/divider (title + optional help); not stored (P1)
   required: boolean;
-  /** Optional hint shown under the input. */
+  /** Optional hint shown under the input (also the description body for `section`). */
   help?: string;
-  /** `select`-only: the allowed options. */
+  /** `select`/`radio`-only: the allowed options. */
   options?: Array<{ value: string; label: string }>;
   /** Personal data — stored in `contest_entry_private_fields`, not the artifact. Forced true for `address`. */
   pii?: boolean;
@@ -129,6 +132,15 @@ export interface ContestSubmissionTemplateField {
   /** `agreement`-only: require an explicit accept to submit (default true). */
   mustAccept?: boolean;
 }
+
+/**
+ * Neutral alias for a form-template field. The same field-definition shape drives
+ * both per-stage entry submissions (`stageSubmissions`) and — from P1 — operator-
+ * defined contest REGISTRATION forms (`contests.registrationTemplate`). Prefer
+ * `FormField` for new registration-side code; `ContestSubmissionTemplateField`
+ * stays as the historical name for the entry side.
+ */
+export type FormField = ContestSubmissionTemplateField;
 
 /**
  * A per-stage artifact on an entry: the filled template values for one
@@ -257,6 +269,22 @@ export const contests = pgTable('contests', {
   /** Per-contest email copy override (session 232). Organizer-only; never
    *  serialized into public contest responses. Null ⇒ built-in default copy. */
   emailCopy: jsonb('email_copy').$type<ContestEmailCopy>(),
+  /**
+   * Operator-defined REGISTRATION form (P1). Ordered `FormField[]` — the same
+   * field-definition shape as a stage `submissionTemplate`, but for the
+   * participant-registration step. `[]` (default) ⇒ the legacy fixed 3-field
+   * signup (building/experience/team). Answers partition to
+   * `contest_registrations.fields` (public), `contest_registration_private_fields`
+   * (PII), and `contest_agreement_acceptances` (consent) exactly like entries.
+   */
+  registrationTemplate: jsonb('registration_template').$type<FormField[]>().default([]).notNull(),
+  /**
+   * How registration relates to entry (P1). `light` (default) — registration is a
+   * lightweight participation record; entry is a separate step. `combined` — the
+   * registration form also creates/links a `contest_entries` row (P5). Stored as
+   * text; validated to the two values in the layer/validators.
+   */
+  registrationMode: text('registration_mode').$type<'light' | 'combined'>().default('light').notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 }, (t) => [
@@ -380,29 +408,40 @@ export const contestStakeholders = pgTable('contest_stakeholders', {
   index('idx_contest_stakeholders_user_id').on(t.userId),
 ]);
 
-// --- Contest Agreement Acceptances (Phase 4) ---
-// Immutable audit log: one row each time an entrant accepts an `agreement`
+// --- Contest Agreement Acceptances (Phase 4; generalized for registration in P1) ---
+// Immutable audit log: one row each time a participant accepts an `agreement`
 // template field's terms. The terms text + its sha-256 hash are snapshotted so
-// the exact wording the entrant agreed to survives later edits to the template.
+// the exact wording the participant agreed to survives later edits to the template.
 // Instance-local (never federated). Captured atomically with the submission.
+//
+// P1: the scope is now EITHER an entry (entry_id + stage_id, the original entry-side
+// consent) OR a registration (registration_id, the new registration-side consent).
+// `entry_id` and `stage_id` are nullable; a CHECK enforces exactly one of
+// entry_id/registration_id is set. Registration acceptances dedupe on
+// (registration_id, field_key, terms_hash) so an idempotent re-register (which
+// re-invokes the writer for info edits) records a given accept once — until the
+// terms text (hash) changes.
 export const contestAgreementAcceptances = pgTable('contest_agreement_acceptances', {
   id: uuid('id').defaultRandom().primaryKey(),
   contestId: uuid('contest_id')
     .notNull()
     .references(() => contests.id, { onDelete: 'cascade' }),
+  /** Set for ENTRY-scoped acceptances (nullable since P1). */
   entryId: uuid('entry_id')
-    .notNull()
     .references(() => contestEntries.id, { onDelete: 'cascade' }),
+  /** Set for REGISTRATION-scoped acceptances (P1). Exactly one of entry_id/registration_id. */
+  registrationId: uuid('registration_id')
+    .references(() => contestRegistrations.id, { onDelete: 'cascade' }),
   userId: uuid('user_id')
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
-  /** The submission stage this acceptance was captured in. */
-  stageId: text('stage_id').notNull(),
+  /** The submission stage this acceptance was captured in — entry scope only (nullable since P1). */
+  stageId: text('stage_id'),
   /** The agreement template field's key. */
   fieldKey: varchar('field_key', { length: 40 }).notNull(),
   /** sha-256 hex of the exact accepted terms (integrity check vs the snapshot). */
   termsHash: varchar('terms_hash', { length: 64 }).notNull(),
-  /** The exact terms text shown to and accepted by the entrant. */
+  /** The exact terms text shown to and accepted by the participant. */
   termsSnapshot: text('terms_snapshot').notNull(),
   /** Best-effort client IP captured at acceptance (audit). */
   ip: varchar('ip', { length: 64 }),
@@ -410,6 +449,16 @@ export const contestAgreementAcceptances = pgTable('contest_agreement_acceptance
 }, (t) => [
   index('idx_contest_agreements_contest_id').on(t.contestId),
   index('idx_contest_agreements_entry_id').on(t.entryId),
+  index('idx_contest_agreements_registration_id').on(t.registrationId),
+  // Exactly one scope: an entry acceptance XOR a registration acceptance.
+  check(
+    'contest_agreements_one_scope',
+    sql`(${t.entryId} IS NOT NULL AND ${t.registrationId} IS NULL) OR (${t.entryId} IS NULL AND ${t.registrationId} IS NOT NULL)`,
+  ),
+  // Idempotent re-register dedup (registration scope): record an accept once per
+  // (registration, field, terms-hash). NULLs (entry-scope rows) don't collide in a
+  // UNIQUE index in Postgres, so entry acceptances are unaffected.
+  unique('uq_contest_agreements_registration_field_terms').on(t.registrationId, t.fieldKey, t.termsHash),
 ]);
 
 // --- Contest Entry Private Fields (PII, Phase 4) ---
@@ -437,6 +486,32 @@ export const contestEntryPrivateFields = pgTable('contest_entry_private_fields',
 }, (t) => [
   unique('uq_contest_entry_private_fields_entry').on(t.entryId),
   index('idx_contest_entry_private_fields_contest_id').on(t.contestId),
+]);
+
+// --- Contest Registration Private Fields (PII, P1) ---
+// Mirror of contest_entry_private_fields, but for REGISTRATION-form PII answers.
+// Participant-supplied personal data collected at registration is stored OUT of the
+// public `contest_registrations.fields` jsonb, so it is NEVER returned by the normal
+// registration endpoints. Access is gated by the `contest.pii` permission OR the
+// participant reading their own. One row per registration, upserted.
+export const contestRegistrationPrivateFields = pgTable('contest_registration_private_fields', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  contestId: uuid('contest_id')
+    .notNull()
+    .references(() => contests.id, { onDelete: 'cascade' }),
+  registrationId: uuid('registration_id')
+    .notNull()
+    .references(() => contestRegistrations.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  /** PII template-field key → participant value (`address` values are JSON strings). */
+  fields: jsonb('fields').$type<Record<string, string>>().default({}).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [
+  unique('uq_contest_registration_private_fields_registration').on(t.registrationId),
+  index('idx_contest_registration_private_fields_contest_id').on(t.contestId),
 ]);
 
 // --- Contest Registrations (participant sign-up) ---
@@ -470,10 +545,15 @@ export const contestRegistrations = pgTable('contest_registrations', {
   // opt-in that gets deadline reminders but is NOT counted as a participant.
   // Default `full` so every pre-existing row (all counted) keeps its meaning.
   tier: text('tier').notNull().default('full'),
-  // Optional, self-reported signup info collected at the high-intent post-register
-  // moment (never required, never blocks registration): what they plan to build,
-  // experience level, team status. Shape validated by contestRegistrationFieldsSchema.
-  fields: jsonb('fields').$type<ContestRegistrationFields>(),
+  // Public registration answers, keyed by the operator's `registrationTemplate`
+  // field keys (P1). Widened from the fixed `ContestRegistrationFields` 3-key shape
+  // to an open `Record<string,string>` to match `stageSubmissions.fields`, so rich
+  // operator-defined answers are stored the same way entries are. Back-compat: the
+  // legacy `{building,experience,team}` rows are already string-valued at rest, so
+  // no data rewrite — the legacy shape survives as a preset (`ContestRegistrationFields`
+  // / `contestRegistrationFieldsSchema`). PII/consent answers are partitioned OUT to
+  // `contest_registration_private_fields` / `contest_agreement_acceptances`.
+  fields: jsonb('fields').$type<Record<string, string>>(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 }, (t) => [
   unique('uq_contest_registrations_contest_user').on(t.contestId, t.userId),
@@ -552,6 +632,12 @@ export const contestEntryPrivateFieldsRelations = relations(contestEntryPrivateF
   user: one(users, { fields: [contestEntryPrivateFields.userId], references: [users.id] }),
 }));
 
+export const contestRegistrationPrivateFieldsRelations = relations(contestRegistrationPrivateFields, ({ one }) => ({
+  contest: one(contests, { fields: [contestRegistrationPrivateFields.contestId], references: [contests.id] }),
+  registration: one(contestRegistrations, { fields: [contestRegistrationPrivateFields.registrationId], references: [contestRegistrations.id] }),
+  user: one(users, { fields: [contestRegistrationPrivateFields.userId], references: [users.id] }),
+}));
+
 // --- Inferred Types ---
 export type ContestRow = typeof contests.$inferSelect;
 export type NewContestRow = typeof contests.$inferInsert;
@@ -565,6 +651,8 @@ export type ContestAgreementAcceptanceRow = typeof contestAgreementAcceptances.$
 export type NewContestAgreementAcceptanceRow = typeof contestAgreementAcceptances.$inferInsert;
 export type ContestEntryPrivateFieldsRow = typeof contestEntryPrivateFields.$inferSelect;
 export type NewContestEntryPrivateFieldsRow = typeof contestEntryPrivateFields.$inferInsert;
+export type ContestRegistrationPrivateFieldsRow = typeof contestRegistrationPrivateFields.$inferSelect;
+export type NewContestRegistrationPrivateFieldsRow = typeof contestRegistrationPrivateFields.$inferInsert;
 export type ContestRegistrationRow = typeof contestRegistrations.$inferSelect;
 export type NewContestRegistrationRow = typeof contestRegistrations.$inferInsert;
 export type ContestReminderSendRow = typeof contestReminderSends.$inferSelect;

@@ -1,4 +1,4 @@
-import type { ContestStatus, ContestStage, ContestStageSubmission, ContestImageMeta, ContestCoverPlacement, ContestEmailCopy, ContestRegistrationFields } from '@commonpub/schema';
+import type { ContestStatus, ContestStage, ContestStageSubmission, ContestImageMeta, ContestCoverPlacement, ContestEmailCopy } from '@commonpub/schema';
 import type { DB } from '../types.js';
 
 // Shared contest types — the single home for the contest module's interfaces so
@@ -265,6 +265,7 @@ export interface ContestRegistrantItem {
   displayName: string | null;
   avatarUrl: string | null;
   registeredAt: Date;
-  /** Optional self-reported signup info (building/experience/team); null when none given. */
-  fields: ContestRegistrationFields | null;
+  /** Registration answers keyed by the contest's `registrationTemplate` field keys
+   *  (public partition only; PII/consent excluded); null when none given. */
+  fields: Record<string, string> | null;
 }

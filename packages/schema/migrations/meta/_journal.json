@@ -309,6 +309,13 @@
       "when": 1784325657722,
       "tag": "0043_violet_dragon_man",
       "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "7",
+      "when": 1784330409482,
+      "tag": "0044_absent_bruce_banner",
+      "breakpoints": true
     }
   ]
 }
