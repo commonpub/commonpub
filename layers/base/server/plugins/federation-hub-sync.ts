@@ -38,10 +38,10 @@ export default defineNitroPlugin((nitro) => {
       console.log(`[hub-sync] Hub sync worker started (domain: ${domain}, interval: ${intervalMs}ms, backfill: ${backfillOnSync})`);
 
       // Run first sync after a brief delay to avoid startup contention
-      runSync(domain, intervalMs, backfillOnSync);
+      runSync(domain, intervalMs, backfillOnSync, fedConfig);
 
       interval = setInterval(() => {
-        runSync(domain, intervalMs, backfillOnSync).catch((err) => {
+        runSync(domain, intervalMs, backfillOnSync, fedConfig).catch((err) => {
           console.error('[hub-sync] Sync worker unexpected error:', err instanceof Error ? err.message : err);
         });
       }, intervalMs);
@@ -50,7 +50,7 @@ export default defineNitroPlugin((nitro) => {
     }
   }, 10_000); // 10s startup delay (longer than delivery worker to avoid contention)
 
-  async function runSync(domain: string, intervalMs: number, backfillOnSync: boolean): Promise<void> {
+  async function runSync(domain: string, intervalMs: number, backfillOnSync: boolean, fedConfig: { mirrorMaxItems?: number }): Promise<void> {
     try {
       const db = useDB();
       const now = new Date();
@@ -128,7 +128,7 @@ export default defineNitroPlugin((nitro) => {
 
           // Optionally backfill new posts from outbox
           if (backfillOnSync) {
-            const result = await backfillHubFromOutbox(db, hub.id, domain, config.federation);
+            const result = await backfillHubFromOutbox(db, hub.id, domain, fedConfig);
             if (result.processed > 0 || result.errors > 0) {
               console.log(`[hub-sync] Backfill ${hub.name}: ${result.processed} processed, ${result.errors} errors`);
             }
