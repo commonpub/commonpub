@@ -11,7 +11,7 @@ export default defineEventHandler(async (event) => {
 
   // Run all three operations
   const [backfillResult, followersResult, repaired] = await Promise.all([
-    backfillHubFromOutbox(db, id, config.instance.domain).catch((err) => {
+    backfillHubFromOutbox(db, id, config.instance.domain, config.federation).catch((err) => {
       console.error('[hub-backfill] Failed:', err);
       return { processed: 0, errors: 1 };
     }),

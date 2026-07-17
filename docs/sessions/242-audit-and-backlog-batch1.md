@@ -72,6 +72,33 @@ server Undo(Like)-without-prior-Like no-op; server createComment cross-target re
 Exact-pin chain: protocol 0.15.1 → editor 0.14.0 → ui 0.13.3 → server 2.117.0 → layer 0.107.0; forks
 bump the `@commonpub/layer` pin to bust the Docker `npm install` cache. No migration this batch.
 
+## Batch 2 — deep-audit follow-up (D1), ROLLED
+
+A post-roll deep audit ("never assume") of the batch-1 changes, hunting for regressions my *own*
+fixes could introduce and sibling paths, found one residual gap:
+
+- **D1 [P3]** — `backfillHubFromOutbox` (hubMirroring.ts:1089) built its inbox handlers with
+  `createInboxHandlers({ db, domain })` — the SAME `mirrorMaxItems` dead-wiring #3 fixed in
+  `backfill.ts`, on the hub-outbox crawl. A crawled `Create` matching a content mirror bypassed the
+  cap. FIX: added an optional `federationConfig` param, threaded from both callers (the admin
+  hub-backfill route + the `federation-hub-sync` plugin). Confirmed via `grep` that this was the
+  ONLY remaining `createInboxHandlers` call site missing `federationConfig` (the other 4 — backfill +
+  3 live inbox routes — all pass it). The object-form-actor security bypass on this path was already
+  closed by the protocol normalization; D1 only completes the soft-cap wiring. Server-only.
+
+Deep audit also confirmed (no action needed): actor normalization closes the object-form bypass on
+ALL paths incl. hubMirroring/backfill crawls (both correctly re-normalize via processInboxActivity);
+Undo-Like control flow is structurally correct in the live file; no other raw-`activity.actor`
+security read bypasses normalization (timeline/replies/hubMirroring `row.actor` are DB joins, not AP
+actors). **#24 caveat (honest):** the `table` block now validates + previews + renders in the public
+view (`BlockTableView`, which pre-existed), but tables remain non-editable in the BlockCanvas
+(`getBlockComponent` falls back to TextBlock; `blockTuplesToDoc` has no `table` case → a ProseMirror
+round-trip drops them). This is PRE-EXISTING (my change didn't touch serialization) and outside #24's
+scope — flagged as a follow-up (a real `TableBlock.vue` editor component).
+
+Roll: server 2.117.1 / layer 0.107.1 (no protocol/editor/ui change). Commit attribution verified clean
+across all 3 repos (0 Co-Authored-By/AI trailers — CLAUDE.md rule #15 overrides the default trailer).
+
 ## Open / next
 
 - **Deferred to a separate roll:** schema FK migration #19 (`federated_hub_post_replies.parent_id`

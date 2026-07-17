@@ -128,7 +128,7 @@ export default defineNitroPlugin((nitro) => {
 
           // Optionally backfill new posts from outbox
           if (backfillOnSync) {
-            const result = await backfillHubFromOutbox(db, hub.id, domain);
+            const result = await backfillHubFromOutbox(db, hub.id, domain, config.federation);
             if (result.processed > 0 || result.errors > 0) {
               console.log(`[hub-sync] Backfill ${hub.name}: ${result.processed} processed, ${result.errors} errors`);
             }

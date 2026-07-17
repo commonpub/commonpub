@@ -1063,6 +1063,12 @@ export async function backfillHubFromOutbox(
   db: DB,
   federatedHubId: string,
   domain: string,
+  /**
+   * Forwarded to the inbox handlers so a crawled `Create` that matches a content
+   * mirror honors the per-mirror `mirrorMaxItems` cap — same wiring the live inbox
+   * and backfill.ts use. Without it the hub-crawl path silently bypasses the cap.
+   */
+  federationConfig?: { mirrorMaxItems?: number },
 ): Promise<{ processed: number; errors: number }> {
   const [hub] = await db
     .select({ actorUri: federatedHubs.actorUri })
@@ -1086,7 +1092,7 @@ export async function backfillHubFromOutbox(
 
   const { createInboxHandlers } = await import('./inboxHandlers.js');
   const { processInboxActivity } = await import('@commonpub/protocol');
-  const handlers = createInboxHandlers({ db, domain });
+  const handlers = createInboxHandlers({ db, domain, federationConfig });
 
   // Attribution binding for the crawl path (see backfill.ts): outbox items are
   // attacker-controlled, so only accept activities whose actor lives on the hub's
