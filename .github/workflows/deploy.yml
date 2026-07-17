@@ -21,6 +21,27 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Pipeline gate — a red typecheck/lint must NOT reach production. The `check`
+      # job (ci.yml) runs the full suite, but it's a SEPARATE workflow, so GitHub
+      # `needs:` can't couple this deploy to it. Instead we re-run the two red-capable
+      # static checks inline here as a hard gate before any image build. This is the
+      # class of bug that shipped session 242 (a layer type error the Dockerfile's
+      # `pnpm build` does NOT typecheck). Tests still run in the parallel `check` job.
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'pnpm'
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Typecheck (deploy gate)
+        run: pnpm typecheck
+
+      - name: Lint (deploy gate)
+        run: pnpm lint
+
       - name: Build Docker image
         run: docker build -t commonpub-app:latest .
 
