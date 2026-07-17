@@ -53,7 +53,11 @@ export async function signRequest(
   const signingLines: string[] = [];
   for (const header of headersToSign) {
     if (header === '(request-target)') {
-      signingLines.push(`(request-target): ${method} ${url.pathname}`);
+      // Include the query string — draft-cavage §2.3 requires request-target to
+      // cover path AND query. Omitting it makes signed GETs to paginated remote
+      // collections (backfill/hub-mirroring `?page=&min_id=`) fail verification on
+      // authorized-fetch servers that canonicalize the full target.
+      signingLines.push(`(request-target): ${method} ${url.pathname}${url.search}`);
     } else {
       signingLines.push(`${header}: ${headers.get(header) ?? ''}`);
     }

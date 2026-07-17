@@ -87,3 +87,14 @@ describe('roleGuard', () => {
     }
   });
 });
+
+describe('roleGuard fail-closed on an unrecognized role', () => {
+  it('DENIES when minRole is not a real UserRole, even for an admin', () => {
+    const guard = roleGuard('moderator' as never); // typo / non-existent role
+    expect(guard(createEvent({ id: 'a', role: 'admin' })).authorized).toBe(false);
+  });
+  it('DENIES a user whose own role is unrecognized', () => {
+    const guard = roleGuard('member');
+    expect(guard(createEvent({ id: 'u', role: 'wizard' })).authorized).toBe(false);
+  });
+});

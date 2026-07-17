@@ -467,3 +467,17 @@ describe('sanitizeHtml', () => {
     });
   });
 });
+
+describe('sanitizeHtml SVG data-URI by attribute (session 241 hardening)', () => {
+  it('strips an SVG data-URI in <a href> (SVG can carry script; href navigates)', () => {
+    const out = sanitizeHtml('<a href="data:image/svg+xml;base64,PHN2Zy8+">x</a>');
+    expect(out).not.toContain('data:image/svg+xml');
+  });
+  it('keeps an SVG data-URI in <img src> (img does not execute SVG script)', () => {
+    const out = sanitizeHtml('<img src="data:image/svg+xml;base64,PHN2Zy8+" alt="i" />');
+    expect(out).toContain('data:image/svg+xml');
+  });
+  it('keeps a PNG data-URI in <a href>', () => {
+    expect(sanitizeHtml('<a href="data:image/png;base64,iVBORw0KGgo=">x</a>')).toContain('data:image/png');
+  });
+});

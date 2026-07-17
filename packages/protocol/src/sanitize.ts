@@ -54,7 +54,7 @@ const SAFE_DATA_URI_PATTERN = /^data:image\/(png|jpeg|jpg|gif|webp|svg\+xml);bas
 /**
  * Check if a URL is safe for use in href/src attributes.
  */
-function isSafeUrl(url: string): boolean {
+function isSafeUrl(url: string, attr?: string): boolean {
   const trimmed = url.trim();
 
   // Check for dangerous patterns (handles unicode obfuscation)
@@ -62,9 +62,14 @@ function isSafeUrl(url: string): boolean {
     if (pattern.test(trimmed)) return false;
   }
 
-  // Data URIs: only allow safe image formats
+  // Data URIs: only allow safe image formats, and never an SVG data-URI in an
+  // <a href> — an SVG document can carry script, and while `<img src>` won't
+  // execute it, a navigable href would run in the instance origin. SVG stays
+  // allowed for image `src`.
   if (/^data:/i.test(trimmed)) {
-    return SAFE_DATA_URI_PATTERN.test(trimmed);
+    if (!SAFE_DATA_URI_PATTERN.test(trimmed)) return false;
+    if (attr === 'href' && /^data:image\/svg\+xml/i.test(trimmed)) return false;
+    return true;
   }
 
   // Must have a safe scheme or be relative
@@ -145,7 +150,7 @@ export function sanitizeHtml(html: string): string {
       if (!allowedAttrs.has(attrName)) continue;
 
       // Validate URLs in href and src
-      if ((attrName === 'href' || attrName === 'src') && !isSafeUrl(attrValue)) {
+      if ((attrName === 'href' || attrName === 'src') && !isSafeUrl(attrValue, attrName)) {
         continue;
       }
 

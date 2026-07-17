@@ -22,14 +22,18 @@ const bodyEl = ref<HTMLElement | null>(null);
 // changes. Binding with `v-html` would re-assign `innerHTML` on every keystroke
 // (the value echoes back via the parent), collapsing the caret to offset 0 and
 // reversing typed input. Guarding the write keeps the caret stable.
+// Sanitize on READ too (see CalloutBlock): an externally-sourced body (markdown
+// import from the allowDangerousHtml parser) could carry an event-handler payload
+// that fires in the editor session when the block opens.
 onMounted(() => {
-  if (bodyEl.value) bodyEl.value.innerHTML = html.value;
+  if (bodyEl.value) bodyEl.value.innerHTML = sanitizeBlockHtml(html.value);
 });
 
 watch(html, (newHtml: string): void => {
   const el = bodyEl.value;
-  if (el && newHtml !== el.innerHTML) {
-    el.innerHTML = newHtml;
+  const safe = sanitizeBlockHtml(newHtml);
+  if (el && safe !== el.innerHTML) {
+    el.innerHTML = safe;
   }
 });
 

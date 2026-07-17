@@ -40,7 +40,11 @@ export function roleGuard(minRole: UserRole): (event: GuardEvent) => GuardResult
     const userRole = event.locals.user!.role as UserRole;
     const userLevel = getRoleLevel(userRole);
 
-    if (userLevel < minLevel) {
+    // Fail CLOSED on an unrecognized role: getRoleLevel returns -1 for any name
+    // not in ROLE_HIERARCHY, so an unknown `minRole` (e.g. a typo like 'moderator')
+    // or an unknown user role must DENY — not authorize every logged-in user, which
+    // is what `userLevel < -1` (always false) previously did.
+    if (minLevel < 0 || userLevel < 0 || userLevel < minLevel) {
       return { authorized: false, status: 403 };
     }
     return { authorized: true };

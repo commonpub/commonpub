@@ -24,14 +24,19 @@ const bodyEl = ref<HTMLElement | null>(null);
 // the parent), destroying the text node and collapsing the caret to offset 0,
 // which reverses typed input character by character. Guarding the write (the
 // same pattern TextBlock uses for its TipTap editor) keeps the caret stable.
+// Sanitize on READ too, not just on @input write: markdown-import produces
+// ['callout', {html}] straight from the allowDangerousHtml parser, so an
+// externally-sourced body could carry `<img onerror=…>` that fires in the editor
+// session when the block is opened. sanitizeBlockHtml strips it.
 onMounted(() => {
-  if (bodyEl.value) bodyEl.value.innerHTML = html.value;
+  if (bodyEl.value) bodyEl.value.innerHTML = sanitizeBlockHtml(html.value);
 });
 
 watch(html, (newHtml: string): void => {
   const el = bodyEl.value;
-  if (el && newHtml !== el.innerHTML) {
-    el.innerHTML = newHtml;
+  const safe = sanitizeBlockHtml(newHtml);
+  if (el && safe !== el.innerHTML) {
+    el.innerHTML = safe;
   }
 });
 

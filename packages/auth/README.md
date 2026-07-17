@@ -49,7 +49,7 @@ if (!result.authorized) throw redirect(result.status!, result.redirectTo!);
 const result = adminGuard(event);
 
 // Require minimum role level
-const modGuard = roleGuard('moderator');
+const staffGuard = roleGuard('staff'); // use a real UserRole (roleGuard fails closed on unknown roles)
 const result = modGuard(event);
 ```
 

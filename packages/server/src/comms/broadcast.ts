@@ -1,4 +1,4 @@
-import { and, eq, desc, inArray, sql } from 'drizzle-orm';
+import { and, eq, desc, inArray, isNull, sql } from 'drizzle-orm';
 import { users, broadcasts } from '@commonpub/schema';
 import type { BroadcastInput, BroadcastAudience } from '@commonpub/schema';
 import type { DB } from '../types.js';
@@ -27,6 +27,11 @@ export interface SendBroadcastInput extends BroadcastInput {
 function audienceWhere(audience: BroadcastAudience, allowUnverified = false) {
   const conds = [
     ...(allowUnverified ? [] : [eq(users.emailVerified, true)]),
+    // Only active, non-soft-deleted users — matches the active-user definition used
+    // by metrics/profile, so send + recipient-count never mail a suspended or
+    // soft-deleted account (keeps parity the moment any soft-delete path lands).
+    eq(users.status, 'active'),
+    isNull(users.deletedAt),
     sql`(${users.emailNotifications} ->> 'unsubscribedAll') IS DISTINCT FROM 'true'`,
   ];
   if (audience !== 'all') {

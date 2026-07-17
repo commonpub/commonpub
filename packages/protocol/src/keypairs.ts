@@ -95,15 +95,22 @@ export async function verifyHttpSignature(
       const bodyBytes = new TextEncoder().encode(body);
       const hashBuffer = await crypto.subtle.digest('SHA-256', bodyBytes);
       const hashBase64 = btoa(String.fromCharCode(...new Uint8Array(hashBuffer)));
-      const expectedDigest = `SHA-256=${hashBase64}`;
-      if (digestHeader !== expectedDigest) return false;
+      // RFC 3230's digest-algorithm token is case-insensitive; compare the algo
+      // case-folded and the base64 payload exactly, rather than requiring the exact
+      // string `SHA-256=…` (which wrongly rejected a spec-conformant `sha-256=…`).
+      const eqIdx = digestHeader.indexOf('=');
+      const digestAlgo = eqIdx >= 0 ? digestHeader.slice(0, eqIdx).trim().toLowerCase() : '';
+      const digestValue = eqIdx >= 0 ? digestHeader.slice(eqIdx + 1) : '';
+      if (digestAlgo !== 'sha-256' || digestValue !== hashBase64) return false;
     }
 
     const url = new URL(request.url);
     const signingLines: string[] = [];
     for (const header of headers) {
       if (header === '(request-target)') {
-        signingLines.push(`(request-target): ${request.method.toLowerCase()} ${url.pathname}`);
+        // Cover path AND query to match draft-cavage §2.3 (kept in lock-step with
+        // signRequest so self-to-self verification and spec-compliant peers agree).
+        signingLines.push(`(request-target): ${request.method.toLowerCase()} ${url.pathname}${url.search}`);
       } else if (header === 'host') {
         signingLines.push(`host: ${request.headers.get('host') ?? url.host}`);
       } else {
