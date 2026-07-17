@@ -303,6 +303,21 @@ export async function exchangeCodeAndVerify(
   const username = account.username;
   const actorUri = account.url || `${baseUrl}/users/${username}`;
 
+  // Same-domain identity authority (federation-hardening): `account.url` is
+  // supplied by the remote server we authenticated against, and the callback
+  // matches it GLOBALLY via findUserByFederatedAccount (host-unbound). A hostile
+  // server the user chose to "sign in with" could therefore return a victim's
+  // actorUri on a DIFFERENT host and take over that account. An instance may only
+  // assert identities within its own domain — reject a cross-host actorUri.
+  try {
+    if (new URL(actorUri).hostname !== host) {
+      throw new Error(`Remote ${host} returned an identity outside its own domain (${actorUri})`);
+    }
+  } catch (err) {
+    if (err instanceof Error && err.message.startsWith('Remote ')) throw err;
+    throw new Error(`Remote ${host} returned an unparseable actor URI`);
+  }
+
   // Mastodon returns scope as a space-separated string OR null;
   // megalodon types it null|string.
   const grantedScopes = tokenData.scope

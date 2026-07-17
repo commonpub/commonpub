@@ -137,6 +137,26 @@ export async function backfillFromOutbox(
   const handlers = createInboxHandlers({ db, domain });
   let nextPage: string | null = startUrl;
 
+  // Attribution binding for the crawl path: unlike the live inbox (where
+  // assertActorMatchesSigner pins activity.actor to the HTTP signer), outbox
+  // items are entirely attacker-controlled, so a hostile mirror could list a
+  // Create/Update whose actor + object.id both claim a THIRD party's host and
+  // slip past onCreate's object.id==actor guard. An outbox may only vouch for
+  // actors on its OWN host, so reject any item whose actor host differs from the
+  // crawled outbox owner's host before dispatch.
+  const ownerHost = ((): string | null => {
+    try { return new URL(remoteActorUri).hostname; } catch { return null; }
+  })();
+  const activityActorUri = (a: Record<string, unknown>): string | null => {
+    const actor = a.actor;
+    if (typeof actor === 'string') return actor;
+    if (actor && typeof actor === 'object' && !Array.isArray(actor)) {
+      const id = (actor as Record<string, unknown>).id;
+      return typeof id === 'string' ? id : null;
+    }
+    return null;
+  };
+
   while (nextPage && result.pages < MAX_PAGES && result.processed < maxItems) {
     try {
       const response = await signedGet(db, nextPage, domain);
@@ -186,6 +206,16 @@ export async function backfillFromOutbox(
             reachedSince = true;
             break;
           }
+        }
+
+        // Reject cross-host attribution: an outbox may only backfill activities
+        // authored by actors on its own host (see the binding note above).
+        const itemActor = activityActorUri(activity);
+        let itemActorHost: string | null = null;
+        try { itemActorHost = itemActor ? new URL(itemActor).hostname : null; } catch { itemActorHost = null; }
+        if (!ownerHost || !itemActorHost || itemActorHost !== ownerHost) {
+          result.errors++;
+          continue;
         }
 
         try {

@@ -589,6 +589,19 @@ export async function exchangeCodeForToken(
 
     if (!data.access_token || !data.user) return null;
 
+    const actorUri = data.user.actorUri ?? `https://${state.instanceDomain}/users/${data.user.username}`;
+    // Same-domain identity authority (federation-hardening): the remote-supplied
+    // actorUri is matched globally via findUserByFederatedAccount (host-unbound) by
+    // the callback, so a compromised/malicious trusted instance could return a
+    // victim's actorUri on ANOTHER instance's host and take over that account. Each
+    // instance is only authoritative for identities on its OWN domain — reject a
+    // cross-host actorUri here so both SSO callbacks share one enforcement point.
+    try {
+      if (new URL(actorUri).hostname !== state.instanceDomain) return null;
+    } catch {
+      return null;
+    }
+
     return {
       accessToken: data.access_token,
       user: {
@@ -596,7 +609,7 @@ export async function exchangeCodeForToken(
         username: data.user.username,
         displayName: data.user.displayName ?? null,
         avatarUrl: data.user.avatarUrl ?? null,
-        actorUri: data.user.actorUri ?? `https://${state.instanceDomain}/users/${data.user.username}`,
+        actorUri,
       },
     };
   } catch {

@@ -33,7 +33,7 @@ export default defineEventHandler(async (event) => {
 
   const runtimeConfig = useRuntimeConfig();
   const domain = extractDomain((runtimeConfig.public?.siteUrl as string) || `https://${config.instance.domain}`);
-  const callbacks = createInboxHandlers({ db, domain });
+  const callbacks = createInboxHandlers({ db, domain, federationConfig: config.federation });
 
   try {
     const result = await processInboxActivity(body, callbacks);

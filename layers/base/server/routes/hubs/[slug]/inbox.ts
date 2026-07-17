@@ -36,7 +36,7 @@ export default defineEventHandler(async (event) => {
 
   const domain = config.instance.domain;
   const slug = getRouterParam(event, 'slug');
-  const handlers = createInboxHandlers({ db, domain, hubContext: slug ? { hubSlug: slug } : undefined });
+  const handlers = createInboxHandlers({ db, domain, federationConfig: config.federation, hubContext: slug ? { hubSlug: slug } : undefined });
 
   try {
     await processInboxActivity(body, handlers);

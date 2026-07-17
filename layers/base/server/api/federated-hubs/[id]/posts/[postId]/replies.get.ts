@@ -2,6 +2,7 @@ import { getFederatedHub, getFederatedHubPost, listFederatedHubPostReplies } fro
 
 export default defineEventHandler(async (event) => {
   requireFeature('federation');
+  requireFeature('federateHubs');
   const { postId } = parseParams(event, { id: 'uuid', postId: 'uuid' });
   const query = getQuery(event);
   const db = useDB();

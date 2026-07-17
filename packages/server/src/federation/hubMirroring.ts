@@ -1088,6 +1088,21 @@ export async function backfillHubFromOutbox(
   const { processInboxActivity } = await import('@commonpub/protocol');
   const handlers = createInboxHandlers({ db, domain });
 
+  // Attribution binding for the crawl path (see backfill.ts): outbox items are
+  // attacker-controlled, so only accept activities whose actor lives on the hub's
+  // own host — a hostile mirrored hub must not be able to backfill Creates/Announces
+  // attributed to a third-party host.
+  const ownerHost = ((): string | null => {
+    try { return new URL(hub.actorUri).hostname; } catch { return null; }
+  })();
+  const activityActorHost = (a: Record<string, unknown>): string | null => {
+    const actor = a.actor;
+    const uri = typeof actor === 'string' ? actor
+      : (actor && typeof actor === 'object' && !Array.isArray(actor) && typeof (actor as Record<string, unknown>).id === 'string')
+        ? (actor as Record<string, unknown>).id as string : null;
+    try { return uri ? new URL(uri).hostname : null; } catch { return null; }
+  };
+
   let nextPage: string | null = actor.outbox;
   let processed = 0;
   let errors = 0;
@@ -1124,6 +1139,11 @@ export async function backfillHubFromOutbox(
         const activity = item as Record<string, unknown>;
         if (!activity || typeof activity !== 'object') continue;
         if (activity.type !== 'Announce' && activity.type !== 'Create') continue;
+        // Reject cross-host attribution (see ownerHost note above).
+        if (!ownerHost || activityActorHost(activity) !== ownerHost) {
+          errors++;
+          continue;
+        }
         try {
           await processInboxActivity(activity, handlers);
           processed++;

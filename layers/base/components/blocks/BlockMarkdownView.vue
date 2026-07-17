@@ -79,15 +79,19 @@ h2.cpub-md-heading { font-size: 1.375rem; font-weight: 700; }
 h3.cpub-md-heading { font-size: 1.125rem; font-weight: 700; }
 h4.cpub-md-heading { font-size: 1rem; font-weight: 600; }
 
-.cpub-md-text { font-size: 15px; line-height: 1.75; margin-bottom: 14px; }
+.cpub-md-text { font-size: 15px; line-height: 1.75; margin-bottom: 14px; overflow-wrap: break-word; word-break: break-word; }
 .cpub-md-text :deep(p) { margin-bottom: 12px; }
 .cpub-md-text :deep(ul), .cpub-md-text :deep(ol) { padding-left: 24px; margin-bottom: 12px; }
 .cpub-md-text :deep(li) { margin-bottom: 4px; }
 .cpub-md-text :deep(a) { color: var(--accent); text-decoration: underline; }
 .cpub-md-text :deep(strong) { font-weight: 600; }
 .cpub-md-text :deep(code) { font-family: var(--font-mono); font-size: 0.875em; padding: 1px 4px; background: var(--surface2); border-radius: 0; }
-.cpub-md-text :deep(table) { width: 100%; border-collapse: collapse; margin-bottom: 12px; font-size: 13px; }
-.cpub-md-text :deep(th), .cpub-md-text :deep(td) { padding: 6px 10px; border: var(--border-width-default) solid var(--border); text-align: left; }
+.cpub-md-text :deep(pre) { overflow-x: auto; max-width: 100%; }
+.cpub-md-text :deep(img) { max-width: 100%; height: auto; }
+/* Wide raw-HTML tables scroll inside themselves instead of forcing a horizontal
+   page scroll on mobile (mirrors the .cpub-block-text / .cpub-md-html fix). */
+.cpub-md-text :deep(table) { display: block; max-width: 100%; overflow-x: auto; border-collapse: collapse; margin-bottom: 12px; font-size: 13px; }
+.cpub-md-text :deep(th), .cpub-md-text :deep(td) { padding: 6px 10px; border: var(--border-width-default) solid var(--border); text-align: left; white-space: nowrap; }
 .cpub-md-text :deep(th) { background: var(--surface2); font-weight: 600; }
 
 .cpub-md-code {
@@ -103,6 +107,7 @@ h4.cpub-md-heading { font-size: 1rem; font-weight: 600; }
 .cpub-md-callout {
   padding: 12px 16px; border-radius: 0; border-left: 3px solid;
   margin-bottom: 14px; font-size: 14px; line-height: 1.6;
+  overflow-wrap: break-word; word-break: break-word;
 }
 .cpub-md-callout--info { background: var(--teal-bg); border-color: var(--teal); }
 .cpub-md-callout--tip { background: var(--green-bg); border-color: var(--green); }
@@ -112,6 +117,7 @@ h4.cpub-md-heading { font-size: 1rem; font-weight: 600; }
 .cpub-md-quote {
   border-left: 3px solid var(--border); padding: 8px 16px;
   color: var(--text-dim); font-style: italic; margin-bottom: 14px;
+  overflow-wrap: break-word; word-break: break-word;
 }
 
 .cpub-md-hr { border: none; border-top: var(--border-width-default) solid var(--border); margin: 20px 0; }
