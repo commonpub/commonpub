@@ -1247,7 +1247,13 @@ export async function forkFederatedContent(
   const source = await db
     .select()
     .from(federatedContent)
-    .where(eq(federatedContent.id, federatedContentId))
+    // Match the feed's visibility rules + the local fork path: a moderator-hidden
+    // or remotely-deleted (tombstoned) mirror must not be forkable/resurrectable.
+    .where(and(
+      eq(federatedContent.id, federatedContentId),
+      isNull(federatedContent.deletedAt),
+      eq(federatedContent.isHidden, false),
+    ))
     .limit(1);
 
   if (source.length === 0) {
@@ -1313,7 +1319,10 @@ export async function toggleFederatedBuildMark(
       return { marked: false, count: rows[0]?.count ?? 0 };
     }
 
-    await tx.insert(federatedContentBuilds).values({ federatedContentId, userId });
+    // onConflictDoNothing: a concurrent double-click (two txns both read empty,
+    // both insert) would otherwise violate unique(userId, federatedContentId) and
+    // 500 the request — mirror the local toggleBuildMark hardening.
+    await tx.insert(federatedContentBuilds).values({ federatedContentId, userId }).onConflictDoNothing();
     const rows = await tx
       .select({ count: sql<number>`count(*)::int` })
       .from(federatedContentBuilds)

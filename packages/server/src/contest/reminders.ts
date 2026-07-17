@@ -188,7 +188,17 @@ export async function sweepContestReminders(
     // joined back to the user so we can address the mail in the same round-trip.
     // Raw SQL: an `INSERT ... SELECT ... ON CONFLICT DO NOTHING RETURNING` fed
     // into a CTE join is not expressible in the drizzle query builder.
-    const res = await db.execute(sql`
+    // Claim + enqueue in ONE transaction: if enqueueEmails throws, the ledger
+    // claim rolls back so a later sweep retries the milestone, instead of
+    // committing the claim and permanently dropping the whole batch's reminder
+    // (the documented exactly-once silently degrading to at-most-once/zero).
+    // The try/catch is essential: without it a DETERMINISTIC per-contest failure
+    // would roll back + rethrow out of the loop and, because the claim rolled back,
+    // re-throw every tick — starving every contest ordered after it. Isolate the
+    // failure to its own contest and continue.
+    try {
+    await db.transaction(async (tx) => {
+    const res = await tx.execute(sql`
       WITH claimed AS (
         INSERT INTO contest_reminder_sends (contest_id, user_id, milestone)
         SELECT cr.contest_id, cr.user_id, ${milestoneKey}
@@ -207,7 +217,7 @@ export async function sweepContestReminders(
     `);
 
     const recipients = rowsOf<{ userId: string; email: string; username: string }>(res);
-    if (recipients.length === 0) continue;
+    if (recipients.length === 0) return;
 
     const messages: OutboxMessage[] = recipients.map((r) => {
       const { pageUrl, headers } = buildUnsubscribeLinks(ctx.siteUrl, r.userId, ctx.secret);
@@ -236,8 +246,15 @@ export async function sweepContestReminders(
       };
     });
 
-    await enqueueEmails(db, messages);
+    await enqueueEmails(tx, messages);
     enqueued += messages.length;
+    });
+    } catch (err) {
+      // Rollback already un-claimed this contest's rows, so the next sweep retries;
+      // skip it now rather than aborting the whole sweep (poison-pill isolation).
+      console.error(`[contest-reminders] sweep failed for contest ${id} milestone ${milestoneKey}:`, err instanceof Error ? err.message : err);
+      continue;
+    }
   }
 
   return { contests: due.length, enqueued };

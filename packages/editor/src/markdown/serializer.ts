@@ -107,11 +107,16 @@ function htmlToMarkdown(html: string): string {
     .replace(/<code>(.*?)<\/code>/gi, '`$1`')
     .replace(/<a\s+href="([^"]*)"[^>]*>(.*?)<\/a>/gi, '[$2]($1)')
     .replace(/<ul>(.*?)<\/ul>/gis, (_, inner: string) =>
-      inner.replace(/<li>(.*?)<\/li>/gi, '- $1').trim(),
+      // One item per line (a trailing \n per item, trimmed at the end) — without it
+      // multi-item lists concatenate onto a single broken line ("- A- B").
+      inner.replace(/<li>(.*?)<\/li>/gi, '- $1\n').trim(),
     )
     .replace(/<ol>(.*?)<\/ol>/gis, (_, inner: string) => {
       let i = 0;
-      return inner.replace(/<li>(.*?)<\/li>/gi, () => `${++i}. `).trim();
+      // Include the captured item text — the callback previously returned just the
+      // number ("1. "), dropping every ordered-list item's content (data loss) —
+      // and put one item per line (see the <ul> note).
+      return inner.replace(/<li>(.*?)<\/li>/gi, (_m, item: string) => `${++i}. ${item}\n`).trim();
     })
     .replace(/<[^>]+>/g, '') // Strip remaining tags
     .trim();

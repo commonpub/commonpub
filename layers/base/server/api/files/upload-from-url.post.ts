@@ -40,7 +40,10 @@ export default defineEventHandler(async (event) => {
   // Upload to storage
   const storage = createStorageFromEnv();
   const ext = contentType.split('/')[1] || 'jpg';
-  const key = generateStorageKey(purpose, ext);
+  // generateStorageKey(originalName, purpose) — args were reversed, producing keys
+  // like `png/<uuid>` with no extension (folder = MIME subtype). Give it a real
+  // filename so the purpose folder + extension come out right (cf. upload.post.ts).
+  const key = generateStorageKey(`image.${ext}`, purpose);
 
   const resultUrl = await storage.upload(key, buffer, contentType);
 
