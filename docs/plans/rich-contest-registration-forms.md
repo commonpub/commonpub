@@ -1,11 +1,146 @@
 # Plan — Rich, operator-definable contest registration forms + form-editor UX overhaul
 
-**Status:** proposed (plan only — awaiting go-ahead before implementation)
+**Status:** proposed + AUDIT-CORRECTED (plan only — awaiting go-ahead before implementation).
+**⚠ READ §0 (Audit corrections) FIRST** — an adversarial audit (2026-07-17) verified the direction is
+sound but found 2 blockers + 10 majors that change specifics and sequencing. §0 supersedes the affected
+parts of §4–§13 below; the original sections remain for context.
 **Author context:** session 242. Reference target: the Resilient America Preparedness Challenge
 registration form (https://resilientamericapreparedness.lovable.app/).
 **Operator decisions captured:** (1) architecture = *operator chooses per contest* (support both a
 light registration + separate entry, AND a single combined intake form); (2) add ALL new field types
 (sections, repeatable group, file upload, signature, radio, phone); (3) plan first, implement after review.
+
+---
+
+## 0. Audit corrections (2026-07-17) — MUST READ; supersedes affected parts below
+
+An adversarial audit verified the plan's direction (lift the entry field-template subsystem onto
+registration) and confirmed the session's shipped code is clean, but found the following. Treat these as
+authoritative over the corresponding original sections.
+
+### Blockers (the plan was WRONG — fix the design before building)
+
+- **B1 — Combined-mode entry creation (fixes §8).** `contest_entries.content_id` is **NOT NULL** FK to
+  `content_items` (`schema/contest.ts:273`). A raw project *URL* cannot populate an entry. Combined mode
+  MUST reuse `submitContestProposal`'s mechanism: create a **draft placeholder content** row
+  (`createContent`, `submissions.ts:267`) → obtain `contentId` → link the entry. Also `submitContestProposal`
+  requires `contest.status==='active'` **and** a submission stage in **proposal mode** as the current stage
+  (`submissions.ts:228,240-242`) — but registration is also open in **`upcoming`** (`REGISTERABLE_STATUSES`,
+  `registrations.ts:24`). So §8 must define combined-mode behavior when the contest is `upcoming` (defer
+  entry creation until active, or block combined registration pre-launch) and which stage the auto-entry
+  attaches to. Specify the entry title/type source explicitly (a URL alone is insufficient).
+
+- **B2 — "Private" files/signatures are a FALSE guarantee today (fixes §5/§7).** The only upload path is
+  **public-read**: `storage.ts:192` sets `ACL:'public-read'` and returns a public URL; `files/upload.post.ts`
+  always returns/stores `publicUrl`; valid purposes are a closed set `['cover','content','avatar','banner',
+  'attachment']` (`upload.post.ts:35`) with size capped **per purpose** (attachment=100MB), not per field.
+  Routing file/signature through this endpoint puts signed legal docs + signature PNGs at a **shareable
+  public URL** — a GDPR/privacy breach for exactly the fields marked confidential. **Prerequisite before any
+  file/signature field ships:** add a private storage path (non-public ACL / signed URLs) + an
+  auth+`contest.pii`-gated file-serving route + a `contest`/`private` upload purpose. Until that exists,
+  do NOT offer file/signature fields.
+
+### Data-model corrections (fix §4)
+
+- **Endpoint wire schema drops rich fields (major).** `register.post.ts:29` parses with
+  `contestRegisterSchema`, whose `fields` = the **closed** `contestRegistrationFieldsSchema`
+  (`z.object({building,experience,team})`, `validators/contest.ts:402`). Zod `z.object` **strips unknown
+  keys**, so every operator-defined answer vanishes at the endpoint before any server logic. **Fix:** swap
+  `contestRegisterSchema.fields` to an **open bounded record** (mirror `stageSubmissionSchema`:
+  `z.record(z.string().max(64), z.string().max(4000))`, ≤50 keys); the closed schema becomes a preset shape
+  only, not the wire contract. Do domain validation server-side against `registrationTemplate`.
+- **Widening `fields` $type breaks typecheck at 5 sites (major).** The at-rest jsonb is safe (all
+  string-valued), but changing `$type<ContestRegistrationFields>()` → `$type<Record<string,string>>()`
+  breaks these explicit annotations that P1 must update in lockstep: `server/src/contest/types.ts:269`,
+  `registrations.ts:52,156,218`, `layers/.../register.get.ts:18`, re-export `server/src/index.ts:74`. (The
+  reference-app `nuxt typecheck` — not vitest — is the gate that catches these; see build-pipeline findings.)
+- **Consent-audit table generalization is bigger than §4.5 says (major).** `contest_agreement_acceptances`
+  has BOTH `entry_id NOT NULL` **and `stage_id NOT NULL`** (`contest.ts:388-412`), and the writer
+  `recordPrivateAndAgreements` (`submissions.ts:25`) takes required `entryId`+`stageId` and upserts private
+  fields on `entryId`. To support registration: make `entry_id` **and `stage_id`** nullable, add
+  `registration_id`, add a CHECK that exactly one of entry_id/registration_id is set, **re-signature**
+  `recordPrivateAndAgreements` to `{entryId?|registrationId?, stageId?}`, and upsert against the correct
+  private table per scope. Also add `entry_id`/`registration_id` (or a `scope`) to the GDPR export
+  projection (`profile/export.ts:298`) so registration acceptances are distinguishable (minor).
+
+### Server corrections (fix §6)
+
+- **Atomicity (major).** `registerForContest` is currently NOT transactional (insert-onConflictDoNothing,
+  then a separate select+update reconcile; `registrations.ts:137-166`). §6's three coupled writes
+  (registration + private fields + agreements) MUST be wrapped in one `db.transaction` (as
+  `submitStageArtifact`/`submitContestProposal` already do) so consent can't diverge from the record.
+- **Idempotent-register duplicates consent (major).** `registerForContest` is idempotent and re-invoked for
+  info edits; `contest_agreement_acceptances` is append-only with no dedup. Re-registering would pile up
+  duplicate acceptance rows. **Fix:** `UNIQUE(registration_id, field_key, terms_hash)` + `onConflictDoNothing`
+  (record only on first accept / when terms change).
+- **File-ownership check is NOT pure-validator work (major).** `validateSubmissionFields` is deliberately
+  pure/no-DB (`validation.ts:5`) — verified. File "resolve to an uploaded object owned by the user" +
+  per-field accept/maxSizeKb needs DB + storage, so it belongs in a **DB-backed post-validation step** (like
+  `recordPrivateAndAgreements`), NOT the pure partition step. No code queries `files` by key for
+  `uploaderId` today — this is net-new, not reuse.
+- **`validateTemplateFields(...,{pii})` invents an arg (nit).** The current function has no `{pii}` toggle
+  (PII is intrinsic via `isPiiField`) and is already pure+uncoupled — verified. Registration can call
+  `validateSubmissionFields` directly; the "extraction" is really a rename + new-type handling.
+- **`radio` needs its own options-refine (minor).** The `select-needs-options` refine
+  (`validators/contest.ts:167`) fires only for `select`; a `radio` with zero options passes save-time
+  validation then rejects every entrant answer. Add `radio` to that refine + the validator's select branch.
+
+### Field-type sequencing corrections (fix §5/§7)
+
+- **DEFER `group` (repeatable) to its own late phase — it's a model rewrite, not a switch-case (major).**
+  The whole stack is `Record<string,string>` (renderer `defineModel<string>` `ContestSubmissionField.vue:17`;
+  driver `ContestProposalForm.vue:24,70`; client helpers `utils/contestSubmission.ts:48,60,81`; server
+  `validateSubmissionFields(template, values: Record<string,string>)`). A group value is an array-of-records
+  — incompatible with all of these. It also breaks: the 4000-char per-value cap (a team list packed into one
+  JSON string), the flat unknown-key guard (`byKey.has(key)`), the `field_key` regex `^[a-z0-9_]+$` +
+  `varchar(40)` for group-child agreement keys (`team[0].consent` is illegal), and needs a `z.lazy` schema
+  with a **depth cap (recommend 1 — groups can't nest)**. Design an explicit nested value model
+  (`Record<string, string | GroupRow[]>`) threaded through renderer + both drivers + helpers + validator +
+  export before attempting it. Ship simpler types first.
+- **`file`/`signature` gated on the B2 private-storage prerequisite.** `address` (JSON-encoded into one
+  string, `validation.ts:118`) proves JSON-in-a-string-value is fine for file/signature *refs* — but the
+  bytes need private storage (B2) + DB-backed ownership validation.
+- **Signature draw-pad is net-new UI (minor).** `ImageCropperModal.vue` is a *cropper* (emits a cropped
+  Blob), not a freehand draw-pad and does not upload — weak reuse. Build the draw-pad + its "type your name"
+  a11y fallback as new UI; only reuse the cropper if signature = uploaded image.
+
+### UI/editor corrections (fix §9)
+
+- **Anonymous intake is a HARD CONSTRAINT, not an open sub-decision (major).** Registration
+  (`register.post.ts:22`) AND upload (`upload.post.ts:24`) both `requireAuth`; anonymous visitors see only
+  "Log in to register" (`ContestSignup.vue:188`). The reference form is a public no-account form. So combined
+  mode / reference parity is **authenticated-participants only** unless an anonymous-intake path (captcha +
+  email-verify + deferred account) is built as a **separate net-new line item**. Recommend: scope to
+  authenticated; drop the "pre-account" idea. Resolve §15.
+- **DnD is heavier than stated; make keyboard up/down the PRIMARY reorder (minor).** Prior art
+  (`admin/layouts/[id].vue:698-707`) shows `@vue-dnd-kit/core` ships **no a11y announcer** (they built
+  `useLayoutAnnouncer`) and gate DnD to ≥640px. Up/down buttons are lighter + a11y-by-default; treat pointer
+  DnD as optional polish that reuses the announcer pattern, and budget the announcer.
+- **Exhaustive type maps force updates (nit).** New union members require new keys in
+  `utils/contestStages.ts:242` `TEMPLATE_FIELD_TYPE_LABEL` (`Record<type,string>`) and any other exhaustive
+  Record over the type union — compiler-caught but add to the touch list.
+
+### Revised phase order (supersedes §13)
+
+- **P0 — private-storage prerequisite** (infra private ACL/signed-URL path + gated file-serving route +
+  `contest` upload purpose). Gate for file/signature fields.
+- **P1 — schema + types + migration 0043** (registrationTemplate + registrationMode columns; widen `fields`
+  + update the 5 annotation sites; `contest_registration_private_fields`; consent-table generalization incl.
+  `stage_id` nullable + CHECK + dedup UNIQUE; add `section`/`radio`/`tel` types + `radio` refine; **NOT
+  `group`/`file`/`signature` yet**).
+- **P2 — server** (open wire schema on `contestRegisterSchema.fields`; registration through
+  `validateSubmissionFields`; transactional write of record+private+agreements; DB-backed file post-validation
+  once P0 lands).
+- **P3 — renderer + registration form** (`section`/`radio`/`tel`; `ContestRegistrationForm`; live preview).
+- **P4 — editor UX** (extract shared `FormTemplateEditor`; cards; **up/down reorder primary**, DnD optional;
+  sections; grouped type picker; touch `TEMPLATE_FIELD_TYPE_LABEL`).
+- **P5 — combined mode** (auth-only; reuse placeholder-content; define upcoming/active + stage; maxEntries
+  race decision) **+ admin registrants list/export + presets/"comprehensive intake" template.**
+- **P6 (later) — `file`/`signature` fields** (after P0) and **`group`** (dedicated nested-model phase).
+
+Each phase: fix → full package suite → **`apps/reference` `nuxt typecheck`** (the layer gate) →
+adversarial audit → roll the exact-pin chain. No `group`/`file`/`signature` claims of "private" or
+"repeatable" ship until their prerequisites (P0 / nested-model) are done.
 
 ---
 
