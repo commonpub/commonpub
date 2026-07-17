@@ -137,6 +137,7 @@ describe('MAX_UPLOAD_SIZES', () => {
     expect(MAX_UPLOAD_SIZES['cover']).toBe(10 * 1024 * 1024);
     expect(MAX_UPLOAD_SIZES['content']).toBe(10 * 1024 * 1024);
     expect(MAX_UPLOAD_SIZES['attachment']).toBe(100 * 1024 * 1024);
+    expect(MAX_UPLOAD_SIZES['contest']).toBe(100 * 1024 * 1024);
   });
 
   it('avatar is smallest', () => {
@@ -205,6 +206,90 @@ describe('LocalStorageAdapter', () => {
     const adapter = new LocalStorageAdapter(tempDir, 'http://localhost:3000');
 
     await expect(adapter.delete('../../../etc/passwd')).rejects.toThrow('path traversal');
+  });
+});
+
+describe('LocalStorageAdapter — private storage (P0)', () => {
+  let tempDir: string;
+  let privateDir: string;
+
+  afterEach(async () => {
+    if (tempDir) await rm(tempDir, { recursive: true, force: true });
+    if (privateDir) await rm(privateDir, { recursive: true, force: true });
+  });
+
+  async function streamToString(body: NodeJS.ReadableStream): Promise<string> {
+    const chunks: Buffer[] = [];
+    for await (const c of body) chunks.push(Buffer.isBuffer(c) ? c : Buffer.from(c as string));
+    return Buffer.concat(chunks).toString('utf-8');
+  }
+
+  it('stores a private file OUTSIDE the public base dir and returns no URL', async () => {
+    tempDir = await mkdtemp(join(tmpdir(), 'cpub-pub-'));
+    privateDir = await mkdtemp(join(tmpdir(), 'cpub-priv-'));
+    const adapter = new LocalStorageAdapter(tempDir, 'http://localhost:3000', privateDir);
+
+    const ret = await adapter.uploadPrivate('contest/secret.pdf', Buffer.from('legal-doc'), 'application/pdf');
+    expect(ret).toBeUndefined(); // no public URL for a private object
+
+    // The bytes land in the PRIVATE dir, never the publicly-served base dir.
+    expect(await readFile(join(privateDir, 'contest/secret.pdf'), 'utf-8')).toBe('legal-doc');
+    await expect(readFile(join(tempDir, 'contest/secret.pdf'))).rejects.toThrow();
+  });
+
+  it('defaults the private base to a `-private` sibling outside the public base', async () => {
+    tempDir = await mkdtemp(join(tmpdir(), 'cpub-pub-'));
+    const adapter = new LocalStorageAdapter(tempDir, 'http://localhost:3000'); // no explicit private dir
+    privateDir = `${tempDir}-private`;
+
+    await adapter.uploadPrivate('contest/a.txt', Buffer.from('x'), 'text/plain');
+    // Sibling dir, so the /uploads route (rooted at tempDir) can never reach it.
+    expect(privateDir.startsWith(tempDir + '/')).toBe(false);
+    expect(await readFile(join(privateDir, 'contest/a.txt'), 'utf-8')).toBe('x');
+  });
+
+  it('streams a private object back with its byte length', async () => {
+    tempDir = await mkdtemp(join(tmpdir(), 'cpub-pub-'));
+    privateDir = await mkdtemp(join(tmpdir(), 'cpub-priv-'));
+    const adapter = new LocalStorageAdapter(tempDir, 'http://localhost:3000', privateDir);
+
+    await adapter.uploadPrivate('contest/note.txt', Buffer.from('hello-private'), 'text/plain');
+    const obj = await adapter.getPrivateObject('contest/note.txt');
+    expect(obj.contentLength).toBe('hello-private'.length);
+    expect(await streamToString(obj.body)).toBe('hello-private');
+  });
+
+  it('deletePrivate removes the private file; getPrivateObject then rejects (→ 404)', async () => {
+    tempDir = await mkdtemp(join(tmpdir(), 'cpub-pub-'));
+    privateDir = await mkdtemp(join(tmpdir(), 'cpub-priv-'));
+    const adapter = new LocalStorageAdapter(tempDir, 'http://localhost:3000', privateDir);
+
+    await adapter.uploadPrivate('contest/gone.txt', Buffer.from('bye'), 'text/plain');
+    await adapter.deletePrivate('contest/gone.txt');
+    await expect(adapter.getPrivateObject('contest/gone.txt')).rejects.toThrow();
+  });
+
+  it('enforces the traversal guard on every private method', async () => {
+    tempDir = await mkdtemp(join(tmpdir(), 'cpub-pub-'));
+    privateDir = await mkdtemp(join(tmpdir(), 'cpub-priv-'));
+    const adapter = new LocalStorageAdapter(tempDir, 'http://localhost:3000', privateDir);
+
+    await expect(adapter.uploadPrivate('../../etc/passwd', Buffer.from('e'), 'text/plain')).rejects.toThrow('path traversal');
+    await expect(adapter.getPrivateObject('../../etc/passwd')).rejects.toThrow('path traversal');
+    await expect(adapter.deletePrivate('../../etc/passwd')).rejects.toThrow('path traversal');
+  });
+
+  it('rejects a sibling-prefix escape (../<base>-private) — trailing-separator boundary', async () => {
+    // The public base is `<x>` and the private base defaults to `<x>-private`, a
+    // sibling whose name has the base as a literal string prefix. A guard using a
+    // bare startsWith(base) (no trailing sep) would let '../<base>-private/...'
+    // through. Assert the public adapter cannot reach the private sibling tree.
+    tempDir = await mkdtemp(join(tmpdir(), 'cpub-pub-'));
+    const pub = new LocalStorageAdapter(tempDir, 'http://localhost:3000');
+    privateDir = `${tempDir}-private`;
+    const sibling = `../${tempDir.split('/').pop()}-private/leak.txt`;
+    await expect(pub.upload(sibling, Buffer.from('x'), 'text/plain')).rejects.toThrow('path traversal');
+    await expect(pub.delete(sibling)).rejects.toThrow('path traversal');
   });
 });
 

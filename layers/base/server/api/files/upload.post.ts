@@ -32,13 +32,19 @@ export default defineEventHandler(async (event) => {
   const filename = file.filename || `upload-${Date.now()}`;
   const mimeType = file.type || 'application/octet-stream';
   const sizeBytes = file.data.length;
-  const validPurposes = ['cover', 'content', 'avatar', 'banner', 'attachment'] as const;
+  // `contest` is the PRIVATE purpose (P0): the bytes are stored non-public and
+  // served only through the auth + contest.pii-gated /api/files/[id]/raw route.
+  const validPurposes = ['cover', 'content', 'avatar', 'banner', 'attachment', 'contest'] as const;
   type Purpose = typeof validPurposes[number];
   const purposeRaw = formData.find((f) => f.name === 'purpose')?.data.toString() || 'content';
   if (!validPurposes.includes(purposeRaw as Purpose)) {
     throw createError({ statusCode: 400, statusMessage: 'Invalid upload purpose' });
   }
   const purpose = purposeRaw as Purpose;
+  const isPrivate = purpose === 'contest';
+  // Dark-launched until the file/signature field types ship (P6). Gating here
+  // means the private-storage path cannot be exercised until the operator opts in.
+  if (isPrivate) requireFeature('contestPrivateFiles');
 
   // Validate
   const validation = validateUpload(mimeType, sizeBytes, purpose);
@@ -47,13 +53,19 @@ export default defineEventHandler(async (event) => {
   }
 
   const adapter = getStorage();
-  let publicUrl: string;
+  let publicUrl: string | null = null;
   let storageKey: string;
   let width: number | null = null;
   let height: number | null = null;
   let variants: Record<string, string> | null = null;
 
-  if (isProcessableImage(mimeType)) {
+  if (isPrivate) {
+    // NEVER run image processing on a private upload — processImage writes its
+    // WebP variants through the PUBLIC adapter, which would leak a "private"
+    // signature/document to a public URL. Store the raw bytes privately only.
+    storageKey = generateStorageKey(filename, purpose);
+    await adapter.uploadPrivate(storageKey, file.data, mimeType);
+  } else if (isProcessableImage(mimeType)) {
     // Process image: generate thumbnails and convert to WebP
     const processed = await processImage(file.data, filename, purpose, adapter, mimeType);
     publicUrl = processed.originalUrl;
@@ -83,8 +95,9 @@ export default defineEventHandler(async (event) => {
       mimeType,
       sizeBytes,
       storageKey,
-      publicUrl,
+      publicUrl, // null for private uploads
       purpose,
+      visibility: isPrivate ? 'private' : 'public',
       width,
       height,
     })
@@ -96,7 +109,9 @@ export default defineEventHandler(async (event) => {
     originalName: filename,
     mimeType: row!.mimeType,
     sizeBytes: row!.sizeBytes,
-    url: publicUrl,
+    // A private file has no public URL — hand back the gated serving route.
+    url: isPrivate ? `/api/files/${row!.id}/raw` : publicUrl,
+    visibility: row!.visibility,
     width,
     height,
     variants,

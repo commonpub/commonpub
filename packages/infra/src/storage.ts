@@ -1,18 +1,38 @@
 import { createWriteStream } from 'node:fs';
 import { mkdir, unlink } from 'node:fs/promises';
-import { join, dirname } from 'node:path';
+import { join, dirname, sep } from 'node:path';
 import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import { randomUUID } from 'node:crypto';
 
+/** A stored object's bytes + metadata, for streaming a PRIVATE file back through
+ *  an authenticated serving route (P0). `contentType`/`contentLength` are
+ *  best-effort — the serving route authoritatively sets Content-Type from the
+ *  `files` row and MUST NOT trust these for security decisions. */
+export interface StorageObject {
+  body: Readable;
+  contentType?: string;
+  contentLength?: number;
+}
+
 /** Storage adapter interface for file uploads */
 export interface StorageAdapter {
-  /** Upload a file, returns the public URL */
+  /** Upload a PUBLIC file (public-read on S3; served by the open /uploads route
+   *  locally). Returns the public URL. Unchanged historical behaviour. */
   upload(key: string, data: Buffer | Readable, mimeType: string): Promise<string>;
-  /** Delete a file by key */
+  /** Delete a public file by key */
   delete(key: string): Promise<void>;
   /** Get public URL for a stored file */
   getUrl(key: string): string;
+  // --- Private storage (P0) — confidential bytes never exposed at a public URL ---
+  /** Upload a PRIVATE file: `private` ACL on S3, or a separate non-served base
+   *  dir locally. Returns nothing — a private object has NO public URL; it is
+   *  reached only via the auth-gated serving route calling `getPrivateObject`. */
+  uploadPrivate(key: string, data: Buffer | Readable, mimeType: string): Promise<void>;
+  /** Stream a private object's bytes for an authenticated serving route. */
+  getPrivateObject(key: string): Promise<StorageObject>;
+  /** Delete a private file by key. */
+  deletePrivate(key: string): Promise<void>;
 }
 
 /** Generate a unique storage key from original filename */
@@ -28,22 +48,33 @@ export function generateStorageKey(originalName: string, purpose: string): strin
 export class LocalStorageAdapter implements StorageAdapter {
   private basePath: string;
   private baseUrl: string;
+  /** Base dir for PRIVATE files. MUST be OUTSIDE `basePath` so the open
+   *  /uploads/<key> route (which streams anything under `basePath`) can never
+   *  reach a private file. Defaults to a `-private` sibling of `basePath`. */
+  private privateBasePath: string;
 
-  constructor(basePath: string, baseUrl: string) {
+  constructor(basePath: string, baseUrl: string, privateBasePath?: string) {
     this.basePath = basePath;
     this.baseUrl = baseUrl.replace(/\/$/, '');
+    this.privateBasePath = privateBasePath ?? `${basePath.replace(/\/$/, '')}-private`;
   }
 
-  async upload(key: string, data: Buffer | Readable, _mimeType: string): Promise<string> {
-    const filePath = join(this.basePath, key);
-    // Guard against path traversal — resolved path must be within basePath
-    const resolvedBase = join(this.basePath, '.');
-    const resolvedFile = join(filePath, '.');
-    if (!resolvedFile.startsWith(resolvedBase)) {
+  /** Resolve `base/key`, rejecting any key that would escape `base` (traversal).
+   *  The boundary check appends a path separator so a SIBLING dir whose name has
+   *  `base` as a string prefix (e.g. `<base>-private`) can't pass — matching the
+   *  public /uploads route's guard. Without the trailing `sep`,
+   *  `join('/x','../x-private/f')` = `/x-private/f` would `startsWith('/x')`. */
+  private safePath(base: string, key: string): string {
+    const filePath = join(base, key);
+    const resolvedBase = join(base, '.');
+    if (filePath !== resolvedBase && !filePath.startsWith(resolvedBase + sep)) {
       throw new Error('Invalid storage key: path traversal detected');
     }
-    await mkdir(dirname(filePath), { recursive: true });
+    return filePath;
+  }
 
+  private async writeFile(filePath: string, data: Buffer | Readable): Promise<void> {
+    await mkdir(dirname(filePath), { recursive: true });
     if (Buffer.isBuffer(data)) {
       const writeStream = createWriteStream(filePath);
       await new Promise<void>((resolve, reject) => {
@@ -59,17 +90,9 @@ export class LocalStorageAdapter implements StorageAdapter {
       const writeStream = createWriteStream(filePath);
       await pipeline(data, writeStream);
     }
-
-    return this.getUrl(key);
   }
 
-  async delete(key: string): Promise<void> {
-    const filePath = join(this.basePath, key);
-    const resolvedBase = join(this.basePath, '.');
-    const resolvedFile = join(filePath, '.');
-    if (!resolvedFile.startsWith(resolvedBase)) {
-      throw new Error('Invalid storage key: path traversal detected');
-    }
+  private async removeFile(filePath: string): Promise<void> {
     try {
       await unlink(filePath);
     } catch (err) {
@@ -77,8 +100,33 @@ export class LocalStorageAdapter implements StorageAdapter {
     }
   }
 
+  async upload(key: string, data: Buffer | Readable, _mimeType: string): Promise<string> {
+    await this.writeFile(this.safePath(this.basePath, key), data);
+    return this.getUrl(key);
+  }
+
+  async delete(key: string): Promise<void> {
+    await this.removeFile(this.safePath(this.basePath, key));
+  }
+
   getUrl(key: string): string {
     return `${this.baseUrl}/uploads/${key}`;
+  }
+
+  async uploadPrivate(key: string, data: Buffer | Readable, _mimeType: string): Promise<void> {
+    await this.writeFile(this.safePath(this.privateBasePath, key), data);
+  }
+
+  async getPrivateObject(key: string): Promise<StorageObject> {
+    const { createReadStream } = await import('node:fs');
+    const { stat } = await import('node:fs/promises');
+    const filePath = this.safePath(this.privateBasePath, key);
+    const stats = await stat(filePath); // throws ENOENT → surfaced as 404 by the route
+    return { body: createReadStream(filePath), contentLength: stats.size };
+  }
+
+  async deletePrivate(key: string): Promise<void> {
+    await this.removeFile(this.safePath(this.privateBasePath, key));
   }
 }
 
@@ -168,17 +216,17 @@ export class S3StorageAdapter implements StorageAdapter {
     return this.client;
   }
 
-  async upload(key: string, data: Buffer | Readable, mimeType: string): Promise<string> {
-    let body: Buffer;
-    if (Buffer.isBuffer(data)) {
-      body = data;
-    } else {
-      const chunks: Buffer[] = [];
-      for await (const chunk of data) {
-        chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
-      }
-      body = Buffer.concat(chunks);
+  private async toBuffer(data: Buffer | Readable): Promise<Buffer> {
+    if (Buffer.isBuffer(data)) return data;
+    const chunks: Buffer[] = [];
+    for await (const chunk of data) {
+      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
     }
+    return Buffer.concat(chunks);
+  }
+
+  async upload(key: string, data: Buffer | Readable, mimeType: string): Promise<string> {
+    const body = await this.toBuffer(data);
 
     const { PutObjectCommand } = await import('@aws-sdk/client-s3');
     const client = await this.getClient();
@@ -214,6 +262,44 @@ export class S3StorageAdapter implements StorageAdapter {
 
   getUrl(key: string): string {
     return `${this.publicUrl}/${key}`;
+  }
+
+  async uploadPrivate(key: string, data: Buffer | Readable, mimeType: string): Promise<void> {
+    const body = await this.toBuffer(data);
+    const { PutObjectCommand } = await import('@aws-sdk/client-s3');
+    const client = await this.getClient();
+    await client.send(
+      new PutObjectCommand({
+        Bucket: this.bucket,
+        Key: key,
+        Body: body,
+        ContentType: mimeType,
+        // NOT public-read — the object is unreachable at its bucket URL; bytes
+        // are streamed only through the auth-gated serving route.
+        ACL: 'private',
+        // Defence-in-depth for the (unlikely) case a private object is ever
+        // fetched inline: SVGs download rather than execute.
+        ...(mimeType === 'image/svg+xml' ? { ContentDisposition: 'attachment' } : {}),
+      }),
+    );
+  }
+
+  async getPrivateObject(key: string): Promise<StorageObject> {
+    const { GetObjectCommand } = await import('@aws-sdk/client-s3');
+    const client = await this.getClient();
+    const res = await client.send(new GetObjectCommand({ Bucket: this.bucket, Key: key }));
+    if (!res.Body) throw new Error('Empty object body');
+    return {
+      body: res.Body as Readable,
+      contentType: res.ContentType,
+      contentLength: res.ContentLength,
+    };
+  }
+
+  async deletePrivate(key: string): Promise<void> {
+    // Same bucket + DeleteObjectCommand — the ACL, not the key space, is what
+    // makes a private object private, so deletion is identical to `delete`.
+    await this.delete(key);
   }
 }
 
@@ -271,8 +357,13 @@ export function createStorageFromEnv(): StorageAdapter {
   // never silently fall back to a CWD-relative './uploads' when a dir is set.
   const uploadDir = process.env.UPLOAD_DIR ?? process.env.NUXT_UPLOAD_DIR ?? './uploads';
   const siteUrl = process.env.SITE_URL ?? process.env.NUXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
+  // Private files live in a base dir OUTSIDE `uploadDir` (a `-private` sibling by
+  // default, overridable via PRIVATE_UPLOAD_DIR) so the open /uploads route can
+  // never stream them. In prod (S3 mode above) this path is unused — privacy is
+  // the object ACL, not the key space.
+  const privateUploadDir = process.env.PRIVATE_UPLOAD_DIR ?? process.env.NUXT_PRIVATE_UPLOAD_DIR;
 
-  return new LocalStorageAdapter(uploadDir, siteUrl);
+  return new LocalStorageAdapter(uploadDir, siteUrl, privateUploadDir);
 }
 
 /** MIME type whitelist for uploads */
@@ -300,6 +391,7 @@ export const MAX_UPLOAD_SIZES: Record<string, number> = {
   cover: 10 * 1024 * 1024,     // 10MB
   content: 10 * 1024 * 1024,   // 10MB
   attachment: 100 * 1024 * 1024, // 100MB
+  contest: 100 * 1024 * 1024,  // 100MB — private contest attachments (P0)
 };
 
 /** Validate file upload */

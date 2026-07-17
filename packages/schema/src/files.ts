@@ -17,6 +17,12 @@ export const files = pgTable('files', {
   storageKey: text('storage_key').notNull(),
   publicUrl: text('public_url'),
   purpose: filePurposeEnum('purpose').default('attachment').notNull(),
+  // Access class. `public` (default) — the historical behaviour: object is
+  // public-read (S3) or served by the unauthenticated /uploads route (local),
+  // and `publicUrl` is set. `private` — never public-read; `publicUrl` stays
+  // null and the bytes are streamed only through the auth + contest.pii-gated
+  // /api/files/[id]/raw route (P0). Every pre-existing row is `public`.
+  visibility: text('visibility').$type<'public' | 'private'>().default('public').notNull(),
   contentId: uuid('content_id').references(() => contentItems.id, { onDelete: 'set null' }),
   hubId: uuid('hub_id').references(() => hubs.id, { onDelete: 'set null' }),
   width: integer('width'),

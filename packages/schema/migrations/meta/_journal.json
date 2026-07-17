@@ -302,6 +302,13 @@
       "when": 1784157418458,
       "tag": "0042_even_amazoness",
       "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1784325657722,
+      "tag": "0043_violet_dragon_man",
+      "breakpoints": true
     }
   ]
 }

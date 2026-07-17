@@ -37,6 +37,12 @@ export const featureFlagsSchema = z.object({
   // Offer PII field types in the submission-form builder (Phase 4). Default OFF.
   // Access to stored PII is always gated by `contest.pii` regardless.
   contestPii: z.boolean().default(false),
+  // Private contest file/signature attachments (P0 — rich registration). Gates
+  // the private-storage upload path (purpose=`contest`, stored non-public) and
+  // the auth + contest.pii-gated /api/files/[id]/raw serving route. Default OFF
+  // — dark-launched until the file/signature field types ship (P6). No effect
+  // unless `contests` is also on.
+  contestPrivateFiles: z.boolean().default(false),
   // Automatic contest deadline reminder emails to registered participants.
   // Default OFF; the reminder sweep is inert unless this AND emailNotifications
   // are on (the outbox worker only drains when emailNotifications is on).

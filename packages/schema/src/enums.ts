@@ -180,6 +180,10 @@ export const filePurposeEnum = pgEnum('file_purpose', [
   'avatar',
   'banner',
   'attachment',
+  // Private contest attachments (registration/entry file + signature fields).
+  // Always stored with visibility='private' — never a public-read object; served
+  // only through the auth + contest.pii-gated /api/files/[id]/raw route (P0).
+  'contest',
 ]);
 
 // --- Federation ---

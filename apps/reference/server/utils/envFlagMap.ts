@@ -18,6 +18,7 @@ export const ENV_FLAG_MAP: Record<string, string> = {
   contestStageSubmissions: 'FEATURE_CONTEST_STAGE_SUBMISSIONS',
   contestProposals: 'FEATURE_CONTEST_PROPOSALS',
   contestPii: 'FEATURE_CONTEST_PII',
+  contestPrivateFiles: 'FEATURE_CONTEST_PRIVATE_FILES',
   contestReminders: 'FEATURE_CONTEST_REMINDERS',
   contestEmailEditor: 'FEATURE_CONTEST_EMAIL_EDITOR',
   contestSignup: 'FEATURE_CONTEST_SIGNUP',
