@@ -289,3 +289,31 @@ federation behavior + breaks the current test contract; awaiting the operator's 
 
 Still open from the main register (not yet actioned): the Mastodon/federated SSO actor-host binding
 (#2/#3 — latent behind the off `signInWithRemote` flag), plus the P2/P3 batch (#4–#25).
+
+---
+
+## Update 2026-07-17 (2) — adversarial audit of the shipped hardening + remediation ROLLED (`server 2.114.1` / `layer 0.106.3`)
+
+An 18-agent adversarial audit of the 2.114.0 changes confirmed the P1 `onCreate` binding, §2c
+Announce binding, and §2e read-gating are **sound** (userinfo/IDN/trailing-dot spoofs neutralized;
+no legit-flow regression). It found real gaps in the session's own work, all now fixed + tested
+(1732 server tests green) and live:
+
+- **§2b cap was a no-op** — `federationConfig` was never threaded into `createInboxHandlers`, so
+  `mirrorMaxItems` was always `undefined`. Wired `config.federation` into all 3 live inbox routes.
+  (The unit test passed only because it called the leaf function with a literal cap; the *wiring*
+  was untested — always exercise the real call path.)
+- **Backfill/outbox-crawl bypassed the P1 guard** — `backfill.ts`/`hubMirroring.ts` feed `onCreate`
+  with attacker-controlled `actor` (no HTTP-signature pinning), so a forged `actor==object.id`
+  slipped through. Now reject any crawled item whose `actor` host ≠ the outbox owner's host
+  (new end-to-end crawl test).
+- **#2/#3 SSO actor-host binding** — `exchangeCodeForToken` + `exchangeCodeAndVerify` reject a
+  remote-supplied `actorUri` whose host ≠ the authenticating instance (account-takeover class). Tested.
+  (The Mastodon path remains latent behind the off `signInWithRemote` flag; the CommonPub-federated
+  path is reachable when trusted instances are configured.)
+- **§2e siblings** — `hub-post-like` gated on parent-hub visibility; `replies.get.ts` gains `requireFeature('federateHubs')`.
+- **Mobile-overflow siblings** — `CustomHtmlSection` + `BlockMarkdownView` get the same containment as the contest fix.
+
+**Still open (product decision):** §2b(ii) federated-content storage policy (subscribed-only vs open discovery).
+Remaining register items #2/#3 SSO now DONE; the rest of the P2/P3 batch (#4 fork-hidden, #5 ordered-list
+data-loss, #6 reminder-drop, #7 build-mark race, #12 roleGuard fail-open, …) remain for a future session.
