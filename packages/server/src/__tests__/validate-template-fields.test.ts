@@ -39,7 +39,8 @@ describe('validateSubmissionFields — P1 field types', () => {
     for (const good of ['+1 (555) 123-4567', '5551234567', '+44 20 7946 0958']) {
       expect(validateSubmissionFields(tmpl, { phone: good }).ok, good).toBe(true);
     }
-    for (const bad of ['abc', '12', 'call-me']) {
+    // Junk: non-phone chars, too few/many digits, and punctuation-only (no digits).
+    for (const bad of ['abc', '123456', 'call-me', '((((((()', '.......', '1234567890123456']) {
       expect(validateSubmissionFields(tmpl, { phone: bad }).ok, bad).toBe(false);
     }
   });

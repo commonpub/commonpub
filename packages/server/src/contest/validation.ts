@@ -122,9 +122,12 @@ export function validateSubmissionFields(
         break;
       }
       case 'tel': {
-        // Lenient phone check: digits, spaces, and + ( ) - . only, 7–20 chars.
-        // Deliberately permissive (international formats vary); reject obvious junk.
-        if (!/^\+?[0-9 ().-]{7,20}$/.test(value)) {
+        // Lenient phone check: allowed chars are digits, spaces, and + ( ) - .
+        // (international formats vary), capped at 20 chars — AND must carry a real
+        // number of digits (7–15, the E.164 range) so a punctuation-only string
+        // like "(((((((" can't pass as a phone number.
+        const digits = (value.match(/\d/g) ?? []).length;
+        if (value.length > 20 || !/^\+?[0-9 ().-]+$/.test(value) || digits < 7 || digits > 15) {
           return { ok: false, error: `${field.label} must be a valid phone number` };
         }
         break;

@@ -22,6 +22,7 @@ import {
   contests,
   contestEntries,
   contestEntryPrivateFields,
+  contestRegistrationPrivateFields,
   contestAgreementAcceptances,
   contestEntryVotes,
   referralLinks,
@@ -69,6 +70,7 @@ export interface UserDataExport {
   eventRsvps: Array<Record<string, unknown>>;
   contestEntries: Array<Record<string, unknown>>;
   contestPersonalData: Array<Record<string, unknown>>;
+  contestRegistrationPersonalData: Array<Record<string, unknown>>;
   contestAgreements: Array<Record<string, unknown>>;
   // GDPR round-6 completeness (session 231): authored/identifying subject data
   // that was previously omitted. Each is scoped to the subject's own rows.
@@ -218,6 +220,7 @@ export async function exportUserData(db: DB, userId: string): Promise<UserDataEx
     eventRsvps,
     contestEntryRows,
     contestPersonalData,
+    contestRegistrationPersonalData,
     contestAgreements,
   ] = await Promise.all([
     // Consent audit trail (G1: include the captured IP / user-agent)
@@ -287,11 +290,19 @@ export async function exportUserData(db: DB, userId: string): Promise<UserDataEx
       .innerJoin(contests, eq(contests.id, contestEntries.contestId))
       .where(eq(contestEntries.userId, userId)),
 
-    // Contest personal data (the entrant's OWN partitioned PII)
+    // Contest personal data (the entrant's OWN partitioned entry PII)
     db.select({
       fields: contestEntryPrivateFields.fields,
       createdAt: contestEntryPrivateFields.createdAt,
     }).from(contestEntryPrivateFields).where(eq(contestEntryPrivateFields.userId, userId)),
+
+    // Contest REGISTRATION personal data (the participant's OWN partitioned
+    // registration-form PII; P1 sink, written from P2). Included here so a DSAR
+    // export stays complete the moment registration PII starts being stored.
+    db.select({
+      fields: contestRegistrationPrivateFields.fields,
+      createdAt: contestRegistrationPrivateFields.createdAt,
+    }).from(contestRegistrationPrivateFields).where(eq(contestRegistrationPrivateFields.userId, userId)),
 
     // Contest agreement acceptances (the user's own consent snapshots; G1: incl. IP)
     db.select({
@@ -482,6 +493,7 @@ export async function exportUserData(db: DB, userId: string): Promise<UserDataEx
     eventRsvps: eventRsvps as Record<string, unknown>[],
     contestEntries: contestEntryRows as Record<string, unknown>[],
     contestPersonalData: contestPersonalData as Record<string, unknown>[],
+    contestRegistrationPersonalData: contestRegistrationPersonalData as Record<string, unknown>[],
     contestAgreements: contestAgreements as Record<string, unknown>[],
     referralLinks: ownReferralLinks as Record<string, unknown>[],
     referralAttributions: ownReferralAttributions as Record<string, unknown>[],
