@@ -1,6 +1,6 @@
-import { createWriteStream } from 'node:fs';
-import { mkdir, unlink } from 'node:fs/promises';
-import { join, dirname, sep } from 'node:path';
+import { createWriteStream, createReadStream } from 'node:fs';
+import { mkdir, unlink, stat } from 'node:fs/promises';
+import { join, dirname, sep, resolve } from 'node:path';
 import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import { randomUUID } from 'node:crypto';
@@ -57,6 +57,19 @@ export class LocalStorageAdapter implements StorageAdapter {
     this.basePath = basePath;
     this.baseUrl = baseUrl.replace(/\/$/, '');
     this.privateBasePath = privateBasePath ?? `${basePath.replace(/\/$/, '')}-private`;
+    // Enforce the privacy invariant at construction, not just in prose: the
+    // private dir MUST NOT be equal to or nested within the public base dir (or
+    // vice-versa), or the open, unauthenticated /uploads/<key> route could stream
+    // a confidential file. A misconfigured PRIVATE_UPLOAD_DIR is a catastrophic,
+    // silent leak, so fail fast rather than serve private bytes publicly.
+    const pub = resolve(this.basePath);
+    const priv = resolve(this.privateBasePath);
+    if (pub === priv || priv.startsWith(pub + sep) || pub.startsWith(priv + sep)) {
+      throw new Error(
+        `Private upload dir (${priv}) must not be equal to or nested within the public upload dir (${pub}); ` +
+        'set PRIVATE_UPLOAD_DIR to a path outside UPLOAD_DIR.',
+      );
+    }
   }
 
   /** Resolve `base/key`, rejecting any key that would escape `base` (traversal).
@@ -118,8 +131,6 @@ export class LocalStorageAdapter implements StorageAdapter {
   }
 
   async getPrivateObject(key: string): Promise<StorageObject> {
-    const { createReadStream } = await import('node:fs');
-    const { stat } = await import('node:fs/promises');
     const filePath = this.safePath(this.privateBasePath, key);
     const stats = await stat(filePath); // throws ENOENT → surfaced as 404 by the route
     return { body: createReadStream(filePath), contentLength: stats.size };
@@ -324,6 +335,10 @@ export class S3StorageAdapter implements StorageAdapter {
  *                     Space first. No effect otherwise.
  *   S3_FORCE_PATH_STYLE — set to "true" for MinIO (default: auto based on endpoint)
  *   UPLOAD_DIR      — local upload directory (default: ./uploads)
+ *   PRIVATE_UPLOAD_DIR — local dir for PRIVATE files (default: `<UPLOAD_DIR>-private`).
+ *                     MUST be OUTSIDE UPLOAD_DIR (never nested within it), or the open
+ *                     /uploads route could stream confidential bytes — enforced at
+ *                     construction (LocalStorageAdapter throws otherwise).
  *   SITE_URL        — base URL for local uploads (default: http://localhost:3000)
  */
 export function createStorageFromEnv(): StorageAdapter {

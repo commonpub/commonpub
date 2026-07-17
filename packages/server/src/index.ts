@@ -761,7 +761,7 @@ export {
   ALLOWED_IMAGE_TYPES,
   MAX_UPLOAD_SIZES,
 } from './storage.js';
-export type { StorageAdapter } from './storage.js';
+export type { StorageAdapter, StorageObject } from './storage.js';
 
 // Image Processing
 export {

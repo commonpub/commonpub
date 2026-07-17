@@ -1,6 +1,8 @@
 # Plan — Rich, operator-definable contest registration forms + form-editor UX overhaul
 
-**Status:** proposed + AUDIT-CORRECTED (plan only — awaiting go-ahead before implementation).
+**Status:** IN PROGRESS — **P0 SHIPPED (session 243, LIVE all 3, flag `contestPrivateFiles` default OFF).**
+Next implementer starts at **P1**. Migration `0043` was consumed by P0, so P1's registration-template
+migration is **0044**. Rest of the plan below is proposed + AUDIT-CORRECTED.
 **⚠ READ §0 (Audit corrections) FIRST** — an adversarial audit (2026-07-17) verified the direction is
 sound but found 2 blockers + 10 majors that change specifics and sequencing. §0 supersedes the affected
 parts of §4–§13 below; the original sections remain for context.
@@ -122,9 +124,14 @@ authoritative over the corresponding original sections.
 
 ### Revised phase order (supersedes §13)
 
-- **P0 — private-storage prerequisite** (infra private ACL/signed-URL path + gated file-serving route +
-  `contest` upload purpose). Gate for file/signature fields.
-- **P1 — schema + types + migration 0043** (registrationTemplate + registrationMode columns; widen `fields`
+- **P0 — private-storage prerequisite** ✅ **DONE (session 243, LIVE all 3, flag `contestPrivateFiles` OFF).**
+  Shipped: infra `uploadPrivate`/`getPrivateObject`/`deletePrivate` (S3 `ACL:'private'`; local `<base>-private`
+  sibling dir outside the open `/uploads` root, constructor-guarded); `files.visibility` column + migration
+  **0043**; `contest` upload purpose (100MB); layer `files/[id]/raw.get.ts` auth + `contest.pii`-gated stream
+  (404-not-403, no-store), `upload.post.ts` private path (skips public image-processing), `[id].delete.ts`
+  private routing, `mine.get.ts` gated URL. **B2 prerequisite is now satisfied — file/signature (P6) is
+  unblocked** (still gated on the flag + P6's per-contest file scoping to tighten the `contest.pii` over-grant).
+- **P1 — schema + types + migration 0044** (registrationTemplate + registrationMode columns; widen `fields`
   + update the 5 annotation sites; `contest_registration_private_fields`; consent-table generalization incl.
   `stage_id` nullable + CHECK + dedup UNIQUE; add `section`/`radio`/`tel` types + `radio` refine; **NOT
   `group`/`file`/`signature` yet**).
@@ -213,7 +220,7 @@ applied via `scripts/db-migrate.mjs`):
    (group), `min?/max?` (group count), `accept?: string` + `maxSizeKb?` (file), `layout?: 'radio'` sugar.
 
 Migration is **additive** (new columns default-empty, new table, nullable FK) → low risk, forward-only,
-no destructive change. Latest migration today is `0042`; this becomes `0043`.
+no destructive change. Latest migration is now `0043` (P0); P1 becomes `0044`.
 
 ## 5. Field-type extensions (shared entry + registration)
 
@@ -340,7 +347,7 @@ builder used by BOTH registration and entry:
 ## 13. Phased rollout (each phase: fix → full suite + reference-app typecheck → adversarial audit → roll)
 
 - **P1 — schema + types + migration** (schema pkg; `FormField` + new types + columns + private table +
-  agreement generalization; migration 0043). No behavior change yet.
+  agreement generalization; migration 0044). No behavior change yet.
 - **P2 — server validate+partition + registration wiring** (server pkg; shared `validateTemplateFields`,
   registration route through it, private/consent persistence). Behind a flag.
 - **P3 — renderer new types** (layer; `ContestSubmissionField` extensions + `ContestRegistrationForm`).
@@ -393,7 +400,7 @@ Every reference field maps to an existing or planned type — no field is unrepr
 ### Appendix — key files to touch (grounded)
 
 - Schema: `packages/schema/src/contest.ts`, `packages/schema/src/validators/contest.ts`,
-  `packages/schema/migrations/0043_*.sql`
+  `packages/schema/migrations/0044_*.sql`
 - Server: `packages/server/src/contest/{validation,registrations,submissions,export,types}.ts`
 - Layer API: `layers/base/server/api/contests/[slug]/{register.post,register.get,registrants.get,export.get}.ts`,
   `layers/base/server/api/files/upload.post.ts`

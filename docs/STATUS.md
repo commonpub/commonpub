@@ -1,6 +1,6 @@
 # CommonPub — Status & Operator Runbook
 
-> **Living doc — your "come back later" reference.** Snapshot updated 2026-07-16 (through session 240).
+> **Living doc — your "come back later" reference.** Snapshot updated 2026-07-17 (through session 243).
 > Verify any version/flag claim before trusting it: `npm view @commonpub/<pkg> version`,
 > `curl https://<instance>/api/features`, `cargo search create-commonpub`.
 > Companion docs: **`docs/ROADMAP.md`** (prioritized remaining work — the master backlog), the
@@ -11,6 +11,19 @@
 ---
 
 ## TL;DR — where things stand
+
+**Session 243 (2026-07-17) — CI-RESTORE + P0 PRIVATE-STORAGE ROLLED to all 3.** npm **schema 0.60 /
+config 0.34 / infra 0.19 / server 2.117.3 / layer 0.109**, **migration 0043**, live went 37→**38 flags**
+(added `contestPrivateFiles`, default **OFF**). Two things: (1) **CI-restore** — CI `check` had been RED at
+Lint for 12+ commits (`@eslint/js ^10` recommended-rule fallout); reverted to `^9` (green) and added an
+**inline `pnpm typecheck` + `pnpm lint` gate to `deploy.yml` before the Docker build** (ci.yml's `check` is a
+separate workflow deploy can't `needs:`) — a red pipeline can no longer ship. (2) **P0 private-storage
+prerequisite** for the rich-registration arc: a private (non-public-read) upload path (`purpose=contest`,
+S3 `ACL:'private'` / a local `<base>-private` sibling dir outside the open `/uploads` root, constructor-
+guarded), a new `files.visibility` column, and an auth + `contest.pii`-gated `/api/files/<id>/raw` stream
+route (404-not-403, `no-store`). Dark-launched behind `contestPrivateFiles` (OFF) until the file/signature
+fields ship (P6). Two adversarial audits (pre-roll security + post-roll deep quality/docs); all findings
+minor/nit, applied. Detail: `docs/sessions/243-ci-restore-and-p0-private-storage.md`.
 
 **Session 240 (2026-07-16) — STAGE-AWARE CONTEST DEADLINES ROLLED to all 3.** npm **infra 0.16 /
 server 2.112 / layer 0.105**, CLI **create-commonpub 0.5.28**, **NO migration**, still **37 flags**.
@@ -451,6 +464,14 @@ the **P3 mirror-request approve round-trip** (needs an admin login on two instan
   actor↔signer binding) is only exercised by a real 2-instance run, never in CI.
 
 ### Known issues (cosmetic / pre-existing — not regressions)
+- **CI `check` Lint + deploy gating — RESOLVED session 243.** `check` had been RED at Lint for 12+ commits
+  (`@eslint/js ^10.0.1`'s expanded `recommended` set — `preserve-caught-error` etc. — which the repo violated;
+  its peer wanted eslint ^10 vs the repo's ^9). Reverted `@eslint/js` → `^9.0.0` (9.39.4) → **0 errors** (82
+  pre-existing `no-unused-vars` warnings remain, non-failing). And `deploy.yml` now runs an **inline
+  `pnpm typecheck` + `pnpm lint` gate before the Docker build** (ci.yml's `check` is a separate workflow, so
+  deploy can't `needs:` it) — a red pipeline can no longer reach production. Operator note: `pnpm lint` still
+  emits ~82 warnings (a `no-unused-vars` cleanup epic remains); the `layers/base` Vue surface is still
+  unlinted (no `eslint-plugin-vue`).
 - **deveco `/actor/following` omits heatsync** though heatsync lists deveco as a follower. Projection
   asymmetry; the mirror works (heatsync delivers off *its* followers list). Cosmetic.
 - **deveco NodeInfo `localPosts: 81` vs feed/outbox `23`** — NodeInfo counts all statuses; that 81 is
@@ -536,19 +557,21 @@ a minute (`curl deveco.io/api/content?limit=5`, today's timestamp).
 
 ## 📌 Reference
 
-### Published versions (verified 2026-07-16 — session 240 stage-aware deadlines + audit fixes)
+### Published versions (verified 2026-07-17 — session 243 CI-restore + P0 private-storage)
 | Package | Version | | Package | Version |
 |---|---|---|---|---|
-| @commonpub/schema | **0.59.0** | | @commonpub/infra | **0.17.0** |
-| @commonpub/config | **0.33.0** | | @commonpub/editor | **0.11.0** |
-| @commonpub/protocol | 0.14.0 | | @commonpub/explainer | 0.8.0 |
-| @commonpub/auth | **0.10.0** | | @commonpub/docs | 0.6.3 |
-| @commonpub/server | **2.113.0** | | @commonpub/learning | 0.5.2 |
-| @commonpub/ui | **0.13.2** | | @commonpub/test-utils | **0.5.13** |
-| @commonpub/layer | **0.106.0** | | @commonpub/theme-studio | 0.6.1 |
-| create-commonpub (crates.io) | **0.5.29** (pins ^0.59/^0.33/^2.113/^0.106 — current) | | | |
+| @commonpub/schema | **0.60.0** | | @commonpub/infra | **0.19.0** |
+| @commonpub/config | **0.34.0** | | @commonpub/editor | 0.14.0 |
+| @commonpub/protocol | 0.15.1 | | @commonpub/explainer | 0.8.0 |
+| @commonpub/auth | 0.11.0 | | @commonpub/docs | 0.6.3 |
+| @commonpub/server | **2.117.3** | | @commonpub/learning | 0.5.2 |
+| @commonpub/ui | 0.13.3 | | @commonpub/test-utils | 0.5.13 |
+| @commonpub/layer | **0.109.0** | | @commonpub/theme-studio | 0.6.1 |
+| create-commonpub (crates.io) | 0.5.29 (pins ^0.59/^0.33/^2.113/^0.106 — **stale, behind; follow-up re-pin**) | | | |
 
-_Live on all 3 instances (commonpub.io, deveco.io, heatsynclabs.io): 37 feature flags, latest migration 0042._
+_Live on all 3 instances (commonpub.io, deveco.io, heatsynclabs.io): **38 feature flags**, latest migration **0043**._
+_(Note: this table jumps from session 240 → 243; sessions 241/242 rolls — protocol 0.15.1, editor 0.14, ui 0.13.3,
+server 2.117.x, layer 0.107.x, auth 0.11 — were not separately tabulated but are reflected above.)_
 
 **Session 227 GDPR Phase 2 enforcement + CLI re-pin (2026-06-26) — SHIPPED + ROLLED to all 3.**
 Adversarial review of GDPR Phase 2 (no P0; auth/CSRF/IDOR/spoofing/injection clean). Added a

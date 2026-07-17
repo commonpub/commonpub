@@ -24,7 +24,10 @@ export default defineEventHandler(async (event) => {
     originalName: f.originalName,
     mimeType: f.mimeType,
     sizeBytes: f.sizeBytes,
-    url: f.publicUrl,
+    // Private files have no public URL — hand back the auth-gated serving route
+    // (mirrors upload.post.ts) so the owner can still reach their own bytes.
+    url: f.visibility === 'private' ? `/api/files/${f.id}/raw` : f.publicUrl,
+    visibility: f.visibility,
     purpose: f.purpose,
     createdAt: f.createdAt,
   }));

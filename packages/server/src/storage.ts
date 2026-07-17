@@ -10,4 +10,4 @@ export {
   ALLOWED_IMAGE_TYPES,
   MAX_UPLOAD_SIZES,
 } from '@commonpub/infra/storage';
-export type { StorageAdapter } from '@commonpub/infra/storage';
+export type { StorageAdapter, StorageObject } from '@commonpub/infra/storage';

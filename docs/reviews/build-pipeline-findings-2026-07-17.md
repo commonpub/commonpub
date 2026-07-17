@@ -1,5 +1,13 @@
 # Build-pipeline findings (2026-07-17, session 242)
 
+> **RESOLVED (session 243, commit `bf802ecb`).** Findings #2 (CI `check` RED at Lint from `@eslint/js
+> ^10.0.1`) and #3 (`deploy.yml` doesn't gate on `check`) are both fixed: reverted `@eslint/js` → `^9.0.0`
+> (lint green), and `deploy.yml` now runs an **inline `pnpm typecheck` + `pnpm lint` gate before the Docker
+> build** (the "add a typecheck+lint step to the deploy path" option — GitHub `needs:` can't cross the
+> separate ci.yml/deploy.yml workflows). The infra `lint` script (finding under "Done this session") shipped
+> in commit 48e3c958. Remaining: the ~82 `no-unused-vars` warnings cleanup + `layers/base` Vue linting are
+> still open (a separate epic). Original findings below for the record.
+
 Investigated the "build-pipeline gap" (layers/base + infra have no lint; the layer had no
 dedicated typecheck). Measured with a parallel read-only workflow + verified by hand. Summary:
 the situation is bigger and more operator-facing than the original backlog line implied.

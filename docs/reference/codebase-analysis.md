@@ -1,14 +1,14 @@
 # CommonPub Codebase Analysis (canonical)
 
-_Last verified: 2026-07-17 (session 241). Regenerate/re-verify before relying on
+_Last verified: 2026-07-17 (session 243). Regenerate/re-verify before relying on
 LOC/version/test counts — they drift._
 
-Baseline (verified 2026-07-17, no drift from session-240 handoff): npm latest
-server **2.113** / schema **0.59** / config **0.33** / protocol **0.14** / auth **0.10** /
-ui **0.13.2** / editor **0.11** / infra **0.17** / docs **0.6.3** / explainer **0.8** /
-learning **0.5.2** / theme-studio **0.6.1** / test-utils **0.5.13** / layer **0.106**;
-CLI create-commonpub **0.5.29**. **37 feature flags** live on all 3 instances
-(commonpub.io, deveco.io, heatsynclabs.io — all health ok). Latest migration **0042**.
+Baseline (verified 2026-07-17, session 243): npm latest
+server **2.117.3** / schema **0.60** / config **0.34** / protocol **0.15.1** / auth **0.11** /
+ui **0.13.3** / editor **0.14** / infra **0.19** / docs **0.6.3** / explainer **0.8** /
+learning **0.5.2** / theme-studio **0.6.1** / test-utils **0.5.13** / layer **0.109**;
+CLI create-commonpub **0.5.29** (pins stale — behind current). **38 feature flags** live on all 3 instances
+(commonpub.io, deveco.io, heatsynclabs.io — all health ok). Latest migration **0043**.
 
 ## 1. Architecture
 
@@ -53,7 +53,7 @@ build/dev/test/lint/typecheck/clean unless noted.
 | editor | 0.11 | ~11,936 | 18 TipTap extensions + BlockTuple serialization + markdown parser + Vue block renderers | ⚠ `vue/` tree (~5k LOC incl. 681-LOC BlockCanvas) NOT typechecked/linted by pkg scripts (src-only) |
 | theme-studio | 0.6.1 | 2,406 | Pure-TS recipe→WCAG-checked token generator | Full scripts. Cleanest in its group |
 | docs | 0.6.3 | 2,320 | Docs pipeline: markdown render + versioning + nav + Meili/PG search | Full scripts. High test:src ratio; 1 `as any` (unified escape hatch) |
-| infra | 0.17 | 2,400 | Storage (S3/local), image (sharp), email, security, token crypto, Redis rate-limit/pubsub | ⚠ **NO `lint` script** (only pkg in group without one) |
+| infra | 0.19 | 2,400 | Storage (S3/local, **incl. private-file path** — uploadPrivate/getPrivateObject/deletePrivate), image (sharp), email, security, token crypto, Redis rate-limit/pubsub | `lint` added session 242 (commit 48e3c958) |
 | explainer | 0.8 | ~8.7k | Interactive explainer engine (pure-TS) + optional Vue viewer/editor | ⚠ `vue/` tree (~5.3k LOC) NOT typechecked/linted by pkg scripts (src-only) |
 | learning | 0.5.2 | 637 | Learning-path engine (pure-TS, instance-local) | Full scripts. Every logic module tested |
 | test-utils | 0.5.13 | 347 | Shared factories + mock config | Full scripts |
@@ -77,7 +77,12 @@ The monorepo's Turbo tasks are only as good as each package's own scripts. Confi
   here. The layer is only type-checked/linted **transitively** when `apps/reference`
   runs `nuxt typecheck` / `eslint .` over consuming code. **This is the single largest
   build-pipeline hole in the repo.** No local `tsconfig.json` (relies on Nuxt defaults).
-- **`packages/infra`:** no `lint` script / no eslint devDep (has `typecheck` + `test`).
+  **Session 243 partial mitigation:** `deploy.yml` now runs an inline `pnpm typecheck` + `pnpm lint`
+  gate before the Docker build, so a layer type/lint error can no longer reach production even though
+  the layer isn't independently checked.
+- **`packages/infra`:** `lint` script added session 242 (commit 48e3c958) — the group gap is closed.
+- **`@eslint/js` pin:** held at `^9.0.0` (session 243). A `^10.0.1` bump had turned CI's Lint red for 12+
+  commits (expanded `recommended` set); do not re-bump without triaging the new-rule violations repo-wide.
 - **`packages/editor` `vue/` and `packages/explainer` `vue/`:** the package `typecheck`
   (`tsc --noEmit`) and `lint` (`eslint src/`) both target `src/` only, so the raw-shipped
   Vue trees (editor: ~5k LOC incl. BlockCanvas 681; explainer: ~5.3k LOC) are checked

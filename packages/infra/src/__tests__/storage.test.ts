@@ -2,6 +2,7 @@ import { describe, it, expect, afterEach, vi } from 'vitest';
 import { mkdtemp, rm, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { Readable } from 'node:stream';
 import {
   generateStorageKey,
   validateUpload,
@@ -279,6 +280,18 @@ describe('LocalStorageAdapter — private storage (P0)', () => {
     await expect(adapter.deletePrivate('../../etc/passwd')).rejects.toThrow('path traversal');
   });
 
+  it('throws at construction if the private dir is nested inside the public dir (leak foot-gun)', async () => {
+    tempDir = await mkdtemp(join(tmpdir(), 'cpub-pub-'));
+    // PRIVATE_UPLOAD_DIR nested inside UPLOAD_DIR would let the open /uploads route
+    // stream private bytes — the constructor must reject it.
+    expect(() => new LocalStorageAdapter(tempDir, 'http://localhost:3000', join(tempDir, 'private'))).toThrow(/must not be equal to or nested within/);
+    // Equal dirs are rejected too.
+    expect(() => new LocalStorageAdapter(tempDir, 'http://localhost:3000', tempDir)).toThrow(/must not be equal to or nested within/);
+    // A genuine sibling is accepted.
+    privateDir = `${tempDir}-ok`;
+    expect(() => new LocalStorageAdapter(tempDir, 'http://localhost:3000', privateDir)).not.toThrow();
+  });
+
   it('rejects a sibling-prefix escape (../<base>-private) — trailing-separator boundary', async () => {
     // The public base is `<x>` and the private base defaults to `<x>-private`, a
     // sibling whose name has the base as a literal string prefix. A guard using a
@@ -438,6 +451,93 @@ describe('S3StorageAdapter upload Content-Disposition (SVG XSS hardening)', () =
     expect(putInputs).toHaveLength(1);
     expect(putInputs[0]).toMatchObject({ ContentType: 'image/png' });
     expect(putInputs[0]).not.toHaveProperty('ContentDisposition');
+  });
+});
+
+describe('S3StorageAdapter — private storage (P0)', () => {
+  const creds = { accessKeyId: 'k', secretAccessKey: 's' };
+
+  /** Mock @aws-sdk/client-s3 tagging each command so send() can route put/get/delete
+   *  and return a canned GetObject body. Captures the inputs for assertions. */
+  function mockS3Full(getResponse: Record<string, unknown>) {
+    const put: Array<Record<string, unknown>> = [];
+    const get: Array<Record<string, unknown>> = [];
+    const del: Array<Record<string, unknown>> = [];
+    vi.doMock('@aws-sdk/client-s3', () => {
+      class PutObjectCommand { input: Record<string, unknown>; type = 'put'; constructor(i: Record<string, unknown>) { this.input = i; } }
+      class GetObjectCommand { input: Record<string, unknown>; type = 'get'; constructor(i: Record<string, unknown>) { this.input = i; } }
+      class DeleteObjectCommand { input: Record<string, unknown>; type = 'del'; constructor(i: Record<string, unknown>) { this.input = i; } }
+      class S3Client {
+        async send(cmd: { type: string; input: Record<string, unknown> }): Promise<unknown> {
+          if (cmd.type === 'put') { put.push(cmd.input); return {}; }
+          if (cmd.type === 'get') { get.push(cmd.input); return getResponse; }
+          del.push(cmd.input); return {};
+        }
+      }
+      return { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand };
+    });
+    return { put, get, del };
+  }
+
+  afterEach(() => {
+    vi.resetModules();
+    vi.doUnmock('@aws-sdk/client-s3');
+  });
+
+  it('uploadPrivate sends ACL:private (never public-read) — the prod confidentiality boundary', async () => {
+    const { put } = mockS3Full({});
+    const { S3StorageAdapter: Adapter } = await import('../storage.js');
+    const adapter = new Adapter({ bucket: 'b', region: 'us-east-1', ...creds });
+
+    await adapter.uploadPrivate('contest/doc.pdf', Buffer.from('legal'), 'application/pdf');
+
+    expect(put).toHaveLength(1);
+    expect(put[0]).toMatchObject({ Key: 'contest/doc.pdf', ContentType: 'application/pdf', ACL: 'private' });
+    expect(put[0]!['ACL']).not.toBe('public-read');
+  });
+
+  it('uploadPrivate keeps the SVG attachment guard AND stays private', async () => {
+    const { put } = mockS3Full({});
+    const { S3StorageAdapter: Adapter } = await import('../storage.js');
+    const adapter = new Adapter({ bucket: 'b', region: 'us-east-1', ...creds });
+
+    await adapter.uploadPrivate('contest/sig.svg', Buffer.from('<svg/>'), 'image/svg+xml');
+
+    expect(put[0]).toMatchObject({ ACL: 'private', ContentDisposition: 'attachment' });
+  });
+
+  it('getPrivateObject issues GetObjectCommand and returns body + metadata', async () => {
+    const body = Readable.from([Buffer.from('secret-bytes')]);
+    const { get } = mockS3Full({ Body: body, ContentType: 'application/pdf', ContentLength: 12 });
+    const { S3StorageAdapter: Adapter } = await import('../storage.js');
+    const adapter = new Adapter({ bucket: 'b', region: 'us-east-1', ...creds });
+
+    const obj = await adapter.getPrivateObject('contest/doc.pdf');
+
+    expect(get).toHaveLength(1);
+    expect(get[0]).toMatchObject({ Bucket: 'b', Key: 'contest/doc.pdf' });
+    expect(obj.contentType).toBe('application/pdf');
+    expect(obj.contentLength).toBe(12);
+    expect(obj.body).toBe(body);
+  });
+
+  it('getPrivateObject throws when the object body is empty', async () => {
+    mockS3Full({ Body: undefined });
+    const { S3StorageAdapter: Adapter } = await import('../storage.js');
+    const adapter = new Adapter({ bucket: 'b', region: 'us-east-1', ...creds });
+
+    await expect(adapter.getPrivateObject('contest/missing.pdf')).rejects.toThrow(/empty object body/i);
+  });
+
+  it('deletePrivate issues DeleteObjectCommand for the key', async () => {
+    const { del } = mockS3Full({});
+    const { S3StorageAdapter: Adapter } = await import('../storage.js');
+    const adapter = new Adapter({ bucket: 'b', region: 'us-east-1', ...creds });
+
+    await adapter.deletePrivate('contest/gone.pdf');
+
+    expect(del).toHaveLength(1);
+    expect(del[0]).toMatchObject({ Bucket: 'b', Key: 'contest/gone.pdf' });
   });
 });
 

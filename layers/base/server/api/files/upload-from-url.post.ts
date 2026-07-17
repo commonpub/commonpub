@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { createStorageFromEnv, generateStorageKey, ALLOWED_IMAGE_TYPES, safeFetchBinary } from '@commonpub/server';
+import { generateStorageKey, ALLOWED_IMAGE_TYPES, safeFetchBinary } from '@commonpub/server';
 
 const schema = z.object({
   url: z.string().url(),
@@ -38,7 +38,7 @@ export default defineEventHandler(async (event) => {
   }
 
   // Upload to storage
-  const storage = createStorageFromEnv();
+  const storage = useFileStorage();
   const ext = contentType.split('/')[1] || 'jpg';
   // generateStorageKey(originalName, purpose) — args were reversed, producing keys
   // like `png/<uuid>` with no extension (folder = MIME subtype). Give it a real

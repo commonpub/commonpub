@@ -41,7 +41,9 @@ export const featureFlagsSchema = z.object({
   // the private-storage upload path (purpose=`contest`, stored non-public) and
   // the auth + contest.pii-gated /api/files/[id]/raw serving route. Default OFF
   // — dark-launched until the file/signature field types ship (P6). No effect
-  // unless `contests` is also on.
+  // unless `contests` is also on. SECURITY: until P6 links files to a specific
+  // contest, enabling this grants EVERY contest.pii holder read access to EVERY
+  // private file across all contests — keep OFF until P6's per-contest scoping lands.
   contestPrivateFiles: z.boolean().default(false),
   // Automatic contest deadline reminder emails to registered participants.
   // Default OFF; the reminder sweep is inert unless this AND emailNotifications

@@ -13,20 +13,8 @@
  */
 import { eq } from 'drizzle-orm';
 import { files } from '@commonpub/schema';
-import { createStorageFromEnv } from '@commonpub/server';
+import type { StorageObject } from '@commonpub/server';
 import { sendStream } from 'h3';
-
-let storage: ReturnType<typeof createStorageFromEnv> | null = null;
-function getStorage(): ReturnType<typeof createStorageFromEnv> {
-  if (!storage) storage = createStorageFromEnv();
-  return storage;
-}
-
-/** Strip anything that could break out of a `Content-Disposition` filename. */
-function safeFilename(name: string | null): string {
-  const cleaned = (name ?? '').replace(/[^A-Za-z0-9._-]/g, '_').replace(/^\.+/, '').slice(0, 128);
-  return cleaned || 'download';
-}
 
 export default defineEventHandler(async (event) => {
   requireFeature('contestPrivateFiles');
@@ -47,44 +35,33 @@ export default defineEventHandler(async (event) => {
     .where(eq(files.id, id))
     .limit(1);
 
-  if (!row || row.visibility !== 'private') {
-    // Unknown id OR a public file — this route serves private files only.
-    throw createError({ statusCode: 404, statusMessage: 'Not found' });
-  }
-
-  // Owner always; otherwise the contest-PII permission (seeded admin + staff).
+  // Unknown id, a public file, OR a private file the caller may not read all
+  // collapse to the SAME 404 — the route reveals nothing beyond what the caller
+  // can already access (no 403 existence oracle). Owner always; otherwise the
+  // contest-PII permission (seeded admin + staff).
   // NOTE (P0): `files` are not yet linked to a specific contest, so any
   // contest.pii holder can read any private file. P6 links registration/entry
   // file fields to their contest and tightens this to that contest's organizers.
-  const isOwner = row.uploaderId === user.id;
-  if (!isOwner && !hasPermission(event, 'contest.pii')) {
-    throw createError({ statusCode: 403, statusMessage: 'You do not have access to this file' });
+  const authorized = !!row && row.visibility === 'private'
+    && (row.uploaderId === user.id || hasPermission(event, 'contest.pii'));
+  if (!row || !authorized) {
+    throw createError({ statusCode: 404, statusMessage: 'Not found' });
   }
 
-  let obj;
+  let obj: StorageObject;
   try {
-    obj = await getStorage().getPrivateObject(row.storageKey);
+    obj = await useFileStorage().getPrivateObject(row.storageKey);
   } catch {
     throw createError({ statusCode: 404, statusMessage: 'Not found' });
   }
 
-  const mime = row.mimeType || 'application/octet-stream';
-  // Only raster images render inline; everything else (PDF/SVG/zip/text)
-  // downloads, so nothing executes same-origin.
-  const inline = mime.startsWith('image/') && mime !== 'image/svg+xml';
-  setResponseHeader(event, 'Content-Type', mime);
-  if (obj.contentLength != null) setResponseHeader(event, 'Content-Length', obj.contentLength);
-  // Never cached by shared caches — this is per-user authorized content.
-  setResponseHeader(event, 'Cache-Control', 'private, no-store');
-  setResponseHeader(event, 'X-Content-Type-Options', 'nosniff');
-  setResponseHeader(
-    event,
-    'Content-Disposition',
-    `${inline ? 'inline' : 'attachment'}; filename="${safeFilename(row.originalName)}"`,
-  );
-  if (mime === 'image/svg+xml') {
-    setResponseHeader(event, 'Content-Security-Policy', "default-src 'none'; style-src 'unsafe-inline'; sandbox");
-  }
+  // Per-user authorized content — never cached by shared caches.
+  setStoredFileHeaders(event, {
+    mime: row.mimeType,
+    filename: row.originalName,
+    contentLength: obj.contentLength,
+    cache: 'private, no-store',
+  });
 
   return sendStream(event, obj.body);
 });

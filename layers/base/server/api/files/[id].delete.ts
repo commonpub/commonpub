@@ -1,12 +1,5 @@
 import { eq, and } from 'drizzle-orm';
 import { files } from '@commonpub/schema';
-import { createStorageFromEnv } from '@commonpub/server';
-
-let storage: ReturnType<typeof createStorageFromEnv> | null = null;
-function getStorage(): ReturnType<typeof createStorageFromEnv> {
-  if (!storage) storage = createStorageFromEnv();
-  return storage;
-}
 
 export default defineEventHandler(async (event): Promise<{ deleted: boolean }> => {
   const db = useDB();
@@ -26,7 +19,7 @@ export default defineEventHandler(async (event): Promise<{ deleted: boolean }> =
   // Private files live in a different key space/base dir, so they need deletePrivate —
   // calling the public `delete` would leave the bytes orphaned.
   try {
-    const adapter = getStorage();
+    const adapter = useFileStorage();
     const { storageKey, visibility } = result[0]!;
     await (visibility === 'private' ? adapter.deletePrivate(storageKey) : adapter.delete(storageKey));
   } catch {

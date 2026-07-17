@@ -5,19 +5,11 @@
  */
 import { files } from '@commonpub/schema';
 import {
-  createStorageFromEnv,
   generateStorageKey,
   validateUpload,
   isProcessableImage,
   processImage,
 } from '@commonpub/server';
-
-// Lazy-init storage adapter (created once on first request)
-let storage: ReturnType<typeof createStorageFromEnv> | null = null;
-function getStorage(): ReturnType<typeof createStorageFromEnv> {
-  if (!storage) storage = createStorageFromEnv();
-  return storage;
-}
 
 export default defineEventHandler(async (event) => {
   const db = useDB();
@@ -52,7 +44,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: validation.error ?? 'Invalid upload' });
   }
 
-  const adapter = getStorage();
+  const adapter = useFileStorage();
   let publicUrl: string | null = null;
   let storageKey: string;
   let width: number | null = null;
