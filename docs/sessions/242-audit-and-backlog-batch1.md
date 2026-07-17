@@ -96,8 +96,21 @@ view (`BlockTableView`, which pre-existed), but tables remain non-editable in th
 round-trip drops them). This is PRE-EXISTING (my change didn't touch serialization) and outside #24's
 scope — flagged as a follow-up (a real `TableBlock.vue` editor component).
 
-Roll: server 2.117.1 / layer 0.107.1 (no protocol/editor/ui change). Commit attribution verified clean
+Roll: server 2.117.1 / layer 0.107.2 (D1 = layer 0.107.1; a scope-bug re-roll to 0.107.2 followed). Commit attribution verified clean
 across all 3 repos (0 Co-Authored-By/AI trailers — CLAUDE.md rule #15 overrides the default trailer).
+
+### Batch 3 — layer scope-bug re-roll (0.107.2) — the build-pipeline gap bit
+
+D1's layer caller (`federation-hub-sync.ts`) referenced `config` inside `runSync`, but
+`config = useConfig()` is scoped to the startup `setTimeout` callback, not `runSync` (TS2304). My
+server-only `tsc` was clean; the LAYER has NO typecheck (build-pipeline gap) and nuxt/esbuild strips
+types without checking, so layer 0.107.1 shipped the error. It was **latent** (behind the default-off
+`backfillOnMirrorAccept`, and the offending line sits inside the per-hub `try/catch`), caught by
+deveco's `nuxt typecheck` CI post-deploy. FIX: thread `fedConfig` into `runSync` as a param.
+**Verified before re-roll via `cd apps/reference && pnpm typecheck`** (extends the local layer → the
+same `nuxt typecheck` deveco CI runs). deveco CI green on the re-roll confirms. Lesson saved to memory:
+run the reference-app nuxt typecheck as the GATE for any `layers/base` change (macOS has no `timeout`
+binary — wrapping the check in `timeout …` silently no-ops → false-negative "clean").
 
 ## Open / next
 
