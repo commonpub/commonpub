@@ -10,6 +10,9 @@
   line-height: var(--leading-normal);
   color: var(--text);
   max-width: var(--content-max-width);
+  /* Long unbroken URLs/tokens (common in federated pre-rendered HTML) must wrap
+     rather than push a horizontal scrollbar onto the whole page on mobile. */
+  overflow-wrap: break-word;
 }
 
 /* Headings */
@@ -350,6 +353,10 @@
 .cpub-md-html {
   color: var(--text);
   line-height: var(--leading-normal);
+  /* Author HTML is arbitrary — long unbroken URLs/words must wrap instead of
+     forcing a horizontal page scroll on narrow (mobile) viewports. */
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 .cpub-md-html a { color: var(--accent); }
 .cpub-md-html h1, .cpub-md-html h2, .cpub-md-html h3,
@@ -359,4 +366,23 @@
 .cpub-md-html blockquote { border-left: 3px solid var(--border); color: var(--text-dim); padding-left: var(--space-4); }
 .cpub-md-html th, .cpub-md-html td { border: var(--border-width-default) solid var(--border); }
 .cpub-md-html pre, .cpub-md-html code { background: var(--surface2); color: var(--text); }
+/* ── Mobile overflow containment for arbitrary author HTML ──
+   The v-html subtree carries no scoped styles and can't be wrapped in a scroller,
+   so contain each element that is prone to blow out the layout on small screens:
+   wide code blocks and tables scroll inside themselves; pasted fixed-width media
+   caps to the container. Without this, a single wide <table>/<pre>/<iframe> makes
+   the whole page scroll sideways on mobile. */
+.cpub-md-html pre { overflow-x: auto; max-width: 100%; }
+/* Make the table its own horizontal scroll container (no wrapper div is possible
+   in a v-html subtree): display:block + max-width caps the box to the content
+   column, and nowrap cells keep the grid at its natural width so it scrolls
+   instead of collapsing columns into unreadable one-letter stacks. */
+.cpub-md-html table { display: block; max-width: 100%; overflow-x: auto; }
+.cpub-md-html table th, .cpub-md-html table td { white-space: nowrap; }
+.cpub-md-html iframe,
+.cpub-md-html video,
+.cpub-md-html embed,
+.cpub-md-html object,
+.cpub-md-html canvas,
+.cpub-md-html svg { max-width: 100%; }
 }

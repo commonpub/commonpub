@@ -14,7 +14,18 @@ const html = computed(() => sanitizeBlockHtml((props.content.html as string) || 
   font-size: 15px;
   line-height: 1.75;
   color: var(--text-dim);
+  /* Body text may carry long unbroken URLs/tokens or (via markdown raw-HTML
+     passthrough) wide tables/code — none of which may force a horizontal page
+     scroll on mobile. Wrap long words; scroll wide children inside themselves. */
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
+
+.cpub-block-text :deep(pre) { overflow-x: auto; max-width: 100%; }
+.cpub-block-text :deep(img) { max-width: 100%; height: auto; }
+.cpub-block-text :deep(table) { display: block; max-width: 100%; overflow-x: auto; }
+.cpub-block-text :deep(table th),
+.cpub-block-text :deep(table td) { white-space: nowrap; }
 
 .cpub-block-text :deep(p) { margin-bottom: 14px; }
 .cpub-block-text :deep(p:last-child) { margin-bottom: 0; }
