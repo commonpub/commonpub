@@ -60,6 +60,34 @@ describe('ContestSubmissionField — control per type', () => {
     expect(vals).toContain('Town');
   });
 
+  // --- P3 field types (section / radio / tel) ---
+  it('renders a section as a display-only header with no input', () => {
+    const { container } = mount({ key: 'sec', label: 'About you', type: 'section', required: false, help: 'A few details.' });
+    expect(container.querySelector('.cpub-subfield-section-title')?.textContent).toContain('About you');
+    expect(container.querySelector('.cpub-subfield-section-desc')?.textContent).toContain('A few details.');
+    // No form control at all.
+    expect(container.querySelector('input, select, textarea')).toBeNull();
+  });
+
+  it('renders a radio group and emits the chosen option value', async () => {
+    const { container, emitted } = mount({ key: 'track', label: 'Track', type: 'radio', required: true, options: [
+      { value: 'dev', label: 'Developer' }, { value: 'startup', label: 'Startup' },
+    ] });
+    const group = container.querySelector('[role=radiogroup]');
+    expect(group).not.toBeNull();
+    const radios = container.querySelectorAll('input[type=radio]');
+    expect(radios).toHaveLength(2);
+    await fireEvent.click(radios[1]!);
+    expect(emitted()['update:modelValue']!.at(-1)).toEqual(['startup']);
+  });
+
+  it('renders a tel field as an input type=tel', () => {
+    const { container } = mount({ key: 'phone', label: 'Phone', type: 'tel', required: false });
+    const input = container.querySelector('#cpub-test-phone');
+    expect(input?.getAttribute('type')).toBe('tel');
+    expect(input?.getAttribute('inputmode')).toBe('tel');
+  });
+
   it('passes an axe scan for every field type', async () => {
     const fields: ContestSubmissionTemplateField[] = [
       { key: 'a', label: 'Text', type: 'text', required: true, help: 'Hint' },
@@ -68,6 +96,9 @@ describe('ContestSubmissionField — control per type', () => {
       { key: 'd', label: 'Opt', type: 'checkbox', required: false },
       { key: 'e', label: 'Terms', type: 'agreement', required: true, terms: 'OK', mustAccept: true },
       { key: 'f', label: 'Address', type: 'address', required: true },
+      { key: 'g', label: 'Section', type: 'section', required: false, help: 'Divider' },
+      { key: 'h', label: 'Choice', type: 'radio', required: true, options: [{ value: 'x', label: 'X' }, { value: 'y', label: 'Y' }] },
+      { key: 'i', label: 'Phone', type: 'tel', required: false },
     ];
     for (const field of fields) {
       const { container } = mount(field);

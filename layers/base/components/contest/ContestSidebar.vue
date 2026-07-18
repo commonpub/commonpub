@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Serialized, ContestDetail, ContestRegistrationFields } from '@commonpub/server';
+import type { Serialized, ContestDetail } from '@commonpub/server';
 
 type Tier = 'full' | 'reminders';
 
@@ -17,7 +17,7 @@ const props = defineProps<{
   /** Viewer's registration tier (`full` / `reminders` / null) — drives the rich signup card. */
   tier?: Tier | null;
   /** Viewer's saved signup info (prefills the optional form). */
-  savedFields?: ContestRegistrationFields | null;
+  savedFields?: Record<string, string> | null;
   /** Public count of registered participants. */
   registrantCount?: number;
   /** In-flight register/unregister request (disables the toggle). */
@@ -26,7 +26,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'copy-link'): void;
-  (e: 'register', payload?: { tier: Tier; fields?: ContestRegistrationFields }): void;
+  (e: 'register', payload?: { tier: Tier; fields?: Record<string, string> }): void;
   (e: 'unregister'): void;
 }>();
 

@@ -32,9 +32,15 @@ function setChecked(on: boolean): void {
 </script>
 
 <template>
-  <div class="cpub-subfield">
+  <div class="cpub-subfield" :class="{ 'cpub-subfield--section': field.type === 'section' }">
+    <!-- Section: a display-only header/divider (title + optional description). No input. -->
+    <template v-if="field.type === 'section'">
+      <h4 class="cpub-subfield-section-title">{{ field.label }}</h4>
+      <p v-if="field.help" class="cpub-subfield-section-desc">{{ field.help }}</p>
+    </template>
+
     <!-- Agreement: terms to read + an explicit accept checkbox. -->
-    <template v-if="field.type === 'agreement'">
+    <template v-else-if="field.type === 'agreement'">
       <span :id="fieldId" class="cpub-subfield-label">
         {{ field.label }} <span v-if="field.required || field.mustAccept !== false" class="cpub-subfield-req" aria-hidden="true">*</span>
       </span>
@@ -83,6 +89,25 @@ function setChecked(on: boolean): void {
       </div>
     </template>
 
+    <!-- Radio: a single choice from options, rendered as a radio group. -->
+    <template v-else-if="field.type === 'radio'">
+      <span :id="fieldId" class="cpub-subfield-label">
+        {{ field.label }} <span v-if="field.required" class="cpub-subfield-req" aria-hidden="true">*</span>
+      </span>
+      <div class="cpub-subfield-radios" role="radiogroup" :aria-labelledby="fieldId" :aria-describedby="helpId">
+        <label v-for="o in (field.options ?? [])" :key="o.value" class="cpub-subfield-radio">
+          <input
+            type="radio"
+            :name="fieldId"
+            :value="o.value"
+            :checked="model === o.value"
+            @change="model = o.value"
+          />
+          <span>{{ o.label }}</span>
+        </label>
+      </div>
+    </template>
+
     <!-- Everything else: a labelled single control. -->
     <template v-else>
       <label class="cpub-subfield-label" :for="fieldId">
@@ -112,15 +137,16 @@ function setChecked(on: boolean): void {
         v-else
         :id="fieldId"
         v-model="model"
-        :type="field.type === 'url' ? 'url' : field.type === 'email' ? 'email' : field.type === 'number' ? 'number' : field.type === 'date' ? 'date' : 'text'"
+        :type="field.type === 'url' ? 'url' : field.type === 'email' ? 'email' : field.type === 'number' ? 'number' : field.type === 'date' ? 'date' : field.type === 'tel' ? 'tel' : 'text'"
         class="cpub-subfield-input"
         maxlength="4000"
         :placeholder="field.type === 'url' ? 'https://' : undefined"
+        :inputmode="field.type === 'tel' ? 'tel' : undefined"
         :aria-describedby="helpId"
       />
     </template>
 
-    <p v-if="field.help" :id="helpId" class="cpub-subfield-help">{{ field.help }}</p>
+    <p v-if="field.help && field.type !== 'section'" :id="helpId" class="cpub-subfield-help">{{ field.help }}</p>
   </div>
 </template>
 
@@ -137,5 +163,13 @@ function setChecked(on: boolean): void {
 .cpub-subfield-check input { margin-top: 3px; width: 15px; height: 15px; flex-shrink: 0; }
 .cpub-subfield-address { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 .cpub-subfield-address .cpub-subfield-input:first-child, .cpub-subfield-address .cpub-subfield-input:nth-child(2) { grid-column: 1 / -1; }
+/* Section: a display-only header/divider between field groups. */
+.cpub-subfield--section { margin-top: var(--space-4); gap: 2px; }
+.cpub-subfield-section-title { margin: 0; font-size: var(--text-base); font-weight: 700; color: var(--text); border-bottom: var(--border-width-default) solid var(--border2); padding-bottom: var(--space-2); }
+.cpub-subfield-section-desc { margin: 0; font-size: var(--text-sm); color: var(--text-dim); line-height: 1.5; }
+/* Radio group. */
+.cpub-subfield-radios { display: flex; flex-direction: column; gap: 6px; }
+.cpub-subfield-radio { display: flex; align-items: center; gap: 8px; font-size: var(--text-sm); color: var(--text); cursor: pointer; }
+.cpub-subfield-radio input { width: 15px; height: 15px; flex-shrink: 0; margin: 0; }
 .cpub-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 </style>

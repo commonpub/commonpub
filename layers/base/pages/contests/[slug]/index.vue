@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Serialized, ContestEntryItem, ContestJudgeItem, ContestRegistrationFields } from '@commonpub/server';
+import type { Serialized, ContestEntryItem, ContestJudgeItem } from '@commonpub/server';
 
 const route = useRoute();
 const router = useRouter();
@@ -15,7 +15,7 @@ const { data: apiEntriesData, refresh: refreshEntries } = useLazyFetch<{ items: 
 const { data: judgesData, refresh: refreshJudges } = useLazyFetch<ContestJudgeItem[]>(`/api/contests/${slug}/judges`);
 // Registration state (viewer's own + public count). Drives the sidebar register
 // toggle. Lazy — the register card isn't above the fold and can hydrate late.
-const { data: registrationData } = useLazyFetch<{ registered: boolean; tier: 'full' | 'reminders' | null; fields: ContestRegistrationFields | null; count: number }>(`/api/contests/${slug}/register`);
+const { data: registrationData } = useLazyFetch<{ registered: boolean; tier: 'full' | 'reminders' | null; fields: Record<string, string> | null; count: number }>(`/api/contests/${slug}/register`);
 
 useSeoMeta({
   title: () => `${contest.value?.title || 'Contest'}, ${useSiteName()}`,
@@ -276,7 +276,7 @@ async function submitEntry(): Promise<void> {
 // seeded from the fetch and then reconciled from each POST/DELETE response.
 const registered = ref(false);
 const registrationTier = ref<'full' | 'reminders' | null>(null);
-const registrationFields = ref<ContestRegistrationFields | null>(null);
+const registrationFields = ref<Record<string, string> | null>(null);
 const registrantCount = ref(0);
 const registering = ref(false);
 watch(
@@ -292,7 +292,7 @@ watch(
   { immediate: true },
 );
 
-async function register(payload?: { tier: 'full' | 'reminders'; fields?: ContestRegistrationFields }): Promise<void> {
+async function register(payload?: { tier: 'full' | 'reminders'; fields?: Record<string, string> }): Promise<void> {
   if (registering.value) return;
   registering.value = true;
   const tier = payload?.tier ?? 'full';

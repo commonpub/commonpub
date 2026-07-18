@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import type { Serialized, ContestDetail, ContestRegistrationFields } from '@commonpub/server';
+import type { Serialized, ContestDetail } from '@commonpub/server';
+import { effectiveRegistrationTemplate } from '../../utils/contestRegistration';
 
 type Tier = 'full' | 'reminders';
 
@@ -9,8 +10,8 @@ const props = defineProps<{
   isAuthenticated?: boolean;
   /** Viewer's current tier, or null when not registered. */
   tier?: Tier | null;
-  /** Viewer's saved signup info (prefills the optional form). */
-  savedFields?: ContestRegistrationFields | null;
+  /** Viewer's saved signup answers (prefills the info form). */
+  savedFields?: Record<string, string> | null;
   /** Public count of `full` participants. */
   registrantCount?: number;
   /** In-flight register/unregister request (disables controls). */
@@ -18,9 +19,13 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-  (e: 'register', payload: { tier: Tier; fields?: ContestRegistrationFields }): void;
+  (e: 'register', payload: { tier: Tier; fields?: Record<string, string> }): void;
   (e: 'unregister'): void;
 }>();
+
+// The registration form: the operator's template when set, else the default
+// legacy three fields (so nothing regresses for existing contests).
+const registrationTemplate = computed(() => effectiveRegistrationTemplate(props.contest?.registrationTemplate));
 
 // Registration is open only while a contest is upcoming or active (mirrors the
 // server's REGISTERABLE_STATUSES). Past that, the card is informational only.
@@ -104,67 +109,24 @@ const whatsNext = computed<string>(() => {
   }
 });
 
-// --- Optional info form ---
-const EXPERIENCE = [
-  { v: 'first', label: 'First time' },
-  { v: 'some', label: 'Some experience' },
-  { v: 'experienced', label: 'Experienced' },
-] as const;
-const TEAM = [
-  { v: 'solo', label: 'Solo' },
-  { v: 'have', label: 'Have a team' },
-  { v: 'looking', label: 'Looking for teammates' },
-] as const;
-
-const building = ref('');
-const experience = ref<'first' | 'some' | 'experienced' | ''>('');
-const team = ref<'solo' | 'have' | 'looking' | ''>('');
+// --- Optional info form (template-driven) ---
 // Show the info form expanded automatically when a fresh full registrant has no
 // info yet (the high-intent nudge); collapsed once they've saved something.
 const infoOpen = ref(false);
 
-function seedForm(f: ContestRegistrationFields | null | undefined): void {
-  building.value = f?.building ?? '';
-  experience.value = f?.experience ?? '';
-  team.value = f?.team ?? '';
-}
-watch(() => props.savedFields, (f) => seedForm(f), { immediate: true });
-
-const hasSavedInfo = computed(() => {
-  const f = props.savedFields;
-  return !!(f && (f.building || f.experience || f.team));
-});
+const hasSavedInfo = computed(() => Object.keys(props.savedFields ?? {}).length > 0);
 
 // Auto-open the form for a full registrant who hasn't shared anything yet.
 watch(isFull, (full) => { if (full && !hasSavedInfo.value) infoOpen.value = true; }, { immediate: true });
 
-const formFields = computed<ContestRegistrationFields>(() => {
-  const out: ContestRegistrationFields = {};
-  const b = building.value.trim();
-  if (b) out.building = b;
-  if (experience.value) out.experience = experience.value;
-  if (team.value) out.team = team.value;
-  return out;
-});
-
-// Dirty = the form differs from what's saved (so Save is meaningful).
-const infoDirty = computed(() => {
-  const f = props.savedFields ?? {};
-  return (
-    (formFields.value.building ?? '') !== (f.building ?? '') ||
-    (formFields.value.experience ?? '') !== (f.experience ?? '') ||
-    (formFields.value.team ?? '') !== (f.team ?? '')
-  );
-});
-
 function registerFull(): void {
-  emit('register', { tier: 'full', fields: Object.keys(formFields.value).length ? formFields.value : undefined });
+  emit('register', { tier: 'full' });
 }
 function registerReminders(): void {
   emit('register', { tier: 'reminders' });
 }
-function saveInfo(): void {
-  emit('register', { tier: 'full', fields: formFields.value });
+function saveInfo(fields: Record<string, string>): void {
+  emit('register', { tier: 'full', fields });
 }
 </script>
 
@@ -253,42 +215,13 @@ function saveInfo(): void {
         </button>
 
         <div v-if="infoOpen" class="cpub-su-form">
-          <label class="cpub-su-field">
-            <span class="cpub-su-flabel">What are you thinking of building?</span>
-            <textarea
-              v-model="building"
-              class="cpub-su-textarea"
-              rows="2"
-              maxlength="280"
-              placeholder="A rough idea is fine, it helps the organizers plan."
-            ></textarea>
-          </label>
-
-          <fieldset class="cpub-su-field cpub-su-chips">
-            <legend class="cpub-su-flabel">Your experience</legend>
-            <label v-for="opt in EXPERIENCE" :key="opt.v" class="cpub-su-chip" :class="{ 'cpub-su-chip-on': experience === opt.v }">
-              <input v-model="experience" type="radio" name="cpub-su-exp" :value="opt.v" class="cpub-su-radio" />
-              {{ opt.label }}
-            </label>
-          </fieldset>
-
-          <fieldset class="cpub-su-field cpub-su-chips">
-            <legend class="cpub-su-flabel">Team status</legend>
-            <label v-for="opt in TEAM" :key="opt.v" class="cpub-su-chip" :class="{ 'cpub-su-chip-on': team === opt.v }">
-              <input v-model="team" type="radio" name="cpub-su-team" :value="opt.v" class="cpub-su-radio" />
-              {{ opt.label }}
-            </label>
-          </fieldset>
-
-          <button
-            type="button"
-            class="cpub-btn cpub-btn-primary cpub-su-btn cpub-su-save"
-            :disabled="registering || !infoDirty"
-            @click="saveInfo"
-          >
-            <i class="fa-solid fa-floppy-disk"></i>
-            {{ registering ? 'Saving…' : 'Save details' }}
-          </button>
+          <ContestRegistrationForm
+            :template="registrationTemplate"
+            :saved-fields="savedFields"
+            :registering="registering"
+            id-prefix="cpub-su-reg"
+            @save="saveInfo"
+          />
         </div>
       </template>
 
@@ -341,21 +274,6 @@ function saveInfo(): void {
 .cpub-su-optional { margin-left: auto; font-size: 9px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: .06em; color: var(--text-dim); border: var(--border-width-default) solid var(--border2); padding: 1px 5px; }
 
 .cpub-su-form { display: flex; flex-direction: column; gap: 12px; padding: 4px 0 12px; }
-.cpub-su-field { border: none; padding: 0; margin: 0; min-width: 0; }
-.cpub-su-flabel { display: block; font-size: 11px; font-weight: 600; color: var(--text-dim); margin-bottom: 6px; }
-.cpub-su-textarea { width: 100%; box-sizing: border-box; resize: vertical; font-family: inherit; font-size: 12px; line-height: 1.5; padding: 8px; color: var(--text); background: var(--surface2); border: var(--border-width-default) solid var(--border); border-radius: var(--radius); }
-.cpub-su-textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; border-color: var(--accent); }
-
-.cpub-su-chips { display: flex; flex-wrap: wrap; gap: 6px; }
-.cpub-su-chips .cpub-su-flabel { flex-basis: 100%; }
-.cpub-su-chip { display: inline-flex; align-items: center; font-size: 11px; padding: 5px 10px; color: var(--text-dim); background: var(--surface2); border: var(--border-width-default) solid var(--border); border-radius: var(--radius); cursor: pointer; user-select: none; }
-.cpub-su-chip:hover { border-color: var(--accent-border); color: var(--text); }
-.cpub-su-chip-on { color: var(--accent); border-color: var(--accent); background: var(--accent-bg); font-weight: 600; }
-/* Keep the native radio for a11y but hide it visually; focus ring lands on the chip. */
-.cpub-su-radio { position: absolute; opacity: 0; width: 1px; height: 1px; }
-.cpub-su-chip:focus-within { outline: 2px solid var(--accent); outline-offset: 1px; }
-
-.cpub-su-save { margin-top: 2px; }
 .cpub-su-leave { color: var(--text-dim); margin-top: 4px; margin-bottom: 0; }
 .cpub-su-leave:hover:not(:disabled) { color: var(--red-text); border-color: var(--red-border); background: var(--red-bg); }
 </style>

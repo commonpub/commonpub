@@ -1,4 +1,4 @@
-import type { ContestStatus, ContestStage, ContestStageSubmission, ContestImageMeta, ContestCoverPlacement, ContestEmailCopy } from '@commonpub/schema';
+import type { ContestStatus, ContestStage, ContestStageSubmission, ContestImageMeta, ContestCoverPlacement, ContestEmailCopy, FormField } from '@commonpub/schema';
 import type { DB } from '../types.js';
 
 // Shared contest types — the single home for the contest module's interfaces so
@@ -92,6 +92,10 @@ export interface ContestDetail extends ContestListItem {
   /** Phase B1 — explicit stage timeline (`[]` ⇒ classic synthesized flow). */
   stages: ContestStage[];
   currentStageId: string | null;
+  /** Operator-defined registration form (P1). `[]` ⇒ the legacy fixed signup. */
+  registrationTemplate: FormField[];
+  /** How registration relates to entry (P1). `light` (default) | `combined`. */
+  registrationMode: 'light' | 'combined';
   /**
    * Per-request view-model flag (NOT persisted): whether the CURRENT viewer may
    * manage this contest — owner, a per-contest `editor` stakeholder, or a
