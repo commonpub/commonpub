@@ -5,6 +5,7 @@ import {
   contestRegistrations,
   contestAgreementAcceptances,
   contestEntryPrivateFields,
+  contestRegistrationPrivateFields,
 } from '@commonpub/schema';
 import type { ContentType, ContestStageSubmission } from '@commonpub/schema';
 import type { DB } from '../types.js';
@@ -18,53 +19,94 @@ import type { StageSource, AgreementAcceptanceInput, ContestTx } from './types.j
 
 /**
  * Persist the PII + agreement halves of a partitioned submission within an open
- * transaction. PII is upserted (one row per entry, merged with any prior PII so
- * a later stage's PII doesn't wipe an earlier stage's); agreements are appended
- * as immutable acceptance rows (terms hash + snapshot). No-op when both empty.
+ * transaction. Scope is EITHER an entry (`entryId` + `stageId`) OR a registration
+ * (`registrationId`) — exactly one (P1). PII is upserted into the scope's private
+ * table (one row per entry/registration, merged with any prior PII so a later
+ * write doesn't wipe an earlier one); agreements are appended as immutable
+ * acceptance rows (terms hash + snapshot). For registration scope the agreement
+ * insert is idempotent — an info-edit re-register records a given accept once per
+ * (registration, field, terms-hash) via the dedup UNIQUE — so consent can't pile
+ * up; entry acceptances stay append-only. No-op when both pii and agreements empty.
  */
 export async function recordPrivateAndAgreements(
   tx: ContestTx,
   args: {
     contestId: string;
-    entryId: string;
     userId: string;
-    stageId: string;
+    /** Entry scope — mutually exclusive with registrationId. */
+    entryId?: string;
+    /** Registration scope — mutually exclusive with entryId (P1). */
+    registrationId?: string;
+    /** Submission stage — entry scope only. */
+    stageId?: string;
     pii: Record<string, string>;
     agreements: AgreementAcceptanceInput[];
     ip?: string | null;
   },
 ): Promise<void> {
-  const { contestId, entryId, userId, stageId, pii, agreements, ip } = args;
+  const { contestId, userId, entryId, registrationId, stageId, pii, agreements, ip } = args;
+  if ((entryId == null) === (registrationId == null)) {
+    throw new Error('recordPrivateAndAgreements requires exactly one of entryId/registrationId');
+  }
+  const isRegistration = registrationId != null;
 
   if (Object.keys(pii).length > 0) {
-    const [existing] = await tx
-      .select({ fields: contestEntryPrivateFields.fields })
-      .from(contestEntryPrivateFields)
-      .where(eq(contestEntryPrivateFields.entryId, entryId))
-      .for('update');
-    const merged = { ...(existing?.fields ?? {}), ...pii };
-    await tx
-      .insert(contestEntryPrivateFields)
-      .values({ contestId, entryId, userId, fields: merged })
-      .onConflictDoUpdate({
-        target: contestEntryPrivateFields.entryId,
-        set: { fields: merged, updatedAt: new Date() },
-      });
+    if (isRegistration) {
+      const [existing] = await tx
+        .select({ fields: contestRegistrationPrivateFields.fields })
+        .from(contestRegistrationPrivateFields)
+        .where(eq(contestRegistrationPrivateFields.registrationId, registrationId))
+        .for('update');
+      const merged = { ...(existing?.fields ?? {}), ...pii };
+      await tx
+        .insert(contestRegistrationPrivateFields)
+        .values({ contestId, registrationId, userId, fields: merged })
+        .onConflictDoUpdate({
+          target: contestRegistrationPrivateFields.registrationId,
+          set: { fields: merged, updatedAt: new Date() },
+        });
+    } else {
+      const [existing] = await tx
+        .select({ fields: contestEntryPrivateFields.fields })
+        .from(contestEntryPrivateFields)
+        .where(eq(contestEntryPrivateFields.entryId, entryId!))
+        .for('update');
+      const merged = { ...(existing?.fields ?? {}), ...pii };
+      await tx
+        .insert(contestEntryPrivateFields)
+        .values({ contestId, entryId: entryId!, userId, fields: merged })
+        .onConflictDoUpdate({
+          target: contestEntryPrivateFields.entryId,
+          set: { fields: merged, updatedAt: new Date() },
+        });
+    }
   }
 
   if (agreements.length > 0) {
-    await tx.insert(contestAgreementAcceptances).values(
-      agreements.map((a) => ({
-        contestId,
-        entryId,
-        userId,
-        stageId,
-        fieldKey: a.fieldKey,
-        termsHash: hashTerms(a.terms),
-        termsSnapshot: a.terms,
-        ip: ip ?? null,
-      })),
-    );
+    const rows = agreements.map((a) => ({
+      contestId,
+      entryId: entryId ?? null,
+      registrationId: registrationId ?? null,
+      userId,
+      stageId: stageId ?? null,
+      fieldKey: a.fieldKey,
+      termsHash: hashTerms(a.terms),
+      termsSnapshot: a.terms,
+      ip: ip ?? null,
+    }));
+    if (isRegistration) {
+      // Idempotent re-register: dedup on the registration-scope UNIQUE so an
+      // info-edit re-register doesn't duplicate a prior acceptance.
+      await tx.insert(contestAgreementAcceptances).values(rows).onConflictDoNothing({
+        target: [
+          contestAgreementAcceptances.registrationId,
+          contestAgreementAcceptances.fieldKey,
+          contestAgreementAcceptances.termsHash,
+        ],
+      });
+    } else {
+      await tx.insert(contestAgreementAcceptances).values(rows);
+    }
   }
 }
 

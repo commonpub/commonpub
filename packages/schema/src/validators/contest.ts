@@ -419,7 +419,16 @@ export const contestRegisterSchema = z.preprocess(
   (v) => (v === undefined || v === null || v === '' ? {} : v),
   z.object({
     tier: contestRegistrationTierSchema.default('full'),
-    fields: contestRegistrationFieldsSchema.optional(),
+    // Open bounded record (mirrors `stageSubmissionSchema.fields`) so operator-
+    // defined registration answers survive the endpoint — a closed z.object would
+    // strip every unknown key. Only bounds the SHAPE here (key/value length, ≤50
+    // keys); DOMAIN validation happens server-side against the contest's
+    // `registrationTemplate` via `validateSubmissionFields`. The legacy closed
+    // `contestRegistrationFieldsSchema` survives as a preset shape, not the wire.
+    fields: z
+      .record(z.string().max(64), z.string().max(4000))
+      .refine((f) => Object.keys(f).length <= 50, { message: 'Too many fields' })
+      .optional(),
   }),
 );
 export type ContestRegisterInput = z.infer<typeof contestRegisterSchema>;

@@ -1,5 +1,6 @@
 import { and, eq, desc } from 'drizzle-orm';
 import { contests, contestRegistrations, users } from '@commonpub/schema';
+import type { FormField } from '@commonpub/schema';
 import type { CommonPubConfig } from '@commonpub/config';
 import type { DB } from '../types.js';
 import { normalizePagination, countRows } from '../query.js';
@@ -11,7 +12,9 @@ import { getEmailBranding } from '../comms/branding.js';
 import { getNotificationEmailTarget } from '../notification/emailPrefs.js';
 import { parseContestEmailCopy, buildContestEmailCopyOverride } from './emailCopy.js';
 import { formatDeadlineUtc } from './reminders.js';
-import type { ContestEmailContext, ContestRegistrantItem } from './types.js';
+import { validateSubmissionFields } from './validation.js';
+import { recordPrivateAndAgreements } from './submissions.js';
+import type { ContestEmailContext, ContestRegistrantItem, AgreementAcceptanceInput } from './types.js';
 
 // Contest registration: a participant's intent to take part, independent of any
 // attached content. This is the audience for the registration-confirmation and
@@ -48,7 +51,7 @@ export interface RegisterForContestResult {
 export async function registerForContest(
   db: DB,
   config: CommonPubConfig,
-  input: { contestId: string; userId: string; tier?: ContestRegistrationTier; fields?: Record<string, string> },
+  input: { contestId: string; userId: string; tier?: ContestRegistrationTier; fields?: Record<string, string>; ip?: string | null },
   email?: ContestEmailContext,
 ): Promise<RegisterForContestResult> {
   const tier: ContestRegistrationTier = input.tier ?? 'full';
@@ -64,6 +67,7 @@ export async function registerForContest(
       stages: contests.stages,
       currentStageId: contests.currentStageId,
       emailCopy: contests.emailCopy,
+      registrationTemplate: contests.registrationTemplate,
     })
     .from(contests)
     .where(eq(contests.id, input.contestId))
@@ -131,51 +135,99 @@ export async function registerForContest(
     }
   }
 
-  // Claim a new row. onConflictDoNothing distinguishes a genuine first-time
-  // registration (row returned) from a re-register (no row → reconcile below).
-  const [inserted] = await db
-    .insert(contestRegistrations)
-    .values({ contestId: input.contestId, userId: input.userId, tier, fields: input.fields })
-    .onConflictDoNothing()
-    .returning({ id: contestRegistrations.id });
-
-  if (!inserted) {
-    // Existing registration. Read the prior tier so we can (a) upgrade
-    // reminders→full without ever downgrading and (b) know when this call is the
-    // moment the user becomes a participant (so we confirm then, not before).
-    const [existing] = await db
-      .select({ tier: contestRegistrations.tier })
-      .from(contestRegistrations)
-      .where(and(eq(contestRegistrations.contestId, input.contestId), eq(contestRegistrations.userId, input.userId)))
-      .limit(1);
-    const priorTier = (existing?.tier as ContestRegistrationTier) ?? 'full';
-
-    // Update fields only when a new object is supplied; upgrade tier only on a
-    // genuine reminders→full transition. Skip the write when nothing changes.
-    const set: Partial<{ tier: ContestRegistrationTier; fields: Record<string, string> | null }> = {};
-    if (tier === 'full' && priorTier !== 'full') set.tier = 'full';
-    if (input.fields !== undefined) set.fields = input.fields;
-
-    let finalTier: ContestRegistrationTier = priorTier;
-    if (Object.keys(set).length > 0) {
-      const [updated] = await db
-        .update(contestRegistrations)
-        .set(set)
-        .where(and(eq(contestRegistrations.contestId, input.contestId), eq(contestRegistrations.userId, input.userId)))
-        .returning({ tier: contestRegistrations.tier });
-      finalTier = (updated?.tier as ContestRegistrationTier) ?? finalTier;
-    }
-
-    // A reminders→full upgrade is the moment they become a participant. The
-    // first-insert path never confirmed the reminders row, so confirm now.
-    if (priorTier !== 'full' && finalTier === 'full') await sendParticipantConfirmation();
-    return { registered: false, alreadyRegistered: true, tier: finalTier };
+  // Validate + partition the submitted answers against the operator's registration
+  // template. An EMPTY template (existing contests / the default) keeps the legacy
+  // behaviour: the fixed {building,experience,team} info is stored verbatim with no
+  // PII/consent partition — routing it through validateSubmissionFields would reject
+  // those keys as "unknown" (there's no template to describe them). Only when a
+  // template exists AND answers were supplied do we validate against it. A submitted
+  // (non-undefined) fields object with a required field missing is REJECTED — the
+  // form enforces the template; a bare register (no fields) is still allowed.
+  const template = (contest.registrationTemplate ?? []) as FormField[];
+  let publicFields: Record<string, string> | undefined = input.fields;
+  let pii: Record<string, string> = {};
+  let agreements: AgreementAcceptanceInput[] = [];
+  if (input.fields !== undefined && template.length > 0) {
+    const r = validateSubmissionFields(template, input.fields);
+    if (!r.ok) return { registered: false, alreadyRegistered: false, error: r.error };
+    publicFields = r.result.artifact;
+    pii = r.result.pii;
+    agreements = r.result.agreements;
   }
 
-  // Genuine first registration. Only a FULL registration gets the participant
-  // confirmation; a reminders-only opt-in deliberately gets none.
-  if (tier === 'full') await sendParticipantConfirmation();
-  return { registered: true, alreadyRegistered: false, tier };
+  // One transaction for the three coupled writes (registration row + PII + consent)
+  // so consent can never diverge from the record. onConflictDoNothing distinguishes
+  // a genuine first-time registration (row returned) from a re-register (reconcile).
+  const outcome = await db.transaction(async (tx) => {
+    const [inserted] = await tx
+      .insert(contestRegistrations)
+      .values({ contestId: input.contestId, userId: input.userId, tier, fields: publicFields })
+      .onConflictDoNothing()
+      .returning({ id: contestRegistrations.id });
+
+    let registrationId: string;
+    let genuinelyNew: boolean;
+    let priorTier: ContestRegistrationTier;
+    let finalTier: ContestRegistrationTier;
+
+    if (inserted) {
+      registrationId = inserted.id;
+      genuinelyNew = true;
+      priorTier = tier;
+      finalTier = tier;
+    } else {
+      // Existing registration. Read the prior tier + id so we can (a) upgrade
+      // reminders→full without ever downgrading, (b) know when this call is the
+      // moment the user becomes a participant, and (c) scope the PII/consent write.
+      const [existing] = await tx
+        .select({ id: contestRegistrations.id, tier: contestRegistrations.tier })
+        .from(contestRegistrations)
+        .where(and(eq(contestRegistrations.contestId, input.contestId), eq(contestRegistrations.userId, input.userId)))
+        .limit(1);
+      registrationId = existing!.id;
+      priorTier = (existing?.tier as ContestRegistrationTier) ?? 'full';
+
+      // Update fields only when a new object is supplied; upgrade tier only on a
+      // genuine reminders→full transition. Skip the write when nothing changes.
+      const set: Partial<{ tier: ContestRegistrationTier; fields: Record<string, string> | null }> = {};
+      if (tier === 'full' && priorTier !== 'full') set.tier = 'full';
+      if (input.fields !== undefined) set.fields = publicFields;
+
+      finalTier = priorTier;
+      if (Object.keys(set).length > 0) {
+        const [updated] = await tx
+          .update(contestRegistrations)
+          .set(set)
+          .where(and(eq(contestRegistrations.contestId, input.contestId), eq(contestRegistrations.userId, input.userId)))
+          .returning({ tier: contestRegistrations.tier });
+        finalTier = (updated?.tier as ContestRegistrationTier) ?? finalTier;
+      }
+      genuinelyNew = false;
+    }
+
+    // PII + consent, registration-scoped. No-op when both empty (the legacy path).
+    // The registration-scope agreement insert is idempotent (dedup UNIQUE), so a
+    // re-register for an info edit doesn't pile up duplicate acceptance rows.
+    await recordPrivateAndAgreements(tx, {
+      contestId: input.contestId,
+      userId: input.userId,
+      registrationId,
+      pii,
+      agreements,
+      ip: input.ip ?? null,
+    });
+
+    return { genuinelyNew, priorTier, finalTier };
+  });
+
+  // Email (best-effort, OUTSIDE the tx — a send-path failure never rolls back the
+  // registration). A reminders→full upgrade is the moment they become a participant.
+  if (outcome.genuinelyNew) {
+    if (tier === 'full') await sendParticipantConfirmation();
+    return { registered: true, alreadyRegistered: false, tier };
+  }
+  if (outcome.priorTier !== 'full' && outcome.finalTier === 'full') await sendParticipantConfirmation();
+  return { registered: false, alreadyRegistered: true, tier: outcome.finalTier };
 }
 
 /** Cancel a user's registration. Returns whether a row was removed. */

@@ -44,7 +44,7 @@ export default defineEventHandler(async (event): Promise<{ registered: boolean; 
   const result = await registerForContest(
     db,
     config,
-    { contestId: contest.id, userId: user.id, tier, fields },
+    { contestId: contest.id, userId: user.id, tier, fields, ip: getRequestIP(event) ?? null },
     { siteUrl, siteName, secret },
   );
 
