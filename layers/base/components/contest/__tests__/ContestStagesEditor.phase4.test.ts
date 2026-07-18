@@ -58,7 +58,7 @@ function mount(stage: Partial<ContestStage>, flags: Record<string, boolean> = {}
 describe('ContestStagesEditor — Phase 4 builder', () => {
   it('offers the new scalar types but hides agreement/address until contestPii is on', () => {
     const { container } = mount({ submissionTemplate: [{ key: 'f', label: 'F', type: 'text', required: false }] });
-    const typeSelect = container.querySelector('.cpub-stage-tfield-type') as HTMLSelectElement;
+    const typeSelect = container.querySelector('.cpub-fte-type') as HTMLSelectElement;
     const opts = Array.from(typeSelect.options).map((o) => o.value);
     expect(opts).toEqual(expect.arrayContaining(['text', 'email', 'number', 'select', 'checkbox', 'date']));
     expect(opts).not.toContain('agreement');
@@ -70,11 +70,11 @@ describe('ContestStagesEditor — Phase 4 builder', () => {
       { submissionTemplate: [{ key: 'f', label: 'F', type: 'text', required: false }] },
       { contestPii: true },
     );
-    const typeSelect = container.querySelector('.cpub-stage-tfield-type') as HTMLSelectElement;
+    const typeSelect = container.querySelector('.cpub-fte-type') as HTMLSelectElement;
     const opts = Array.from(typeSelect.options).map((o) => o.value);
     expect(opts).toEqual(expect.arrayContaining(['agreement', 'address']));
     // A non-address scalar field shows the PII toggle.
-    expect(container.querySelector('.cpub-stage-tfield-pii')).toBeTruthy();
+    expect(container.querySelector('.cpub-fte-pii')).toBeTruthy();
   });
 
   it('renders the options editor for a select field', () => {
@@ -82,7 +82,7 @@ describe('ContestStagesEditor — Phase 4 builder', () => {
       { submissionTemplate: [{ key: 'track', label: 'Track', type: 'select', required: true, options: [{ value: 'hw', label: 'Hardware' }] }] },
       { contestPii: true },
     );
-    const extra = container.querySelector('.cpub-stage-tfield-extra');
+    const extra = container.querySelector('.cpub-fte-extra');
     expect(extra?.textContent).toContain('Choices');
     expect((extra?.querySelector('input') as HTMLInputElement).value).toBe('Hardware');
   });
@@ -92,7 +92,7 @@ describe('ContestStagesEditor — Phase 4 builder', () => {
       { submissionTemplate: [{ key: 'tos', label: 'Terms', type: 'agreement', required: true, terms: 'Ship it.', mustAccept: true }] },
       { contestPii: true },
     );
-    const textarea = container.querySelector('.cpub-stage-tfield-extra textarea') as HTMLTextAreaElement;
+    const textarea = container.querySelector('.cpub-fte-extra textarea') as HTMLTextAreaElement;
     expect(textarea.value).toBe('Ship it.');
     expect(container.textContent).toContain('Must accept to submit');
   });

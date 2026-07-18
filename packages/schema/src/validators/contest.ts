@@ -257,6 +257,16 @@ export const STAKEHOLDER_ROLES = ['reviewer', 'editor'] as const;
 export const stakeholderRoleSchema = z.enum(STAKEHOLDER_ROLES);
 export type StakeholderRole = (typeof STAKEHOLDER_ROLES)[number];
 
+// Operator-defined registration form (P1/P4). Same field validator + array bounds
+// as a stage submissionTemplate (FormField is the same shape); keys must be unique.
+export const registrationTemplateSchema = z
+  .array(submissionTemplateFieldSchema)
+  .max(50)
+  .refine((fields) => new Set(fields.map((f) => f.key)).size === fields.length, {
+    message: 'Template field keys must be unique',
+  });
+export const registrationModeSchema = z.enum(['light', 'combined']);
+
 export const createContestSchema = z
   .object({
     title: z.string().min(1).max(255),
@@ -302,6 +312,9 @@ export const createContestSchema = z
     visibleToRoles: z.array(userRoleSchema).max(5).optional(),
     // Per-contest email copy override (session 232). Null clears the override.
     emailCopy: contestEmailCopySchema.nullable().optional(),
+    // Operator-defined registration form (P4).
+    registrationTemplate: registrationTemplateSchema.optional(),
+    registrationMode: registrationModeSchema.optional(),
   })
   .refine((d) => new Date(d.endDate) > new Date(d.startDate), {
     message: 'End date must be after the start date',
@@ -350,6 +363,9 @@ export const updateContestSchema = z
     visibleToRoles: z.array(userRoleSchema).max(5).optional(),
     // Per-contest email copy override (session 232). Null clears the override.
     emailCopy: contestEmailCopySchema.nullable().optional(),
+    // Operator-defined registration form (P4).
+    registrationTemplate: registrationTemplateSchema.optional(),
+    registrationMode: registrationModeSchema.optional(),
   })
   // `judges` + `stakeholders` are intentionally NOT updatable here — they are
   // managed via the dedicated /judges and /stakeholders endpoints.

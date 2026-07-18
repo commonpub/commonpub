@@ -112,7 +112,7 @@ const missingSubmission = computed(() => stages.value.length > 0 && !stages.valu
 
 <style scoped>
 /* Only the list/orchestrator chrome lives here; the per-stage form controls travel
-   with ContestStageCard / ContestStageTemplateEditor (scoped CSS is per-component). */
+   with ContestStageCard / FormTemplateEditor (scoped CSS is per-component). */
 .cpub-stages-standard { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
 .cpub-stage-tophead { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
 .cpub-stage-count { font-size: 11px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: .06em; color: var(--text-faint); }

@@ -4,7 +4,7 @@ import { fieldKeyFromLabel } from './contestStages';
 /**
  * Field presets + whole-form templates for the submission-form builder (P2). Pure
  * data + helpers so they unit-test in isolation; the builder UI
- * (ContestStageTemplateEditor) appends a preset or replaces the whole form via the
+ * (FormTemplateEditor) appends a preset or replaces the whole form via the
  * `templatePreset*`/template builders here. Keys are derived from the label and
  * uniquified against the existing template so two "Email" fields don't collide
  * (template field keys must be unique — `contestStageSchema`).
@@ -63,8 +63,11 @@ export const FIELD_PRESETS: FieldPreset[] = [
   { id: 'email', label: 'Email', icon: 'fa-envelope', field: { label: 'Email address', type: 'email', required: false } },
   { id: 'number', label: 'Number', icon: 'fa-hashtag', field: { label: 'Number', type: 'number', required: false } },
   { id: 'select', label: 'Dropdown', icon: 'fa-list', field: { label: 'Choose one', type: 'select', required: false, options: [{ value: '', label: '' }] } },
+  { id: 'radio', label: 'Choice (radio)', icon: 'fa-list-check', field: { label: 'Choose one', type: 'radio', required: false, options: [{ value: '', label: '' }] } },
   { id: 'checkbox', label: 'Checkbox', icon: 'fa-square-check', field: { label: 'Confirm', type: 'checkbox', required: false } },
   { id: 'date', label: 'Date', icon: 'fa-calendar', field: { label: 'Date', type: 'date', required: false } },
+  { id: 'tel', label: 'Phone', icon: 'fa-phone', field: { label: 'Phone number', type: 'tel', required: false } },
+  { id: 'section', label: 'Section header', icon: 'fa-heading', field: { label: 'Section title', type: 'section', required: false } },
   {
     id: 'address',
     label: 'Mailing address',

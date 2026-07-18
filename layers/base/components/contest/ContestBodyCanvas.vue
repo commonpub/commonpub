@@ -15,7 +15,7 @@ import { BlockCanvas, type BlockEditor, type BlockTypeGroup } from '@commonpub/e
 
 // 'stages' and 'emails' are FORM tabs (not block bodies): each renders its own slot
 // and has no Write/Preview/Code mode. The three block tabs share one BlockCanvas.
-type BodyTab = 'overview' | 'rules' | 'prizes' | 'stages' | 'emails';
+type BodyTab = 'overview' | 'rules' | 'prizes' | 'stages' | 'registration' | 'emails';
 type BodyMode = 'write' | 'preview' | 'code';
 
 const props = defineProps<{
@@ -39,12 +39,13 @@ const TABS = computed<{ key: BodyTab; label: string; icon: string }[]>(() => {
     { key: 'rules', label: 'Rules', icon: 'fa-file-lines' },
     { key: 'prizes', label: 'Prizes', icon: 'fa-trophy' },
     { key: 'stages', label: 'Stages', icon: 'fa-diagram-project' },
+    { key: 'registration', label: 'Registration', icon: 'fa-user-plus' },
   ];
   if (props.showEmails) base.push({ key: 'emails', label: 'Emails', icon: 'fa-envelope' });
   return base;
 });
 // Block tabs share the canvas + the Write/Preview/Code switch; 'stages'/'emails' are forms.
-const isBlockTab = computed(() => props.activeTab !== 'stages' && props.activeTab !== 'emails');
+const isBlockTab = computed(() => props.activeTab !== 'stages' && props.activeTab !== 'emails' && props.activeTab !== 'registration');
 const MODES: { key: BodyMode; label: string; icon: string }[] = [
   { key: 'write', label: 'Write', icon: 'fa-pen' },
   { key: 'preview', label: 'Preview', icon: 'fa-eye' },
@@ -117,6 +118,8 @@ function onTabKey(e: KeyboardEvent, key: BodyTab): void {
     <div class="cpub-cbc-panel" role="tabpanel" tabindex="0" :aria-labelledby="`cpub-cbc-tab-${activeTab}`">
       <!-- Stages: a form tab (timeline + submission forms + advancement). -->
       <slot v-if="activeTab === 'stages'" name="stages" />
+      <!-- Registration: a form tab (the operator's registration form builder + preview). -->
+      <slot v-else-if="activeTab === 'registration'" name="registration" />
       <!-- Emails: a form tab (per-contest email copy editor + live preview). -->
       <slot v-else-if="activeTab === 'emails'" name="emails" />
       <template v-else>

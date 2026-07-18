@@ -1063,6 +1063,28 @@ describe('contest integration', () => {
     expect(panel).toHaveLength(0);
   });
 
+  it('createContest + updateContest persist the registration form + mode (P4)', async () => {
+    const template = [
+      { key: 'track', label: 'Track', type: 'radio' as const, required: true, options: [{ value: 'dev', label: 'Developer' }] },
+      { key: 'email', label: 'Email', type: 'email' as const, required: true },
+    ];
+    const created = await createContest(db, { ...makeContestInput({ title: 'Reg Form Contest' }), registrationTemplate: template, registrationMode: 'light' });
+    expect(created.registrationTemplate).toHaveLength(2);
+    expect(created.registrationMode).toBe('light');
+
+    const updated = await updateContest(db, created.slug, organizerId, {
+      registrationTemplate: [{ key: 'name', label: 'Name', type: 'text', required: true }],
+      registrationMode: 'combined',
+    });
+    expect(updated!.registrationTemplate.map((f) => f.key)).toEqual(['name']);
+    expect(updated!.registrationMode).toBe('combined');
+
+    // A contest created without a template defaults to [] + 'light'.
+    const plain = await createContest(db, makeContestInput({ title: 'Plain Contest' }));
+    expect(plain.registrationTemplate).toEqual([]);
+    expect(plain.registrationMode).toBe('light');
+  });
+
   // --- Full happy-path lifecycle (the "can a full contest occur" proof) ---
 
   it('runs a complete contest end to end: create → judges → submit → judge → complete → results', async () => {

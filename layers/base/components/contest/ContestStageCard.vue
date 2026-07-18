@@ -9,7 +9,7 @@
  */
 import type { ContestStage } from '@commonpub/schema';
 import type { BlockTuple } from '@commonpub/editor';
-import ContestStageTemplateEditor from './ContestStageTemplateEditor.vue';
+import FormTemplateEditor from './FormTemplateEditor.vue';
 
 const props = defineProps<{
   stage: ContestStage;
@@ -159,10 +159,13 @@ function onInstructionsUpdate(blocks: BlockTuple[]): void {
 
     <!-- Per-stage submission template (submission stages): the artifact fields
          entrants fill for THIS stage (proposal vs prototype). -->
-    <ContestStageTemplateEditor
+    <FormTemplateEditor
       v-if="stage.kind === 'submission' && templatesEnabled"
       :template="stage.submissionTemplate ?? []"
       :instructions="(stage.instructionsBlocks as BlockTuple[] | undefined)"
+      enable-intro
+      label="Submission form, this stage"
+      hint="Optional. Add fields entrants must fill for this stage (e.g. a proposal summary, or a repository link). Leave empty if entering a project is enough."
       @update:template="onTemplateUpdate"
       @update:instructions="onInstructionsUpdate"
     />

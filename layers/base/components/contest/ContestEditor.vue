@@ -66,7 +66,7 @@ const {
   description, descriptionFormat, rules, rulesFormat, prizesDescription, prizesDescriptionFormat,
   bannerUrl, coverImageUrl, bannerMeta, coverMeta, coverPlacement, startDate, endDate, judgingEndDate, communityVotingEnabled,
   judgingVisibility, eligibleContentTypes, maxEntriesPerUser, visibility, visibleToRoles,
-  showPrizes, prizes, criteria, stages, currentStageId, emailCopy, setEmailCopy,
+  showPrizes, prizes, criteria, stages, currentStageId, registrationTemplate, registrationMode, emailCopy, setEmailCopy,
   saving, formDirty, dateError, canSubmit, slugify, toggleType, toggleRole, addPrize, removePrize, prizeLabel, save,
 } = editor;
 
@@ -88,7 +88,7 @@ const overviewEditor = useBlockEditor(seedBodyBlocks(descriptionBlocks.value, de
 const rulesEditor = useBlockEditor(seedBodyBlocks(rulesBlocks.value, rules.value, rulesFormat.value), blockDefaults);
 const prizesEditor = useBlockEditor(seedBodyBlocks(prizesBlocks.value, prizesDescription.value, prizesDescriptionFormat.value), blockDefaults);
 
-type BodyTab = 'overview' | 'rules' | 'prizes' | 'stages' | 'emails';
+type BodyTab = 'overview' | 'rules' | 'prizes' | 'stages' | 'registration' | 'emails';
 const activeTab = ref<BodyTab>('overview');
 const bodyMode = ref<'write' | 'preview' | 'code'>('write');
 // The Stages tab has no block editor; it falls back to overview (the palette is
@@ -483,7 +483,7 @@ const reviewStages = computed(() => (contest.value?.stages ?? []).filter((s) => 
     <div class="cpub-ce-shell">
       <!-- LEFT: block palette — inserts into the currently-active body. Hidden on
            the Stages + Emails tabs (forms, not block bodies), giving them more room. -->
-      <aside v-show="activeTab !== 'stages' && activeTab !== 'emails'" class="cpub-ce-library" aria-label="Block palette">
+      <aside v-show="activeTab !== 'stages' && activeTab !== 'emails' && activeTab !== 'registration'" class="cpub-ce-library" aria-label="Block palette">
         <EditorBlocks :groups="contestBlockGroups" :block-editor="activeBodyEditor" />
       </aside>
 
@@ -573,12 +573,30 @@ const reviewStages = computed(() => (contest.value?.stages ?? []).filter((s) => 
             </div>
           </template>
 
+          <!-- Registration tab: the operator's registration form builder + a live preview. -->
+          <template #registration>
+            <div class="cpub-ce-reg-tab">
+              <p class="cpub-form-hint">Build the form participants fill when they register. Answers are stored the same way entries are — public answers on the registration, personal data (email/address/PII fields) stored privately, and consent (agreements) recorded to the audit log. Leave it empty to use the default sign-up questions.</p>
+              <div class="cpub-ce-reg-cols">
+                <FormTemplateEditor
+                  v-model:template="registrationTemplate"
+                  label="Registration form"
+                  hint="Add the fields you want to collect at sign-up. Group them with section headers; mark personal-data fields as PII."
+                />
+                <div class="cpub-ce-reg-preview">
+                  <span class="cpub-form-label" style="margin: 0 0 6px; display: block;">Preview</span>
+                  <ContestRegistrationForm :template="effectiveRegistrationTemplate(registrationTemplate)" preview />
+                </div>
+              </div>
+            </div>
+          </template>
+
           <!-- Emails tab: per-contest email copy editor with a live preview. -->
           <template v-if="emailEditorEnabled" #emails>
             <ContestEmailEditor :slug="slug" v-model="emailCopy" @load="setEmailCopy" />
           </template>
         </ContestBodyCanvas>
-        <p v-if="activeTab !== 'stages' && activeTab !== 'emails'" class="cpub-form-hint cpub-ce-body-hint">
+        <p v-if="activeTab !== 'stages' && activeTab !== 'emails' && activeTab !== 'registration'" class="cpub-form-hint cpub-ce-body-hint">
           The <strong>Overview</strong>, <strong>Rules</strong>, and <strong>Prizes</strong> bodies are blocks
           (headings, lists, images, callouts, and the <strong>Judges Showcase</strong>), like the project and blog
           editors. Add blocks from the palette on the left. The <strong>Stages</strong> tab holds the timeline +
@@ -868,6 +886,10 @@ const reviewStages = computed(() => (contest.value?.stages ?? []).filter((s) => 
 
 /* Stages tab (center) — the form tab gets a little breathing room. */
 .cpub-ce-stages-tab { display: flex; flex-direction: column; gap: 4px; }
+.cpub-ce-reg-tab { display: flex; flex-direction: column; gap: var(--space-3); }
+.cpub-ce-reg-cols { display: grid; grid-template-columns: 1fr; gap: var(--space-3); }
+@media (min-width: 900px) { .cpub-ce-reg-cols { grid-template-columns: 3fr 2fr; align-items: start; } }
+.cpub-ce-reg-preview { border: var(--border-width-default) solid var(--border); background: var(--surface2); padding: var(--space-3); }
 
 /* Danger zone */
 .cpub-danger-label { font-size: 13px; font-weight: 600; margin: 0 0 2px; color: var(--red-text); }

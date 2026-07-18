@@ -51,7 +51,7 @@ describe('field presets', () => {
     // A `select` seeds one blank option for the organiser to fill (it isn't valid
     // until they do, same as the existing changeType behaviour); fill it so the
     // preset's other defaults can be schema-checked.
-    if (seeded[0]!.type === 'select') seeded[0]!.options = [{ value: 'a', label: 'Option A' }];
+    if (seeded[0]!.type === 'select' || seeded[0]!.type === 'radio') seeded[0]!.options = [{ value: 'a', label: 'Option A' }];
     expect(validateTemplate(seeded)).toBe(true);
   });
 });

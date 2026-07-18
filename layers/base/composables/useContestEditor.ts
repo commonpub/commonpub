@@ -14,7 +14,7 @@
  * round-trip bug and no per-field re-conversion at save (the Phase 1 datetime fix).
  */
 import { ref, computed, watch, nextTick, type Ref, type ComputedRef } from 'vue';
-import type { ContestStage, ContestImageMeta, ContestCoverPlacement, ContestEmailCopy } from '@commonpub/schema';
+import type { ContestStage, ContestImageMeta, ContestCoverPlacement, ContestEmailCopy, FormField } from '@commonpub/schema';
 import type { ContestTemplateSeed } from '../utils/contestTemplates';
 
 /** Flat form shape for the two contest emails (empty string ⇒ built-in default).
@@ -82,6 +82,8 @@ export interface ContestEditorSource {
   showPrizes?: boolean | null;
   stages?: ContestStage[] | null;
   currentStageId?: string | null;
+  registrationTemplate?: FormField[] | null;
+  registrationMode?: string | null;
   prizesDescription?: string | null;
   prizes?: { place?: number; category?: string; title?: string; description?: string; value?: string }[] | null;
   judgingCriteria?: { label: string; weight?: number; description?: string }[] | null;
@@ -141,6 +143,9 @@ export interface UseContestEditor {
   criteria: Ref<ContestCriterionRow[]>;
   stages: Ref<ContestStage[]>;
   currentStageId: Ref<string | null>;
+  /** Operator-defined registration form (P4) + mode. */
+  registrationTemplate: Ref<FormField[]>;
+  registrationMode: Ref<'light' | 'combined'>;
   emailCopy: Ref<ContestEmailCopyForm>;
   /** True once the organizer-only email copy has been fetched into `emailCopy`;
    *  gates whether a save includes `emailCopy` (so it isn't clobbered when unset). */
@@ -216,6 +221,8 @@ export function useContestEditor(opts: UseContestEditorOptions): UseContestEdito
   const prizes = ref<ContestPrizeRow[]>([]);
   const criteria = ref<ContestCriterionRow[]>([]);
   const stages = ref<ContestStage[]>([]);
+  const registrationTemplate = ref<FormField[]>([]);
+  const registrationMode = ref<'light' | 'combined'>('light');
   const currentStageId = ref<string | null>(null);
   const emailCopy = ref<ContestEmailCopyForm>({ confirmationSubject: '', confirmationIntro: '', confirmationBlocks: [], reminderSubject: '', reminderIntro: '', reminderBlocks: [] });
   const emailCopyLoaded = ref(false);
@@ -301,6 +308,8 @@ export function useContestEditor(opts: UseContestEditorOptions): UseContestEdito
     showPrizes.value = c.showPrizes !== false;
     stages.value = Array.isArray(c.stages) ? [...c.stages] : [];
     currentStageId.value = c.currentStageId ?? null;
+    registrationTemplate.value = Array.isArray(c.registrationTemplate) ? [...c.registrationTemplate] : [];
+    registrationMode.value = c.registrationMode === 'combined' ? 'combined' : 'light';
     prizesDescription.value = c.prizesDescription ?? '';
     prizes.value = (c.prizes ?? []).map((p) => ({
       place: p.place ?? null,
@@ -426,6 +435,8 @@ export function useContestEditor(opts: UseContestEditorOptions): UseContestEdito
       showPrizes: showPrizes.value,
       stages: stages.value,
       currentStageId: currentStageId.value ?? undefined,
+      registrationTemplate: registrationTemplate.value,
+      registrationMode: registrationMode.value,
       prizesDescription: prizesDescription.value || undefined,
       prizes: prizeData,
       judgingCriteria: criteriaData,
@@ -473,7 +484,8 @@ export function useContestEditor(opts: UseContestEditorOptions): UseContestEdito
     [title, slugInput, subheading, description, descriptionBlocks, rulesBlocks, prizesBlocks, rules,
       descriptionFormat, rulesFormat, prizesDescriptionFormat, bannerUrl, coverImageUrl, bannerMeta, coverMeta, coverPlacement, startDate, endDate,
       judgingEndDate, communityVotingEnabled, judgingVisibility, eligibleContentTypes, maxEntriesPerUser,
-      visibility, visibleToRoles, showPrizes, prizesDescription, prizes, criteria, stages, currentStageId, emailCopy],
+      visibility, visibleToRoles, showPrizes, prizesDescription, prizes, criteria, stages, currentStageId,
+      registrationTemplate, registrationMode, emailCopy],
     () => { if (!hydrating) formDirty.value = true; },
     { deep: true },
   );
@@ -488,6 +500,7 @@ export function useContestEditor(opts: UseContestEditorOptions): UseContestEdito
     rules, descriptionFormat, rulesFormat, prizesDescriptionFormat, bannerUrl, coverImageUrl, bannerMeta, coverMeta, coverPlacement, startDate,
     endDate, judgingEndDate, communityVotingEnabled, judgingVisibility, eligibleContentTypes, maxEntriesPerUser,
     visibility, visibleToRoles, showPrizes, prizesDescription, prizes, criteria, stages, currentStageId,
+    registrationTemplate, registrationMode,
     emailCopy, emailCopyLoaded,
     saving, formDirty, dateError, canSubmit,
     slugify: slugifyContest, toggleType, toggleRole, addPrize, removePrize, prizeLabel,

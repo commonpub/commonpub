@@ -113,7 +113,7 @@ type FieldType = ContestSubmissionTemplateField['type'];
 type TemplateField = ContestSubmissionTemplateField;
 
 // ─── Array-level template ops (operate on ONE stage's submissionTemplate) ───
-// The extracted ContestStageTemplateEditor works on a plain field array; the
+// The extracted FormTemplateEditor works on a plain field array; the
 // stage-indexed `withTemplate*` wrappers below delegate to these so both surfaces
 // share one implementation (and the existing unit tests still exercise it).
 
@@ -142,6 +142,17 @@ export function templateFieldRemoved(t: TemplateField[], fi: number): TemplateFi
   return t.filter((_, idx) => idx !== fi);
 }
 
+/** Move a field from index `fi` by `delta` (±1), clamped. Returns a new array
+ *  (unchanged when the move would fall off either end). Powers keyboard reorder. */
+export function templateFieldMoved(t: TemplateField[], fi: number, delta: number): TemplateField[] {
+  const to = fi + delta;
+  if (fi < 0 || fi >= t.length || to < 0 || to >= t.length) return t;
+  const next = t.slice();
+  const [moved] = next.splice(fi, 1);
+  next.splice(to, 0, moved!);
+  return next;
+}
+
 /**
  * Change a template field's type AND normalize the type-specific ancillary props
  * so the stored field stays coherent (Phase 4): `address` forces `pii`; leaving
@@ -153,7 +164,9 @@ export function templateFieldTypeChanged(t: TemplateField[], fi: number, type: F
   const field = t[fi];
   if (!field) return t;
   const patch: Partial<TemplateField> = { type };
-  patch.options = type === 'select' ? (field.options?.length ? field.options : [{ value: '', label: '' }]) : undefined;
+  // `radio` is a choice type like `select` — both carry options.
+  const isChoice = type === 'select' || type === 'radio';
+  patch.options = isChoice ? (field.options?.length ? field.options : [{ value: '', label: '' }]) : undefined;
   if (type === 'agreement') {
     patch.mustAccept = field.mustAccept ?? true;
   } else {

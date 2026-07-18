@@ -154,6 +154,9 @@ export interface CreateContestInput {
   /** Per-contest email copy override (session 232). Null clears it. Deliberately
    *  NOT part of the public `ContestDetail` DTO — organizer-only, never returned. */
   emailCopy?: ContestEmailCopy | null;
+  /** Operator-defined registration form (P4). */
+  registrationTemplate?: FormField[];
+  registrationMode?: 'light' | 'combined';
   createdBy: string;
 }
 
