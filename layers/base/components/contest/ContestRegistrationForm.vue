@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { reactive, computed, watch } from 'vue';
 import type { FormField } from '@commonpub/schema';
-import { isChecked } from '../../utils/contestSubmission';
+import { isFieldFilled, buildSubmissionPayload } from '../../utils/contestSubmission';
 
 // Template-driven registration form. Renders the operator's `registrationTemplate`
 // (or the default legacy 3 fields) through the shared ContestSubmissionField, so
@@ -37,35 +37,22 @@ function seed(saved: Record<string, string> | null): void {
 }
 watch(() => [props.savedFields, props.template] as const, () => seed(props.savedFields), { immediate: true, deep: true });
 
-/** A field's answer counts as "provided" for the required check. */
-function isProvided(f: FormField): boolean {
-  const v = (values[f.key] ?? '').trim();
-  if (f.type === 'agreement' || f.type === 'checkbox') return isChecked(v);
-  return v.length > 0;
-}
-
-// A field is required-and-missing (drives inline hints + blocks Save). Agreements
-// are required when `required` OR `mustAccept !== false` (an accept is expected).
+// A field is required-and-missing (drives inline hints + blocks Save). Reuses the
+// shared, server-mirroring `isFieldFilled` (agreements/checkbox via isChecked,
+// address via parseAddress, section always filled) so this can't diverge from the
+// entry-side gate. Agreements are required when `required` OR `mustAccept !== false`.
 const missing = computed<Set<string>>(() => {
   const out = new Set<string>();
   for (const f of props.template) {
-    if (f.type === 'section') continue;
     const mustAccept = f.type === 'agreement' && f.mustAccept !== false;
-    if ((f.required || mustAccept) && !isProvided(f)) out.add(f.key);
+    if ((f.required || mustAccept) && !isFieldFilled(f, values[f.key])) out.add(f.key);
   }
   return out;
 });
 
-// Collected payload — non-empty answers only (an omitted optional field is absent).
-const collected = computed<Record<string, string>>(() => {
-  const out: Record<string, string> = {};
-  for (const f of props.template) {
-    if (f.type === 'section') continue;
-    const v = (values[f.key] ?? '').trim();
-    if (v !== '') out[f.key] = v;
-  }
-  return out;
-});
+// Collected payload — the shared builder (trims, normalizes checkbox/agreement,
+// drops blanks + section) so it matches the entry form + the server contract.
+const collected = computed<Record<string, string>>(() => buildSubmissionPayload(props.template, values));
 
 // Dirty = collected differs from saved (so Save is meaningful).
 const dirty = computed<boolean>(() => {

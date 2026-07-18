@@ -46,6 +46,9 @@ export function serializeAddress(addr: AddressValue): string {
 
 /** True when a field's value is "filled" for required purposes (type-aware). */
 export function isFieldFilled(field: ContestSubmissionTemplateField, value: string | undefined): boolean {
+  // Sections are display-only (no input) — never "unfilled", so a required
+  // section can't block submission (mirrors the server, which skips section).
+  if (field.type === 'section') return true;
   const v = (value ?? '').trim();
   if (field.type === 'checkbox' || field.type === 'agreement') return isChecked(v);
   if (field.type === 'address') return Object.keys(parseAddress(v)).length > 0;

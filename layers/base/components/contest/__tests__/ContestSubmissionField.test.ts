@@ -81,6 +81,19 @@ describe('ContestSubmissionField — control per type', () => {
     expect(emitted()['update:modelValue']!.at(-1)).toEqual(['startup']);
   });
 
+  it('applies a per-field maxLength to text-ish inputs (defaults to 4000)', () => {
+    const { container: capped } = mount({ key: 'b', label: 'Building', type: 'textarea', required: false, maxLength: 280 });
+    expect(capped.querySelector('#cpub-test-b')?.getAttribute('maxlength')).toBe('280');
+    const { container: def } = mount({ key: 't', label: 'Text', type: 'text', required: false });
+    expect(def.querySelector('#cpub-test-t')?.getAttribute('maxlength')).toBe('4000');
+  });
+
+  it('renders a section as a plain (non-heading) styled divider', () => {
+    const { container } = mount({ key: 'sec', label: 'About', type: 'section', required: false });
+    const title = container.querySelector('.cpub-subfield-section-title');
+    expect(title?.tagName.toLowerCase()).toBe('div'); // not a heading → no outline jump
+  });
+
   it('renders a tel field as an input type=tel', () => {
     const { container } = mount({ key: 'phone', label: 'Phone', type: 'tel', required: false });
     const input = container.querySelector('#cpub-test-phone');

@@ -59,4 +59,12 @@ describe('validateSubmissionFields — P1 field types', () => {
     const tmpl = [f({ key: 'name', type: 'text' })];
     expect(validateSubmissionFields(tmpl, { name: 'x', sneaky: 'y' }).ok).toBe(false);
   });
+
+  it('enforces a per-field maxLength (server-side, not just the input hint)', () => {
+    const tmpl = [f({ key: 'building', type: 'textarea', maxLength: 10 })];
+    expect(validateSubmissionFields(tmpl, { building: 'short' }).ok).toBe(true);
+    const long = validateSubmissionFields(tmpl, { building: 'x'.repeat(11) });
+    expect(long.ok).toBe(false);
+    if (!long.ok) expect(long.error).toMatch(/too long/i);
+  });
 });

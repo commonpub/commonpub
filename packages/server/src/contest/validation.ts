@@ -92,6 +92,11 @@ export function validateSubmissionFields(
       continue; // optional + blank ⇒ omit
     }
 
+    // Per-field character cap (≤ the 4000 hard cap already checked above).
+    if (field.maxLength != null && value.length > field.maxLength) {
+      return { ok: false, error: `${field.label} is too long (max ${field.maxLength} characters)` };
+    }
+
     switch (field.type) {
       case 'url': {
         // Scheme allow-list FIRST (https?:// only), then structural URL parse.

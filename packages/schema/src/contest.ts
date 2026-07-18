@@ -121,6 +121,10 @@ export interface ContestSubmissionTemplateField {
   required: boolean;
   /** Optional hint shown under the input (also the description body for `section`). */
   help?: string;
+  /** Optional per-field character cap for text-ish inputs (text/textarea/tel/url/
+   *  email); ≤ the 4000 hard cap. Enforced client-side (input maxlength) AND
+   *  server-side (validateSubmissionFields). */
+  maxLength?: number;
   /** `select`/`radio`-only: the allowed options. */
   options?: Array<{ value: string; label: string }>;
   /** Personal data — stored in `contest_entry_private_fields`, not the artifact. Forced true for `address`. */

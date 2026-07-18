@@ -35,7 +35,9 @@ function setChecked(on: boolean): void {
   <div class="cpub-subfield" :class="{ 'cpub-subfield--section': field.type === 'section' }">
     <!-- Section: a display-only header/divider (title + optional description). No input. -->
     <template v-if="field.type === 'section'">
-      <h4 class="cpub-subfield-section-title">{{ field.label }}</h4>
+      <!-- A form-group divider, not a document heading — a plain styled element
+           avoids an unpredictable heading-level jump in the surrounding outline. -->
+      <div class="cpub-subfield-section-title">{{ field.label }}</div>
       <p v-if="field.help" class="cpub-subfield-section-desc">{{ field.help }}</p>
     </template>
 
@@ -120,7 +122,7 @@ function setChecked(on: boolean): void {
         v-model="model"
         class="cpub-subfield-input cpub-subfield-textarea"
         rows="4"
-        maxlength="4000"
+        :maxlength="field.maxLength ?? 4000"
         :aria-describedby="helpId"
       ></textarea>
       <select
@@ -139,7 +141,7 @@ function setChecked(on: boolean): void {
         v-model="model"
         :type="field.type === 'url' ? 'url' : field.type === 'email' ? 'email' : field.type === 'number' ? 'number' : field.type === 'date' ? 'date' : field.type === 'tel' ? 'tel' : 'text'"
         class="cpub-subfield-input"
-        maxlength="4000"
+        :maxlength="field.maxLength ?? 4000"
         :placeholder="field.type === 'url' ? 'https://' : undefined"
         :inputmode="field.type === 'tel' ? 'tel' : undefined"
         :aria-describedby="helpId"

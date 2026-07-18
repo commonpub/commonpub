@@ -15,6 +15,9 @@ export const DEFAULT_REGISTRATION_TEMPLATE: FormField[] = [
     label: 'What are you thinking of building?',
     type: 'textarea',
     required: false,
+    // Matches the server's legacy contestRegistrationFieldsSchema cap (building
+    // max 280) so the input can't exceed what the empty-template path accepts.
+    maxLength: 280,
     help: 'A rough idea is fine — it helps the organizers plan.',
   },
   {

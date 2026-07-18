@@ -151,6 +151,8 @@ export const submissionTemplateFieldSchema = z
     type: submissionTemplateFieldTypeSchema,
     required: z.boolean(),
     help: z.string().max(300).optional(),
+    /** Optional per-field character cap for text-ish inputs (≤ the 4000 hard cap). */
+    maxLength: z.number().int().min(1).max(4000).optional(),
     /** `select`-only: the allowed options. Required (non-empty) for `select`. */
     options: z.array(submissionTemplateOptionSchema).max(50).optional(),
     /**

@@ -32,6 +32,16 @@ describe('contestSubmission helpers', () => {
     expect(isFieldFilled(f({ type: 'checkbox' }), 'true')).toBe(true);
     expect(isFieldFilled(f({ type: 'address' }), JSON.stringify({ city: 'T' }))).toBe(true);
     expect(isFieldFilled(f({ type: 'address' }), '{}')).toBe(false);
+    // A section is display-only — always "filled" so a required section never blocks.
+    expect(isFieldFilled(f({ type: 'section', required: true }), undefined)).toBe(true);
+  });
+
+  it('a required section never blocks submission (matches the server skip)', () => {
+    const template = [
+      f({ key: 'sec', label: 'Section', type: 'section', required: true }),
+      f({ key: 'name', label: 'Name', type: 'text', required: true }),
+    ];
+    expect(blockingFields(template, { name: 'Ada' })).toEqual([]);
   });
 
   it('blockingFields flags required-empty + unaccepted must-accept agreements', () => {

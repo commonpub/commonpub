@@ -23,7 +23,7 @@ function mount(props: Record<string, unknown> = {}) {
   });
 }
 
-const saveBtn = (c: HTMLElement) => c.querySelector('.cpub-regform-save') as HTMLButtonElement;
+const saveBtn = (c: Element) => c.querySelector('.cpub-regform-save') as HTMLButtonElement;
 
 describe('ContestRegistrationForm', () => {
   it('renders one control per template field (section has no input)', () => {
