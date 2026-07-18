@@ -1,5 +1,5 @@
 import { and, eq, desc } from 'drizzle-orm';
-import { contests, contestRegistrations, users } from '@commonpub/schema';
+import { contests, contestRegistrations, users, contestRegistrationFieldsSchema } from '@commonpub/schema';
 import type { FormField } from '@commonpub/schema';
 import type { CommonPubConfig } from '@commonpub/config';
 import type { DB } from '../types.js';
@@ -147,12 +147,25 @@ export async function registerForContest(
   let publicFields: Record<string, string> | undefined = input.fields;
   let pii: Record<string, string> = {};
   let agreements: AgreementAcceptanceInput[] = [];
-  if (input.fields !== undefined && template.length > 0) {
-    const r = validateSubmissionFields(template, input.fields);
-    if (!r.ok) return { registered: false, alreadyRegistered: false, error: r.error };
-    publicFields = r.result.artifact;
-    pii = r.result.pii;
-    agreements = r.result.agreements;
+  if (input.fields !== undefined) {
+    if (template.length > 0) {
+      const r = validateSubmissionFields(template, input.fields);
+      if (!r.ok) return { registered: false, alreadyRegistered: false, error: r.error };
+      publicFields = r.result.artifact;
+      pii = r.result.pii;
+      agreements = r.result.agreements;
+    } else {
+      // No operator template (legacy / default contests): keep the historical
+      // closed-shape validation — strip unknown keys, enforce the experience/team
+      // enums, and cap building — so the now-open wire record can't smuggle
+      // arbitrary keys/values into the public jsonb. (validateSubmissionFields
+      // would wrongly reject these legacy keys as "unknown" — there's no template.)
+      const legacy = contestRegistrationFieldsSchema.safeParse(input.fields);
+      if (!legacy.success) {
+        return { registered: false, alreadyRegistered: false, error: 'Invalid registration info' };
+      }
+      publicFields = legacy.data as Record<string, string>;
+    }
   }
 
   // One transaction for the three coupled writes (registration row + PII + consent)

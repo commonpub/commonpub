@@ -107,7 +107,7 @@ describe('contest registration template partition (P2)', () => {
     expect(await getViewerRegistration(db, contestId, userId)).toBeNull();
   });
 
-  it('empty template keeps legacy behaviour (fields stored verbatim, no partition)', async () => {
+  it('empty template keeps legacy behaviour (closed 3-field shape, no partition)', async () => {
     const contestId = await makeContest(db, organizerId, []);
     const res = await registerForContest(db, cfg, {
       contestId, userId, fields: { building: 'a robot', experience: 'first', team: 'solo' },
@@ -115,5 +115,20 @@ describe('contest registration template partition (P2)', () => {
     expect(res.registered).toBe(true);
     const reg = await getViewerRegistration(db, contestId, userId);
     expect(reg?.fields).toEqual({ building: 'a robot', experience: 'first', team: 'solo' });
+  });
+
+  it('empty template still strips unknown keys and rejects a bad enum (legacy validation preserved)', async () => {
+    const contestId = await makeContest(db, organizerId, []);
+    // Unknown keys are stripped, not stored verbatim.
+    const ok = await registerForContest(db, cfg, {
+      contestId, userId, fields: { building: 'x', sneaky: 'y', k2: 'z' },
+    });
+    expect(ok.registered).toBe(true);
+    expect(await getViewerRegistration(db, contestId, userId).then((r) => r?.fields)).toEqual({ building: 'x' });
+    // A bad experience enum is rejected (not silently stored).
+    const other = (await createTestUser(db, { username: `rr-bad-${crypto.randomUUID().slice(0, 6)}` })).id;
+    const bad = await registerForContest(db, cfg, { contestId, userId: other, fields: { experience: 'guru' } });
+    expect(bad.registered).toBe(false);
+    expect(bad.error).toMatch(/invalid/i);
   });
 });
