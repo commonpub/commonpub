@@ -25,6 +25,9 @@ const props = defineProps<{
   mode: BodyMode;
   /** Show the Emails tab (edit mode + the contestEmailEditor feature). */
   showEmails?: boolean;
+  /** Show the Registration form tab (the contestSignup feature — its consumer,
+   *  the public sign-up card, is gated the same way). */
+  showRegistration?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -39,8 +42,8 @@ const TABS = computed<{ key: BodyTab; label: string; icon: string }[]>(() => {
     { key: 'rules', label: 'Rules', icon: 'fa-file-lines' },
     { key: 'prizes', label: 'Prizes', icon: 'fa-trophy' },
     { key: 'stages', label: 'Stages', icon: 'fa-diagram-project' },
-    { key: 'registration', label: 'Registration', icon: 'fa-user-plus' },
   ];
+  if (props.showRegistration) base.push({ key: 'registration', label: 'Registration', icon: 'fa-user-plus' });
   if (props.showEmails) base.push({ key: 'emails', label: 'Emails', icon: 'fa-envelope' });
   return base;
 });

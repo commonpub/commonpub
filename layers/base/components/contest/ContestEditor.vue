@@ -79,6 +79,10 @@ const piiEnabled = computed(() => features.value.contestPii === true);
 // The per-contest email editor needs a persisted contest (per-contest preview +
 // save), so it is edit-only, and gated on its feature flag.
 const emailEditorEnabled = computed(() => props.mode === 'edit' && features.value.contestEmailEditor === true);
+// The Registration form tab is gated the same way its consumer (the public
+// sign-up card) is — the contestSignup flag (default on) — so an operator can't
+// build a form that renders nowhere.
+const signupEnabled = computed(() => features.value.contestSignup !== false);
 
 // --- Hoisted body block editors (the one refactor: a single left palette inserts
 // into the CURRENTLY-active body, so the three useBlockEditor instances live here
@@ -494,6 +498,7 @@ const reviewStages = computed(() => (contest.value?.stages ?? []).filter((s) => 
           :groups="contestBlockGroups"
           :active-tab="activeTab"
           :mode="bodyMode"
+          :show-registration="signupEnabled"
           :show-emails="emailEditorEnabled"
           @update:active-tab="activeTab = $event"
           @update:mode="bodyMode = $event"
