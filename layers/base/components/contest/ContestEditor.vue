@@ -604,6 +604,7 @@ const reviewStages = computed(() => (contest.value?.stages ?? []).filter((s) => 
                   <ContestRegistrationForm :template="effectiveRegistrationTemplate(registrationTemplate)" preview />
                 </div>
               </div>
+              <ContestRegistrantsPanel v-if="mode === 'edit'" :slug="slug" />
             </div>
           </template>
 
