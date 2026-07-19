@@ -23,6 +23,7 @@ import {
   contestEntries,
   contestEntryPrivateFields,
   contestRegistrationPrivateFields,
+  contestRegistrations,
   contestAgreementAcceptances,
   contestEntryVotes,
   referralLinks,
@@ -71,6 +72,7 @@ export interface UserDataExport {
   contestEntries: Array<Record<string, unknown>>;
   contestPersonalData: Array<Record<string, unknown>>;
   contestRegistrationPersonalData: Array<Record<string, unknown>>;
+  contestRegistrationAnswers: Array<Record<string, unknown>>;
   contestAgreements: Array<Record<string, unknown>>;
   // GDPR round-6 completeness (session 231): authored/identifying subject data
   // that was previously omitted. Each is scoped to the subject's own rows.
@@ -221,6 +223,7 @@ export async function exportUserData(db: DB, userId: string): Promise<UserDataEx
     contestEntryRows,
     contestPersonalData,
     contestRegistrationPersonalData,
+    contestRegistrationAnswers,
     contestAgreements,
   ] = await Promise.all([
     // Consent audit trail (G1: include the captured IP / user-agent)
@@ -303,6 +306,14 @@ export async function exportUserData(db: DB, userId: string): Promise<UserDataEx
       fields: contestRegistrationPrivateFields.fields,
       createdAt: contestRegistrationPrivateFields.createdAt,
     }).from(contestRegistrationPrivateFields).where(eq(contestRegistrationPrivateFields.userId, userId)),
+
+    // Contest REGISTRATION public answers (the participant's own registration row:
+    // tier + the public partition of their answers). Distinct from the PII sink above.
+    db.select({
+      tier: contestRegistrations.tier,
+      fields: contestRegistrations.fields,
+      registeredAt: contestRegistrations.createdAt,
+    }).from(contestRegistrations).where(eq(contestRegistrations.userId, userId)),
 
     // Contest agreement acceptances (the user's own consent snapshots; G1: incl. IP)
     db.select({
@@ -494,6 +505,7 @@ export async function exportUserData(db: DB, userId: string): Promise<UserDataEx
     contestEntries: contestEntryRows as Record<string, unknown>[],
     contestPersonalData: contestPersonalData as Record<string, unknown>[],
     contestRegistrationPersonalData: contestRegistrationPersonalData as Record<string, unknown>[],
+    contestRegistrationAnswers: contestRegistrationAnswers as Record<string, unknown>[],
     contestAgreements: contestAgreements as Record<string, unknown>[],
     referralLinks: ownReferralLinks as Record<string, unknown>[],
     referralAttributions: ownReferralAttributions as Record<string, unknown>[],

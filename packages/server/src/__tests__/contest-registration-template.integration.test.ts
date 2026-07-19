@@ -63,9 +63,16 @@ describe('contest registration template partition (P2)', () => {
     });
     expect(res.registered).toBe(true);
 
-    // Public answers only (name, country) — email is default-PII, tos is consent.
+    // The PUBLIC column stores only public answers (name, country) — email is
+    // default-PII, tos is consent, both partitioned OUT.
+    const [rawReg] = await db.select({ fields: contestRegistrations.fields })
+      .from(contestRegistrations).where(eq(contestRegistrations.userId, userId));
+    expect(rawReg?.fields).toEqual({ name: 'Ada Lovelace', country: 'us' });
+
+    // getViewerRegistration MERGES the viewer's own partitions for the edit form:
+    // public + their PII + accepted agreements re-expressed as 'true'.
     const reg = await getViewerRegistration(db, contestId, userId);
-    expect(reg?.fields).toEqual({ name: 'Ada Lovelace', country: 'us' });
+    expect(reg?.fields).toEqual({ name: 'Ada Lovelace', country: 'us', email: 'ada@example.com', tos: 'true' });
 
     // PII in the private table.
     const [priv] = await db.select().from(contestRegistrationPrivateFields)
@@ -136,6 +143,20 @@ describe('contest registration template partition (P2)', () => {
     const accepts = await db.select().from(contestAgreementAcceptances)
       .where(eq(contestAgreementAcceptances.registrationId, reg!.id));
     expect(accepts).toHaveLength(1); // NOT 2 — dedup on (registration, field, terms-hash)
+  });
+
+  it('a bare FULL register (no fields) is REJECTED when the template has required fields', async () => {
+    const contestId = await makeContest(db, organizerId, TEMPLATE); // TEMPLATE has required fields
+    const other = (await createTestUser(db, { username: `rr-bare-${crypto.randomUUID().slice(0, 6)}` })).id;
+    // No fields at all — the enforcement must not let this through as a full participant.
+    const res = await registerForContest(db, cfg, { contestId, userId: other, tier: 'full' });
+    expect(res.registered).toBe(false);
+    expect(res.error).toMatch(/required/i);
+    expect(await getViewerRegistration(db, contestId, other)).toBeNull();
+
+    // But reminders-only (not a participant) is exempt from the required form.
+    const rem = await registerForContest(db, cfg, { contestId, userId: other, tier: 'reminders' });
+    expect(rem.registered).toBe(true);
   });
 
   it('rejects a submission missing a required field (blocks registration)', async () => {

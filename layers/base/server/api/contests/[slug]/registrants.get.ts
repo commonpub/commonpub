@@ -39,6 +39,7 @@ export default defineEventHandler(async (event) => {
 
   // Registrant answers can carry PII — never cache anywhere.
   setHeader(event, 'Cache-Control', 'no-store');
-  // Echo the template so the client can label-map the answer keys.
-  return { items, total, template: contest.registrationTemplate ?? [], includePii };
+  // Echo the EFFECTIVE template (the default 3 fields for legacy contests) so the
+  // client can label-map even legacy {building,experience,team} answers.
+  return { items, total, template: effectiveRegistrationTemplate(contest.registrationTemplate), includePii };
 });

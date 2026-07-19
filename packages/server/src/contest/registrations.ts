@@ -1,5 +1,5 @@
 import { and, eq, desc, inArray } from 'drizzle-orm';
-import { contests, contestRegistrations, users, contestRegistrationPrivateFields, contestRegistrationFieldsSchema } from '@commonpub/schema';
+import { contests, contestRegistrations, users, contestRegistrationPrivateFields, contestAgreementAcceptances, contestRegistrationFieldsSchema } from '@commonpub/schema';
 import type { FormField } from '@commonpub/schema';
 import type { CommonPubConfig } from '@commonpub/config';
 import type { DB } from '../types.js';
@@ -140,17 +140,23 @@ export async function registerForContest(
   // template. An EMPTY template (existing contests / the default) keeps the legacy
   // behaviour: the fixed {building,experience,team} info is stored verbatim with no
   // PII/consent partition — routing it through validateSubmissionFields would reject
-  // those keys as "unknown" (there's no template to describe them). Only when a
-  // template exists AND answers were supplied do we validate against it. A submitted
-  // (non-undefined) fields object with a required field missing is REJECTED — the
-  // form enforces the template; a bare register (no fields) is still allowed.
+  // those keys as "unknown" (there's no template to describe them).
+  //
+  // CRITICAL (audit): when the operator's template has any REQUIRED field or
+  // must-accept agreement, a FULL registration MUST satisfy it — even a crafted
+  // request with no `fields` at all. So we validate `input.fields ?? {}` in that
+  // case (missing required ⇒ rejected), not just when the client bothered to send
+  // fields. A reminders-only opt-in (not a participant) is exempt; a bare full
+  // register against an all-optional template is still allowed.
   const template = (contest.registrationTemplate ?? []) as FormField[];
+  const templateRequires = template.some((f) => f.type !== 'section' && (f.required || (f.type === 'agreement' && f.mustAccept !== false)));
+  const mustValidate = input.fields !== undefined || (tier === 'full' && templateRequires);
   let publicFields: Record<string, string> | undefined = input.fields;
   let pii: Record<string, string> = {};
   let agreements: AgreementAcceptanceInput[] = [];
-  if (input.fields !== undefined) {
+  if (mustValidate) {
     if (template.length > 0) {
-      const r = validateSubmissionFields(template, input.fields);
+      const r = validateSubmissionFields(template, input.fields ?? {});
       if (!r.ok) return { registered: false, alreadyRegistered: false, error: r.error };
       publicFields = r.result.artifact;
       pii = r.result.pii;
@@ -281,9 +287,13 @@ export async function isRegisteredForContest(
 }
 
 /**
- * The viewer's own registration for a contest — tier + collected info — or null
- * when not registered. Drives the signup card's exact state (full vs reminders)
- * and prefills the optional info form. Cheap single-row read.
+ * The viewer's own registration for a contest — tier + collected answers — or null
+ * when not registered. Drives the signup card's exact state (full vs reminders) and
+ * prefills the form for EDITING. The returned `fields` merges the viewer's OWN three
+ * partitions so the form can round-trip: public answers, their private (PII) answers
+ * (reading your OWN PII is allowed — no `contest.pii` needed), and their accepted
+ * agreements re-expressed as `key='true'`. Without this merge, reopening the form
+ * would show every required PII/agreement field blank and block Save (audit fix).
  */
 export async function getViewerRegistration(
   db: DB,
@@ -291,12 +301,27 @@ export async function getViewerRegistration(
   userId: string,
 ): Promise<{ tier: ContestRegistrationTier; fields: Record<string, string> | null } | null> {
   const [row] = await db
-    .select({ tier: contestRegistrations.tier, fields: contestRegistrations.fields })
+    .select({ id: contestRegistrations.id, tier: contestRegistrations.tier, fields: contestRegistrations.fields })
     .from(contestRegistrations)
     .where(and(eq(contestRegistrations.contestId, contestId), eq(contestRegistrations.userId, userId)))
     .limit(1);
   if (!row) return null;
-  return { tier: (row.tier as ContestRegistrationTier) ?? 'full', fields: row.fields ?? null };
+
+  const [priv, accepts] = await Promise.all([
+    db.select({ fields: contestRegistrationPrivateFields.fields })
+      .from(contestRegistrationPrivateFields)
+      .where(eq(contestRegistrationPrivateFields.registrationId, row.id))
+      .limit(1),
+    db.select({ fieldKey: contestAgreementAcceptances.fieldKey })
+      .from(contestAgreementAcceptances)
+      .where(eq(contestAgreementAcceptances.registrationId, row.id)),
+  ]);
+
+  const acceptedAsChecked: Record<string, string> = {};
+  for (const a of accepts) acceptedAsChecked[a.fieldKey] = 'true';
+  const merged = { ...(row.fields ?? {}), ...(priv[0]?.fields ?? {}), ...acceptedAsChecked };
+
+  return { tier: (row.tier as ContestRegistrationTier) ?? 'full', fields: Object.keys(merged).length ? merged : null };
 }
 
 /** Paginated list of a contest's registrants (newest first). Privileged read.

@@ -282,7 +282,13 @@ export async function transitionContestStatus(
   if (newStatus === 'active') {
     try {
       const { backfillCombinedEntries } = await import('./submissions.js');
-      await backfillCombinedEntries(db, contestId);
+      // Drain the whole deferred tail — each call is bounded (500) so a huge
+      // audience can't make ONE call a giant op, but we loop (idempotent) so
+      // registrant #501+ isn't dropped. Cap iterations as a runaway backstop.
+      for (let i = 0; i < 100; i += 1) {
+        const { remaining } = await backfillCombinedEntries(db, contestId);
+        if (!remaining) break;
+      }
     } catch (err) {
       console.error('[contest] combined-entry backfill failed:', err instanceof Error ? err.message : err);
     }

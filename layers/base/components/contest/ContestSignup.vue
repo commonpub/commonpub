@@ -119,7 +119,19 @@ const hasSavedInfo = computed(() => Object.keys(props.savedFields ?? {}).length 
 // Auto-open the form for a full registrant who hasn't shared anything yet.
 watch(isFull, (full) => { if (full && !hasSavedInfo.value) infoOpen.value = true; }, { immediate: true });
 
+// When the operator's form has any REQUIRED field or must-accept agreement, FULL
+// registration MUST go through the form (so the requirement is actually enforced +
+// consent recorded) — a bare one-click full register would silently skip it. A form
+// with only optional fields (incl. the legacy default) keeps the one-click flow.
+const templateHasRequired = computed(() =>
+  registrationTemplate.value.some((f) => f.type !== 'section' && (f.required || (f.type === 'agreement' && f.mustAccept !== false))),
+);
+// The pre-registration form is showing (operator-required-fields flow).
+const showRegForm = ref(false);
+
 function registerFull(): void {
+  // Route through the form when the operator requires fields; otherwise one-click.
+  if (templateHasRequired.value) { showRegForm.value = true; return; }
   emit('register', { tier: 'full' });
 }
 function registerReminders(): void {
@@ -157,6 +169,7 @@ function saveInfo(fields: Record<string, string>): void {
     <!-- AUTHENTICATED, NOT REGISTERED: the two-tier choice -->
     <template v-else-if="isAuthenticated && !isRegistered && canRegister">
       <button
+        v-if="!showRegForm"
         type="button"
         class="cpub-btn cpub-btn-primary cpub-su-btn cpub-su-register"
         :disabled="registering"
@@ -165,7 +178,22 @@ function saveInfo(fields: Record<string, string>): void {
         <i class="fa-solid fa-flag-checkered"></i>
         {{ registering ? 'Registering…' : 'Register for this contest' }}
       </button>
+
+      <!-- Operator-required registration form (the Save IS the registration). -->
+      <div v-if="showRegForm" class="cpub-su-form">
+        <p class="cpub-su-hint" style="margin-top: 0;">This contest asks a few questions to register.</p>
+        <ContestRegistrationForm
+          :template="registrationTemplate"
+          :saved-fields="savedFields"
+          :registering="registering"
+          id-prefix="cpub-su-reg"
+          save-label="Register"
+          @save="saveInfo"
+        />
+      </div>
+
       <button
+        v-if="!showRegForm"
         type="button"
         class="cpub-btn cpub-su-btn cpub-su-remind"
         :disabled="registering"
@@ -173,7 +201,7 @@ function saveInfo(fields: Record<string, string>): void {
       >
         <i class="fa-solid fa-bell"></i> Just get reminders
       </button>
-      <p class="cpub-su-hint">Register to enter + get every update and reminder. Not ready? Get reminders only, no commitment.</p>
+      <p v-if="!showRegForm" class="cpub-su-hint">Register to enter + get every update and reminder. Not ready? Get reminders only, no commitment.</p>
     </template>
 
     <!-- REGISTERED (either tier): confirmation + what's next -->
@@ -188,6 +216,7 @@ function saveInfo(fields: Record<string, string>): void {
       <!-- Reminders-only: offer the upgrade to full participation -->
       <template v-if="isReminders && canRegister">
         <button
+          v-if="!showRegForm"
           type="button"
           class="cpub-btn cpub-btn-primary cpub-su-btn cpub-su-register"
           :disabled="registering"
@@ -196,7 +225,18 @@ function saveInfo(fields: Record<string, string>): void {
           <i class="fa-solid fa-flag-checkered"></i>
           {{ registering ? 'Registering…' : 'Register for the contest' }}
         </button>
-        <p class="cpub-su-hint">You're only getting reminders. Register to enter the contest.</p>
+        <div v-if="showRegForm" class="cpub-su-form">
+          <p class="cpub-su-hint" style="margin-top: 0;">This contest asks a few questions to register.</p>
+          <ContestRegistrationForm
+            :template="registrationTemplate"
+            :saved-fields="savedFields"
+            :registering="registering"
+            id-prefix="cpub-su-regup"
+            save-label="Register"
+            @save="saveInfo"
+          />
+        </div>
+        <p v-if="!showRegForm" class="cpub-su-hint">You're only getting reminders. Register to enter the contest.</p>
       </template>
 
       <!-- Full participant: the optional "tell us about you" form -->
