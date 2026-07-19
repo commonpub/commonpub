@@ -624,6 +624,7 @@ export {
   submitContestProposal,
   getEntryPrivateData,
   buildContestExport,
+  buildRegistrantsExport,
   toCsv,
   registerForContest,
   unregisterForContest,

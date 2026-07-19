@@ -49,7 +49,7 @@ export {
   getEntryPrivateData,
 } from './submissions.js';
 
-export { buildContestExport, toCsv } from './export.js';
+export { buildContestExport, buildRegistrantsExport, toCsv } from './export.js';
 export type { ContestExport } from './export.js';
 
 export {

@@ -12,6 +12,7 @@ import type { CommonPubConfig } from '@commonpub/config';
 import type { DB } from '../types.js';
 import { createTestDB, createTestUser, closeTestDB } from './helpers/testdb.js';
 import { registerForContest, getViewerRegistration, listContestRegistrants } from '../contest/registrations.js';
+import { buildRegistrantsExport } from '../contest/export.js';
 
 // P2: registration routed through the operator's registrationTemplate — public
 // answers vs PII vs consent are partitioned exactly like entry submissions, in one
@@ -96,6 +97,30 @@ describe('contest registration template partition (P2)', () => {
     // With PII: the email (default-PII) is merged in.
     const withPii = await listContestRegistrants(db, contestId, { includePii: true });
     expect(withPii.items[0]!.privateFields).toEqual({ email: 'ada@example.com' });
+  });
+
+  it('buildRegistrantsExport label-maps answers, gates PII columns, and neutralizes formulas', async () => {
+    const contestId = await makeContest(db, organizerId, TEMPLATE);
+    await registerForContest(db, cfg, {
+      contestId, userId,
+      fields: { name: '=cmd()', email: 'ada@example.com', country: 'us', tos: 'true' },
+    });
+
+    // Without PII: public columns only (Full name, Country), email column absent.
+    const plain = await buildRegistrantsExport(db, contestId, false);
+    const plainHeader = plain!.csv.split('\r\n')[0]!;
+    expect(plainHeader).toContain('Full name');
+    expect(plainHeader).toContain('Country');
+    expect(plainHeader).not.toContain('Contact email');
+    // Formula-injection neutralization: a leading '=' is prefixed with an apostrophe
+    // so a spreadsheet can't evaluate it as a formula.
+    expect(plain!.csv).toContain(`'=cmd()`);
+    expect(plain!.csv).not.toMatch(/,=cmd\(\)/);
+
+    // With PII: the email column appears with the value.
+    const withPii = await buildRegistrantsExport(db, contestId, true);
+    expect(withPii!.csv.split('\r\n')[0]!).toContain('Contact email');
+    expect(withPii!.csv).toContain('ada@example.com');
   });
 
   it('re-register (info edit) does NOT duplicate the consent row (idempotent dedup)', async () => {

@@ -1,7 +1,7 @@
-import { eq, desc, sql, inArray } from 'drizzle-orm';
-import { contests, contestEntries, users, contentItems, contestEntryPrivateFields } from '@commonpub/schema';
+import { eq, desc, sql, inArray, and } from 'drizzle-orm';
+import { contests, contestEntries, users, contentItems, contestEntryPrivateFields, contestRegistrations, contestRegistrationPrivateFields } from '@commonpub/schema';
 import type { DB } from '../types.js';
-import type { ContestStageSubmission } from '@commonpub/schema';
+import type { ContestStageSubmission, FormField } from '@commonpub/schema';
 import { currentStage, isEliminated } from './stages.js';
 import type { ContestJudgingCriterion } from './types.js';
 
@@ -145,4 +145,70 @@ export async function buildContestExport(
   });
 
   return { filename: `${contest.slug}-entries.csv`, csv: toCsv([header, ...body]) };
+}
+
+/**
+ * Build the CSV export of a contest's `full` REGISTRANTS (P5). One row per
+ * registrant; one column per registration-template ANSWER field, labelled by the
+ * operator's field label. PII fields (email/address/pii) are included ONLY when
+ * `includePii` (caller gates on `contest.pii`) — their columns are omitted entirely
+ * otherwise, so a non-PII export never even hints at the private data. Consent
+ * (agreement) + display (section) fields are not answer columns and are skipped.
+ * Formula-injection-neutralized via toCsv.
+ */
+export async function buildRegistrantsExport(
+  db: DB,
+  contestId: string,
+  includePii: boolean,
+): Promise<ContestExport | null> {
+  const [contest] = await db
+    .select({ slug: contests.slug, registrationTemplate: contests.registrationTemplate })
+    .from(contests)
+    .where(eq(contests.id, contestId))
+    .limit(1);
+  if (!contest) return null;
+
+  const template = (contest.registrationTemplate ?? []) as FormField[];
+  const isPii = (f: FormField): boolean => f.type === 'address' || f.pii === true || (f.type === 'email' && f.pii !== false);
+  // Answer columns: skip section (display) + agreement (consent, not a stored value),
+  // and skip PII columns unless the reader is allowed them.
+  const cols = template.filter((f) => f.type !== 'section' && f.type !== 'agreement' && (includePii || !isPii(f)));
+
+  const rows = await db
+    .select({
+      username: users.username,
+      displayName: users.displayName,
+      registeredAt: contestRegistrations.createdAt,
+      fields: contestRegistrations.fields,
+    })
+    .from(contestRegistrations)
+    .innerJoin(users, eq(contestRegistrations.userId, users.id))
+    .where(and(eq(contestRegistrations.contestId, contestId), eq(contestRegistrations.tier, 'full')))
+    .orderBy(desc(contestRegistrations.createdAt), desc(contestRegistrations.id))
+    .limit(10000);
+
+  // PII answers (only when allowed), keyed by userId → keep the join off the hot path.
+  let privateByUser = new Map<string, Record<string, string>>();
+  if (includePii && cols.some(isPii) && rows.length > 0) {
+    const priv = await db
+      .select({ username: users.username, fields: contestRegistrationPrivateFields.fields })
+      .from(contestRegistrationPrivateFields)
+      .innerJoin(users, eq(contestRegistrationPrivateFields.userId, users.id))
+      .where(eq(contestRegistrationPrivateFields.contestId, contestId));
+    privateByUser = new Map(priv.map((p) => [p.username, p.fields]));
+  }
+
+  const header = ['Username', 'Name', 'Registered', ...cols.map((f) => f.label)];
+  const body = rows.map((r) => {
+    const pub = (r.fields ?? {}) as Record<string, string>;
+    const priv = privateByUser.get(r.username) ?? {};
+    return [
+      r.username,
+      r.displayName ?? '',
+      r.registeredAt.toISOString(),
+      ...cols.map((f) => (isPii(f) ? priv[f.key] : pub[f.key]) ?? ''),
+    ];
+  });
+
+  return { filename: `${contest.slug}-registrants.csv`, csv: toCsv([header, ...body]) };
 }
