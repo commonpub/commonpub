@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import type { ContestSubmissionTemplateField } from '@commonpub/schema';
+import { isFormFieldPii } from '@commonpub/schema';
 import type { AgreementAcceptanceInput, PartitionedSubmission } from './types.js';
 
 // Pure submission-form validation + partition. No DB access — exhaustively
@@ -10,22 +11,11 @@ import type { AgreementAcceptanceInput, PartitionedSubmission } from './types.js
 const ACCEPTANCE_VALUES = new Set(['true', 'on', '1', 'yes', 'accepted', 'checked']);
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-/**
- * A field whose value is personal data — stored in the private table, not the
- * public artifact. `address` is structured personal data and is ALWAYS PII.
- * `email` defaults to PII too (an entrant's contact email in the public artifact is
- * an operator footgun), but an operator who genuinely wants a public contact email
- * can opt out with an explicit `pii: false`. Any field can be flagged with `pii: true`.
- */
-function isPiiField(f: ContestSubmissionTemplateField): boolean {
-  if (f.type === 'address') return true;
-  // A `file` value references a PRIVATE stored object (a legal doc / upload); the
-  // ref is always kept in the private partition, never the public artifact.
-  if (f.type === 'file') return true;
-  if (f.pii === true) return true;
-  if (f.type === 'email') return f.pii !== false; // default-PII, explicit opt-out
-  return false;
-}
+// Personal-data partition test. Delegates to the SINGLE SOURCE OF TRUTH in
+// `@commonpub/schema` (isFormFieldPii) so the write path here and every reader
+// (registrants table, CSV export, DSAR) agree byte-for-byte — a drift silently
+// hides a stored answer (read from the wrong map) or leaks PII to the public jsonb.
+const isPiiField = isFormFieldPii;
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 

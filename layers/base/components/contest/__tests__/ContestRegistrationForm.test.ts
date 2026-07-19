@@ -10,6 +10,12 @@ import ContestRegistrationForm from '../ContestRegistrationForm.vue';
 import ContestSubmissionField from '../ContestSubmissionField.vue';
 import type { FormField } from '@commonpub/schema';
 
+// ContestSubmissionField (rendered as a child) auto-imports useFeatures/useFileUpload.
+Object.assign(globalThis, {
+  useFeatures: () => ({ features: ref({ contestPrivateFiles: true }) }),
+  useFileUpload: () => ({ uploadFile: async () => ({ id: 'f-1', url: '/api/files/f-1/raw', originalName: 'doc.pdf' }) }),
+});
+
 const TEMPLATE: FormField[] = [
   { key: 'sec', label: 'About you', type: 'section', required: false },
   { key: 'name', label: 'Full name', type: 'text', required: true },

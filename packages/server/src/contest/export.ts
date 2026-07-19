@@ -1,5 +1,5 @@
 import { eq, desc, sql, inArray, and } from 'drizzle-orm';
-import { contests, contestEntries, users, contentItems, contestEntryPrivateFields, contestRegistrations, contestRegistrationPrivateFields } from '@commonpub/schema';
+import { contests, contestEntries, users, contentItems, contestEntryPrivateFields, contestRegistrations, contestRegistrationPrivateFields, isFormFieldPii } from '@commonpub/schema';
 import type { DB } from '../types.js';
 import type { ContestStageSubmission, FormField } from '@commonpub/schema';
 import { currentStage, isEliminated } from './stages.js';
@@ -169,7 +169,7 @@ export async function buildRegistrantsExport(
   if (!contest) return null;
 
   const template = (contest.registrationTemplate ?? []) as FormField[];
-  const isPii = (f: FormField): boolean => f.type === 'address' || f.pii === true || (f.type === 'email' && f.pii !== false);
+  const isPii = isFormFieldPii; // shared source of truth — see @commonpub/schema
   // Answer columns: skip section (display) + agreement (consent, not a stored value),
   // and skip PII columns unless the reader is allowed them.
   const cols = template.filter((f) => f.type !== 'section' && f.type !== 'agreement' && (includePii || !isPii(f)));
@@ -206,7 +206,13 @@ export async function buildRegistrantsExport(
       r.username,
       r.displayName ?? '',
       r.registeredAt.toISOString(),
-      ...cols.map((f) => (isPii(f) ? priv[f.key] : pub[f.key]) ?? ''),
+      ...cols.map((f) => {
+        const v = (isPii(f) ? priv[f.key] : pub[f.key]) ?? '';
+        // A `file` answer is a bare files.id uuid — useless in a spreadsheet. Emit
+        // the gated /raw path so an organizer can open the upload (host-relative;
+        // access still enforced by the route's auth + contest.pii check).
+        return v && f.type === 'file' ? `/api/files/${v}/raw` : v;
+      }),
     ];
   });
 

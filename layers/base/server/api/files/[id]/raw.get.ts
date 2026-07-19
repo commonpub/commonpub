@@ -12,8 +12,9 @@
  * 404'd here so this route can't be turned into an open proxy.
  */
 import { eq } from 'drizzle-orm';
-import { files } from '@commonpub/schema';
+import { files, contests } from '@commonpub/schema';
 import type { StorageObject } from '@commonpub/server';
+import { contestIdsForPrivateFile, isContestEditor } from '@commonpub/server';
 import { sendStream } from 'h3';
 
 export default defineEventHandler(async (event) => {
@@ -37,13 +38,30 @@ export default defineEventHandler(async (event) => {
 
   // Unknown id, a public file, OR a private file the caller may not read all
   // collapse to the SAME 404 — the route reveals nothing beyond what the caller
-  // can already access (no 403 existence oracle). Owner always; otherwise the
-  // contest-PII permission (seeded admin + staff).
-  // NOTE (P0): `files` are not yet linked to a specific contest, so any
-  // contest.pii holder can read any private file. P6 links registration/entry
-  // file fields to their contest and tightens this to that contest's organizers.
-  const authorized = !!row && row.visibility === 'private'
-    && (row.uploaderId === user.id || hasPermission(event, 'contest.pii'));
+  // can already access (no 403 existence oracle).
+  let authorized = false;
+  if (row && row.visibility === 'private') {
+    if (row.uploaderId === user.id) {
+      // The uploader can always read their own file (also covers the window between
+      // upload and submission, before the file is linked to any contest).
+      authorized = true;
+    } else if (hasPermission(event, 'contest.pii')) {
+      // P6 per-contest scoping: a non-owner must be an ORGANIZER of the SPECIFIC
+      // contest this file was submitted to (owner / contest.manage / per-contest
+      // editor) AND hold contest.pii — NOT merely any contest.pii holder instance-
+      // wide. Resolve the file→contest link from the private-field tables; a file
+      // not yet referenced by any submission has no organizer reader (owner only).
+      const contestIds = await contestIdsForPrivateFile(db, id);
+      for (const contestId of contestIds) {
+        const [c] = await db.select({ createdById: contests.createdById }).from(contests).where(eq(contests.id, contestId)).limit(1);
+        if (!c) continue;
+        if (ownerOrPermission(event, c.createdById, 'contest.manage') || (await isContestEditor(db, contestId, user.id))) {
+          authorized = true;
+          break;
+        }
+      }
+    }
+  }
   if (!row || !authorized) {
     throw createError({ statusCode: 404, statusMessage: 'Not found' });
   }

@@ -73,12 +73,25 @@ describe('validateSubmissionFields — P1 field types', () => {
     expect(validateSubmissionFields(tmpl, { doc: 'not-a-file' }).ok).toBe(false);
   });
 
-  it('signature: a typed name stores like a text answer', () => {
+  it('signature: a typed name is personal data — partitioned PRIVATE, not public', () => {
     const tmpl = [f({ key: 'sig', type: 'signature', required: true })];
     const r = validateSubmissionFields(tmpl, { sig: 'Ada Lovelace' });
     expect(r.ok).toBe(true);
-    if (r.ok) expect(r.result.artifact).toEqual({ sig: 'Ada Lovelace' });
+    if (r.ok) {
+      expect(r.result.pii).toEqual({ sig: 'Ada Lovelace' }); // default-PII (a signed legal name)
+      expect(r.result.artifact).toEqual({});
+    }
     expect(validateSubmissionFields(tmpl, { sig: '' }).ok).toBe(false); // required
+  });
+
+  it('signature: an explicit pii:false opt-out stores it in the public artifact', () => {
+    const tmpl = [f({ key: 'sig', type: 'signature', pii: false })];
+    const r = validateSubmissionFields(tmpl, { sig: 'Team Rocket' });
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.result.artifact).toEqual({ sig: 'Team Rocket' });
+      expect(r.result.pii).toEqual({});
+    }
   });
 
   it('enforces a per-field maxLength (server-side, not just the input hint)', () => {

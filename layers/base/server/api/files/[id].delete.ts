@@ -1,10 +1,19 @@
 import { eq, and } from 'drizzle-orm';
 import { files } from '@commonpub/schema';
+import { contestIdsForPrivateFile } from '@commonpub/server';
 
 export default defineEventHandler(async (event): Promise<{ deleted: boolean }> => {
   const db = useDB();
   const user = requireAuth(event);
   const { id } = parseParams(event, { id: 'uuid' });
+
+  // Don't let a file that's already been SUBMITTED to a contest be deleted — that
+  // would leave a dangling reference in the registration/entry private fields and
+  // destroy an organizer's copy of a signed doc/waiver (P6 evidence integrity).
+  // Owner + organizer copies stay reachable via the gated /raw route regardless.
+  if ((await contestIdsForPrivateFile(db, id)).length > 0) {
+    throw createError({ statusCode: 409, statusMessage: 'This file is attached to a contest submission and cannot be deleted.' });
+  }
 
   const result = await db
     .delete(files)

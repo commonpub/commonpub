@@ -320,3 +320,13 @@ export function buildPartialUpdates<TInput extends Record<string, unknown>>(
   }
   return updates;
 }
+
+/**
+ * Extract rows from drizzle's raw `execute()` result across drivers: node-postgres
+ * returns a QueryResult with a `.rows` array; pglite (used in tests) returns the row
+ * array directly. Use for any `db.execute(sql\`…\`)` you read rows back from.
+ */
+export function rowsOf<T>(res: unknown): T[] {
+  const withRows = res as { rows?: T[] };
+  return Array.isArray(withRows.rows) ? withRows.rows : (res as T[]);
+}

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { FormField } from '@commonpub/schema';
+import { isFormFieldPii, type FormField } from '@commonpub/schema';
 
 // Organizer-only registrants table (P5). Reads the gated registrants route and
 // renders one row per full participant with their answers label-mapped by the
@@ -27,9 +27,9 @@ const { data, pending, error } = useFetch<RegistrantsResponse>(() => `/api/conte
   query: { limit: 200 },
 });
 
-function isPii(f: FormField): boolean {
-  return f.type === 'address' || f.pii === true || (f.type === 'email' && f.pii !== false);
-}
+// Shared source of truth (see @commonpub/schema) — must match the server's write-side
+// partition exactly, or a cell reads from the wrong map and renders blank.
+const isPii = isFormFieldPii;
 
 // Answer columns: skip section (display) + agreement (consent, not an answer);
 // drop PII columns unless the viewer is allowed them.
@@ -79,7 +79,16 @@ function fmtDate(iso: string): string {
               <NuxtLink :to="`/u/${r.username}`" class="cpub-rp-user">{{ r.displayName || r.username }}</NuxtLink>
             </td>
             <td class="cpub-rp-date">{{ fmtDate(r.registeredAt) }}</td>
-            <td v-for="f in columns" :key="f.key">{{ answer(r, f) }}</td>
+            <td v-for="f in columns" :key="f.key">
+              <a
+                v-if="f.type === 'file' && answer(r, f)"
+                :href="`/api/files/${answer(r, f)}/raw`"
+                class="cpub-rp-file"
+                target="_blank"
+                rel="noopener"
+              ><i class="fa-solid fa-paperclip"></i> View file</a>
+              <template v-else>{{ answer(r, f) }}</template>
+            </td>
           </tr>
         </tbody>
       </table>
@@ -104,4 +113,6 @@ function fmtDate(iso: string): string {
 .cpub-rp-user { color: var(--accent); text-decoration: none; }
 .cpub-rp-user:hover { text-decoration: underline; }
 .cpub-rp-date { font-family: var(--font-mono); color: var(--text-dim); }
+.cpub-rp-file { color: var(--accent); text-decoration: none; white-space: nowrap; }
+.cpub-rp-file:hover { text-decoration: underline; }
 </style>

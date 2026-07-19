@@ -10,7 +10,7 @@ import {
 } from '@commonpub/schema';
 import type { ContentType, ContestStageSubmission, FormField } from '@commonpub/schema';
 import type { DB } from '../types.js';
-import { countRows } from '../query.js';
+import { countRows, rowsOf } from '../query.js';
 import { createContent, deleteContent } from '../content/content.js';
 import { normalizeStages, currentStage, isEliminated } from './stages.js';
 import { validateSubmissionFields, hashTerms } from './validation.js';
@@ -59,6 +59,31 @@ export async function validateFileFields(
     }
   }
   return { ok: true };
+}
+
+/**
+ * Which contest(s) a private file was submitted to. A `file` answer is stored as a
+ * bare `files.id` in a private-field jsonb (registration OR entry PII), so a file is
+ * "linked" to a contest by being a VALUE somewhere in those `fields` maps. This is
+ * the reverse lookup that lets the `/api/files/[id]/raw` serving route scope read
+ * access to the SPECIFIC contest's organizers — not every `contest.pii` holder
+ * instance-wide (P6 per-contest scoping; the gate the `contestPrivateFiles` flag
+ * comment names). Returns [] for a file not yet referenced by any submission (e.g.
+ * uploaded but not submitted) — such a file is readable only by its owner.
+ */
+export async function contestIdsForPrivateFile(db: DB, fileId: string): Promise<string[]> {
+  // `jsonb_each_text` unrolls each map to (key,value) pairs; we match the file id as
+  // a VALUE. Filtered to the file's own presence, so at most a handful of rows scan.
+  const res = await db.execute(sql`
+    SELECT DISTINCT contest_id FROM (
+      SELECT contest_id FROM contest_registration_private_fields
+        WHERE EXISTS (SELECT 1 FROM jsonb_each_text(fields) e WHERE e.value = ${fileId})
+      UNION ALL
+      SELECT contest_id FROM contest_entry_private_fields
+        WHERE EXISTS (SELECT 1 FROM jsonb_each_text(fields) e WHERE e.value = ${fileId})
+    ) refs
+  `);
+  return rowsOf<{ contest_id: string }>(res).map((r) => r.contest_id);
 }
 
 /**

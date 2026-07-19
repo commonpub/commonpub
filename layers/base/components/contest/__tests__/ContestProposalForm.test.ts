@@ -24,6 +24,9 @@ Object.assign(globalThis, {
   useToast: () => ({ success: toastSuccess, error: toastError }),
   useApiError: () => ({ extract: (e: unknown) => String(e) }),
   $fetch: fetchMock,
+  // ContestSubmissionField (child) auto-imports these.
+  useFeatures: () => ({ features: ref({ contestPrivateFiles: true }) }),
+  useFileUpload: () => ({ uploadFile: async () => ({ id: 'f-1', url: '/api/files/f-1/raw', originalName: 'doc.pdf' }) }),
 });
 
 const STAGE: ContestStage = {

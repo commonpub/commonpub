@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { FeatureFlags } from './types.js';
 
 /**
  * Cross-instance identity feature gates. Phase rollout per
@@ -37,13 +38,13 @@ export const featureFlagsSchema = z.object({
   // Offer PII field types in the submission-form builder (Phase 4). Default OFF.
   // Access to stored PII is always gated by `contest.pii` regardless.
   contestPii: z.boolean().default(false),
-  // Private contest file/signature attachments (P0 — rich registration). Gates
-  // the private-storage upload path (purpose=`contest`, stored non-public) and
-  // the auth + contest.pii-gated /api/files/[id]/raw serving route. Default OFF
-  // — dark-launched until the file/signature field types ship (P6). No effect
-  // unless `contests` is also on. SECURITY: until P6 links files to a specific
-  // contest, enabling this grants EVERY contest.pii holder read access to EVERY
-  // private file across all contests — keep OFF until P6's per-contest scoping lands.
+  // Private contest file/signature attachments (P0/P6 — rich registration). Gates
+  // the private-storage upload path (purpose=`contest`, stored non-public) and the
+  // /api/files/[id]/raw serving route. That route scopes non-owner reads to the
+  // organizers of the SPECIFIC contest the file was submitted to (owner / contest.manage
+  // / per-contest editor + contest.pii — see contestIdsForPrivateFile), so enabling
+  // this no longer grants cross-contest file access. Default OFF. Inert unless
+  // `contestPii` is on (file/signature are personal-data types) and `contests` is on.
   contestPrivateFiles: z.boolean().default(false),
   // Automatic contest deadline reminder emails to registered participants.
   // Default OFF; the reminder sweep is inert unless this AND emailNotifications
@@ -134,6 +135,19 @@ export const featureFlagsSchema = z.object({
   // powers), and members unlink their own shared projects. Default OFF.
   hubGovernance: z.boolean().default(false),
 });
+
+// --- Compile-time parity guard --------------------------------------------------
+// `FeatureFlags` (types.ts) is a HAND-WRITTEN mirror of `featureFlagsSchema` and has
+// silently drifted before (a flag added to the Zod schema but not the interface, so
+// the flag couldn't be set/read type-safely — session 243). These two assignments
+// fail to compile if the interface and the schema keys ever diverge (a key missing
+// from either side breaks assignability), so `pnpm typecheck` catches the drift that
+// vitest's esbuild transpile cannot. Type-only — erased at build, zero runtime cost.
+type _FlagsFromSchema = z.infer<typeof featureFlagsSchema>;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const _flagsParityForward: FeatureFlags = null as unknown as _FlagsFromSchema;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const _flagsParityBackward: _FlagsFromSchema = null as unknown as FeatureFlags;
 
 export const authConfigSchema = z.object({
   emailPassword: z.boolean().default(true),

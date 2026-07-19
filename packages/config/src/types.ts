@@ -36,6 +36,14 @@ export interface FeatureFlags {
    */
   contestPii: boolean;
   /**
+   * Private file-upload + signature field types on contest submission/registration
+   * forms. Uploads are stored with private visibility and streamed only through the
+   * gated `/api/files/[id]/raw` route (owner or `contest.pii`). Default OFF. Inert
+   * unless `contestPii` is also on (file/signature are personal-data field types).
+   * No effect unless `contests` is also on.
+   */
+  contestPrivateFiles: boolean;
+  /**
    * Automatic contest deadline reminder emails to registered participants
    * (7 days / 48 hours / 24 hours / 1 hour before the deadline). Default OFF.
    * Inert unless this AND emailNotifications are both on. No effect unless

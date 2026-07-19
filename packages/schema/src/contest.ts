@@ -155,6 +155,25 @@ export interface ContestSubmissionTemplateField {
 export type FormField = ContestSubmissionTemplateField;
 
 /**
+ * SINGLE SOURCE OF TRUTH for "is this field's answer personal data?" — i.e. does
+ * it belong in the PRIVATE partition (contest_*_private_fields), out of the public
+ * artifact/registration jsonb. The pure validator (write path) AND every reader
+ * (registrants table, CSV export, DSAR) import this one function so the store side
+ * and the read side can never drift — a mismatch silently hides or leaks answers.
+ *
+ * `address` + `file` are ALWAYS personal (structured PII / a ref to a private
+ * stored object). `email` + `signature` default to personal (a contact email or a
+ * signed legal name in the public jsonb is an operator footgun) but allow an
+ * explicit `pii: false` opt-out. Any field can be promoted with `pii: true`.
+ */
+export function isFormFieldPii(f: Pick<FormField, 'type' | 'pii'>): boolean {
+  if (f.type === 'address' || f.type === 'file') return true;
+  if (f.pii === true) return true;
+  if (f.type === 'email' || f.type === 'signature') return f.pii !== false;
+  return false;
+}
+
+/**
  * A per-stage artifact on an entry: the filled template values for one
  * `submission` stage, snapshotted at submit time. Replaced (not appended) on
  * re-submit while the stage is open.

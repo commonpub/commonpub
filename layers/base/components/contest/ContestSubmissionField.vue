@@ -33,6 +33,11 @@ function setChecked(on: boolean): void {
 // File (P6): the model holds a `files.id`; the bytes upload to the PRIVATE `contest`
 // purpose (P0). We keep a display name locally (the id alone can't reconstruct it on
 // edit — then we show a generic "View file" via the gated /raw route).
+// Uploads require the contestPrivateFiles flag (the upload route enforces it too); if
+// an operator disabled the feature while a saved template still has a file field, we
+// show a clear "unavailable" note rather than letting the upload fail confusingly.
+const { features } = useFeatures();
+const filesEnabled = computed(() => features.value.contestPrivateFiles === true);
 const fileInput = ref<HTMLInputElement | null>(null);
 const uploadedName = ref('');
 const uploading = ref(false);
@@ -160,9 +165,10 @@ function clearFile(): void {
           <a :href="`/api/files/${model}/raw`" target="_blank" rel="noopener noreferrer">{{ uploadedName || 'View uploaded file' }}</a>
           <button type="button" class="cpub-subfield-file-x" aria-label="Remove file" @click="clearFile"><i class="fa-solid fa-xmark"></i></button>
         </span>
-        <button v-else type="button" class="cpub-subfield-file-btn" :disabled="uploading" @click="fileInput?.click()">
+        <button v-else-if="filesEnabled" type="button" class="cpub-subfield-file-btn" :disabled="uploading" @click="fileInput?.click()">
           <i class="fa-solid fa-upload" aria-hidden="true"></i> {{ uploading ? 'Uploading…' : 'Choose file' }}
         </button>
+        <span v-else class="cpub-subfield-file-off">File uploads are currently unavailable.</span>
       </div>
       <p v-if="uploadError" class="cpub-subfield-file-err" role="alert">{{ uploadError }}</p>
     </template>
@@ -242,6 +248,7 @@ function clearFile(): void {
 .cpub-subfield-file-x { background: none; border: none; color: var(--text-dim); cursor: pointer; padding: 0 2px; }
 .cpub-subfield-file-x:hover { color: var(--red-text); }
 .cpub-subfield-file-err { font-size: 11px; color: var(--red-text); margin: 2px 0 0; }
+.cpub-subfield-file-off { font-size: var(--text-sm); color: var(--text-dim); font-style: italic; }
 /* Signature: a cursive signing line. */
 .cpub-subfield-signature { font-family: cursive, var(--font-sans); font-size: var(--text-base); }
 .cpub-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }

@@ -2,6 +2,7 @@ import { and, gte, inArray, sql } from 'drizzle-orm';
 import { contests } from '@commonpub/schema';
 import type { CommonPubConfig } from '@commonpub/config';
 import type { DB } from '../types.js';
+import { rowsOf } from '../query.js';
 import { nextContestDeadline } from './stages.js';
 import { emailTemplates } from '../email.js';
 import { enqueueEmails } from '../comms/outbox.js';
@@ -69,12 +70,6 @@ export function formatDeadlineUtc(date: Date): string {
   }).formatToParts(date);
   const get = (type: string): string => parts.find((p) => p.type === type)?.value ?? '';
   return `${get('month')} ${get('day')}, ${get('year')} at ${get('hour')}:${get('minute')} UTC`;
-}
-
-/** drizzle's raw `execute` returns rows on `.rows` (node-postgres) or directly as an array (pglite). */
-function rowsOf<T>(res: unknown): T[] {
-  const withRows = res as { rows?: T[] };
-  return Array.isArray(withRows.rows) ? withRows.rows : (res as T[]);
 }
 
 export interface SweepContestRemindersContext extends ContestEmailContext {

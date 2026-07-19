@@ -63,6 +63,16 @@ const FIELD_TYPE_GROUPS = computed<Array<{ group: string; types: FieldType[] }>>
   return groups;
 });
 
+// Type options for one field's <select>. Always includes the field's CURRENT type,
+// even if its add-menu group is gated off (e.g. a saved `file`/`signature` field kept
+// after contestPrivateFiles/contestPii was disabled) — otherwise the select has no
+// matching option, shows a wrong value, and silently coerces the type on first change.
+function typeGroupsForField(current: FieldType): Array<{ group: string; types: FieldType[] }> {
+  const groups = FIELD_TYPE_GROUPS.value;
+  if (groups.some((g) => g.types.includes(current))) return groups;
+  return [...groups, { group: 'Current (feature disabled)', types: [current] }];
+}
+
 // The `file` preset additionally needs the private-storage flag.
 const fieldPresets = computed(() =>
   availableFieldPresets(piiEnabled.value).filter((p) => p.id !== 'file' || privateFilesEnabled.value),
@@ -233,7 +243,7 @@ function toggleIntro(): void {
         <div class="cpub-fte-main">
           <input :value="tf.label" type="text" class="cpub-form-input" :placeholder="tf.type === 'section' ? 'Section title' : 'Field label (e.g. Repository URL)'" :aria-label="`Field ${fi + 1} label`" @input="labelInput(fi, $event)" />
           <select :value="tf.type" class="cpub-form-input cpub-fte-type" :aria-label="`Field ${fi + 1} type`" @change="changeType(fi, ($event.target as HTMLSelectElement).value as FieldType)">
-            <optgroup v-for="g in FIELD_TYPE_GROUPS" :key="g.group" :label="g.group">
+            <optgroup v-for="g in typeGroupsForField(tf.type)" :key="g.group" :label="g.group">
               <option v-for="t in g.types" :key="t" :value="t">{{ TEMPLATE_FIELD_TYPE_LABEL[t] }}</option>
             </optgroup>
           </select>
@@ -275,9 +285,20 @@ function toggleIntro(): void {
         <p v-if="tf.type === 'address'" class="cpub-form-hint" style="margin: 4px 0;">
           Collected as a structured mailing address and stored as personal data. Visible only to staff with PII access and the entrant.
         </p>
+        <p v-else-if="tf.type === 'file'" class="cpub-form-hint" style="margin: 4px 0;">
+          The uploaded file is stored privately. Visible only to staff with PII access and the entrant.
+        </p>
+        <p v-else-if="tf.type === 'signature'" class="cpub-form-hint" style="margin: 4px 0;">
+          A signed name is personal data — stored privately. Visible only to staff with PII access and the entrant.
+        </p>
 
-        <!-- PII toggle (non-address, non-agreement, non-section scalar fields) -->
-        <label v-if="piiEnabled && tf.type !== 'address' && tf.type !== 'agreement' && tf.type !== 'section'" class="cpub-fte-req cpub-fte-pii">
+        <!-- PII toggle. Hidden for types that are ALWAYS/DEFAULT personal data
+             (address, file, signature — see @commonpub/schema isFormFieldPii), where
+             the opt-in would be a no-op; and for non-answer types (agreement/section). -->
+        <label
+          v-if="piiEnabled && !['address', 'file', 'signature', 'agreement', 'section'].includes(tf.type)"
+          class="cpub-fte-req cpub-fte-pii"
+        >
           <input type="checkbox" :checked="tf.pii === true" :aria-label="`Field ${fi + 1} is personal data`" @change="setField(fi, { pii: ($event.target as HTMLInputElement).checked || undefined })" />
           <span>Personal data (store privately, hide from the public listing)</span>
         </label>

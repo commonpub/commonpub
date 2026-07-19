@@ -456,8 +456,11 @@ export async function exportUserData(db: DB, userId: string): Promise<UserDataEx
       .innerJoin(learningPaths, eq(learningPaths.id, certificates.pathId))
       .where(eq(certificates.userId, userId)),
 
-    // Files the user uploaded (metadata)
+    // Files the user uploaded (metadata). `id` is included so a file-type answer
+    // elsewhere in the export (e.g. a contest registration's file field, stored as a
+    // bare files.id) can be correlated back to the named upload here.
     db.select({
+      id: files.id,
       filename: files.filename,
       originalName: files.originalName,
       mimeType: files.mimeType,

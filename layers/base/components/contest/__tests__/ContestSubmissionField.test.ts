@@ -10,8 +10,12 @@ import axe from 'axe-core';
 import ContestSubmissionField from '../ContestSubmissionField.vue';
 import type { ContestSubmissionTemplateField } from '@commonpub/schema';
 
-// `file` fields use the auto-imported useFileUpload composable; stub it.
-Object.assign(globalThis, { useFileUpload: () => ({ uploadFile: vi.fn().mockResolvedValue({ id: 'f-1', url: '/api/files/f-1/raw', originalName: 'doc.pdf' }) }) });
+// `file` fields use the auto-imported useFileUpload + useFeatures composables; stub
+// both. contestPrivateFiles ON ⇒ the file field renders its upload control.
+Object.assign(globalThis, {
+  useFileUpload: () => ({ uploadFile: vi.fn().mockResolvedValue({ id: 'f-1', url: '/api/files/f-1/raw', originalName: 'doc.pdf' }) }),
+  useFeatures: () => ({ features: ref({ contestPrivateFiles: true }) }),
+});
 
 function mount(field: ContestSubmissionTemplateField, modelValue = '') {
   return render(ContestSubmissionField, { props: { field, modelValue, idPrefix: 'cpub-test' } });

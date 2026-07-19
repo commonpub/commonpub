@@ -5,6 +5,7 @@ import {
   contestRegistrations,
   contestRegistrationPrivateFields,
   contestAgreementAcceptances,
+  files,
   users,
 } from '@commonpub/schema';
 import type { FormField } from '@commonpub/schema';
@@ -12,6 +13,7 @@ import type { CommonPubConfig } from '@commonpub/config';
 import type { DB } from '../types.js';
 import { createTestDB, createTestUser, closeTestDB } from './helpers/testdb.js';
 import { registerForContest, getViewerRegistration, listContestRegistrants } from '../contest/registrations.js';
+import { contestIdsForPrivateFile } from '../contest/submissions.js';
 import { buildRegistrantsExport } from '../contest/export.js';
 
 // P2: registration routed through the operator's registrationTemplate — public
@@ -193,5 +195,38 @@ describe('contest registration template partition (P2)', () => {
     const bad = await registerForContest(db, cfg, { contestId, userId: other, fields: { experience: 'guru' } });
     expect(bad.registered).toBe(false);
     expect(bad.error).toMatch(/invalid/i);
+  });
+
+  // P6: a `file` answer is stored as a bare files.id in the PRIVATE partition. The
+  // /raw serving route + delete guard resolve which contest a file belongs to via
+  // contestIdsForPrivateFile — the reverse lookup that scopes access to the
+  // specific contest's organizers and blocks deletion of a submitted file.
+  it('links a submitted file to its contest for per-contest access scoping', async () => {
+    const fileUserId = (await createTestUser(db, { username: `rr-file-${crypto.randomUUID().slice(0, 6)}`, email: `f${crypto.randomUUID().slice(0, 6)}@ex.com` })).id;
+    await db.update(users).set({ emailVerified: true }).where(eq(users.id, fileUserId));
+    // A private contest upload the user owns.
+    const [file] = await db.insert(files).values({
+      uploaderId: fileUserId, filename: 'contest/waiver.pdf', originalName: 'waiver.pdf',
+      mimeType: 'application/pdf', sizeBytes: 2048, storageKey: 'contest/waiver.pdf',
+      purpose: 'contest', visibility: 'private',
+    }).returning({ id: files.id });
+    const fileId = file!.id;
+
+    const contestId = await makeContest(db, organizerId, [
+      { key: 'waiver', label: 'Signed waiver', type: 'file', required: true },
+    ]);
+    const res = await registerForContest(db, cfg, { contestId, userId: fileUserId, fields: { waiver: fileId } });
+    expect(res.registered).toBe(true);
+
+    // The file resolves to exactly this contest…
+    expect(await contestIdsForPrivateFile(db, fileId)).toEqual([contestId]);
+    // …and the stored answer is in the PRIVATE partition, never the public jsonb.
+    const [priv] = await db.select().from(contestRegistrationPrivateFields).where(eq(contestRegistrationPrivateFields.contestId, contestId));
+    expect((priv?.fields as Record<string, string>)?.waiver).toBe(fileId);
+    const [pub] = await db.select({ fields: contestRegistrations.fields }).from(contestRegistrations).where(eq(contestRegistrations.contestId, contestId));
+    expect((pub?.fields as Record<string, string> | null)?.waiver).toBeUndefined();
+
+    // An unreferenced file id resolves to no contest (owner-only access; deletable).
+    expect(await contestIdsForPrivateFile(db, crypto.randomUUID())).toEqual([]);
   });
 });

@@ -617,6 +617,8 @@ export {
   canViewContestEntryDetail,
   getContestEntry,
   submitStageArtifact,
+  validateFileFields,
+  contestIdsForPrivateFile,
   validateStageArtifactFields,
   validateSubmissionFields,
   recordPrivateAndAgreements,

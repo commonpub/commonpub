@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { contestStatusEnum } from '../enums';
 import { contestTransitionSchema } from '../validators';
+import { isFormFieldPii } from '../contest';
 import {
   usernameSchema,
   emailSchema,
@@ -1117,6 +1118,20 @@ describe('submissionTemplateFieldSchema + stage submissionTemplate', () => {
   it('accepts the P6 file/signature types (+ file accept/maxSizeKb props)', () => {
     expect(submissionTemplateFieldSchema.safeParse({ ...field, type: 'signature' }).success).toBe(true);
     expect(submissionTemplateFieldSchema.safeParse({ ...field, type: 'file', accept: 'application/pdf', maxSizeKb: 5000 }).success).toBe(true);
+  });
+
+  // Single source of truth for the personal-data partition — the write path AND every
+  // reader (registrants table, CSV, DSAR) import this, so it must not drift.
+  it('isFormFieldPii: address/file always private; email/signature default private (opt-out); others opt-in', () => {
+    expect(isFormFieldPii({ type: 'address' })).toBe(true);
+    expect(isFormFieldPii({ type: 'file' })).toBe(true);
+    expect(isFormFieldPii({ type: 'file', pii: false })).toBe(true); // file cannot be made public
+    expect(isFormFieldPii({ type: 'email' })).toBe(true);
+    expect(isFormFieldPii({ type: 'email', pii: false })).toBe(false);
+    expect(isFormFieldPii({ type: 'signature' })).toBe(true);
+    expect(isFormFieldPii({ type: 'signature', pii: false })).toBe(false); // explicit opt-out
+    expect(isFormFieldPii({ type: 'text' })).toBe(false);
+    expect(isFormFieldPii({ type: 'text', pii: true })).toBe(true); // any field can be promoted
   });
 
   it('a submission stage carries a template; duplicate keys are rejected', () => {

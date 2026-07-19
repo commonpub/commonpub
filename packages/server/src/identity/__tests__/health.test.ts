@@ -17,6 +17,7 @@ function makeConfig(idOverrides: Partial<CommonPubConfig['features']['identity']
     features: {
       content: true, social: true, hubs: true, docs: true, video: true,
       contests: false, contestStageSubmissions: true, contestProposals: false, contestPii: false,
+      contestPrivateFiles: false,
       contestReminders: false,
       contestEmailEditor: false,
       contestSignup: true,
