@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { contestStatusEnum } from '../enums';
 import { contestTransitionSchema } from '../validators';
-import { isFormFieldPii } from '../contest';
+import { isFormFieldPii, isRequiredFormField, templateHasRequiredField } from '../contest';
 import {
   usernameSchema,
   emailSchema,
@@ -1132,6 +1132,18 @@ describe('submissionTemplateFieldSchema + stage submissionTemplate', () => {
     expect(isFormFieldPii({ type: 'signature', pii: false })).toBe(false); // explicit opt-out
     expect(isFormFieldPii({ type: 'text' })).toBe(false);
     expect(isFormFieldPii({ type: 'text', pii: true })).toBe(true); // any field can be promoted
+  });
+
+  // Shared "form-first" gate — the entry gate, registration gate, signup-card
+  // decision, and server enforcement all import this and must not diverge.
+  it('isRequiredFormField / templateHasRequiredField: section never; agreement defaults required', () => {
+    expect(isRequiredFormField({ type: 'section', required: true })).toBe(false); // display-only
+    expect(isRequiredFormField({ type: 'text', required: true })).toBe(true);
+    expect(isRequiredFormField({ type: 'text', required: false })).toBe(false);
+    expect(isRequiredFormField({ type: 'agreement', required: false })).toBe(true); // mustAccept defaults on
+    expect(isRequiredFormField({ type: 'agreement', required: false, mustAccept: false })).toBe(false);
+    expect(templateHasRequiredField([{ type: 'text', required: false }, { type: 'section', required: true }])).toBe(false);
+    expect(templateHasRequiredField([{ type: 'text', required: false }, { type: 'agreement', required: false }])).toBe(true);
   });
 
   it('a submission stage carries a template; duplicate keys are rejected', () => {

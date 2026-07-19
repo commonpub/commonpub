@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { Serialized, ContestDetail } from '@commonpub/server';
+import { templateHasRequiredField } from '@commonpub/schema';
 import { effectiveRegistrationTemplate } from '../../utils/contestRegistration';
 
 type Tier = 'full' | 'reminders';
@@ -123,9 +124,7 @@ watch(isFull, (full) => { if (full && !hasSavedInfo.value) infoOpen.value = true
 // registration MUST go through the form (so the requirement is actually enforced +
 // consent recorded) — a bare one-click full register would silently skip it. A form
 // with only optional fields (incl. the legacy default) keeps the one-click flow.
-const templateHasRequired = computed(() =>
-  registrationTemplate.value.some((f) => f.type !== 'section' && (f.required || (f.type === 'agreement' && f.mustAccept !== false))),
-);
+const templateHasRequired = computed(() => templateHasRequiredField(registrationTemplate.value));
 // The pre-registration form is showing (operator-required-fields flow).
 const showRegForm = ref(false);
 

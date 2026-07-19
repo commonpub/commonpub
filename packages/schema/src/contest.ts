@@ -174,6 +174,26 @@ export function isFormFieldPii(f: Pick<FormField, 'type' | 'pii'>): boolean {
 }
 
 /**
+ * Whether a field REQUIRES a non-empty answer to submit — the predicate behind the
+ * "form-first" registration gate. SINGLE SOURCE OF TRUTH: the server's required-field
+ * enforcement, the signup card's decision to route through the form vs one-click, and
+ * the form's inline missing-field gate all import this, so a required agreement can't
+ * be silently one-click-skipped on one surface but enforced on another. `section` is
+ * never required (display-only); an `agreement` is required when `required` OR its
+ * default-on `mustAccept` isn't explicitly disabled; every other type when `required`.
+ */
+export function isRequiredFormField(f: Pick<FormField, 'type' | 'required' | 'mustAccept'>): boolean {
+  if (f.type === 'section') return false;
+  if (f.type === 'agreement') return f.required === true || f.mustAccept !== false;
+  return f.required === true;
+}
+
+/** Any field in the template requires an answer (⇒ the registration form is mandatory). */
+export function templateHasRequiredField(template: ReadonlyArray<Pick<FormField, 'type' | 'required' | 'mustAccept'>>): boolean {
+  return template.some(isRequiredFormField);
+}
+
+/**
  * A per-stage artifact on an entry: the filled template values for one
  * `submission` stage, snapshotted at submit time. Replaced (not appended) on
  * re-submit while the stage is open.

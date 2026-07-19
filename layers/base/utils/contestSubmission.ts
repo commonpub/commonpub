@@ -1,4 +1,4 @@
-import type { ContestSubmissionTemplateField } from '@commonpub/schema';
+import { isRequiredFormField, type ContestSubmissionTemplateField } from '@commonpub/schema';
 
 // Client-side helpers for the entrant submission form (the per-stage artifact
 // form + the proposal form share these). The SERVER (validateSubmissionFields)
@@ -56,24 +56,27 @@ export function isFieldFilled(field: ContestSubmissionTemplateField, value: stri
 }
 
 /**
- * The labels of fields that block submission: required-but-empty fields, plus
- * any must-accept agreement that isn't accepted. Mirrors the server's gate so
- * the entrant sees the problem before the round-trip.
+ * The KEYS of fields that block submission: required-but-empty fields, plus any
+ * must-accept agreement that isn't accepted. "Required" is the shared
+ * `isRequiredFormField` predicate (@commonpub/schema) so the entry gate, the
+ * registration form's inline gate, the signup card's form-first decision, and the
+ * server's enforcement can't diverge. Mirrors the server so the entrant sees the
+ * problem before the round-trip.
  */
+export function blockingFieldKeys(
+  template: ContestSubmissionTemplateField[],
+  values: Record<string, string>,
+): string[] {
+  return template.filter((f) => isRequiredFormField(f) && !isFieldFilled(f, values[f.key])).map((f) => f.key);
+}
+
+/** As `blockingFieldKeys`, but the human labels (for the entrant-facing summary). */
 export function blockingFields(
   template: ContestSubmissionTemplateField[],
   values: Record<string, string>,
 ): string[] {
-  const out: string[] = [];
-  for (const f of template) {
-    const filled = isFieldFilled(f, values[f.key]);
-    if (f.type === 'agreement') {
-      if ((f.required || f.mustAccept !== false) && !filled) out.push(f.label);
-    } else if (f.required && !filled) {
-      out.push(f.label);
-    }
-  }
-  return out;
+  const keys = new Set(blockingFieldKeys(template, values));
+  return template.filter((f) => keys.has(f.key)).map((f) => f.label);
 }
 
 /**

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { reactive, computed, watch } from 'vue';
 import type { FormField } from '@commonpub/schema';
-import { isFieldFilled, buildSubmissionPayload } from '../../utils/contestSubmission';
+import { blockingFieldKeys, buildSubmissionPayload } from '../../utils/contestSubmission';
 
 // Template-driven registration form. Renders the operator's `registrationTemplate`
 // (or the default legacy 3 fields) through the shared ContestSubmissionField, so
@@ -37,18 +37,10 @@ function seed(saved: Record<string, string> | null): void {
 }
 watch(() => [props.savedFields, props.template] as const, () => seed(props.savedFields), { immediate: true, deep: true });
 
-// A field is required-and-missing (drives inline hints + blocks Save). Reuses the
-// shared, server-mirroring `isFieldFilled` (agreements/checkbox via isChecked,
-// address via parseAddress, section always filled) so this can't diverge from the
-// entry-side gate. Agreements are required when `required` OR `mustAccept !== false`.
-const missing = computed<Set<string>>(() => {
-  const out = new Set<string>();
-  for (const f of props.template) {
-    const mustAccept = f.type === 'agreement' && f.mustAccept !== false;
-    if ((f.required || mustAccept) && !isFieldFilled(f, values[f.key])) out.add(f.key);
-  }
-  return out;
-});
+// Required-and-missing field keys (drive inline hints + block Save). Reuses the
+// shared entry-side `blockingFieldKeys` (isRequiredFormField + isFieldFilled) so the
+// registration gate can't diverge from the entry gate or the server's enforcement.
+const missing = computed<Set<string>>(() => new Set(blockingFieldKeys(props.template, values)));
 
 // Collected payload — the shared builder (trims, normalizes checkbox/agreement,
 // drops blanks + section) so it matches the entry form + the server contract.

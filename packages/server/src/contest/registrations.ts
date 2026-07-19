@@ -1,5 +1,5 @@
 import { and, eq, desc, inArray } from 'drizzle-orm';
-import { contests, contestRegistrations, users, contestRegistrationPrivateFields, contestAgreementAcceptances, contestRegistrationFieldsSchema } from '@commonpub/schema';
+import { contests, contestRegistrations, users, contestRegistrationPrivateFields, contestAgreementAcceptances, contestRegistrationFieldsSchema, templateHasRequiredField } from '@commonpub/schema';
 import type { FormField } from '@commonpub/schema';
 import type { CommonPubConfig } from '@commonpub/config';
 import type { DB } from '../types.js';
@@ -149,7 +149,7 @@ export async function registerForContest(
   // fields. A reminders-only opt-in (not a participant) is exempt; a bare full
   // register against an all-optional template is still allowed.
   const template = (contest.registrationTemplate ?? []) as FormField[];
-  const templateRequires = template.some((f) => f.type !== 'section' && (f.required || (f.type === 'agreement' && f.mustAccept !== false)));
+  const templateRequires = templateHasRequiredField(template);
   const mustValidate = input.fields !== undefined || (tier === 'full' && templateRequires);
   let publicFields: Record<string, string> | undefined = input.fields;
   let pii: Record<string, string> = {};
