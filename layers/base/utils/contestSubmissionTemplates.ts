@@ -153,6 +153,48 @@ export const SUBMISSION_FORM_TEMPLATES: SubmissionFormTemplate[] = [
     },
   },
   {
+    id: 'comprehensive-intake',
+    label: 'Comprehensive challenge intake',
+    description: 'A full sectioned registration form (track, contact, org, project, shipping, consent, signature) — reproduces a rich challenge intake. Edit to taste.',
+    pii: true,
+    build({ pii }): TemplateField[] {
+      const fields: Array<Omit<TemplateField, 'key'>> = [
+        { label: 'Challenge track', type: 'section' as const, required: false, help: 'Which track are you entering?' },
+        { label: 'Track', type: 'radio' as const, required: true, options: [{ value: 'developer', label: 'Developer' }, { value: 'startup', label: 'Startup' }] },
+        { label: 'Your details', type: 'section' as const, required: false },
+        { label: 'Full name', type: 'text' as const, required: true },
+        { label: 'Country of residence', type: 'select' as const, required: true, options: [{ value: 'us', label: 'United States' }, { value: 'ca', label: 'Canada' }, { value: 'gb', label: 'United Kingdom' }, { value: 'other', label: 'Other' }] },
+        { label: 'I confirm I am eligible to participate under the contest rules', type: 'checkbox' as const, required: true },
+        { label: 'Organization (optional)', type: 'section' as const, required: false, help: 'If you are entering on behalf of an organization.' },
+        { label: 'Organization name', type: 'text' as const, required: false },
+        { label: 'Your role', type: 'text' as const, required: false },
+        { label: 'Organization website', type: 'url' as const, required: false, help: 'Include the full https:// address.' },
+        { label: 'Project', type: 'section' as const, required: false },
+        { label: 'Project page URL', type: 'url' as const, required: true, help: 'A link to your project (repo, demo, or write-up).' },
+      ];
+      // Email is default-PII; contact + shipping + consent are the PII-gated cluster.
+      if (pii) {
+        fields.push(
+          { label: 'Email address', type: 'email' as const, required: true },
+          { label: 'Dev-kit shipping', type: 'section' as const, required: false, help: 'Where we ship hardware if you are selected. Stored privately.' },
+          { label: 'Shipping address', type: 'address' as const, required: false, pii: true },
+          { label: 'Phone number', type: 'tel' as const, required: false, pii: true },
+          { label: 'Compliance & consent', type: 'section' as const, required: false },
+          { label: 'Eligibility & rules', type: 'agreement' as const, required: true, mustAccept: true, terms: US_ENTITY_TERMS },
+          { label: 'Intellectual property & liability', type: 'agreement' as const, required: true, mustAccept: true, terms: 'I confirm my submission is my own original work, and I accept the contest IP, liability, and governing-law terms.' },
+          { label: 'I consent to publicity of my participation and results', type: 'checkbox' as const, required: false },
+          { label: 'I acknowledge that AI tools may assist judging', type: 'checkbox' as const, required: false },
+        );
+      }
+      fields.push(
+        { label: 'Signature', type: 'section' as const, required: false, help: 'Type your name and date to sign.' },
+        { label: 'Print name', type: 'text' as const, required: true },
+        { label: 'Date', type: 'date' as const, required: true },
+      );
+      return withKeys(fields);
+    },
+  },
+  {
     id: 'minimal',
     label: 'Minimal',
     description: 'Just a project name and a link.',

@@ -275,4 +275,7 @@ export interface ContestRegistrantItem {
   /** Registration answers keyed by the contest's `registrationTemplate` field keys
    *  (public partition only; PII/consent excluded); null when none given. */
   fields: Record<string, string> | null;
+  /** Private (PII) answers — present ONLY when the reader holds `contest.pii` and
+   *  requested them; `undefined` otherwise, `null` when the registrant gave none. */
+  privateFields?: Record<string, string> | null;
 }

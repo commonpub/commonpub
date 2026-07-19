@@ -1,5 +1,5 @@
-import { and, eq, desc } from 'drizzle-orm';
-import { contests, contestRegistrations, users, contestRegistrationFieldsSchema } from '@commonpub/schema';
+import { and, eq, desc, inArray } from 'drizzle-orm';
+import { contests, contestRegistrations, users, contestRegistrationPrivateFields, contestRegistrationFieldsSchema } from '@commonpub/schema';
 import type { FormField } from '@commonpub/schema';
 import type { CommonPubConfig } from '@commonpub/config';
 import type { DB } from '../types.js';
@@ -289,11 +289,13 @@ export async function getViewerRegistration(
   return { tier: (row.tier as ContestRegistrationTier) ?? 'full', fields: row.fields ?? null };
 }
 
-/** Paginated list of a contest's registrants (newest first). Privileged read. */
+/** Paginated list of a contest's registrants (newest first). Privileged read.
+ *  `includePii` (contest.pii holders only) merges each registrant's private answers
+ *  (email/address/etc. from contest_registration_private_fields) into `privateFields`. */
 export async function listContestRegistrants(
   db: DB,
   contestId: string,
-  opts: { limit?: number; offset?: number } = {},
+  opts: { limit?: number; offset?: number; includePii?: boolean } = {},
 ): Promise<{ items: ContestRegistrantItem[]; total: number }> {
   const { limit, offset } = normalizePagination(opts);
   // Only `full` participants are "registrants" (reminders-only opt-ins are a
@@ -319,6 +321,20 @@ export async function listContestRegistrants(
     countRows(db, contestRegistrations, where),
   ]);
 
+  // PII merge (contest.pii holders only): fetch the private answers for exactly the
+  // page's registrants and attach them. Never fetched unless includePii is set.
+  let privateByUser = new Map<string, Record<string, string>>();
+  if (opts.includePii && rows.length > 0) {
+    const priv = await db
+      .select({ userId: contestRegistrationPrivateFields.userId, fields: contestRegistrationPrivateFields.fields })
+      .from(contestRegistrationPrivateFields)
+      .where(and(
+        eq(contestRegistrationPrivateFields.contestId, contestId),
+        inArray(contestRegistrationPrivateFields.userId, rows.map((r) => r.userId)),
+      ));
+    privateByUser = new Map(priv.map((p) => [p.userId, p.fields]));
+  }
+
   return {
     items: rows.map((r) => ({
       userId: r.userId,
@@ -327,6 +343,7 @@ export async function listContestRegistrants(
       avatarUrl: r.avatarUrl,
       registeredAt: r.registeredAt,
       fields: r.fields ?? null,
+      privateFields: opts.includePii ? (privateByUser.get(r.userId) ?? null) : undefined,
     })),
     total,
   };

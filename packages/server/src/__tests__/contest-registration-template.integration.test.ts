@@ -11,7 +11,7 @@ import type { FormField } from '@commonpub/schema';
 import type { CommonPubConfig } from '@commonpub/config';
 import type { DB } from '../types.js';
 import { createTestDB, createTestUser, closeTestDB } from './helpers/testdb.js';
-import { registerForContest, getViewerRegistration } from '../contest/registrations.js';
+import { registerForContest, getViewerRegistration, listContestRegistrants } from '../contest/registrations.js';
 
 // P2: registration routed through the operator's registrationTemplate — public
 // answers vs PII vs consent are partitioned exactly like entry submissions, in one
@@ -79,6 +79,23 @@ describe('contest registration template partition (P2)', () => {
     expect(accepts[0]!.registrationId).toBeTruthy();
     expect(accepts[0]!.entryId).toBeNull();
     expect(accepts[0]!.ip).toBe('203.0.113.7');
+  });
+
+  it('listContestRegistrants merges private answers ONLY when includePii is set', async () => {
+    const contestId = await makeContest(db, organizerId, TEMPLATE);
+    await registerForContest(db, cfg, {
+      contestId, userId,
+      fields: { name: 'Ada Lovelace', email: 'ada@example.com', country: 'us', tos: 'true' },
+    });
+
+    // Without PII: public answers only, private omitted.
+    const plain = await listContestRegistrants(db, contestId, {});
+    expect(plain.items[0]!.fields).toEqual({ name: 'Ada Lovelace', country: 'us' });
+    expect(plain.items[0]!.privateFields).toBeUndefined();
+
+    // With PII: the email (default-PII) is merged in.
+    const withPii = await listContestRegistrants(db, contestId, { includePii: true });
+    expect(withPii.items[0]!.privateFields).toEqual({ email: 'ada@example.com' });
   });
 
   it('re-register (info edit) does NOT duplicate the consent row (idempotent dedup)', async () => {
