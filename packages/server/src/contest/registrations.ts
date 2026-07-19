@@ -13,7 +13,7 @@ import { getNotificationEmailTarget } from '../notification/emailPrefs.js';
 import { parseContestEmailCopy, buildContestEmailCopyOverride } from './emailCopy.js';
 import { formatDeadlineUtc } from './reminders.js';
 import { validateSubmissionFields } from './validation.js';
-import { recordPrivateAndAgreements, maybeCreateCombinedEntry } from './submissions.js';
+import { recordPrivateAndAgreements, maybeCreateCombinedEntry, validateFileFields } from './submissions.js';
 import type { ContestEmailContext, ContestRegistrantItem, AgreementAcceptanceInput } from './types.js';
 
 // Contest registration: a participant's intent to take part, independent of any
@@ -173,6 +173,13 @@ export async function registerForContest(
       }
       publicFields = legacy.data as Record<string, string>;
     }
+  }
+
+  // DB-backed check for any `file` answers (owned by this user + private contest
+  // storage + mime/size) — the pure validator can only shape-check the uuid.
+  if (input.fields !== undefined && template.length > 0) {
+    const fv = await validateFileFields(db, template, input.fields, input.userId);
+    if (!fv.ok) return { registered: false, alreadyRegistered: false, error: fv.error };
   }
 
   // One transaction for the three coupled writes (registration row + PII + consent)

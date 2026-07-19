@@ -1,4 +1,4 @@
-import { eq, and, sql, isNull } from 'drizzle-orm';
+import { eq, and, sql, isNull, inArray } from 'drizzle-orm';
 import {
   contests,
   contestEntries,
@@ -6,8 +6,9 @@ import {
   contestAgreementAcceptances,
   contestEntryPrivateFields,
   contestRegistrationPrivateFields,
+  files,
 } from '@commonpub/schema';
-import type { ContentType, ContestStageSubmission } from '@commonpub/schema';
+import type { ContentType, ContestStageSubmission, FormField } from '@commonpub/schema';
 import type { DB } from '../types.js';
 import { countRows } from '../query.js';
 import { createContent, deleteContent } from '../content/content.js';
@@ -16,6 +17,49 @@ import { validateSubmissionFields, hashTerms } from './validation.js';
 import type { StageSource, AgreementAcceptanceInput, ContestTx } from './types.js';
 
 // DB-backed submission writers. Pure validation/partition lives in validation.ts.
+
+/**
+ * DB-backed post-validation for `file` fields (P6). The pure validator only checks
+ * the value is a uuid; this verifies the referenced upload is one the SUBMITTER
+ * actually owns and that it lives in PRIVATE contest storage — so a user can't
+ * smuggle someone else's file id or a public object into a "private" field — plus
+ * per-field mime (`accept`) + size (`maxSizeKb`). Runs after validateSubmissionFields,
+ * before the write, for BOTH registration and entry submissions. No-op when the
+ * template has no file fields (or none were answered).
+ */
+export async function validateFileFields(
+  db: DB,
+  template: FormField[],
+  values: Record<string, string>,
+  userId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const fileFields = template.filter((f) => f.type === 'file' && (values[f.key] ?? '').trim().length > 0);
+  if (fileFields.length === 0) return { ok: true };
+
+  const ids = fileFields.map((f) => values[f.key]!.trim());
+  const rows = await db
+    .select({ id: files.id, uploaderId: files.uploaderId, visibility: files.visibility, purpose: files.purpose, mimeType: files.mimeType, sizeBytes: files.sizeBytes })
+    .from(files)
+    .where(inArray(files.id, ids));
+  const byId = new Map(rows.map((r) => [r.id, r]));
+
+  for (const f of fileFields) {
+    const row = byId.get(values[f.key]!.trim());
+    // Must exist, be uploaded by THIS user, and be a PRIVATE contest object.
+    if (!row || row.uploaderId !== userId || row.visibility !== 'private' || row.purpose !== 'contest') {
+      return { ok: false, error: `${f.label}: that file is missing or not one you uploaded` };
+    }
+    if (f.accept) {
+      const allowed = f.accept.split(',').map((s) => s.trim()).filter(Boolean);
+      const ok = allowed.length === 0 || allowed.some((a) => a === row.mimeType || (a.endsWith('/*') && row.mimeType.startsWith(a.slice(0, -1))));
+      if (!ok) return { ok: false, error: `${f.label}: file type not allowed` };
+    }
+    if (f.maxSizeKb != null && row.sizeBytes > f.maxSizeKb * 1024) {
+      return { ok: false, error: `${f.label} is too large (max ${f.maxSizeKb} KB)` };
+    }
+  }
+  return { ok: true };
+}
 
 /**
  * Persist the PII + agreement halves of a partitioned submission within an open
@@ -180,6 +224,8 @@ export async function submitStageArtifact(
 
   const validated = validateSubmissionFields(template, fields);
   if (!validated.ok) return fail(validated.error);
+  const fileCheck = await validateFileFields(db, template, fields, userId);
+  if (!fileCheck.ok) return fail(fileCheck.error);
   const { artifact, pii, agreements } = validated.result;
 
   // Atomic read-modify-write: lock the entry row so two concurrent saves of
@@ -286,6 +332,8 @@ export async function submitContestProposal(db: DB, args: SubmitProposalArgs): P
   const template = stage.submissionTemplate ?? [];
   const validated = validateSubmissionFields(template, fields);
   if (!validated.ok) return fail(validated.error);
+  const fileCheck = await validateFileFields(db, template, fields, userId);
+  if (!fileCheck.ok) return fail(fileCheck.error);
   const { artifact, pii, agreements } = validated.result;
 
   // Per-user entry cap (mirrors submitContestEntry).

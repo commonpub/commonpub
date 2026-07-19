@@ -1111,7 +1111,12 @@ describe('submissionTemplateFieldSchema + stage submissionTemplate', () => {
   });
 
   it('rejects unknown field types', () => {
-    expect(submissionTemplateFieldSchema.safeParse({ ...field, type: 'file' }).success).toBe(false);
+    expect(submissionTemplateFieldSchema.safeParse({ ...field, type: 'video' }).success).toBe(false);
+  });
+
+  it('accepts the P6 file/signature types (+ file accept/maxSizeKb props)', () => {
+    expect(submissionTemplateFieldSchema.safeParse({ ...field, type: 'signature' }).success).toBe(true);
+    expect(submissionTemplateFieldSchema.safeParse({ ...field, type: 'file', accept: 'application/pdf', maxSizeKb: 5000 }).success).toBe(true);
   });
 
   it('a submission stage carries a template; duplicate keys are rejected', () => {

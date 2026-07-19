@@ -89,6 +89,21 @@ export const FIELD_PRESETS: FieldPreset[] = [
     pii: true,
     field: { label: 'Eligibility', type: 'agreement', required: true, mustAccept: true, terms: US_ENTITY_TERMS },
   },
+  {
+    id: 'signature',
+    label: 'Signature',
+    icon: 'fa-signature',
+    pii: true,
+    field: { label: 'Signature', type: 'signature', required: true, help: 'Type your full name to sign.' },
+  },
+  {
+    id: 'file',
+    label: 'File upload',
+    icon: 'fa-file-arrow-up',
+    pii: true,
+    /** Also requires the contestPrivateFiles flag — the builder filters it out otherwise. */
+    field: { label: 'Upload a document', type: 'file', required: false, help: 'Stored privately. Only staff with PII access and you can read it.' },
+  },
 ];
 
 /** Presets offered for the builder, gated by whether PII field types are enabled. */
@@ -111,8 +126,9 @@ export interface SubmissionFormTemplate {
   description: string;
   /** Requires `features.contestPii` to seed its address/agreement fields. */
   pii?: boolean;
-  /** Build the field array; flag-adaptive so it degrades when PII is off. */
-  build(opts: { pii: boolean }): TemplateField[];
+  /** Build the field array; flag-adaptive so it degrades when PII / private files
+   *  are off (those field types are simply omitted). */
+  build(opts: { pii: boolean; privateFiles?: boolean }): TemplateField[];
 }
 
 const SHIPPING_AGREEMENT_TERMS =
@@ -157,7 +173,7 @@ export const SUBMISSION_FORM_TEMPLATES: SubmissionFormTemplate[] = [
     label: 'Comprehensive challenge intake',
     description: 'A full sectioned registration form (track, contact, org, project, shipping, consent, signature) — reproduces a rich challenge intake. Edit to taste.',
     pii: true,
-    build({ pii }): TemplateField[] {
+    build({ pii, privateFiles }): TemplateField[] {
       const fields: Array<Omit<TemplateField, 'key'>> = [
         { label: 'Challenge track', type: 'section' as const, required: false, help: 'Which track are you entering?' },
         { label: 'Track', type: 'radio' as const, required: true, options: [{ value: 'developer', label: 'Developer' }, { value: 'startup', label: 'Startup' }] },
@@ -185,11 +201,19 @@ export const SUBMISSION_FORM_TEMPLATES: SubmissionFormTemplate[] = [
           { label: 'I consent to publicity of my participation and results', type: 'checkbox' as const, required: false },
           { label: 'I acknowledge that AI tools may assist judging', type: 'checkbox' as const, required: false },
         );
+        // Private document upload (registered-entity docs) — only when the
+        // private-storage path is enabled; otherwise omitted (still a valid form).
+        if (privateFiles) {
+          fields.push(
+            { label: 'Registered entity documents', type: 'file' as const, required: false, pii: true, help: 'Upload proof of registration (PDF). Stored privately.', accept: 'application/pdf,image/*' },
+          );
+        }
       }
       fields.push(
-        { label: 'Signature', type: 'section' as const, required: false, help: 'Type your name and date to sign.' },
+        { label: 'Signature', type: 'section' as const, required: false, help: 'Print your name, date, and sign below.' },
         { label: 'Print name', type: 'text' as const, required: true },
         { label: 'Date', type: 'date' as const, required: true },
+        { label: 'Signature', type: 'signature' as const, required: true, help: 'Type your full name to sign.' },
       );
       return withKeys(fields);
     },

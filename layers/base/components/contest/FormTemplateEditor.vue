@@ -45,8 +45,10 @@ const emit = defineEmits<{
 
 const { features } = useFeatures();
 const piiEnabled = computed(() => features.value.contestPii === true);
+// Private file/signature uploads (P6) require the private-storage path.
+const privateFilesEnabled = computed(() => features.value.contestPrivateFiles === true);
 
-// Grouped, described type picker (rule: PII types gated).
+// Grouped, described type picker (rule: PII/file types gated).
 const FIELD_TYPE_GROUPS = computed<Array<{ group: string; types: FieldType[] }>>(() => {
   const groups: Array<{ group: string; types: FieldType[] }> = [
     { group: 'Basic', types: ['text', 'textarea', 'number', 'date'] },
@@ -54,11 +56,17 @@ const FIELD_TYPE_GROUPS = computed<Array<{ group: string; types: FieldType[] }>>
     { group: 'Contact', types: ['email', 'tel', 'url'] },
     { group: 'Layout', types: ['section'] },
   ];
-  if (piiEnabled.value) groups.push({ group: 'Consent & personal data', types: ['agreement', 'address'] });
+  const personal: FieldType[] = [];
+  if (piiEnabled.value) personal.push('agreement', 'address', 'signature');
+  if (piiEnabled.value && privateFilesEnabled.value) personal.push('file');
+  if (personal.length) groups.push({ group: 'Consent & personal data', types: personal });
   return groups;
 });
 
-const fieldPresets = computed(() => availableFieldPresets(piiEnabled.value));
+// The `file` preset additionally needs the private-storage flag.
+const fieldPresets = computed(() =>
+  availableFieldPresets(piiEnabled.value).filter((p) => p.id !== 'file' || privateFilesEnabled.value),
+);
 const formTemplates = computed(() => availableFormTemplates(piiEnabled.value));
 
 /** Text-ish types that support a character cap. */
@@ -109,7 +117,7 @@ function applyFormTemplate(tpl: SubmissionFormTemplate): void {
   if (props.template.length && typeof window !== 'undefined' && !window.confirm(`Replace the current ${props.template.length} field(s) with the "${tpl.label}" template?`)) {
     return;
   }
-  emit('update:template', tpl.build({ pii: piiEnabled.value }));
+  emit('update:template', tpl.build({ pii: piiEnabled.value, privateFiles: privateFilesEnabled.value }));
 }
 
 // ─── Per-field edits (delegate to the pure array ops) ───

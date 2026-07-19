@@ -60,6 +60,27 @@ describe('validateSubmissionFields — P1 field types', () => {
     expect(validateSubmissionFields(tmpl, { name: 'x', sneaky: 'y' }).ok).toBe(false);
   });
 
+  it('file: accepts a uuid ref (shape only) and partitions it PRIVATE', () => {
+    const id = '11111111-2222-3333-4444-555555555555';
+    const tmpl = [f({ key: 'doc', type: 'file' })];
+    const r = validateSubmissionFields(tmpl, { doc: id });
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.result.pii).toEqual({ doc: id }); // always private
+      expect(r.result.artifact).toEqual({});
+    }
+    // A non-uuid value is rejected at the shape gate.
+    expect(validateSubmissionFields(tmpl, { doc: 'not-a-file' }).ok).toBe(false);
+  });
+
+  it('signature: a typed name stores like a text answer', () => {
+    const tmpl = [f({ key: 'sig', type: 'signature', required: true })];
+    const r = validateSubmissionFields(tmpl, { sig: 'Ada Lovelace' });
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.result.artifact).toEqual({ sig: 'Ada Lovelace' });
+    expect(validateSubmissionFields(tmpl, { sig: '' }).ok).toBe(false); // required
+  });
+
   it('enforces a per-field maxLength (server-side, not just the input hint)', () => {
     const tmpl = [f({ key: 'building', type: 'textarea', maxLength: 10 })];
     expect(validateSubmissionFields(tmpl, { building: 'short' }).ok).toBe(true);

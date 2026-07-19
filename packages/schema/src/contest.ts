@@ -117,6 +117,8 @@ export interface ContestSubmissionTemplateField {
     | 'tel'      // phone number, lenient validation (P1)
     | 'agreement'
     | 'address'
+    | 'file'      // private file upload; value is a `files.id` uuid (P6, gated on contestPrivateFiles)
+    | 'signature' // typed-name e-signature (P6); stored like a text answer
     | 'section'; // display-only header/divider (title + optional help); not stored (P1)
   required: boolean;
   /** Optional hint shown under the input (also the description body for `section`). */
@@ -125,6 +127,12 @@ export interface ContestSubmissionTemplateField {
    *  email); ≤ the 4000 hard cap. Enforced client-side (input maxlength) AND
    *  server-side (validateSubmissionFields). */
   maxLength?: number;
+  /** `file`-only: accepted MIME types (comma-separated, passed to the file input's
+   *  `accept` + enforced in the DB-backed post-validation). Empty ⇒ any allowed type. */
+  accept?: string;
+  /** `file`-only: max upload size in KB, enforced in the DB-backed post-validation
+   *  (bounded by the storage adapter's `contest` purpose cap regardless). */
+  maxSizeKb?: number;
   /** `select`/`radio`-only: the allowed options. */
   options?: Array<{ value: string; label: string }>;
   /** Personal data — stored in `contest_entry_private_fields`, not the artifact. Forced true for `address`. */

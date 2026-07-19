@@ -25,6 +25,9 @@ export interface FeatureFlags {
   /** Offer PII field types in the submission-form builder (Phase 4). Default OFF.
    *  PII access is always gated server-side by `contest.pii.read`. */
   contestPii: boolean;
+  /** Private contest file/signature attachments (P0). Gates the private-storage
+   *  upload path + the file/signature registration field types. Default OFF. */
+  contestPrivateFiles: boolean;
   /** Automatic contest deadline reminder emails to registered participants.
    *  Default OFF; inert unless emailNotifications is also on. */
   contestReminders: boolean;
@@ -93,7 +96,7 @@ let hydrated = false;
 // `flags.value.X` access would crash at runtime.
 export const DEFAULT_FLAGS: FeatureFlags = {
   content: true, social: true, hubs: true, docs: true, video: true,
-  contests: false, contestStageSubmissions: true, contestProposals: false, contestPii: false,
+  contests: false, contestStageSubmissions: true, contestProposals: false, contestPii: false, contestPrivateFiles: false,
   contestReminders: false, contestEmailEditor: false, contestSignup: true,
   events: false, learning: true, explainers: true,
   editorial: true, registrationBlock: true, federation: false, admin: false, themeStudio: true, emailNotifications: false, emailUnverified: false,

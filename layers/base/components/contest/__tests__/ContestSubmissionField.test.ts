@@ -4,11 +4,14 @@
  * per field type, the address JSON round-trip, agreement/checkbox 'true' model,
  * and an axe scan across the full type set.
  */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, fireEvent } from '@testing-library/vue';
 import axe from 'axe-core';
 import ContestSubmissionField from '../ContestSubmissionField.vue';
 import type { ContestSubmissionTemplateField } from '@commonpub/schema';
+
+// `file` fields use the auto-imported useFileUpload composable; stub it.
+Object.assign(globalThis, { useFileUpload: () => ({ uploadFile: vi.fn().mockResolvedValue({ id: 'f-1', url: '/api/files/f-1/raw', originalName: 'doc.pdf' }) }) });
 
 function mount(field: ContestSubmissionTemplateField, modelValue = '') {
   return render(ContestSubmissionField, { props: { field, modelValue, idPrefix: 'cpub-test' } });
@@ -101,6 +104,22 @@ describe('ContestSubmissionField — control per type', () => {
     expect(input?.getAttribute('inputmode')).toBe('tel');
   });
 
+  it('file: shows an upload button with the configured accept, and a chip when set', () => {
+    const { container: empty } = mount({ key: 'doc', label: 'Doc', type: 'file', required: false, accept: 'application/pdf' });
+    expect(empty.querySelector('.cpub-subfield-file-btn')?.textContent).toContain('Choose file');
+    expect(empty.querySelector('input[type=file]')?.getAttribute('accept')).toBe('application/pdf');
+    // With a value (a file id), it renders the chip + a gated /raw link, not the button.
+    const { container: filled } = mount({ key: 'doc', label: 'Doc', type: 'file', required: false }, 'abc-123');
+    expect(filled.querySelector('.cpub-subfield-file-btn')).toBeNull();
+    expect(filled.querySelector('.cpub-subfield-file-chip a')?.getAttribute('href')).toBe('/api/files/abc-123/raw');
+  });
+
+  it('signature: renders a text input with a signing placeholder', () => {
+    const { container } = mount({ key: 'sig', label: 'Signature', type: 'signature', required: true });
+    const input = container.querySelector('#cpub-test-sig');
+    expect(input?.getAttribute('placeholder')).toMatch(/sign/i);
+  });
+
   it('passes an axe scan for every field type', async () => {
     const fields: ContestSubmissionTemplateField[] = [
       { key: 'a', label: 'Text', type: 'text', required: true, help: 'Hint' },
@@ -112,6 +131,8 @@ describe('ContestSubmissionField — control per type', () => {
       { key: 'g', label: 'Section', type: 'section', required: false, help: 'Divider' },
       { key: 'h', label: 'Choice', type: 'radio', required: true, options: [{ value: 'x', label: 'X' }, { value: 'y', label: 'Y' }] },
       { key: 'i', label: 'Phone', type: 'tel', required: false },
+      { key: 'j', label: 'Doc', type: 'file', required: false },
+      { key: 'k', label: 'Signature', type: 'signature', required: true },
     ];
     for (const field of fields) {
       const { container } = mount(field);

@@ -131,6 +131,8 @@ export const SUBMISSION_TEMPLATE_FIELD_TYPES = [
   'tel',     // phone number, lenient validation (P1)
   'agreement',
   'address',
+  'file',      // private file upload (P6)
+  'signature', // typed-name e-signature (P6)
   'section', // display-only header/divider; not stored (P1)
 ] as const;
 export const submissionTemplateFieldTypeSchema = z.enum(SUBMISSION_TEMPLATE_FIELD_TYPES);
@@ -153,6 +155,10 @@ export const submissionTemplateFieldSchema = z
     help: z.string().max(300).optional(),
     /** Optional per-field character cap for text-ish inputs (≤ the 4000 hard cap). */
     maxLength: z.number().int().min(1).max(4000).optional(),
+    /** `file`-only: accepted MIME types (comma-separated). */
+    accept: z.string().max(300).optional(),
+    /** `file`-only: max upload size in KB. */
+    maxSizeKb: z.number().int().min(1).max(100 * 1024).optional(),
     /** `select`-only: the allowed options. Required (non-empty) for `select`. */
     options: z.array(submissionTemplateOptionSchema).max(50).optional(),
     /**

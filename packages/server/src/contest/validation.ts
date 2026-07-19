@@ -19,10 +19,15 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
  */
 function isPiiField(f: ContestSubmissionTemplateField): boolean {
   if (f.type === 'address') return true;
+  // A `file` value references a PRIVATE stored object (a legal doc / upload); the
+  // ref is always kept in the private partition, never the public artifact.
+  if (f.type === 'file') return true;
   if (f.pii === true) return true;
   if (f.type === 'email') return f.pii !== false; // default-PII, explicit opt-out
   return false;
 }
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** sha-256 hex of an agreement's terms text (integrity check vs the snapshot). */
 export function hashTerms(terms: string): string {
@@ -147,6 +152,13 @@ export function validateSubmissionFields(
         if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
           return { ok: false, error: `${field.label} is not a valid address` };
         }
+        break;
+      }
+      case 'file': {
+        // SHAPE only: the value is a files.id uuid. Ownership + visibility + mime/
+        // size are verified in the DB-backed post-validation step (validateFileFields),
+        // never here — this validator is pure (no DB).
+        if (!UUID_RE.test(value)) return { ok: false, error: `${field.label}: attach a file` };
         break;
       }
       // text / textarea: no extra domain check.

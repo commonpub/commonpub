@@ -29,6 +29,36 @@ const checked = computed(() => isChecked(model.value));
 function setChecked(on: boolean): void {
   model.value = on ? 'true' : '';
 }
+
+// File (P6): the model holds a `files.id`; the bytes upload to the PRIVATE `contest`
+// purpose (P0). We keep a display name locally (the id alone can't reconstruct it on
+// edit — then we show a generic "View file" via the gated /raw route).
+const fileInput = ref<HTMLInputElement | null>(null);
+const uploadedName = ref('');
+const uploading = ref(false);
+const uploadError = ref('');
+async function onFilePick(e: Event): Promise<void> {
+  const file = (e.target as HTMLInputElement).files?.[0];
+  if (!file) return;
+  uploading.value = true;
+  uploadError.value = '';
+  try {
+    // Lazily obtained so non-file fields don't force every consumer to provide it.
+    const { uploadFile } = useFileUpload();
+    const res = await uploadFile<{ id: string; url: string; originalName: string }>(file, 'contest');
+    model.value = res.id;
+    uploadedName.value = res.originalName || file.name;
+  } catch {
+    uploadError.value = 'Upload failed. Please try again.';
+  } finally {
+    uploading.value = false;
+    if (fileInput.value) fileInput.value.value = '';
+  }
+}
+function clearFile(): void {
+  model.value = '';
+  uploadedName.value = '';
+}
 </script>
 
 <template>
@@ -110,6 +140,33 @@ function setChecked(on: boolean): void {
       </div>
     </template>
 
+    <!-- File: upload to PRIVATE contest storage; the model holds the file id. -->
+    <template v-else-if="field.type === 'file'">
+      <span :id="fieldId" class="cpub-subfield-label">
+        {{ field.label }} <span v-if="field.required" class="cpub-subfield-req" aria-hidden="true">*</span>
+      </span>
+      <input
+        ref="fileInput"
+        type="file"
+        class="cpub-sr-only"
+        :accept="field.accept || undefined"
+        :aria-label="field.label"
+        :aria-describedby="helpId"
+        @change="onFilePick"
+      />
+      <div class="cpub-subfield-file">
+        <span v-if="model" class="cpub-subfield-file-chip">
+          <i class="fa-solid fa-paperclip" aria-hidden="true"></i>
+          <a :href="`/api/files/${model}/raw`" target="_blank" rel="noopener noreferrer">{{ uploadedName || 'View uploaded file' }}</a>
+          <button type="button" class="cpub-subfield-file-x" aria-label="Remove file" @click="clearFile"><i class="fa-solid fa-xmark"></i></button>
+        </span>
+        <button v-else type="button" class="cpub-subfield-file-btn" :disabled="uploading" @click="fileInput?.click()">
+          <i class="fa-solid fa-upload" aria-hidden="true"></i> {{ uploading ? 'Uploading…' : 'Choose file' }}
+        </button>
+      </div>
+      <p v-if="uploadError" class="cpub-subfield-file-err" role="alert">{{ uploadError }}</p>
+    </template>
+
     <!-- Everything else: a labelled single control. -->
     <template v-else>
       <label class="cpub-subfield-label" :for="fieldId">
@@ -141,8 +198,9 @@ function setChecked(on: boolean): void {
         v-model="model"
         :type="field.type === 'url' ? 'url' : field.type === 'email' ? 'email' : field.type === 'number' ? 'number' : field.type === 'date' ? 'date' : field.type === 'tel' ? 'tel' : 'text'"
         class="cpub-subfield-input"
+        :class="{ 'cpub-subfield-signature': field.type === 'signature' }"
         :maxlength="field.maxLength ?? 4000"
-        :placeholder="field.type === 'url' ? 'https://' : undefined"
+        :placeholder="field.type === 'url' ? 'https://' : field.type === 'signature' ? 'Type your full name to sign' : undefined"
         :inputmode="field.type === 'tel' ? 'tel' : undefined"
         :aria-describedby="helpId"
       />
@@ -173,5 +231,18 @@ function setChecked(on: boolean): void {
 .cpub-subfield-radios { display: flex; flex-direction: column; gap: 6px; }
 .cpub-subfield-radio { display: flex; align-items: center; gap: 8px; font-size: var(--text-sm); color: var(--text); cursor: pointer; }
 .cpub-subfield-radio input { width: 15px; height: 15px; flex-shrink: 0; margin: 0; }
+/* File upload. */
+.cpub-subfield-file { display: flex; align-items: center; gap: 8px; }
+.cpub-subfield-file-btn { display: inline-flex; align-items: center; gap: 6px; padding: var(--space-2) var(--space-3); border: var(--border-width-default) solid var(--border); background: var(--surface); color: var(--text); font-size: var(--text-sm); font-family: var(--font-sans); cursor: pointer; }
+.cpub-subfield-file-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+.cpub-subfield-file-btn:disabled { opacity: .6; cursor: progress; }
+.cpub-subfield-file-chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; border: var(--border-width-default) solid var(--border2); background: var(--surface2); font-size: var(--text-sm); max-width: 100%; }
+.cpub-subfield-file-chip a { color: var(--accent); text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cpub-subfield-file-chip a:hover { text-decoration: underline; }
+.cpub-subfield-file-x { background: none; border: none; color: var(--text-dim); cursor: pointer; padding: 0 2px; }
+.cpub-subfield-file-x:hover { color: var(--red-text); }
+.cpub-subfield-file-err { font-size: 11px; color: var(--red-text); margin: 2px 0 0; }
+/* Signature: a cursive signing line. */
+.cpub-subfield-signature { font-family: cursive, var(--font-sans); font-size: var(--text-base); }
 .cpub-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 </style>

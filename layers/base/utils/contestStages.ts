@@ -265,6 +265,8 @@ export const TEMPLATE_FIELD_TYPE_LABEL: Record<ContestSubmissionTemplateField['t
   tel: 'Phone number',
   agreement: 'Agreement (terms to accept)',
   address: 'Mailing address',
+  file: 'File upload',
+  signature: 'Signature',
   section: 'Section header',
 };
 
