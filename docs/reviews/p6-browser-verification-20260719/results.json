@@ -1,0 +1,21 @@
+{
+  "createStatus": 200,
+  "slug": "p6-rich-registration-demo-1784470146805",
+  "transitionStatus": 200,
+  "saveDisabledWhenEmpty": true,
+  "fileChipVisible": true,
+  "saveEnabledWhenFilled": true,
+  "registeredState": true,
+  "regCount": 1,
+  "privateFieldRows": 1,
+  "entryCount": 1,
+  "agreementRows": 1,
+  "fileInPrivate": "true",
+  "fileNotInPublic": "true",
+  "signatureInPrivate": "true",
+  "registrantsApiStatus": 200,
+  "registrantsIncludePii": true,
+  "registrantsItemCount": 1,
+  "csvStatus": 200,
+  "csvHasRawLink": true
+}

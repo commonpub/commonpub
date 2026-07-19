@@ -1,4 +1,5 @@
 import { getContestBySlug, canViewContest, isContestEditor, listContestRegistrants } from '@commonpub/server';
+import { effectiveRegistrationTemplate } from '@commonpub/schema';
 import { z } from 'zod';
 
 /**

@@ -1,5 +1,5 @@
 import { eq, desc, sql, inArray, and } from 'drizzle-orm';
-import { contests, contestEntries, users, contentItems, contestEntryPrivateFields, contestRegistrations, contestRegistrationPrivateFields, isFormFieldPii } from '@commonpub/schema';
+import { contests, contestEntries, users, contentItems, contestEntryPrivateFields, contestRegistrations, contestRegistrationPrivateFields, isFormFieldPii, effectiveRegistrationTemplate } from '@commonpub/schema';
 import type { DB } from '../types.js';
 import type { ContestStageSubmission, FormField } from '@commonpub/schema';
 import { currentStage, isEliminated } from './stages.js';
@@ -168,7 +168,9 @@ export async function buildRegistrantsExport(
     .limit(1);
   if (!contest) return null;
 
-  const template = (contest.registrationTemplate ?? []) as FormField[];
+  // Effective template (operator's, else the legacy default) so a legacy contest's
+  // {building,experience,team} answers still get labelled columns — matches the panel.
+  const template = effectiveRegistrationTemplate((contest.registrationTemplate ?? []) as FormField[]);
   const isPii = isFormFieldPii; // shared source of truth — see @commonpub/schema
   // Answer columns: skip section (display) + agreement (consent, not a stored value),
   // and skip PII columns unless the reader is allowed them.

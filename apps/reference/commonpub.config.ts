@@ -21,6 +21,10 @@ export default defineCommonPubConfig({
     // PII *read* access is always gated server-side by the `contest.pii` permission.
     contestProposals: true,
     contestPii: true,
+    // Private file-upload + signature registration field types (P6). Uploads are
+    // stored non-public and served only through the gated /api/files/[id]/raw route,
+    // scoped to the specific contest's organizers. Requires contestPii.
+    contestPrivateFiles: true,
     learning: true,
     explainers: true,
     editorial: true,
