@@ -277,6 +277,17 @@ export async function transitionContestStatus(
     }
   });
 
+  // Combined-mode launch: create the deferred draft entries for participants who
+  // registered while the contest was `upcoming` (best-effort, bounded, idempotent).
+  if (newStatus === 'active') {
+    try {
+      const { backfillCombinedEntries } = await import('./submissions.js');
+      await backfillCombinedEntries(db, contestId);
+    } catch (err) {
+      console.error('[contest] combined-entry backfill failed:', err instanceof Error ? err.message : err);
+    }
+  }
+
   // Notify contest entrants about status change (non-critical)
   try {
     const { createNotification } = await import('../notification/notification.js');

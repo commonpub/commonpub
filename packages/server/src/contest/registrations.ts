@@ -13,7 +13,7 @@ import { getNotificationEmailTarget } from '../notification/emailPrefs.js';
 import { parseContestEmailCopy, buildContestEmailCopyOverride } from './emailCopy.js';
 import { formatDeadlineUtc } from './reminders.js';
 import { validateSubmissionFields } from './validation.js';
-import { recordPrivateAndAgreements } from './submissions.js';
+import { recordPrivateAndAgreements, maybeCreateCombinedEntry } from './submissions.js';
 import type { ContestEmailContext, ContestRegistrantItem, AgreementAcceptanceInput } from './types.js';
 
 // Contest registration: a participant's intent to take part, independent of any
@@ -68,6 +68,7 @@ export async function registerForContest(
       currentStageId: contests.currentStageId,
       emailCopy: contests.emailCopy,
       registrationTemplate: contests.registrationTemplate,
+      registrationMode: contests.registrationMode,
     })
     .from(contests)
     .where(eq(contests.id, input.contestId))
@@ -232,6 +233,15 @@ export async function registerForContest(
 
     return { genuinelyNew, priorTier, finalTier };
   });
+
+  // Combined mode: also create the participant's DRAFT placeholder entry so they
+  // register + enter in one step (best-effort, idempotent, self-gated on
+  // combined + active + a proposal stage). Only for FULL participants; never rolls
+  // back the registration. Upcoming contests defer entry creation (helper no-ops).
+  const finalTier = outcome.genuinelyNew ? tier : outcome.finalTier;
+  if (contest.registrationMode === 'combined' && finalTier === 'full') {
+    await maybeCreateCombinedEntry(db, input.contestId, input.userId, input.ip ?? null);
+  }
 
   // Email (best-effort, OUTSIDE the tx — a send-path failure never rolls back the
   // registration). A reminders→full upgrade is the moment they become a participant.

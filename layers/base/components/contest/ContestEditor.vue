@@ -582,6 +582,17 @@ const reviewStages = computed(() => (contest.value?.stages ?? []).filter((s) => 
           <template #registration>
             <div class="cpub-ce-reg-tab">
               <p class="cpub-form-hint">Build the form participants fill when they register. Answers are stored the same way entries are — public answers on the registration, personal data (email/address/PII fields) stored privately, and consent (agreements) recorded to the audit log. Leave it empty to use the default sign-up questions.</p>
+              <fieldset class="cpub-ce-reg-mode">
+                <legend class="cpub-form-label" style="margin: 0 0 6px;">Registration mode</legend>
+                <label class="cpub-ce-reg-mode-opt">
+                  <input type="radio" value="light" :checked="registrationMode === 'light'" @change="registrationMode = 'light'" />
+                  <span><strong>Light</strong> — registering records participation; entering a project is a separate step.</span>
+                </label>
+                <label class="cpub-ce-reg-mode-opt">
+                  <input type="radio" value="combined" :checked="registrationMode === 'combined'" @change="registrationMode = 'combined'" />
+                  <span><strong>Combined</strong> — registering also creates the participant's entry (a draft they develop). One-step intake. Requires a proposal-mode submission stage.</span>
+                </label>
+              </fieldset>
               <div class="cpub-ce-reg-cols">
                 <FormTemplateEditor
                   v-model:template="registrationTemplate"
@@ -892,6 +903,9 @@ const reviewStages = computed(() => (contest.value?.stages ?? []).filter((s) => 
 /* Stages tab (center) — the form tab gets a little breathing room. */
 .cpub-ce-stages-tab { display: flex; flex-direction: column; gap: 4px; }
 .cpub-ce-reg-tab { display: flex; flex-direction: column; gap: var(--space-3); }
+.cpub-ce-reg-mode { border: var(--border-width-default) solid var(--border2); padding: var(--space-3); margin: 0; display: flex; flex-direction: column; gap: 6px; }
+.cpub-ce-reg-mode-opt { display: flex; align-items: flex-start; gap: 8px; font-size: var(--text-sm); color: var(--text-dim); cursor: pointer; }
+.cpub-ce-reg-mode-opt input { margin-top: 3px; flex-shrink: 0; }
 .cpub-ce-reg-cols { display: grid; grid-template-columns: 1fr; gap: var(--space-3); }
 @media (min-width: 900px) { .cpub-ce-reg-cols { grid-template-columns: 3fr 2fr; align-items: start; } }
 .cpub-ce-reg-preview { border: var(--border-width-default) solid var(--border); background: var(--surface2); padding: var(--space-3); }

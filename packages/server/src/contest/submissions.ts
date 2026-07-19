@@ -1,4 +1,4 @@
-import { eq, and, sql } from 'drizzle-orm';
+import { eq, and, sql, isNull } from 'drizzle-orm';
 import {
   contests,
   contestEntries,
@@ -360,6 +360,134 @@ export async function submitContestProposal(db: DB, args: SubmitProposalArgs): P
     }
     throw err;
   }
+}
+
+/**
+ * COMBINED registration mode (P5): after a participant registers, also create a
+ * DRAFT placeholder entry so they register + enter in one step. Reuses the proposal
+ * placeholder mechanism (createContent draft → link a `contest_entries` row) but
+ * with EMPTY stageSubmissions — the intake lives on the registration; this entry is
+ * a stub the participant develops. Best-effort + idempotent + guarded:
+ *  - no-op unless `registrationMode='combined'`, the contest is `active`, and the
+ *    current stage is a `proposal`-mode submission stage (upcoming ⇒ deferred);
+ *  - no-op if the participant already has ANY entry (re-register won't double-create);
+ *  - respects `maxEntriesPerUser`.
+ * A failure never rolls back the (already-committed) registration — the participant
+ * stays registered and can enter via the normal flow; the placeholder is compensated.
+ * Returns whether an entry was created (+ its id).
+ */
+export async function maybeCreateCombinedEntry(
+  db: DB,
+  contestId: string,
+  userId: string,
+  ip?: string | null,
+): Promise<{ created: boolean; entryId?: string }> {
+  const [contest] = await db
+    .select({
+      id: contests.id,
+      title: contests.title,
+      status: contests.status,
+      registrationMode: contests.registrationMode,
+      stages: contests.stages,
+      currentStageId: contests.currentStageId,
+      startDate: contests.startDate,
+      endDate: contests.endDate,
+      judgingEndDate: contests.judgingEndDate,
+      maxEntriesPerUser: contests.maxEntriesPerUser,
+      eligibleContentTypes: contests.eligibleContentTypes,
+    })
+    .from(contests)
+    .where(eq(contests.id, contestId))
+    .limit(1);
+
+  if (!contest || contest.registrationMode !== 'combined' || contest.status !== 'active') return { created: false };
+
+  const source: StageSource = {
+    status: contest.status,
+    startDate: contest.startDate,
+    endDate: contest.endDate,
+    judgingEndDate: contest.judgingEndDate,
+    stages: contest.stages,
+    currentStageId: contest.currentStageId,
+  };
+  const cur = currentStage(source);
+  if (!cur || cur.kind !== 'submission' || cur.submissionMode !== 'proposal') return { created: false };
+
+  // Idempotent + per-user cap: skip if they already have an entry.
+  const existing = await countRows(db, contestEntries, and(eq(contestEntries.contestId, contestId), eq(contestEntries.userId, userId)));
+  if (existing > 0) return { created: false };
+  if (contest.maxEntriesPerUser != null && existing >= contest.maxEntriesPerUser) return { created: false };
+
+  const eligible = (contest.eligibleContentTypes ?? []).find((t) => PLACEHOLDER_TYPES.includes(t as ContentType));
+  const placeholderType = (eligible ?? 'project') as ContentType;
+  const placeholder = await createContent(db, userId, { type: placeholderType, title: `${contest.title} entry` });
+
+  try {
+    const entryId = await db.transaction(async (tx) => {
+      const [inserted] = await tx
+        .insert(contestEntries)
+        .values({ contestId, contentId: placeholder.id, userId, placeholder: true, stageSubmissions: [] })
+        .onConflictDoNothing()
+        .returning({ id: contestEntries.id });
+      if (!inserted) throw new Error('entry-conflict');
+      await tx.update(contests).set({ entryCount: sql`${contests.entryCount} + 1` }).where(eq(contests.id, contestId));
+      // The consent IP is captured on the registration acceptances already; the
+      // stub entry carries no artifact, so nothing else to record here.
+      void ip;
+      return inserted.id;
+    });
+    return { created: true, entryId };
+  } catch {
+    await deleteContent(db, placeholder.id, userId).catch(() => {});
+    return { created: false };
+  }
+}
+
+/**
+ * Launch backfill (P5): when a COMBINED contest transitions to `active`, create the
+ * deferred draft entries for its FULL registrants who signed up while it was
+ * `upcoming` (and don't yet have an entry). Bounded — processes at most `cap`
+ * registrants per call so a huge audience can't make the transition a giant
+ * synchronous op; returns how many were created + whether more remain. Idempotent
+ * (maybeCreateCombinedEntry skips anyone who already has an entry), so a re-run
+ * finishes the tail. No-op unless the contest is combined + active.
+ */
+export async function backfillCombinedEntries(
+  db: DB,
+  contestId: string,
+  cap = 500,
+): Promise<{ created: number; remaining: boolean }> {
+  const [contest] = await db
+    .select({ registrationMode: contests.registrationMode, status: contests.status })
+    .from(contests)
+    .where(eq(contests.id, contestId))
+    .limit(1);
+  if (!contest || contest.registrationMode !== 'combined' || contest.status !== 'active') {
+    return { created: 0, remaining: false };
+  }
+
+  // FULL registrants without an entry (up to cap+1 to detect a remaining tail).
+  const missing = await db
+    .select({ userId: contestRegistrations.userId })
+    .from(contestRegistrations)
+    .leftJoin(
+      contestEntries,
+      and(eq(contestEntries.contestId, contestId), eq(contestEntries.userId, contestRegistrations.userId)),
+    )
+    .where(and(
+      eq(contestRegistrations.contestId, contestId),
+      eq(contestRegistrations.tier, 'full'),
+      isNull(contestEntries.id),
+    ))
+    .limit(cap + 1);
+
+  const remaining = missing.length > cap;
+  let created = 0;
+  for (const { userId } of missing.slice(0, cap)) {
+    const r = await maybeCreateCombinedEntry(db, contestId, userId);
+    if (r.created) created += 1;
+  }
+  return { created, remaining };
 }
 
 export interface EntryPrivateData {
