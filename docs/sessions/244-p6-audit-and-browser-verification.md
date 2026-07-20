@@ -74,10 +74,33 @@ client and server); the client util re-exports them for component auto-imports;
   `file_purpose` 'contest' enum) and 0044 (P1 registration schema) — both applied
   locally; **both migrations exist for the production roll** (no missing migration).
 
+### Second holistic audit (operator asked to "audit again" before the roll) — found + fixed a BLOCKER (`5bb1c1d0`)
+A 3-dimension holistic adversarial audit (session-244 correctness / security /
+integration+roll) with per-finding verify returned 9 confirmed. The top 3 (blocker +
+2 major) were ONE root cause I had introduced with the per-contest scoping:
+
+- **[BLOCKER] private-file uuid-injection.** `contestIdsForPrivateFile` matched the
+  file id as ANY jsonb value. A `pii:true` text/signature answer skips
+  `validateFileFields` (only `file`-typed fields get the ownership check) and is
+  stored verbatim, so a `contest.pii` holder could paste a VICTIM's private file uuid
+  into such a field of a contest THEY organize and read the victim's bytes via
+  `/raw`. Defeated the whole per-contest scoping.
+  **Fix:** constrain the reverse lookup to rows where `user_id = files.uploader_id`
+  (a legitimate file answer always sits in a row owned by the file's uploader, per
+  `validateFileFields`). Closes the blocker + both majors + the delete-lockout minor.
+  Added a security regression test + `user_id` indexes (migration **0045**) + corrected
+  the flag comment's RBAC-scope claim.
+- **[MAJOR] roll trap** — the version chain must bump for migration 0044/0045 (handled
+  in the roll, below).
+- Nits accepted/deferred: orphaned file bytes when a contest is deleted (owner can
+  still delete; no leak); prod bucket must have no public-read policy (roll checklist).
+
 ## Next
 - **The production roll (HELD, awaiting go):** bump+publish the exact-pin chain
-  schema→config→infra→server→layer; migrations 0043+0044 ship in schema; bump BOTH
-  forks' direct `@commonpub/schema`/`config`/`layer` pins (0.x caret won't cross a
-  minor) + sync lockfiles (deveco pnpm-lock, heatsync package-lock); `git push
+  schema→config→infra→server→layer; migrations **0043 + 0044 + 0045** ship in schema;
+  bump BOTH forks' direct `@commonpub/schema`/`config`/`layer` pins (0.x caret won't
+  cross a minor) + sync lockfiles (deveco pnpm-lock, heatsync package-lock); `git push
   --no-verify`; deploy-wait + `/api/health` + `/api/features` on all 3.
-  `contestSignup` stays ON; `contestPrivateFiles` decision per operator.
+  `contestSignup` stays ON; **`contestPrivateFiles` → ON in prod** (operator decision).
+  Roll checklist: confirm the prod object store bucket has NO public-read policy
+  (private files rely on it) before enabling.
