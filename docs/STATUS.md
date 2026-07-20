@@ -1,6 +1,6 @@
 # CommonPub — Status & Operator Runbook
 
-> **Living doc — your "come back later" reference.** Snapshot updated 2026-07-17 (through session 243).
+> **Living doc — your "come back later" reference.** Snapshot updated 2026-07-20 (through session 244).
 > Verify any version/flag claim before trusting it: `npm view @commonpub/<pkg> version`,
 > `curl https://<instance>/api/features`, `cargo search create-commonpub`.
 > Companion docs: **`docs/ROADMAP.md`** (prioritized remaining work — the master backlog), the
@@ -11,6 +11,23 @@
 ---
 
 ## TL;DR — where things stand
+
+**Session 244 (2026-07-20) — RICH CONTEST REGISTRATION (P1–P6) ROLLED to commonpub.io + deveco.io.**
+npm **schema 0.61 / config 0.35 / server 2.118 / test-utils 0.5.14 / layer 0.110** (infra unchanged at
+0.19). **Migrations 0044** (registration schema: `contests.registration_template`/`registration_mode`,
+`contest_registration_private_fields`, generalized `contest_agreement_acceptances`) **+ 0045**
+(private-fields `user_id` indexes). Operator-definable registration forms with PII + private
+file/signature field types. **`contestPii` + `contestPrivateFiles` turned ON** on commonpub.io + deveco
+(both verified live: `/api/features` shows both true, `/api/contests` reads the new cols without 500,
+deploys green with `db-migrate` hard-fail guard passed). **heatsync deliberately NOT rolled** this session
+(operator choice — its pins stay at schema ^0.60 / layer ^0.109; bump when ready). Two adversarial security
+audits (2nd caught + fixed a private-file uuid-injection **blocker** — the reverse lookup now constrains
+`user_id = files.uploader_id`) + a targeted re-verify + two full browser E2E runs (one caught a latent
+`registrants` route production bug — a `utils/` helper Nitro can't auto-import — fixed by relocating it to
+`@commonpub/schema`). Screenshots: `docs/reviews/p6-browser-verification-20260719/`. Detail:
+`docs/sessions/244-p6-audit-and-browser-verification.md`. **Pre-existing CI-red:** `@commonpub/docs#test`
+fails in CI (env-specific; green locally 131/131) — unrelated to this roll, red on `main` since before the
+branch; deploy runs independently of CI so it shipped clean.
 
 **Session 243 (2026-07-17) — CI-RESTORE + P0 PRIVATE-STORAGE ROLLED to all 3.** npm **schema 0.60 /
 config 0.34 / infra 0.19 / server 2.117.3 / layer 0.109**, **migration 0043**, live went 37→**38 flags**
