@@ -587,6 +587,9 @@ export const contestEntryPrivateFields = pgTable('contest_entry_private_fields',
 }, (t) => [
   unique('uq_contest_entry_private_fields_entry').on(t.entryId),
   index('idx_contest_entry_private_fields_contest_id').on(t.contestId),
+  // Serves the `contestIdsForPrivateFile` reverse lookup: narrow to the file owner's
+  // own rows (user_id = files.uploader_id) before the non-sargable jsonb value scan.
+  index('idx_contest_entry_private_fields_user_id').on(t.userId),
 ]);
 
 // --- Contest Registration Private Fields (PII, P1) ---
@@ -613,6 +616,8 @@ export const contestRegistrationPrivateFields = pgTable('contest_registration_pr
 }, (t) => [
   unique('uq_contest_registration_private_fields_registration').on(t.registrationId),
   index('idx_contest_registration_private_fields_contest_id').on(t.contestId),
+  // Serves the `contestIdsForPrivateFile` reverse lookup (see contest_entry_private_fields).
+  index('idx_contest_registration_private_fields_user_id').on(t.userId),
 ]);
 
 // --- Contest Registrations (participant sign-up) ---

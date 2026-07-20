@@ -62,25 +62,34 @@ export async function validateFileFields(
 }
 
 /**
- * Which contest(s) a private file was submitted to. A `file` answer is stored as a
- * bare `files.id` in a private-field jsonb (registration OR entry PII), so a file is
- * "linked" to a contest by being a VALUE somewhere in those `fields` maps. This is
- * the reverse lookup that lets the `/api/files/[id]/raw` serving route scope read
- * access to the SPECIFIC contest's organizers — not every `contest.pii` holder
- * instance-wide (P6 per-contest scoping; the gate the `contestPrivateFiles` flag
- * comment names). Returns [] for a file not yet referenced by any submission (e.g.
- * uploaded but not submitted) — such a file is readable only by its owner.
+ * Which contest(s) a private file was LEGITIMATELY submitted to. A `file` answer is
+ * stored as a bare `files.id` in a private-field jsonb (registration OR entry PII).
+ * This reverse lookup lets `/api/files/[id]/raw` scope a non-owner read to the
+ * organizers of the specific contest the file's OWNER submitted it to.
+ *
+ * SECURITY — the match is constrained to rows whose `user_id` equals the file's
+ * `uploader_id`. This is the invariant that closes a uuid-injection: `validateFileFields`
+ * guarantees a `file`-typed answer was uploaded by the submitter (uploaderId === userId),
+ * so a legitimate reference ALWAYS sits in a private-field row owned by the file's
+ * uploader. Without this guard, ANY value in the jsonb matches — so a `contest.pii`
+ * holder could paste a victim's file uuid into a `pii:true` text/signature field of a
+ * contest THEY organize (those field types skip `validateFileFields`) and then read the
+ * victim's private bytes via the self-owned contest. Requiring `user_id = uploader_id`
+ * makes the attacker's row (user_id = attacker ≠ uploader) never match. Returns [] for
+ * a file not yet referenced by its owner's own submission — readable only by its owner.
  */
 export async function contestIdsForPrivateFile(db: DB, fileId: string): Promise<string[]> {
-  // `jsonb_each_text` unrolls each map to (key,value) pairs; we match the file id as
-  // a VALUE. Filtered to the file's own presence, so at most a handful of rows scan.
+  // The uploader subquery filter (indexed on user_id) narrows to just the file owner's
+  // own submission rows before the non-sargable jsonb value scan — a handful of rows.
   const res = await db.execute(sql`
     SELECT DISTINCT contest_id FROM (
       SELECT contest_id FROM contest_registration_private_fields
-        WHERE EXISTS (SELECT 1 FROM jsonb_each_text(fields) e WHERE e.value = ${fileId})
+        WHERE user_id = (SELECT uploader_id FROM files WHERE id = ${fileId})
+          AND EXISTS (SELECT 1 FROM jsonb_each_text(fields) e WHERE e.value = ${fileId})
       UNION ALL
       SELECT contest_id FROM contest_entry_private_fields
-        WHERE EXISTS (SELECT 1 FROM jsonb_each_text(fields) e WHERE e.value = ${fileId})
+        WHERE user_id = (SELECT uploader_id FROM files WHERE id = ${fileId})
+          AND EXISTS (SELECT 1 FROM jsonb_each_text(fields) e WHERE e.value = ${fileId})
     ) refs
   `);
   return rowsOf<{ contest_id: string }>(res).map((r) => r.contest_id);

@@ -1,0 +1,2 @@
+CREATE INDEX "idx_contest_entry_private_fields_user_id" ON "contest_entry_private_fields" USING btree ("user_id");--> statement-breakpoint
+CREATE INDEX "idx_contest_registration_private_fields_user_id" ON "contest_registration_private_fields" USING btree ("user_id");

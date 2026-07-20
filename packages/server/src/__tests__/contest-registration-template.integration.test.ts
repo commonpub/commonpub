@@ -229,4 +229,38 @@ describe('contest registration template partition (P2)', () => {
     // An unreferenced file id resolves to no contest (owner-only access; deletable).
     expect(await contestIdsForPrivateFile(db, crypto.randomUUID())).toEqual([]);
   });
+
+  // SECURITY REGRESSION (session-244 audit blocker): the reverse lookup must match
+  // ONLY the file owner's own submission rows (user_id = uploader_id). Otherwise a
+  // contest.pii holder could paste a VICTIM's file uuid into a pii-text/signature
+  // field of a contest THEY organize (those field types skip validateFileFields) and
+  // read the victim's private bytes via the self-owned contest.
+  it('does NOT link a victim file uuid smuggled into another user\'s pii-text field', async () => {
+    const victim = (await createTestUser(db, { username: `rr-vic-${crypto.randomUUID().slice(0, 6)}`, email: `v${crypto.randomUUID().slice(0, 6)}@ex.com` })).id;
+    const attacker = (await createTestUser(db, { username: `rr-atk-${crypto.randomUUID().slice(0, 6)}`, email: `a${crypto.randomUUID().slice(0, 6)}@ex.com` })).id;
+    await db.update(users).set({ emailVerified: true }).where(eq(users.id, attacker));
+
+    // Victim's private file — never submitted anywhere.
+    const [vfile] = await db.insert(files).values({
+      uploaderId: victim, filename: 'contest/secret.pdf', originalName: 'secret.pdf',
+      mimeType: 'application/pdf', sizeBytes: 999, storageKey: 'contest/secret.pdf',
+      purpose: 'contest', visibility: 'private',
+    }).returning({ id: files.id });
+    const victimFileId = vfile!.id;
+
+    // Attacker organizes a contest with a pii:true TEXT field (skips validateFileFields)
+    // and registers submitting the victim's file uuid as their own "answer".
+    const attackContest = await makeContest(db, attacker, [
+      { key: 'smuggle', label: 'Notes', type: 'text', required: false, pii: true },
+    ]);
+    const res = await registerForContest(db, cfg, { contestId: attackContest, userId: attacker, fields: { smuggle: victimFileId } });
+    expect(res.registered).toBe(true);
+    // The uuid IS stored (it's a valid string answer)…
+    const [row] = await db.select().from(contestRegistrationPrivateFields).where(eq(contestRegistrationPrivateFields.contestId, attackContest));
+    expect((row?.fields as Record<string, string>)?.smuggle).toBe(victimFileId);
+    // …but the reverse lookup must NOT resolve the victim's file to the attacker's
+    // contest (row user_id = attacker ≠ file uploader = victim), so the attacker is
+    // never authorized as an "organizer of a contest the file was submitted to".
+    expect(await contestIdsForPrivateFile(db, victimFileId)).toEqual([]);
+  });
 });

@@ -40,11 +40,14 @@ export const featureFlagsSchema = z.object({
   contestPii: z.boolean().default(false),
   // Private contest file/signature attachments (P0/P6 — rich registration). Gates
   // the private-storage upload path (purpose=`contest`, stored non-public) and the
-  // /api/files/[id]/raw serving route. That route scopes non-owner reads to the
-  // organizers of the SPECIFIC contest the file was submitted to (owner / contest.manage
-  // / per-contest editor + contest.pii — see contestIdsForPrivateFile), so enabling
-  // this no longer grants cross-contest file access. Default OFF. Inert unless
-  // `contestPii` is on (file/signature are personal-data types) and `contests` is on.
+  // /api/files/[id]/raw serving route. A non-owner read requires `contest.pii` AND
+  // organizer status on a contest the file's OWNER submitted it to (owner / global
+  // contest.manage / per-contest editor — see contestIdsForPrivateFile, which matches
+  // only rows where user_id = the file's uploader, closing uuid-injection). A
+  // per-contest editor is thus scoped to their own contest's files; a global
+  // contest.manage/contest.pii staffer can read any legitimately-submitted file (the
+  // same reach they already have over all registrants/PII, by RBAC design). Default
+  // OFF. Inert unless `contestPii` is on (file/signature are personal-data types).
   contestPrivateFiles: z.boolean().default(false),
   // Automatic contest deadline reminder emails to registered participants.
   // Default OFF; the reminder sweep is inert unless this AND emailNotifications
