@@ -96,6 +96,60 @@ export async function contestIdsForPrivateFile(db: DB, fileId: string): Promise<
 }
 
 /**
+ * Sweep ABANDONED private contest files: purpose=`contest`, visibility=`private`
+ * uploads that (a) are older than `olderThanMs` and (b) are NOT referenced by their
+ * OWNER's own submission (the same `user_id = uploader_id` invariant as the /raw
+ * scoping — a smuggled reference by another user does NOT count as referenced).
+ *
+ * This bounds two things the audit flagged: an authenticated user uploading private
+ * files that are never submitted (no natural cleanup path), and files that BECOME
+ * unreferenced when their owner unregisters / withdraws / the contest is deleted
+ * (the private-field rows cascade away but the file bytes previously orphaned). The
+ * age gate keeps the normal upload→submit window (immediate) safe.
+ *
+ * `deletePrivateBytes` is injected by the caller (the Nitro plugin passes the storage
+ * adapter) so this stays framework-agnostic. Per file: delete the bytes first, then
+ * the DB row — a bytes-delete failure leaves the row for the next sweep to retry
+ * (never orphans the reverse: a row without bytes). Bounded by `limit` per call.
+ */
+export async function sweepOrphanedContestFiles(
+  db: DB,
+  deletePrivateBytes: (storageKey: string) => Promise<void>,
+  opts: { olderThanMs: number; limit: number },
+): Promise<{ swept: number }> {
+  const cutoff = new Date(Date.now() - opts.olderThanMs);
+  const res = await db.execute(sql`
+    SELECT f.id, f.storage_key FROM files f
+    WHERE f.purpose = 'contest' AND f.visibility = 'private' AND f.created_at < ${cutoff}
+      AND NOT EXISTS (
+        SELECT 1 FROM contest_registration_private_fields p
+        WHERE p.user_id = f.uploader_id
+          AND EXISTS (SELECT 1 FROM jsonb_each_text(p.fields) e WHERE e.value = f.id::text)
+      )
+      AND NOT EXISTS (
+        SELECT 1 FROM contest_entry_private_fields p
+        WHERE p.user_id = f.uploader_id
+          AND EXISTS (SELECT 1 FROM jsonb_each_text(p.fields) e WHERE e.value = f.id::text)
+      )
+    LIMIT ${opts.limit}
+  `);
+  const candidates = rowsOf<{ id: string; storage_key: string }>(res);
+  let swept = 0;
+  for (const c of candidates) {
+    try {
+      await deletePrivateBytes(c.storage_key);
+    } catch {
+      // Leave the row so the next sweep retries the byte delete — never delete the
+      // pointer while the bytes remain.
+      continue;
+    }
+    await db.delete(files).where(eq(files.id, c.id));
+    swept++;
+  }
+  return { swept };
+}
+
+/**
  * Persist the PII + agreement halves of a partitioned submission within an open
  * transaction. Scope is EITHER an entry (`entryId` + `stageId`) OR a registration
  * (`registrationId`) — exactly one (P1). PII is upserted into the scope's private
@@ -394,6 +448,17 @@ export async function submitContestProposal(db: DB, args: SubmitProposalArgs): P
   //    failure, remove the placeholder so a failed submit leaves nothing behind.
   try {
     const entryId = await db.transaction(async (tx) => {
+      // Serialize concurrent submits for this (contest,user); the cap pre-check above
+      // is advisory (TOCTOU) and the fresh contentId means onConflictDoNothing can't
+      // catch a double-submit. Re-check the cap under the lock.
+      await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${`contest-entry:${contestId}:${userId}`}))`);
+      if (contest.maxEntriesPerUser != null) {
+        const [cnt] = await tx
+          .select({ n: sql<number>`count(*)::int` })
+          .from(contestEntries)
+          .where(and(eq(contestEntries.contestId, contestId), eq(contestEntries.userId, userId)));
+        if ((cnt?.n ?? 0) >= contest.maxEntriesPerUser) throw new Error('entry-cap');
+      }
       const [inserted] = await tx
         .insert(contestEntries)
         .values({
@@ -506,6 +571,16 @@ export async function maybeCreateCombinedEntry(
 
   try {
     const entryId = await db.transaction(async (tx) => {
+      // Serialize concurrent create attempts for this (contest,user) — the count
+      // pre-check above is advisory (TOCTOU), so a double-submit could otherwise
+      // create two draft entries (each with a fresh contentId, so onConflictDoNothing
+      // can't catch it). Re-check under the lock; the loser aborts + cleans up below.
+      await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${`contest-entry:${contestId}:${userId}`}))`);
+      const [cnt] = await tx
+        .select({ n: sql<number>`count(*)::int` })
+        .from(contestEntries)
+        .where(and(eq(contestEntries.contestId, contestId), eq(contestEntries.userId, userId)));
+      if ((cnt?.n ?? 0) > 0) throw new Error('entry-conflict');
       const [inserted] = await tx
         .insert(contestEntries)
         .values({ contestId, contentId: placeholder.id, userId, placeholder: true, stageSubmissions: [] })

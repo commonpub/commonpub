@@ -619,6 +619,7 @@ export {
   submitStageArtifact,
   validateFileFields,
   contestIdsForPrivateFile,
+  sweepOrphanedContestFiles,
   validateStageArtifactFields,
   validateSubmissionFields,
   recordPrivateAndAgreements,

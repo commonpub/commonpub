@@ -13,7 +13,7 @@ import type { CommonPubConfig } from '@commonpub/config';
 import type { DB } from '../types.js';
 import { createTestDB, createTestUser, closeTestDB } from './helpers/testdb.js';
 import { registerForContest, getViewerRegistration, listContestRegistrants } from '../contest/registrations.js';
-import { contestIdsForPrivateFile } from '../contest/submissions.js';
+import { contestIdsForPrivateFile, sweepOrphanedContestFiles } from '../contest/submissions.js';
 import { buildRegistrantsExport } from '../contest/export.js';
 
 // P2: registration routed through the operator's registrationTemplate — public
@@ -262,5 +262,41 @@ describe('contest registration template partition (P2)', () => {
     // contest (row user_id = attacker ≠ file uploader = victim), so the attacker is
     // never authorized as an "organizer of a contest the file was submitted to".
     expect(await contestIdsForPrivateFile(db, victimFileId)).toEqual([]);
+  });
+
+  // Session-244 post-roll: the orphaned-file sweep deletes ABANDONED private contest
+  // uploads (old + not referenced by their owner's submission), bounding storage +
+  // cleaning up bytes that lost their reference on unregister/withdraw.
+  it('sweepOrphanedContestFiles: deletes old unreferenced private files, keeps referenced + recent + public', async () => {
+    const owner = (await createTestUser(db, { username: `sw-${crypto.randomUUID().slice(0, 6)}`, email: `s${crypto.randomUUID().slice(0, 6)}@ex.com` })).id;
+    await db.update(users).set({ emailVerified: true }).where(eq(users.id, owner));
+    const old = new Date(Date.now() - 72 * 3_600_000); // beyond a 48h grace
+    const mk = async (over: Record<string, unknown>): Promise<string> => {
+      const [f] = await db.insert(files).values({
+        uploaderId: owner, filename: 'contest/x.pdf', originalName: 'x.pdf', mimeType: 'application/pdf',
+        sizeBytes: 10, storageKey: `contest/${crypto.randomUUID()}.pdf`, purpose: 'contest', visibility: 'private',
+        ...over,
+      }).returning({ id: files.id });
+      return f!.id;
+    };
+    const abandonedOld = await mk({ createdAt: old });
+    const recent = await mk({ createdAt: new Date() });         // within grace → keep
+    const publicOld = await mk({ createdAt: old, visibility: 'public', purpose: 'content' }); // not private/contest → keep
+
+    // A referenced file: registered with it under a file field (old, but referenced → keep).
+    const referenced = await mk({ createdAt: old });
+    const contestId = await makeContest(db, organizerId, [{ key: 'doc', label: 'Doc', type: 'file', required: false }]);
+    await registerForContest(db, cfg, { contestId, userId: owner, fields: { doc: referenced } });
+
+    const sweptKeys: string[] = [];
+    const res = await sweepOrphanedContestFiles(db, async (k) => { sweptKeys.push(k); }, { olderThanMs: 48 * 3_600_000, limit: 100 });
+
+    expect(res.swept).toBe(1); // only abandonedOld
+    expect(sweptKeys).toHaveLength(1);
+    const remaining = new Set((await db.select({ id: files.id }).from(files)).map((r) => r.id));
+    expect(remaining.has(abandonedOld)).toBe(false); // deleted (row + bytes)
+    expect(remaining.has(recent)).toBe(true);
+    expect(remaining.has(publicOld)).toBe(true);
+    expect(remaining.has(referenced)).toBe(true);   // owner submitted it → not orphaned
   });
 });

@@ -273,6 +273,17 @@ export async function submitContestEntry(
   // duplicate (onConflictDoNothing → no row) never increments and a mid-operation
   // failure can't leave entryCount overcounting.
   const row = await db.transaction(async (tx) => {
+    // Serialize concurrent attaches for this (contest,user); the cap pre-check above
+    // is advisory (TOCTOU) and attaching two DIFFERENT content items races past it
+    // (onConflictDoNothing only catches the same contentId). Re-check under the lock.
+    await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${`contest-entry:${contestId}:${userId}`}))`);
+    if (c.maxEntriesPerUser != null) {
+      const [cnt] = await tx
+        .select({ n: sql<number>`count(*)::int` })
+        .from(contestEntries)
+        .where(and(eq(contestEntries.contestId, contestId), eq(contestEntries.userId, userId)));
+      if ((cnt?.n ?? 0) >= c.maxEntriesPerUser) return null;
+    }
     const [inserted] = await tx
       .insert(contestEntries)
       .values({ contestId, contentId, userId })

@@ -49,6 +49,7 @@ export {
   getEntryPrivateData,
   validateFileFields,
   contestIdsForPrivateFile,
+  sweepOrphanedContestFiles,
 } from './submissions.js';
 
 export { buildContestExport, buildRegistrantsExport, toCsv } from './export.js';
