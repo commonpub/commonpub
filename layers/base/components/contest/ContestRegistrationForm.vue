@@ -21,9 +21,19 @@ const props = withDefaults(defineProps<{
   idPrefix?: string;
   /** Save button label. */
   saveLabel?: string;
-}>(), { savedFields: null, registering: false, preview: false, idPrefix: 'cpub-reg', saveLabel: 'Save details' });
+  /**
+   * Editor↔preview link (preview only): the field index highlighted here. Clicking
+   * a preview field emits `field-activate` so the paired editor focuses that card.
+   * Ignored outside preview, so the real participant form is unaffected.
+   */
+  activeIndex?: number;
+}>(), { savedFields: null, registering: false, preview: false, idPrefix: 'cpub-reg', saveLabel: 'Save details', activeIndex: -1 });
 
-const emit = defineEmits<{ (e: 'save', fields: Record<string, string>): void }>();
+const emit = defineEmits<{
+  (e: 'save', fields: Record<string, string>): void;
+  /** A preview field was clicked — focus its editor card (preview only). */
+  (e: 'field-activate', index: number): void;
+}>();
 
 // Live answer model, keyed by field key. Section fields carry no value.
 const values = reactive<Record<string, string>>({});
@@ -65,7 +75,18 @@ function save(): void {
 <template>
   <div class="cpub-regform">
     <fieldset class="cpub-regform-fields" :disabled="preview">
-      <div v-for="f in template" :key="f.key" class="cpub-regform-field" :class="{ 'cpub-regform-field--invalid': missing.has(f.key) }">
+      <div
+        v-for="(f, fi) in template"
+        :key="f.key"
+        class="cpub-regform-field"
+        :class="{
+          'cpub-regform-field--invalid': missing.has(f.key),
+          'cpub-regform-field--linkable': preview,
+          'cpub-regform-field--active': preview && fi === activeIndex,
+        }"
+        :title="preview ? 'Edit this field in the builder' : undefined"
+        @click="preview && emit('field-activate', fi)"
+      >
         <ContestSubmissionField :field="f" :id-prefix="idPrefix" v-model="values[f.key]" />
         <p v-if="missing.has(f.key)" class="cpub-regform-missing" role="alert">This field is required.</p>
       </div>
@@ -88,6 +109,16 @@ function save(): void {
 .cpub-regform { display: flex; flex-direction: column; gap: var(--space-2); }
 .cpub-regform-fields { border: none; padding: 0; margin: 0; min-width: 0; display: flex; flex-direction: column; }
 .cpub-regform-field--invalid :deep(.cpub-subfield-input) { border-color: var(--red-border); }
+/* Preview↔editor link: each preview field is a click target that focuses its
+   editor card. Mouse convenience only — the editor is the keyboard source of
+   truth, so no extra tab stops are added here. */
+.cpub-regform-field--linkable { cursor: pointer; padding: 6px 8px; margin: 0 -8px; border: var(--border-width-default) solid transparent; }
+/* The preview fields are disabled (read-only); dropping pointer-events on their
+   contents lets a click anywhere in the field reach the wrapper's jump handler,
+   not get swallowed by a disabled input that never bubbles a click. */
+.cpub-regform-field--linkable :deep(*) { pointer-events: none; }
+.cpub-regform-field--linkable:hover { background: var(--surface2); border-color: var(--border2); }
+.cpub-regform-field--active { background: var(--accent-bg); border-color: var(--accent) !important; }
 .cpub-regform-missing { font-size: 11px; color: var(--red-text); margin: -6px 0 4px; }
 .cpub-regform-save { width: 100%; justify-content: center; margin-top: var(--space-2); }
 </style>

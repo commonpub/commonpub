@@ -23,6 +23,11 @@ import TabsBlock from './blocks/TabsBlock.vue';
 import SponsorsBlock from './blocks/SponsorsBlock.vue';
 import CompareColumnsBlock from './blocks/CompareColumnsBlock.vue';
 import RoadmapBlock from './blocks/RoadmapBlock.vue';
+// Explicit import (matches ContestStageCard): auto-import prefixes this dir's
+// components with "Contest", so the bare <FormTemplateEditor> tag resolves to
+// nothing (its auto-name is ContestFormTemplateEditor) and the registration
+// editor renders as an empty custom element. The explicit import fixes that.
+import FormTemplateEditor from './FormTemplateEditor.vue';
 import { CONTEST_SCHEDULE_KEY, roadmapFromSchedule } from '../../utils/contestBlocks';
 import { standardContestTemplate } from '../../utils/contestTemplates';
 
@@ -95,6 +100,12 @@ const prizesEditor = useBlockEditor(seedBodyBlocks(prizesBlocks.value, prizesDes
 type BodyTab = 'overview' | 'rules' | 'prizes' | 'stages' | 'registration' | 'emails';
 const activeTab = ref<BodyTab>('overview');
 const bodyMode = ref<'write' | 'preview' | 'code'>('write');
+// Registration builder: the field index linked between the form editor and its
+// live preview (focus a card ⇄ click a preview field). -1 = none active.
+const activeRegField = ref(-1);
+// Clear the link when the field set changes shape (add/remove/reorder) so a
+// stale index can't briefly highlight the wrong field; it re-arms on next focus.
+watch(() => registrationTemplate.value.length, () => { activeRegField.value = -1; });
 // The Stages tab has no block editor; it falls back to overview (the palette is
 // hidden there anyway, so nothing inserts into it).
 const activeBodyEditor = computed(() => {
@@ -593,15 +604,30 @@ const reviewStages = computed(() => (contest.value?.stages ?? []).filter((s) => 
                   <span><strong>Combined</strong> — registering also creates the participant's entry (a draft they develop). One-step intake. Requires a proposal-mode submission stage.</span>
                 </label>
               </fieldset>
-              <div class="cpub-ce-reg-cols">
-                <FormTemplateEditor
-                  v-model:template="registrationTemplate"
-                  label="Registration form"
-                  hint="Add the fields you want to collect at sign-up. Group them with section headers; mark personal-data fields as PII."
-                />
+              <div class="cpub-ce-reg-builder">
+                <div class="cpub-ce-reg-editor">
+                  <FormTemplateEditor
+                    v-model:template="registrationTemplate"
+                    :active-index="activeRegField"
+                    label="Registration form"
+                    hint="Add the fields you want to collect at sign-up. Group them with section headers; mark personal-data fields as PII."
+                    @field-activate="activeRegField = $event"
+                  />
+                </div>
                 <div class="cpub-ce-reg-preview">
-                  <span class="cpub-form-label" style="margin: 0 0 6px; display: block;">Preview</span>
-                  <ContestRegistrationForm :template="effectiveRegistrationTemplate(registrationTemplate)" preview />
+                  <div class="cpub-ce-reg-preview-inner">
+                    <div class="cpub-ce-reg-preview-head">
+                      <span class="cpub-form-label" style="margin: 0;">Preview</span>
+                      <span class="cpub-ce-reg-preview-tag">What participants see</span>
+                    </div>
+                    <p v-if="registrationTemplate.length" class="cpub-form-hint cpub-ce-reg-preview-hint">Click a field to jump to it in the builder.</p>
+                    <ContestRegistrationForm
+                      :template="effectiveRegistrationTemplate(registrationTemplate)"
+                      :active-index="activeRegField"
+                      preview
+                      @field-activate="activeRegField = $event"
+                    />
+                  </div>
                 </div>
               </div>
               <ContestRegistrantsPanel v-if="mode === 'edit'" :slug="slug" />
@@ -903,13 +929,33 @@ const reviewStages = computed(() => (contest.value?.stages ?? []).filter((s) => 
 
 /* Stages tab (center) — the form tab gets a little breathing room. */
 .cpub-ce-stages-tab { display: flex; flex-direction: column; gap: 4px; }
-.cpub-ce-reg-tab { display: flex; flex-direction: column; gap: var(--space-3); }
+/* container-type: inline-size makes the tab a query container so the builder
+   splits on the REAL available width (center minus the 340px settings rail),
+   not a naive viewport breakpoint that collapsed the panes on laptops. */
+.cpub-ce-reg-tab { display: flex; flex-direction: column; gap: var(--space-3); container-type: inline-size; }
 .cpub-ce-reg-mode { border: var(--border-width-default) solid var(--border2); padding: var(--space-3); margin: 0; display: flex; flex-direction: column; gap: 6px; }
 .cpub-ce-reg-mode-opt { display: flex; align-items: flex-start; gap: 8px; font-size: var(--text-sm); color: var(--text-dim); cursor: pointer; }
 .cpub-ce-reg-mode-opt input { margin-top: 3px; flex-shrink: 0; }
-.cpub-ce-reg-cols { display: grid; grid-template-columns: 1fr; gap: var(--space-3); }
-@media (min-width: 900px) { .cpub-ce-reg-cols { grid-template-columns: 3fr 2fr; align-items: start; } }
-.cpub-ce-reg-preview { border: var(--border-width-default) solid var(--border); background: var(--surface2); padding: var(--space-3); }
+
+/* Two-pane builder: editor (left, grows/scrolls with the page) + live preview
+   (right, sticky). Stacks editor-first on narrow widths so the editor is never
+   pushed off-screen above the preview (the old single-column-collapse bug).
+   NOTE: no `align-items: start` — the preview column must STRETCH to the grid
+   row height (= the taller editor's height) so its sticky inner has room to
+   travel; content-height columns give sticky zero travel and it never pins. */
+.cpub-ce-reg-builder { display: grid; grid-template-columns: 1fr; gap: var(--space-3); }
+.cpub-ce-reg-editor { min-width: 0; }
+.cpub-ce-reg-preview { min-width: 0; }
+.cpub-ce-reg-preview-inner { border: var(--border-width-default) solid var(--border); background: var(--surface2); padding: var(--space-3); }
+.cpub-ce-reg-preview-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.cpub-ce-reg-preview-tag { font-size: 10px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: .06em; color: var(--text-faint); }
+.cpub-ce-reg-preview-hint { margin: 0 0 var(--space-2); }
+@container (min-width: 760px) {
+  .cpub-ce-reg-builder { grid-template-columns: minmax(0, 1fr) minmax(300px, 400px); }
+  /* Preview tracks the editor as it scrolls. Small top offset so it clears the
+     top of the scrolling center rather than jamming against the very edge. */
+  .cpub-ce-reg-preview-inner { position: sticky; top: var(--space-3); }
+}
 
 /* Danger zone */
 .cpub-danger-label { font-size: 13px; font-weight: 600; margin: 0 0 2px; color: var(--red-text); }

@@ -36,12 +36,39 @@ const props = withDefaults(defineProps<{
   label?: string;
   /** One-line hint under the heading. */
   hint?: string;
-}>(), { enableIntro: false, label: 'Form', hint: '' });
+  /**
+   * Optional editor↔preview link: the field index currently "active" (focused in
+   * the editor or clicked in a paired preview). The matching card is highlighted
+   * and scrolled into view. Opt-in — the stages usage omits it (no behaviour
+   * change); the registration builder syncs it with its live preview.
+   */
+  activeIndex?: number;
+}>(), { enableIntro: false, label: 'Form', hint: '', activeIndex: -1 });
 
 const emit = defineEmits<{
   'update:template': [template: FormField[]];
   'update:instructions': [blocks: BlockTuple[]];
+  /** A card gained focus or was clicked — drives the paired preview highlight. */
+  'field-activate': [index: number];
 }>();
+
+// ─── Editor↔preview linking (opt-in via activeIndex + field-activate) ───
+const cardEls = ref<Array<HTMLElement | null>>([]);
+function setCardRef(fi: number, el: unknown): void {
+  cardEls.value[fi] = (el as HTMLElement) ?? null;
+}
+function activateCard(fi: number): void {
+  emit('field-activate', fi);
+}
+watch(
+  () => props.activeIndex,
+  (i) => {
+    if (i == null || i < 0) return;
+    // block: 'nearest' is a no-op when the card is already visible (e.g. the
+    // editor card that just took focus), so this only scrolls on preview→editor.
+    cardEls.value[i]?.scrollIntoView({ block: 'nearest' });
+  },
+);
 
 const { features } = useFeatures();
 const piiEnabled = computed(() => features.value.contestPii === true);
@@ -234,7 +261,14 @@ function toggleIntro(): void {
     <!-- aria-live reorder announcements. -->
     <div class="cpub-sr-only" aria-live="polite">{{ announcement }}</div>
 
-    <div v-for="(tf, fi) in template" :key="fi" class="cpub-fte-card" :class="{ 'cpub-fte-card--section': tf.type === 'section' }">
+    <div
+      v-for="(tf, fi) in template"
+      :key="fi"
+      :ref="(el) => setCardRef(fi, el)"
+      class="cpub-fte-card"
+      :class="{ 'cpub-fte-card--section': tf.type === 'section', 'cpub-fte-card--active': fi === activeIndex }"
+      @focusin="activateCard(fi)"
+    >
       <div class="cpub-fte-reorder" role="group" :aria-label="`Reorder ${tf.label || 'field'}`">
         <button type="button" class="cpub-fte-iconbtn" :disabled="fi === 0" :aria-label="`Move ${tf.label || 'field'} up`" @click="move(fi, -1)"><i class="fa-solid fa-chevron-up"></i></button>
         <button type="button" class="cpub-fte-iconbtn" :disabled="fi === template.length - 1" :aria-label="`Move ${tf.label || 'field'} down`" @click="move(fi, 1)"><i class="fa-solid fa-chevron-down"></i></button>
@@ -332,8 +366,10 @@ function toggleIntro(): void {
 .cpub-fte-intro-preview { border-top: var(--border-width-default) dashed var(--border2); padding-top: 8px; }
 
 /* Field CARD: a reorder rail + the field body. */
-.cpub-fte-card { display: flex; gap: 8px; margin-top: 8px; padding: 8px; border: var(--border-width-default) solid var(--border2); background: var(--surface2); }
+.cpub-fte-card { display: flex; gap: 8px; margin-top: 8px; padding: 8px; border: var(--border-width-default) solid var(--border2); background: var(--surface2); scroll-margin: 12px; transition: border-color 0.12s, box-shadow 0.12s; }
 .cpub-fte-card--section { border-left: 3px solid var(--accent); }
+/* Active card (editor↔preview link): accent frame, no layout shift. */
+.cpub-fte-card--active { border-color: var(--accent); box-shadow: var(--shadow-accent); }
 .cpub-fte-reorder { display: flex; flex-direction: column; gap: 4px; flex-shrink: 0; }
 .cpub-fte-body { flex: 1; min-width: 0; }
 
