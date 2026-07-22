@@ -155,6 +155,20 @@ guard / cascade) — 8 confirmed:
   auto-entry; a stale "leaves nothing behind" comment. None deletes data that should
   survive.
 
+**Sweep re-verified 3× (it deletes data on prod — each round found something):**
+1. Atomic-DELETE fix broke on **case-sensitivity** (`files.id::text` is lowercase; an
+   uppercase-uuid file value made the reference check false → sweep would delete a live
+   file) → `canonicalUuid()` lowercases on write, `validateFileFields` normalizes its
+   lookup, readers compare `lower(e.value)`.
+2. …and on a **during-statement READ COMMITTED race** (a reference committing mid-DELETE
+   is unseen by the snapshot; the submit never locks the files row) → grace raised to
+   **30 days**, so the race needs a 30+ day form session (not a real flow); a full
+   FOR-SHARE close was deliberately declined (deadlock risk on a hot path > an
+   unreachable race). 3rd re-verify: **clean** (`anyBroke:false` across reference-detection,
+   write-path coverage, grace residual). Invariant confirmed: `recordPrivateAndAgreements`
+   is the SOLE private-fields writer + `validateFileFields` gates file ownership, so a
+   legit reference's `user_id` is ALWAYS the file's uploader — the sweep can't miss one.
+
 ## Next
 - **Follow-up (non-destructive):** `contests.entryCount` cascade-decrement (trigger or
   recompute); combined auto-entry cleanup on unregister.
