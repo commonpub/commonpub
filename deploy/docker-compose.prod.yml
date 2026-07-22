@@ -27,8 +27,16 @@ services:
       - NODE_ENV=production
       - NUXT_HOST=0.0.0.0
       - NUXT_PORT=3000
+      # Persist private uploads on the dedicated volume (local-storage mode only).
+      - PRIVATE_UPLOAD_DIR=/app/uploads-private
     volumes:
       - uploads_data:/app/uploads
+      # Private uploads (contest PII: signatures, ID docs) live in a SEPARATE dir —
+      # the storage adapter forbids nesting the private dir inside the public one, so
+      # this must be its own named volume (not a subpath of uploads_data) or private
+      # bytes land on ephemeral container FS and are lost on redeploy. Only used when
+      # S3/Spaces is NOT configured (S3-backed instances ignore both volumes).
+      - uploads_private_data:/app/uploads-private
     depends_on:
       postgres:
         condition: service_healthy
@@ -104,3 +112,4 @@ volumes:
   caddy_data:
   caddy_config:
   uploads_data:
+  uploads_private_data:

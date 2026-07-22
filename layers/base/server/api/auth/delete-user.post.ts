@@ -46,8 +46,16 @@ export default defineEventHandler(async (event): Promise<{ success: true }> => {
     }
   }
 
+  // Capture the user's storage keys BEFORE the cascade wipes the files rows, so the
+  // bytes can be purged AFTER — a DB cascade can't reach S3/local, so private contest
+  // PII uploads (waivers, ID docs) would otherwise orphan forever (GDPR Art. 17).
+  const fileKeys = await collectUserFileKeys(db, user.id);
+
   // Delete the user (cascades to all related data)
   await deleteUser(db, user.id, user.id);
+
+  // Best-effort byte purge (after the DB delete committed).
+  await deleteUserFileBytes(fileKeys);
 
   // Clear both Better Auth cookies — session_token AND session_data
   // (SSR session cache). Federation-hardening Item 8: the previous
