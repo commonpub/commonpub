@@ -95,8 +95,45 @@ integration+roll) with per-finding verify returned 9 confirmed. The top 3 (block
 - Nits accepted/deferred: orphaned file bytes when a contest is deleted (owner can
   still delete; no leak); prod bucket must have no public-read policy (roll checklist).
 
+### ROLLED to commonpub.io + deveco (heatsync deferred)
+Published schema 0.61 / config 0.35 / server 2.118 / test-utils 0.5.14 / layer 0.110;
+migrations 0044 + 0045; `contestPii` + `contestPrivateFiles` ON. Both instances
+verified live (health, flags, `/api/contests` reads new cols). heatsync intentionally
+NOT rolled (operator). CI is red on `@commonpub/docs#test` — pre-existing, env-specific,
+green locally, deploy runs independently.
+
+### Post-roll deep audit (operator: "ultrathink deep audit") — surfaces the prior rounds didn't cover
+Covered data-lifecycle/GDPR, federation boundaries, concurrency/abuse, prod liveness.
+**Live production security verified:** a self-contained bucket probe on BOTH instances
+uploaded a private file as a throwaway user and fetched its exact bucket URL
+unauthenticated → **403** on `commonpub.sfo3` + `deveco.nyc3` (public → 200, `/raw` no-auth
+→ 401). The deferred bucket-policy concern is confirmed secure. 6 findings (3 major /
+2 minor / 1 nit), **none an active leak** (all pre-existing mechanisms or low impact):
+
+- **[major] GDPR erasure orphaned private file BYTES** — `deleteUser` DB-cascades the
+  `files` rows but never purges S3/local bytes (sensitive PII: waivers, ID docs).
+  **Fixed** (branch `postroll-hardening`): both deletion routes snapshot storage keys
+  before the cascade + best-effort purge after (`purgeUserFiles` util).
+- **[major] local `-private` dir not persisted** (docker-compose) — ephemeral in
+  local-storage mode. **Fixed:** dedicated `uploads_private_data` volume +
+  `PRIVATE_UPLOAD_DIR` (S3 instances unaffected — verified).
+- **[major] unbounded/unreferenced private uploads** + **[minor] bytes orphaned on
+  unregister/withdraw/delete** — **Fixed:** `sweepOrphanedContestFiles` + hourly
+  `contest-file-sweep` plugin (deletes abandoned private files > 48h not referenced by
+  their owner's submission). 100MB cap kept (operator's choice).
+- **[minor] entry-cap / combined-idempotency TOCTOU** — **Fixed:** advisory lock +
+  under-lock re-check in all three entry-creation transactions.
+- **[nit] S3 ACL-only defense-in-depth** — live-verified secure; documented.
+
+Federation dimension: clean — no registration/private-field/file/agreement data
+serializes through `@commonpub/protocol` (contests are instance-local). The
+`postroll-hardening` batch (all above fixes) awaits a roll decision.
+
 ## Next
-- **The production roll (HELD, awaiting go):** bump+publish the exact-pin chain
+- **postroll-hardening roll (awaiting go):** publish server 2.119 + layer 0.111 (GDPR
+  purge, sweep, TOCTOU lock) + docker-compose volume; bump commonpub.io + deveco pins.
+  No new migration (advisory locks are runtime; user_id indexes were 0045).
+- **The production roll (DONE — historical):** bump+publish the exact-pin chain
   schema→config→infra→server→layer; migrations **0043 + 0044 + 0045** ship in schema;
   bump BOTH forks' direct `@commonpub/schema`/`config`/`layer` pins (0.x caret won't
   cross a minor) + sync lockfiles (deveco pnpm-lock, heatsync package-lock); `git push
