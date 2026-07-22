@@ -129,7 +129,35 @@ Federation dimension: clean — no registration/private-field/file/agreement dat
 serializes through `@commonpub/protocol` (contests are instance-local). The
 `postroll-hardening` batch (all above fixes) awaits a roll decision.
 
+### Deep delete-safety audit (operator: "make sure the delete doesn't do something unintentionally destructive")
+First, a safety scoping of the account-deletion purge: PUBLIC files resolve via a
+DIRECT bucket URL that does NOT need the DB row (and may be embedded in others'
+content), so purging a departing user's public bytes would 404 live embeds. Scoped the
+purge to **private files only** (`collectUserPrivateFileKeys`) — the flagged PII
+concern, with zero embed-breakage risk (private `/raw` is already dead once the row
+cascades). Verified no FK references `files.id` (deleting a files row cascades to
+nothing). Then a 4-dimension deep adversarial audit of every DELETE (purge / sweep /
+guard / cascade) — 8 confirmed:
+
+- **[MAJOR — the real destructive bug] sweep TOCTOU.** The sweep read its candidate
+  list in ONE SELECT then deleted bytes+row in a seconds-long loop with no re-check —
+  a submit referencing a >48h-old candidate during the loop had its legit private file
+  destroyed (bypassing the delete-guard). **Fixed:** single atomic `DELETE … WHERE id
+  IN (SELECT … unreferenced+age … LIMIT) RETURNING`, so the predicate is re-evaluated
+  at the delete snapshot; a reference committed since excludes the row. Bytes purged
+  only for rows actually deleted. Residual shrinks to a sub-ms window (recoverable).
+- **[minor — my regression] entry-cap → 500.** The under-lock cap re-check threw a raw
+  error that 500'd the proposal route. **Fixed:** mapped to a clean "limit reached" fail.
+- Reported-not-fixed (pre-existing, non-destructive): `contests.entryCount` inflates on
+  cascade delete (denormalized counter, no cascade-side decrement — needs a trigger or
+  recompute); `withdrawContestEntry` soft-archives a developed placeholder; purge
+  partial-failure orphans bytes (best-effort by design); unregister leaves a combined
+  auto-entry; a stale "leaves nothing behind" comment. None deletes data that should
+  survive.
+
 ## Next
+- **Follow-up (non-destructive):** `contests.entryCount` cascade-decrement (trigger or
+  recompute); combined auto-entry cleanup on unregister.
 - **postroll-hardening roll (awaiting go):** publish server 2.119 + layer 0.111 (GDPR
   purge, sweep, TOCTOU lock) + docker-compose volume; bump commonpub.io + deveco pins.
   No new migration (advisory locks are runtime; user_id indexes were 0045).
