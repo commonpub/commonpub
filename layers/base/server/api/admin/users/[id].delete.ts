@@ -6,9 +6,10 @@ export default defineEventHandler(async (event): Promise<void> => {
   const db = useDB();
   const { id } = parseParams(event, { id: 'uuid' });
 
-  // Capture the user's storage keys BEFORE the DB cascade wipes the files rows, then
-  // purge the bytes AFTER (private PII uploads would otherwise orphan — GDPR erasure).
-  const keys = await collectUserFileKeys(db, id);
+  // Capture the user's PRIVATE storage keys BEFORE the DB cascade wipes the files
+  // rows, then purge those bytes AFTER (private PII uploads would otherwise orphan —
+  // GDPR erasure). Public files are intentionally left (see purgeUserFiles).
+  const keys = await collectUserPrivateFileKeys(db, id);
   await deleteUser(db, id, admin.id);
-  await deleteUserFileBytes(keys);
+  await deleteUserPrivateFileBytes(keys);
 });
