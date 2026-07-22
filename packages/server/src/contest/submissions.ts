@@ -118,35 +118,46 @@ export async function sweepOrphanedContestFiles(
   opts: { olderThanMs: number; limit: number },
 ): Promise<{ swept: number }> {
   const cutoff = new Date(Date.now() - opts.olderThanMs);
-  const res = await db.execute(sql`
-    SELECT f.id, f.storage_key FROM files f
-    WHERE f.purpose = 'contest' AND f.visibility = 'private' AND f.created_at < ${cutoff}
-      AND NOT EXISTS (
-        SELECT 1 FROM contest_registration_private_fields p
-        WHERE p.user_id = f.uploader_id
-          AND EXISTS (SELECT 1 FROM jsonb_each_text(p.fields) e WHERE e.value = f.id::text)
-      )
-      AND NOT EXISTS (
-        SELECT 1 FROM contest_entry_private_fields p
-        WHERE p.user_id = f.uploader_id
-          AND EXISTS (SELECT 1 FROM jsonb_each_text(p.fields) e WHERE e.value = f.id::text)
-      )
-    LIMIT ${opts.limit}
+  // ATOMIC re-check: the row-delete itself carries the full unreferenced+age predicate,
+  // evaluated at the DELETE statement's snapshot — NOT at an earlier SELECT. This closes
+  // a destructive TOCTOU: if a submit REFERENCES one of these files after a naive
+  // candidate SELECT but before its delete (a >48h-old file first submitted from a
+  // long-lived form session), the reference now makes NOT EXISTS false, so the row is
+  // excluded and the file (bytes + row) survives. Only rows ACTUALLY deleted here have
+  // their bytes purged, so a legitimately-submitted file is never destroyed. (`created_at`
+  // still 404s the just-submitted file only in the residual sub-millisecond window where
+  // the submit's own validate→store straddles this statement — negligible, and recoverable
+  // by re-upload; a referenced file committed before this statement is always spared.)
+  const del = await db.execute(sql`
+    DELETE FROM files WHERE id IN (
+      SELECT f.id FROM files f
+      WHERE f.purpose = 'contest' AND f.visibility = 'private' AND f.created_at < ${cutoff}
+        AND NOT EXISTS (
+          SELECT 1 FROM contest_registration_private_fields p
+          WHERE p.user_id = f.uploader_id
+            AND EXISTS (SELECT 1 FROM jsonb_each_text(p.fields) e WHERE e.value = f.id::text)
+        )
+        AND NOT EXISTS (
+          SELECT 1 FROM contest_entry_private_fields p
+          WHERE p.user_id = f.uploader_id
+            AND EXISTS (SELECT 1 FROM jsonb_each_text(p.fields) e WHERE e.value = f.id::text)
+        )
+      LIMIT ${opts.limit}
+    )
+    RETURNING storage_key
   `);
-  const candidates = rowsOf<{ id: string; storage_key: string }>(res);
-  let swept = 0;
-  for (const c of candidates) {
+  const deleted = rowsOf<{ storage_key: string }>(del);
+  // Rows are already gone (the atomic gate passed); now best-effort purge the bytes.
+  // A byte-delete failure leaves orphaned bytes of an ALREADY-removed unreferenced file
+  // — harmless (nothing points at it), unlike deleting bytes a live reference still needs.
+  for (const row of deleted) {
     try {
-      await deletePrivateBytes(c.storage_key);
+      await deletePrivateBytes(row.storage_key);
     } catch {
-      // Leave the row so the next sweep retries the byte delete — never delete the
-      // pointer while the bytes remain.
-      continue;
+      console.warn(`[sweepOrphanedContestFiles] byte delete failed (row already removed): ${row.storage_key}`);
     }
-    await db.delete(files).where(eq(files.id, c.id));
-    swept++;
   }
-  return { swept };
+  return { swept: deleted.length };
 }
 
 /**
@@ -504,6 +515,11 @@ export async function submitContestProposal(db: DB, args: SubmitProposalArgs): P
     await deleteContent(db, placeholder.id, userId).catch(() => {});
     if (err instanceof Error && err.message === 'entry-conflict') {
       return fail('You already have an entry for this contest');
+    }
+    // The under-lock cap re-check lost a concurrent race — a clean "limit reached"
+    // fail, NOT an unhandled throw that 500s the proposal route.
+    if (err instanceof Error && err.message === 'entry-cap') {
+      return fail('You have reached the entry limit for this contest');
     }
     throw err;
   }
