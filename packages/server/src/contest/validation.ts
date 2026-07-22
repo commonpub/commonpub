@@ -19,6 +19,12 @@ const isPiiField = isFormFieldPii;
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+/** Canonicalize a uuid to lowercase (Postgres `uuid::text` form) so file references
+ *  compare consistently across write, the /raw reverse lookup, and the orphan sweep. */
+export function canonicalUuid(v: string): string {
+  return v.trim().toLowerCase();
+}
+
 /** sha-256 hex of an agreement's terms text (integrity check vs the snapshot). */
 export function hashTerms(terms: string): string {
   return createHash('sha256').update(terms, 'utf8').digest('hex');
@@ -154,7 +160,12 @@ export function validateSubmissionFields(
       // text / textarea: no extra domain check.
     }
 
-    (isPiiField(field) ? pii : artifact)[field.key] = value;
+    // Canonicalize a `file` reference to lowercase: `UUID_RE`/the uuid cast accept
+    // mixed case, but every reader compares against `files.id::text` (canonical
+    // lowercase). Storing it lowercase keeps the reverse-lookup + orphan-sweep
+    // reference checks correct — a mismatch would make the sweep DELETE a live file.
+    const stored = field.type === 'file' ? canonicalUuid(value) : value;
+    (isPiiField(field) ? pii : artifact)[field.key] = stored;
   }
 
   return { ok: true, result: { artifact, pii, agreements } };

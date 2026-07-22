@@ -21,9 +21,14 @@ export default defineNitroPlugin((nitro) => {
   // Hourly is ample: abandoned files are not time-critical, and the grace window
   // (below) is far longer than any real upload→submit gap.
   const INTERVAL_MS = 3_600_000;
-  // Grace period before an unreferenced private file is swept. Generous so a slow
-  // form fill / a save-later flow is never caught; still bounds accumulation.
-  const GRACE_MS = 48 * 3_600_000;
+  // Grace before an unreferenced private file is swept. Deliberately LONG (30 days):
+  // a file is only a sweep candidate once it has sat unreferenced this long, so the
+  // one residual sweep-vs-submit race (a first reference committing mid-DELETE, unseen
+  // by the statement snapshot) would require a form/API session held open 30+ days —
+  // not a real flow. Storage growth from abandoned uploads is still bounded (the upload
+  // path is auth'd + rate-limited); a 30-day cleanup latency is an acceptable trade for
+  // never destroying a legitimately-submitted private file (a signed waiver/ID doc).
+  const GRACE_MS = 30 * 24 * 3_600_000;
   const LIMIT = 200;
 
   let interval: ReturnType<typeof setInterval> | null = null;

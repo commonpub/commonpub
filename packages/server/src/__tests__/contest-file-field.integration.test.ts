@@ -75,4 +75,12 @@ describe('validateFileFields (P6 DB-backed file check)', () => {
   it('no-op when the template has no file fields', async () => {
     expect((await validateFileFields(db, [{ key: 'n', label: 'N', type: 'text', required: false }], { n: 'x' }, owner)).ok).toBe(true);
   });
+
+  it('accepts an UPPERCASE-uuid file reference (case-insensitive) — must not falsely reject a valid file', async () => {
+    // A non-standard client could submit the file id upper-cased; the uuid cast resolves
+    // it, so validateFileFields must too (else the reference is rejected, or worse stored
+    // in a form the orphan-sweep won't match → the sweep would delete a live file).
+    const id = await makeFile();
+    expect((await validateFileFields(db, tmpl(), { doc: id.toUpperCase() }, owner)).ok).toBe(true);
+  });
 });

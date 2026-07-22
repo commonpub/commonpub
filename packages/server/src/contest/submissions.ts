@@ -13,7 +13,7 @@ import type { DB } from '../types.js';
 import { countRows, rowsOf } from '../query.js';
 import { createContent, deleteContent } from '../content/content.js';
 import { normalizeStages, currentStage, isEliminated } from './stages.js';
-import { validateSubmissionFields, hashTerms } from './validation.js';
+import { validateSubmissionFields, hashTerms, canonicalUuid } from './validation.js';
 import type { StageSource, AgreementAcceptanceInput, ContestTx } from './types.js';
 
 // DB-backed submission writers. Pure validation/partition lives in validation.ts.
@@ -36,15 +36,18 @@ export async function validateFileFields(
   const fileFields = template.filter((f) => f.type === 'file' && (values[f.key] ?? '').trim().length > 0);
   if (fileFields.length === 0) return { ok: true };
 
-  const ids = fileFields.map((f) => values[f.key]!.trim());
+  // Canonical-lowercase throughout: files.id::text is lowercase, so key the lookup map
+  // by the same form the readers use — else a valid UPPERCASE-uuid answer (accepted by
+  // the shape check + the case-insensitive uuid cast) would falsely miss here.
+  const ids = fileFields.map((f) => canonicalUuid(values[f.key]!));
   const rows = await db
     .select({ id: files.id, uploaderId: files.uploaderId, visibility: files.visibility, purpose: files.purpose, mimeType: files.mimeType, sizeBytes: files.sizeBytes })
     .from(files)
     .where(inArray(files.id, ids));
-  const byId = new Map(rows.map((r) => [r.id, r]));
+  const byId = new Map(rows.map((r) => [r.id.toLowerCase(), r]));
 
   for (const f of fileFields) {
-    const row = byId.get(values[f.key]!.trim());
+    const row = byId.get(canonicalUuid(values[f.key]!));
     // Must exist, be uploaded by THIS user, and be a PRIVATE contest object.
     if (!row || row.uploaderId !== userId || row.visibility !== 'private' || row.purpose !== 'contest') {
       return { ok: false, error: `${f.label}: that file is missing or not one you uploaded` };
@@ -85,11 +88,11 @@ export async function contestIdsForPrivateFile(db: DB, fileId: string): Promise<
     SELECT DISTINCT contest_id FROM (
       SELECT contest_id FROM contest_registration_private_fields
         WHERE user_id = (SELECT uploader_id FROM files WHERE id = ${fileId})
-          AND EXISTS (SELECT 1 FROM jsonb_each_text(fields) e WHERE e.value = ${fileId})
+          AND EXISTS (SELECT 1 FROM jsonb_each_text(fields) e WHERE lower(e.value) = lower(${fileId}))
       UNION ALL
       SELECT contest_id FROM contest_entry_private_fields
         WHERE user_id = (SELECT uploader_id FROM files WHERE id = ${fileId})
-          AND EXISTS (SELECT 1 FROM jsonb_each_text(fields) e WHERE e.value = ${fileId})
+          AND EXISTS (SELECT 1 FROM jsonb_each_text(fields) e WHERE lower(e.value) = lower(${fileId}))
     ) refs
   `);
   return rowsOf<{ contest_id: string }>(res).map((r) => r.contest_id);
@@ -118,16 +121,20 @@ export async function sweepOrphanedContestFiles(
   opts: { olderThanMs: number; limit: number },
 ): Promise<{ swept: number }> {
   const cutoff = new Date(Date.now() - opts.olderThanMs);
-  // ATOMIC re-check: the row-delete itself carries the full unreferenced+age predicate,
-  // evaluated at the DELETE statement's snapshot — NOT at an earlier SELECT. This closes
-  // a destructive TOCTOU: if a submit REFERENCES one of these files after a naive
-  // candidate SELECT but before its delete (a >48h-old file first submitted from a
-  // long-lived form session), the reference now makes NOT EXISTS false, so the row is
-  // excluded and the file (bytes + row) survives. Only rows ACTUALLY deleted here have
-  // their bytes purged, so a legitimately-submitted file is never destroyed. (`created_at`
-  // still 404s the just-submitted file only in the residual sub-millisecond window where
-  // the submit's own validate→store straddles this statement — negligible, and recoverable
-  // by re-upload; a referenced file committed before this statement is always spared.)
+  // Two layers protect a legitimately-referenced file from this DELETE:
+  //  (1) ATOMIC re-check — the predicate (unreferenced by owner + old) is carried IN the
+  //      DELETE, evaluated at the statement's snapshot, so any reference COMMITTED before
+  //      this statement excludes the row. Only rows actually deleted get their bytes purged.
+  //  (2) A LONG grace (olderThanMs, 30d in the plugin) — a file is only a candidate once
+  //      it has sat unreferenced past the grace. The one residual race (a reference that
+  //      COMMITS mid-statement, under READ COMMITTED, is not seen by the snapshot) requires
+  //      the file's FIRST reference to happen >grace after upload — i.e. a form/API session
+  //      left open for 30+ days. That is not a real flow, so the residual is effectively
+  //      unreachable. (A full close would lock the files row FOR SHARE in the submit path;
+  //      deliberately avoided here — locking a hot path for a rare, effectively-unreachable
+  //      race trades a real deadlock risk for a theoretical one.)
+  // Reference match is lower(e.value) vs files.id::text (canonical lowercase) — see the
+  // canonicalUuid write-side normalization; a case mismatch would wrongly delete a live file.
   const del = await db.execute(sql`
     DELETE FROM files WHERE id IN (
       SELECT f.id FROM files f
@@ -135,12 +142,12 @@ export async function sweepOrphanedContestFiles(
         AND NOT EXISTS (
           SELECT 1 FROM contest_registration_private_fields p
           WHERE p.user_id = f.uploader_id
-            AND EXISTS (SELECT 1 FROM jsonb_each_text(p.fields) e WHERE e.value = f.id::text)
+            AND EXISTS (SELECT 1 FROM jsonb_each_text(p.fields) e WHERE lower(e.value) = f.id::text)
         )
         AND NOT EXISTS (
           SELECT 1 FROM contest_entry_private_fields p
           WHERE p.user_id = f.uploader_id
-            AND EXISTS (SELECT 1 FROM jsonb_each_text(p.fields) e WHERE e.value = f.id::text)
+            AND EXISTS (SELECT 1 FROM jsonb_each_text(p.fields) e WHERE lower(e.value) = f.id::text)
         )
       LIMIT ${opts.limit}
     )
