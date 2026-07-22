@@ -12,6 +12,17 @@
 
 ## TL;DR — where things stand
 
+**Session 244 postroll-hardening batch — READY on branch `postroll-hardening`, NOT yet rolled (handed to session 245).**
+9 commits past `main`; **server 2.118→2.119 + layer 0.110→0.111 only** (NO schema/config/infra change, **NO migration**).
+Fixes from the post-roll deep audits: (1) GDPR account-deletion purge of **private** file bytes (public left — their
+direct bucket URL may be embedded elsewhere); (2) orphaned-private-file **sweep** (hourly, 30-day grace, atomic
+`DELETE … RETURNING` re-check, `lower()` case match — triple-re-verified it can't destroy a live file); (3) `canonicalUuid`
+lowercasing of file refs; (4) advisory-lock TOCTOU fix in all 3 entry-creation txns; (5) dedicated `uploads_private_data`
+docker volume. Full suite 33/33, reference typecheck clean. Final audit: **3 confirmed, all harmless nits** (sweep does an
+unindexed `files` scan hourly — needs a partial index/migration to fix; purge does N sequential deletes inline — N is tiny
+now it's private-only; single-arg `hashtext` advisory lock shares a 2³² keyspace — a collision only causes brief spurious
+serialization). Roll + a Registration-tab editor-UX upgrade are the session-245 kickoff (`docs/sessions/245-kickoff.md`).
+
 **Session 244 (2026-07-20) — RICH CONTEST REGISTRATION (P1–P6) ROLLED to commonpub.io + deveco.io.**
 npm **schema 0.61 / config 0.35 / server 2.118 / test-utils 0.5.14 / layer 0.110** (infra unchanged at
 0.19). **Migrations 0044** (registration schema: `contests.registration_template`/`registration_mode`,
