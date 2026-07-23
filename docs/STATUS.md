@@ -1,6 +1,6 @@
 # CommonPub — Status & Operator Runbook
 
-> **Living doc — your "come back later" reference.** Snapshot updated 2026-07-20 (through session 244).
+> **Living doc — your "come back later" reference.** Snapshot updated 2026-07-23 (through session 245).
 > Verify any version/flag claim before trusting it: `npm view @commonpub/<pkg> version`,
 > `curl https://<instance>/api/features`, `cargo search create-commonpub`.
 > Companion docs: **`docs/ROADMAP.md`** (prioritized remaining work — the master backlog), the
@@ -12,16 +12,23 @@
 
 ## TL;DR — where things stand
 
-**Session 244 postroll-hardening batch — READY on branch `postroll-hardening`, NOT yet rolled (handed to session 245).**
-9 commits past `main`; **server 2.118→2.119 + layer 0.110→0.111 only** (NO schema/config/infra change, **NO migration**).
-Fixes from the post-roll deep audits: (1) GDPR account-deletion purge of **private** file bytes (public left — their
-direct bucket URL may be embedded elsewhere); (2) orphaned-private-file **sweep** (hourly, 30-day grace, atomic
-`DELETE … RETURNING` re-check, `lower()` case match — triple-re-verified it can't destroy a live file); (3) `canonicalUuid`
-lowercasing of file refs; (4) advisory-lock TOCTOU fix in all 3 entry-creation txns; (5) dedicated `uploads_private_data`
-docker volume. Full suite 33/33, reference typecheck clean. Final audit: **3 confirmed, all harmless nits** (sweep does an
-unindexed `files` scan hourly — needs a partial index/migration to fix; purge does N sequential deletes inline — N is tiny
-now it's private-only; single-arg `hashtext` advisory lock shares a 2³² keyspace — a collision only causes brief spurious
-serialization). Roll + a Registration-tab editor-UX upgrade are the session-245 kickoff (`docs/sessions/245-kickoff.md`).
+**Session 245 (2026-07-23) — postroll-hardening ROLLED + Registration-tab editor + bug sweep, ROLLED to all 3.**
+Two rolls this session (both layer-centric, **NO migration** in either — heatsync's migration was its 244 catch-up):
+**(A) postroll-hardening** — **server 2.118→2.119 + layer 0.110→0.111** (delete-safety batch: GDPR private-byte
+purge, orphaned-file sweep, canonicalUuid refs, entry advisory locks, docker private volume) → commonpub.io +
+deveco + **heatsync (operator chose FULL PARITY — migrations 0044+0045 applied on heatsync, health green)**.
+deveco's lockless Docker `npm install` crashed npm 10's arborist (`edgesOut`) on the deeper `@commonpub` tree
+→ fixed by committing a peer-complete `package-lock.json` seed (un-gitignored; `--legacy-peer-deps` was wrong —
+it drops `@tiptap/*` peers). **(B) Registration-tab editor + 5 bug fixes** — **layer 0.111→0.112** (layer-only, no
+server/schema/config change): fixed the **registration form builder being invisible in prod** (bare
+`<FormTemplateEditor>` didn't resolve — `components/contest/` auto-import prefixes it → explicit import) + a real
+two-pane builder (sticky live preview, editor↔preview linking, container-query layout); plus 4 sweep fixes —
+`/api/image-proxy` 400 on relative covers (shared `proxiedImageUrl` helper), and 3 SSR hydration mismatches
+(contest registrant count, admin email-branding, `/feed` load-more — all the "seed reactive state from a fetch"
+pattern). Final adversarial audit caught + fixed a federated-cover **IP-leak** (substring same-origin check →
+exact hostname). Layer suite **1533/1533**, reference typecheck clean, full-system 25-route sweep clean, and a
+**complete external-organizer contest E2E** (create in editor → 6 registrations w/ PII → 6 entries attach+proposal
+→ 5 judges score all → Top-3 advance → results) ran with **zero defects**. Detail: `245-roll-registration-editor-and-fixes.md`.
 
 **Session 244 (2026-07-20) — RICH CONTEST REGISTRATION (P1–P6) ROLLED to commonpub.io + deveco.io.**
 npm **schema 0.61 / config 0.35 / server 2.118 / test-utils 0.5.14 / layer 0.110** (infra unchanged at
