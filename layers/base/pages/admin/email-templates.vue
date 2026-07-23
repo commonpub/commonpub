@@ -9,9 +9,12 @@ const siteName = useSiteName();
 
 const form = reactive({ accentColor: '', headerText: '', logoUrl: '', footerText: '' });
 
-// Non-blocking load; populate the form once it resolves (keeps setup sync so the
-// page is straightforward to test and doesn't need a Suspense boundary).
-const { data: loaded } = useFetch<EmailBranding>('/api/admin/email-branding');
+// Client-only load (server: false): the form is seeded from the response via a
+// watch, but SSR watchers don't re-run when the fetch resolves, so SSR rendered
+// the empty/default form while the client seeded the saved branding — a hydration
+// mismatch (e.g. the accent swatch). Loading client-side keeps SSR and the first
+// client render on the same empty seed; the saved values fill in after hydration.
+const { data: loaded } = useFetch<EmailBranding>('/api/admin/email-branding', { server: false });
 watch(loaded, (v) => {
   if (!v) return;
   form.accentColor = v.accentColor ?? '';
