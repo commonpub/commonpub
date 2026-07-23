@@ -4,7 +4,8 @@
 > Verify any version/flag claim before trusting it: `npm view @commonpub/<pkg> version`,
 > `curl https://<instance>/api/features`, `cargo search create-commonpub`.
 > Companion docs: **`docs/ROADMAP.md`** (prioritized remaining work — the master backlog), the
-> rolling handoff `docs/sessions/228-handoff.md` + kickoff `docs/sessions/228-kickoff.md`, the
+> latest session log `docs/sessions/245-roll-registration-editor-and-fixes.md` + **next-session kickoff
+> `docs/sessions/246-kickoff.md`** (polish the email + registration editors to the design system), the
 > audit `docs/sessions/203-full-codebase-audit.md` + `204-deep-audit-round2.md`, contest guide
 > `docs/reference/guides/contests.md`.
 
