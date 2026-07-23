@@ -45,10 +45,16 @@ export function useContentFeed(query: Ref<FeedQuery> | ComputedRef<FeedQuery>) {
   });
   const limit = computed(() => Number(query.value.limit ?? 12));
 
-  // Keyset cursor for the current query identity (reset on query change below).
-  const cursor = ref<string | null>(null);
   const loadingMore = ref(false);
-  const exhausted = ref(false);
+  // Keyset pagination (reset on query change below). The current cursor is DERIVED
+  // from the fetched page (see `cursor` after `page`), not seeded by a watch — a
+  // watch's `immediate` fires before the SSR fetch resolves and its follow-up
+  // doesn't run during SSR, so a seeded cursor was null on the server but set on
+  // the client, flipping `canLoadMore` and mismatching the load-more button on
+  // hydration. `advanced` (undefined = still on the first page) is set by loadMore.
+  const advanced = ref<string | null | undefined>(undefined);
+  // Offset feeds stop when a short page returns (keyset stops when cursor === null).
+  const offsetDone = ref(false);
 
   // Initial page — SSR-friendly via useFetch. Both endpoints accept the same query;
   // the keyset one returns { items, nextCursor }, the offset one { items, total }.
@@ -75,56 +81,49 @@ export function useContentFeed(query: Ref<FeedQuery> | ComputedRef<FeedQuery>) {
     () => [...(page.value?.items ?? []), ...extra.value] as FeedItem[],
   );
 
+  // Keyset cursor, DERIVED so SSR and client agree: the first page's cursor comes
+  // straight from the (payload-transferred) `page`; once loadMore has advanced,
+  // `advanced` wins. `null` means no more pages.
+  const cursor = computed<string | null>(() =>
+    advanced.value !== undefined ? advanced.value : (page.value?.nextCursor ?? null),
+  );
+
   // Reset pagination whenever the underlying query (tab/filter) changes.
   watch(
     query,
     () => {
       extra.value = [];
-      cursor.value = null;
-      exhausted.value = false;
+      advanced.value = undefined;
+      offsetDone.value = false;
     },
     { deep: true },
   );
 
-  // Seed the keyset cursor from the first page once it arrives.
-  watch(
-    page,
-    (p) => {
-      if (isKeyset.value) {
-        cursor.value = p?.nextCursor ?? null;
-        if (cursor.value === null) exhausted.value = true;
-      }
-    },
-    { immediate: true },
-  );
-
   const canLoadMore = computed(() => {
     if (!items.value.length) return false;
-    if (exhausted.value) return false;
     if (isKeyset.value) return cursor.value !== null;
     // Offset: stop once a page comes back short.
-    return true;
+    return !offsetDone.value;
   });
 
   async function loadMore(): Promise<void> {
-    if (loadingMore.value || exhausted.value) return;
+    if (loadingMore.value) return;
+    if (isKeyset.value ? cursor.value === null : offsetDone.value) return;
     loadingMore.value = true;
     try {
       if (isKeyset.value) {
-        if (!cursor.value) { exhausted.value = true; return; }
         const res = await $fetch<FeedResponse>('/api/content/feed', {
           query: { ...query.value, cursor: cursor.value },
         });
         if (res.items?.length) extra.value.push(...res.items);
-        cursor.value = res.nextCursor ?? null;
-        if (!res.nextCursor) exhausted.value = true;
+        advanced.value = res.nextCursor ?? null;
       } else {
         const offset = items.value.length;
         const res = await $fetch<FeedResponse>('/api/content', {
           query: { ...query.value, offset },
         });
         if (res.items?.length) extra.value.push(...res.items);
-        if (!res.items?.length || res.items.length < limit.value) exhausted.value = true;
+        if (!res.items?.length || res.items.length < limit.value) offsetDone.value = true;
       }
     } catch {
       toast.error('Failed to load more');
