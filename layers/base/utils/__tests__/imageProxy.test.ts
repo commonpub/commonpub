@@ -23,6 +23,15 @@ describe('proxiedImageUrl', () => {
 
   it('serves same-origin HTTPS images directly', () => {
     expect(proxiedImageUrl('https://example.com/uploads/x.jpg', DOMAIN)).toBe('https://example.com/uploads/x.jpg');
+    // site domain may carry a port/scheme in config — still same-origin by host
+    expect(proxiedImageUrl('https://localhost/uploads/x.jpg', 'localhost:3000')).toBe('https://localhost/uploads/x.jpg');
+  });
+
+  it('PROXIES a hostile look-alike host (no substring same-origin bypass → no IP leak)', () => {
+    const evil = 'https://example.com.evil.com/track.jpg';
+    expect(proxiedImageUrl(evil, DOMAIN)).toBe(`/api/image-proxy?url=${enc(evil)}&w=600`);
+    const evil2 = 'https://evil.com/example.com.jpg';
+    expect(proxiedImageUrl(evil2, DOMAIN)).toBe(`/api/image-proxy?url=${enc(evil2)}&w=600`);
   });
 
   it('proxies remote HTTPS images', () => {
