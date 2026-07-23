@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { Serialized, ContentListItem } from '@commonpub/server';
+import { proxiedImageUrl } from '../utils/imageProxy';
 
 /**
  * ContentCard — the primary card used across homepage, search, profile, hubs.
@@ -23,20 +24,9 @@ const props = defineProps<{
   };
 }>();
 
-const cover = computed(() => {
-  const url = props.item.coverImageUrl;
-  if (!url) return null;
-  // Proxy remote images through our server for faster loading + caching
-  const config = useRuntimeConfig();
-  const siteDomain = (config.public?.domain as string) || '';
-  try {
-    const imgHost = new URL(url).hostname;
-    if (siteDomain && !url.includes(siteDomain)) {
-      return `/api/image-proxy?url=${encodeURIComponent(url)}&w=600`;
-    }
-  } catch { /* invalid URL, use as-is */ }
-  return url;
-});
+const config = useRuntimeConfig();
+// Proxy remote images through our server for faster loading + caching.
+const cover = computed(() => proxiedImageUrl(props.item.coverImageUrl, (config.public?.domain as string) || ''));
 
 const thumbIcons: Record<string, { icon: string; color: string }> = {
   project: { icon: 'fa-solid fa-microchip', color: 'var(--accent)' },

@@ -5,10 +5,15 @@
  * computed properties (typeLabel, actorHandle, timeAgo), event emission, and
  * conditional rendering (avatar, cover image, tags, title link).
  */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/vue';
 import { defineComponent, h } from 'vue';
 import FederatedContentCard from '../FederatedContentCard.vue';
+
+// The card reads config.public.domain (via the shared proxiedImageUrl guard) to
+// decide same-origin vs remote. No Nuxt runtime here, so stub the auto-import;
+// an empty domain means remote HTTPS covers are proxied (what these tests assert).
+vi.stubGlobal('useRuntimeConfig', () => ({ public: { domain: '' } }));
 
 // Stub NuxtLink as a plain <a> tag
 const NuxtLink = defineComponent({

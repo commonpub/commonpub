@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { FederatedContentItem } from '@commonpub/server';
+import { proxiedImageUrl } from '../utils/imageProxy';
 
 const props = defineProps<{
   content: FederatedContentItem;
@@ -10,11 +11,10 @@ const emit = defineEmits<{
   boost: [id: string];
 }>();
 
-const proxiedCover = computed(() => {
-  const url = props.content.coverImageUrl;
-  if (!url) return null;
-  return `/api/image-proxy?url=${encodeURIComponent(url)}&w=600`;
-});
+const config = useRuntimeConfig();
+// Federated covers are remote HTTPS; the shared guard also serves a relative or
+// same-origin cover directly instead of 400-ing the proxy on it.
+const proxiedCover = computed(() => proxiedImageUrl(props.content.coverImageUrl, (config.public?.domain as string) || ''));
 
 const actorHandle = computed(() => {
   if (!props.content.actor) return 'Unknown';

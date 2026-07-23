@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { proxiedImageUrl } from '../../utils/imageProxy';
+
 useSeoMeta({ title: `Contests, ${useSiteName()}` });
 
 const { data: contests, error, refresh } = await useFetch('/api/contests');
@@ -14,17 +16,11 @@ function cardBlurb(c: { subheading?: string | null; description?: string | null 
 
 const config = useRuntimeConfig();
 
-// Contest banner thumbnail — proxy cross-origin images through our server
-// (same pattern as ContentCard) for caching + faster loads.
+// Contest banner thumbnail — proxy cross-origin images for caching + faster loads.
+// Shared helper: the old inline guard lacked a URL parse and proxied relative
+// covers (e.g. `/favicon.svg`) → the proxy 400'd on every such card.
 function coverFor(url: string | null | undefined): string | null {
-  if (!url) return null;
-  const siteDomain = (config.public?.domain as string) || '';
-  try {
-    if (siteDomain && !url.includes(siteDomain)) {
-      return `/api/image-proxy?url=${encodeURIComponent(url)}&w=600`;
-    }
-  } catch { /* invalid URL, use as-is */ }
-  return url;
+  return proxiedImageUrl(url, (config.public?.domain as string) || '');
 }
 
 const contestCreation = config.public.contestCreation as string || 'admin';
