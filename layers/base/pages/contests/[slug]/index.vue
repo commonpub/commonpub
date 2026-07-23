@@ -14,8 +14,13 @@ const { data: contest } = await useFetch(`/api/contests/${slug}`);
 const { data: apiEntriesData, refresh: refreshEntries } = useLazyFetch<{ items: Serialized<ContestEntryItem>[]; total: number }>(`/api/contests/${slug}/entries`);
 const { data: judgesData, refresh: refreshJudges } = useLazyFetch<ContestJudgeItem[]>(`/api/contests/${slug}/judges`);
 // Registration state (viewer's own + public count). Drives the sidebar register
-// toggle. Lazy — the register card isn't above the fold and can hydrate late.
-const { data: registrationData } = useLazyFetch<{ registered: boolean; tier: 'full' | 'reminders' | null; fields: Record<string, string> | null; count: number }>(`/api/contests/${slug}/register`);
+// toggle. client-only (server: false): this is per-viewer registration status, so
+// SSR must NOT bake it into the (cacheable) HTML. It also fixes a hydration
+// mismatch — a plain lazy fetch left SSR rendering the seed count 0 while the
+// client showed the real count, so every contest with registrants warned. With
+// server:false, SSR and the first client render both use the seed, and the real
+// values fill in post-hydration.
+const { data: registrationData } = useLazyFetch<{ registered: boolean; tier: 'full' | 'reminders' | null; fields: Record<string, string> | null; count: number }>(`/api/contests/${slug}/register`, { server: false });
 
 useSeoMeta({
   title: () => `${contest.value?.title || 'Contest'}, ${useSiteName()}`,
