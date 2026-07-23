@@ -90,6 +90,34 @@
   box-shadow: var(--shadow-accent);
 }
 
+/* ─── CONTEST / EDITOR FORM CONTROLS (strong-border variant) ───
+   The contest editor family (ContestEditor settings rail, ContestStageCard, the
+   shared FormTemplateEditor, ContestEmailEditor) uses a strong 2px --border input,
+   distinct from .cpub-input's lighter --border2. This was copy-pasted verbatim into
+   each component's scoped block; defined once here so ContestEmailEditor's inputs
+   (which referenced the class but never defined it) render correctly. Components
+   that keep a local scoped copy still win on specificity — zero visual change. */
+.cpub-form-input {
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border: var(--border-width-default) solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: var(--text-sm);
+  font-family: var(--font-sans);
+}
+.cpub-form-input::placeholder {
+  color: var(--text-faint);
+}
+.cpub-form-input:focus {
+  border-color: var(--accent);
+  outline: none;
+  box-shadow: var(--shadow-accent);
+}
+.cpub-form-textarea {
+  resize: vertical;
+}
+
 /* ─── FORM GROUP ─── */
 .cpub-form-group {
   margin-bottom: var(--space-4);

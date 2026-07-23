@@ -213,7 +213,7 @@ function toggleIntro(): void {
 <template>
   <div class="cpub-fte">
     <div class="cpub-fte-head">
-      <span class="cpub-form-label" style="margin: 0;">{{ label }}</span>
+      <span class="cpub-form-label cpub-fte-title">{{ label }}</span>
       <div ref="menuWrap" class="cpub-fte-menus">
         <!-- Use a template -->
         <div class="cpub-fte-menu">
@@ -241,7 +241,7 @@ function toggleIntro(): void {
         </div>
       </div>
     </div>
-    <p v-if="hint" class="cpub-form-hint" style="margin: 4px 0;">{{ hint }}</p>
+    <p v-if="hint" class="cpub-form-hint cpub-fte-hint">{{ hint }}</p>
 
     <!-- Stage-only block intro. -->
     <div v-if="enableIntro" class="cpub-fte-intro">
@@ -252,7 +252,7 @@ function toggleIntro(): void {
       <div v-if="showIntro" class="cpub-fte-intro-edit">
         <textarea :value="introText" class="cpub-form-input cpub-form-textarea" rows="3" placeholder="Markdown instructions shown above the form (what to submit, tips, links)." aria-label="Form instructions (markdown)" @input="onIntroInput"></textarea>
         <div v-if="introPreview.length" class="cpub-fte-intro-preview">
-          <span class="cpub-form-hint" style="margin: 0 0 4px;">Preview</span>
+          <span class="cpub-form-hint cpub-fte-preview-label">Preview</span>
           <BlocksBlockContentRenderer :blocks="introPreview" class="cpub-prose cpub-md" />
         </div>
       </div>
@@ -297,7 +297,7 @@ function toggleIntro(): void {
 
         <!-- select/radio: the allowed options -->
         <div v-if="tf.type === 'select' || tf.type === 'radio'" class="cpub-fte-extra">
-          <span class="cpub-form-hint" style="margin: 0;">Choices</span>
+          <span class="cpub-form-hint cpub-fte-extra-label">Choices</span>
           <div v-for="(opt, oi) in (tf.options ?? [])" :key="oi" class="cpub-fte-opt-row">
             <input :value="opt.label" type="text" class="cpub-form-input" placeholder="Label (shown to entrants)" :aria-label="`Field ${fi + 1} option ${oi + 1} label`" @input="setOption(fi, oi, { label: ($event.target as HTMLInputElement).value })" />
             <input :value="opt.value" type="text" class="cpub-form-input" placeholder="Value (stored)" :aria-label="`Field ${fi + 1} option ${oi + 1} value`" @input="setOption(fi, oi, { value: ($event.target as HTMLInputElement).value })" />
@@ -316,14 +316,14 @@ function toggleIntro(): void {
         </div>
 
         <!-- address: structured + always personal data -->
-        <p v-if="tf.type === 'address'" class="cpub-form-hint" style="margin: 4px 0;">
+        <p v-if="tf.type === 'address'" class="cpub-form-hint cpub-fte-note">
           Collected as a structured mailing address and stored as personal data. Visible only to staff with PII access and the entrant.
         </p>
-        <p v-else-if="tf.type === 'file'" class="cpub-form-hint" style="margin: 4px 0;">
+        <p v-else-if="tf.type === 'file'" class="cpub-form-hint cpub-fte-note">
           The uploaded file is stored privately. Visible only to staff with PII access and the entrant.
         </p>
-        <p v-else-if="tf.type === 'signature'" class="cpub-form-hint" style="margin: 4px 0;">
-          A signed name is personal data — stored privately. Visible only to staff with PII access and the entrant.
+        <p v-else-if="tf.type === 'signature'" class="cpub-form-hint cpub-fte-note">
+          A signed name is personal data, stored privately. Visible only to staff with PII access and the entrant.
         </p>
 
         <!-- PII toggle. Hidden for types that are ALWAYS/DEFAULT personal data
@@ -342,53 +342,58 @@ function toggleIntro(): void {
 </template>
 
 <style scoped>
-/* Form-control + card styles travel with this markup (scoped CSS doesn't cross
-   component boundaries; the global theme only provides the form-label/hint + btn). */
-.cpub-form-input, .cpub-form-textarea { width: 100%; padding: var(--space-2) var(--space-3); border: var(--border-width-default) solid var(--border); background: var(--surface); color: var(--text); font-size: var(--text-sm); font-family: var(--font-sans); }
-.cpub-form-input:focus, .cpub-form-textarea:focus { border-color: var(--accent); outline: none; box-shadow: var(--shadow-accent); }
-.cpub-form-textarea { resize: vertical; }
+/* Field controls (.cpub-form-input/.cpub-form-textarea) come from the global
+   forms.css — the same strong-border control the contest editor family shares.
+   This block styles only the builder-specific chrome (head, menus, cards). */
 
-.cpub-fte { border: var(--border-width-default) dashed var(--border2); padding: 10px; margin-top: 4px; background: var(--surface); }
-.cpub-fte-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
-.cpub-fte-menus { display: flex; gap: 6px; }
+/* Builder container — borderless; the field cards carry the structure. */
+.cpub-fte { margin-top: var(--space-1); }
+.cpub-fte-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); flex-wrap: wrap; }
+.cpub-fte-title { margin: 0; }
+.cpub-fte-hint { margin: var(--space-1) 0 0; }
+.cpub-fte-menus { display: flex; gap: var(--space-2); }
 .cpub-fte-menu { position: relative; }
-.cpub-fte-dropdown { position: absolute; right: 0; top: calc(100% + 4px); z-index: 20; min-width: 220px; max-height: 320px; overflow-y: auto; background: var(--surface); border: var(--border-width-default) solid var(--border); box-shadow: var(--shadow-md); display: flex; flex-direction: column; }
-.cpub-fte-item { display: flex; flex-direction: column; gap: 2px; align-items: flex-start; text-align: left; padding: 8px 10px; background: transparent; border: none; border-bottom: var(--border-width-default) solid var(--border2); cursor: pointer; color: var(--text); }
+.cpub-fte-dropdown { position: absolute; right: 0; top: calc(100% + var(--space-1)); z-index: var(--z-dropdown); min-width: 220px; max-height: 320px; overflow-y: auto; background: var(--surface); border: var(--border-width-default) solid var(--border); box-shadow: var(--shadow-md); display: flex; flex-direction: column; }
+.cpub-fte-item { display: flex; flex-direction: column; gap: var(--space-1); align-items: flex-start; text-align: left; padding: var(--space-2) var(--space-3); background: transparent; border: none; border-bottom: var(--border-width-thin) solid var(--border2); cursor: pointer; color: var(--text); }
 .cpub-fte-item:last-child { border-bottom: none; }
 .cpub-fte-item:hover { background: var(--accent-bg); }
-.cpub-fte-item-row { flex-direction: row; align-items: center; gap: 8px; }
+.cpub-fte-item-row { flex-direction: row; align-items: center; gap: var(--space-2); }
 .cpub-fte-item-icon { color: var(--accent); width: 16px; text-align: center; }
-.cpub-fte-item-label { font-size: var(--text-sm); font-weight: 600; }
-.cpub-fte-item-desc { font-size: var(--text-xs); color: var(--text-faint); line-height: 1.4; }
+.cpub-fte-item-label { font-size: var(--text-sm); font-weight: var(--font-weight-semibold); }
+.cpub-fte-item-desc { font-size: var(--text-xs); color: var(--text-faint); line-height: var(--leading-snug); }
 
-.cpub-fte-intro { margin: 8px 0; padding: 8px; border: var(--border-width-default) dashed var(--border2); background: var(--surface2); }
-.cpub-fte-intro-edit { margin-top: 8px; display: flex; flex-direction: column; gap: 8px; }
-.cpub-fte-intro-preview { border-top: var(--border-width-default) dashed var(--border2); padding-top: 8px; }
+/* "Add instructions" block (stage editor only) — solid panel. */
+.cpub-fte-intro { margin: var(--space-3) 0; padding: var(--space-3); border: var(--border-width-default) solid var(--border2); background: var(--surface2); }
+.cpub-fte-intro-edit { margin-top: var(--space-2); display: flex; flex-direction: column; gap: var(--space-2); }
+.cpub-fte-intro-preview { border-top: var(--border-width-thin) solid var(--border2); padding-top: var(--space-2); }
+.cpub-fte-preview-label { display: block; margin: 0 0 var(--space-1); }
 
 /* Field CARD: a reorder rail + the field body. */
-.cpub-fte-card { display: flex; gap: 8px; margin-top: 8px; padding: 8px; border: var(--border-width-default) solid var(--border2); background: var(--surface2); scroll-margin: 12px; transition: border-color 0.12s, box-shadow 0.12s; }
-.cpub-fte-card--section { border-left: 3px solid var(--accent); }
+.cpub-fte-card { display: flex; gap: var(--space-2); margin-top: var(--space-2); padding: var(--space-3); border: var(--border-width-default) solid var(--border2); background: var(--surface2); scroll-margin: var(--space-3); transition: border-color var(--transition-fast), box-shadow var(--transition-fast); }
+.cpub-fte-card--section { border-left: var(--border-width-thick) solid var(--accent); }
 /* Active card (editor↔preview link): accent frame, no layout shift. */
 .cpub-fte-card--active { border-color: var(--accent); box-shadow: var(--shadow-accent); }
-.cpub-fte-reorder { display: flex; flex-direction: column; gap: 4px; flex-shrink: 0; }
+.cpub-fte-reorder { display: flex; flex-direction: column; gap: var(--space-1); flex-shrink: 0; }
 .cpub-fte-body { flex: 1; min-width: 0; }
 
-.cpub-fte-iconbtn { background: var(--surface); border: var(--border-width-default) solid var(--border); color: var(--text-dim); cursor: pointer; width: 26px; height: 24px; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; }
+.cpub-fte-iconbtn { background: var(--surface); border: var(--border-width-default) solid var(--border); color: var(--text-dim); cursor: pointer; width: 26px; height: 24px; display: inline-flex; align-items: center; justify-content: center; font-size: var(--text-xs); }
 .cpub-fte-iconbtn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
 .cpub-fte-iconbtn:disabled { opacity: .4; cursor: not-allowed; }
 .cpub-fte-del:hover { border-color: var(--red-border); color: var(--red-text); }
 
-.cpub-fte-main { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-.cpub-fte-main .cpub-form-input { flex: 2; min-width: 140px; margin: 0; }
+.cpub-fte-main { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
+.cpub-fte-main .cpub-form-input { flex: 2; min-width: 140px; }
 .cpub-fte-type { flex: 1 !important; min-width: 120px !important; max-width: 170px; }
-.cpub-fte-req { display: inline-flex; align-items: center; gap: 5px; font-size: 10px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: .06em; color: var(--text-faint); cursor: pointer; flex-shrink: 0; }
-.cpub-fte-req input { width: 13px; height: 13px; }
-.cpub-fte-help { margin-top: 6px !important; font-size: var(--text-xs) !important; }
-.cpub-fte-maxlen { display: flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 10px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: .06em; color: var(--text-faint); }
-.cpub-fte-maxlen .cpub-form-input { width: 90px; margin: 0; }
-.cpub-fte-extra { margin-top: 6px; padding: 8px; border: var(--border-width-default) dashed var(--border2); background: var(--surface); display: flex; flex-direction: column; gap: 6px; }
-.cpub-fte-opt-row { display: flex; align-items: center; gap: 6px; }
-.cpub-fte-opt-row .cpub-form-input { flex: 1; min-width: 100px; margin: 0; }
-.cpub-fte-pii { margin-top: 6px; }
+.cpub-fte-req { display: inline-flex; align-items: center; gap: var(--space-1); font-size: var(--text-label); font-family: var(--font-mono); text-transform: uppercase; letter-spacing: var(--tracking-wide); color: var(--text-faint); cursor: pointer; flex-shrink: 0; }
+.cpub-fte-req input { width: 13px; height: 13px; flex-shrink: 0; }
+.cpub-fte-help { margin-top: var(--space-2); font-size: var(--text-xs); }
+.cpub-fte-note { margin: var(--space-1) 0 0; }
+.cpub-fte-maxlen { display: flex; align-items: center; gap: var(--space-2); margin-top: var(--space-2); font-size: var(--text-label); font-family: var(--font-mono); text-transform: uppercase; letter-spacing: var(--tracking-wide); color: var(--text-faint); }
+.cpub-fte-maxlen .cpub-form-input { width: 90px; }
+.cpub-fte-extra { margin-top: var(--space-2); padding: var(--space-3); border: var(--border-width-default) solid var(--border2); background: var(--surface); display: flex; flex-direction: column; gap: var(--space-2); }
+.cpub-fte-extra-label { margin: 0; }
+.cpub-fte-opt-row { display: flex; align-items: center; gap: var(--space-2); }
+.cpub-fte-opt-row .cpub-form-input { flex: 1; min-width: 100px; }
+.cpub-fte-pii { margin-top: var(--space-2); }
 .cpub-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 </style>

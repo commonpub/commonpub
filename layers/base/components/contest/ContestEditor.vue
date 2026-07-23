@@ -557,7 +557,7 @@ const reviewStages = computed(() => (contest.value?.stages ?? []).filter((s) => 
 
               <!-- Where the cover image shows on the public page. -->
               <label v-if="coverImageUrl" class="cpub-ce-cover-place">
-                <span class="cpub-form-label" style="margin: 0;">Show cover</span>
+                <span class="cpub-form-label">Show cover</span>
                 <select :value="coverPlacement ?? 'about'" class="cpub-form-input" @change="coverPlacement = (($event.target as HTMLSelectElement).value as 'about' | 'hero')">
                   <option value="about">In the Overview "About" section</option>
                   <option value="hero">In the hero, under the subheading</option>
@@ -594,7 +594,7 @@ const reviewStages = computed(() => (contest.value?.stages ?? []).filter((s) => 
             <div class="cpub-ce-reg-tab">
               <p class="cpub-form-hint">Build the form participants fill when they register. Answers are stored the same way entries are — public answers on the registration, personal data (email/address/PII fields) stored privately, and consent (agreements) recorded to the audit log. Leave it empty to use the default sign-up questions.</p>
               <fieldset class="cpub-ce-reg-mode">
-                <legend class="cpub-form-label" style="margin: 0 0 6px;">Registration mode</legend>
+                <legend class="cpub-form-label cpub-ce-reg-mode-legend">Registration mode</legend>
                 <label class="cpub-ce-reg-mode-opt">
                   <input type="radio" value="light" :checked="registrationMode === 'light'" @change="registrationMode = 'light'" />
                   <span><strong>Light</strong> — registering records participation; entering a project is a separate step.</span>
@@ -617,7 +617,7 @@ const reviewStages = computed(() => (contest.value?.stages ?? []).filter((s) => 
                 <div class="cpub-ce-reg-preview">
                   <div class="cpub-ce-reg-preview-inner">
                     <div class="cpub-ce-reg-preview-head">
-                      <span class="cpub-form-label" style="margin: 0;">Preview</span>
+                      <span class="cpub-form-label">Preview</span>
                       <span class="cpub-ce-reg-preview-tag">What participants see</span>
                     </div>
                     <p v-if="registrationTemplate.length" class="cpub-form-hint cpub-ce-reg-preview-hint">Click a field to jump to it in the builder.</p>
@@ -694,7 +694,7 @@ const reviewStages = computed(() => (contest.value?.stages ?? []).filter((s) => 
           </EditorSection>
 
           <EditorSection title="Prizes" icon="fa-trophy" :open="openSections.prizes" @toggle="toggleSection('prizes')">
-            <label class="cpub-form-check" style="margin-bottom: 10px;">
+            <label class="cpub-form-check cpub-ce-prizes-toggle">
               <input v-model="showPrizes" type="checkbox" />
               <span>Show the Prizes tab on the contest page</span>
             </label>
@@ -739,7 +739,7 @@ const reviewStages = computed(() => (contest.value?.stages ?? []).filter((s) => 
               </select>
             </div>
             <label class="cpub-form-check"><input v-model="communityVotingEnabled" type="checkbox" /> <span>Enable community voting (advisory audience favourite, doesn't affect ranks)</span></label>
-            <p class="cpub-form-hint" style="margin-top: 12px;">The rubric below is the contest's default criteria. A review stage can override it with per-round criteria. Leave it empty and judges score an overall 1 to 100.</p>
+            <p class="cpub-form-hint cpub-ce-rubric-hint">The rubric below is the contest's default criteria. A review stage can override it with per-round criteria. Leave it empty and judges score an overall 1 to 100.</p>
             <ContestCriteriaEditor v-model="criteria" label="Judging criteria" :show-total="true" />
           </EditorSection>
 
@@ -774,7 +774,7 @@ const reviewStages = computed(() => (contest.value?.stages ?? []).filter((s) => 
             </div>
           </EditorSection>
           <EditorSection v-else title="People" icon="fa-user-group" :open="openSections.people" @toggle="toggleSection('people')">
-            <p class="cpub-form-hint" style="margin: 0;">Add judges, reviewers, and collaborators from the contest's Edit page once it's created.</p>
+            <p class="cpub-form-hint cpub-ce-hint-flush">Add judges, reviewers, and collaborators from the contest's Edit page once it's created.</p>
           </EditorSection>
 
           <EditorSection v-if="mode === 'edit' && isOwner" title="Danger Zone" icon="fa-triangle-exclamation" :open="openSections.danger" @toggle="toggleSection('danger')">
@@ -933,9 +933,14 @@ const reviewStages = computed(() => (contest.value?.stages ?? []).filter((s) => 
    splits on the REAL available width (center minus the 340px settings rail),
    not a naive viewport breakpoint that collapsed the panes on laptops. */
 .cpub-ce-reg-tab { display: flex; flex-direction: column; gap: var(--space-3); container-type: inline-size; }
-.cpub-ce-reg-mode { border: var(--border-width-default) solid var(--border2); padding: var(--space-3); margin: 0; display: flex; flex-direction: column; gap: 6px; }
-.cpub-ce-reg-mode-opt { display: flex; align-items: flex-start; gap: 8px; font-size: var(--text-sm); color: var(--text-dim); cursor: pointer; }
+.cpub-ce-reg-mode { border: var(--border-width-default) solid var(--border2); padding: var(--space-3); margin: 0; display: flex; flex-direction: column; gap: var(--space-2); }
+.cpub-ce-reg-mode-legend { margin: 0 0 var(--space-2); padding: 0; }
+.cpub-ce-reg-mode-opt { display: flex; align-items: flex-start; gap: var(--space-2); font-size: var(--text-sm); color: var(--text-dim); cursor: pointer; }
 .cpub-ce-reg-mode-opt input { margin-top: 3px; flex-shrink: 0; }
+/* De-inlined margin tweaks (were style="margin:…" in the template). */
+.cpub-ce-prizes-toggle { margin-bottom: var(--space-2); }
+.cpub-ce-rubric-hint { margin-top: var(--space-3); }
+.cpub-ce-hint-flush { margin: 0; }
 
 /* Two-pane builder: editor (left, grows/scrolls with the page) + live preview
    (right, sticky). Stacks editor-first on narrow widths so the editor is never

@@ -130,23 +130,27 @@ function resetDefaults(): void {
 </template>
 
 <style scoped>
-.cpub-eb { max-width: 1000px; margin: 0 auto; padding: 24px; }
-.cpub-eb-title { font-size: 20px; font-weight: 700; margin: 0 0 6px; }
-.cpub-eb-sub { font-size: 13px; color: var(--text-dim); line-height: 1.6; margin: 0 0 20px; max-width: 60ch; }
-.cpub-eb-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
-.cpub-eb-form { display: flex; flex-direction: column; gap: 16px; }
-.cpub-eb-field { display: flex; flex-direction: column; gap: 6px; }
-.cpub-eb-label { font-size: 11px; font-weight: 600; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-dim); }
-.cpub-eb-input { padding: 8px 12px; border: var(--border-width-default) solid var(--border); background: var(--surface); color: var(--text); font-size: 13px; font-family: var(--font-sans); width: 100%; }
+.cpub-eb { max-width: 1000px; margin: 0 auto; padding: var(--space-6); }
+.cpub-eb-title { font-size: var(--text-lg); font-weight: var(--font-weight-bold); margin: 0 0 var(--space-2); }
+.cpub-eb-sub { font-size: var(--text-sm); color: var(--text-dim); line-height: var(--leading-normal); margin: 0 0 var(--space-5); max-width: 60ch; }
+.cpub-eb-cols { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-6); align-items: start; }
+.cpub-eb-form { display: flex; flex-direction: column; gap: var(--space-4); }
+.cpub-eb-field { display: flex; flex-direction: column; gap: var(--space-2); }
+.cpub-eb-label { font-size: var(--text-label); font-weight: var(--font-weight-semibold); font-family: var(--font-mono); text-transform: uppercase; letter-spacing: var(--tracking-wide); color: var(--text-dim); }
+.cpub-eb-input { padding: var(--space-2) var(--space-3); border: var(--border-width-default) solid var(--border); background: var(--surface); color: var(--text); font-size: var(--text-sm); font-family: var(--font-sans); width: 100%; }
 .cpub-eb-input:focus { border-color: var(--accent); outline: none; box-shadow: var(--shadow-accent); }
-.cpub-eb-accentrow { display: flex; align-items: center; gap: 10px; }
+.cpub-eb-accentrow { display: flex; align-items: center; gap: var(--space-2); }
 .cpub-eb-swatch { width: 28px; height: 28px; flex-shrink: 0; border: var(--border-width-default) solid var(--border); }
-.cpub-eb-hint { font-size: 11px; color: var(--text-faint); margin: 0; }
-.cpub-eb-err { font-size: 11px; color: var(--red-text); margin: 0; }
-.cpub-eb-actions { display: flex; gap: 10px; margin-top: 4px; }
+.cpub-eb-hint { font-size: var(--text-xs); color: var(--text-faint); margin: 0; }
+.cpub-eb-err { font-size: var(--text-xs); color: var(--red-text); margin: 0; }
+.cpub-eb-actions { display: flex; gap: var(--space-2); margin-top: var(--space-1); }
 .cpub-btn-ghost { background: transparent; color: var(--text-dim); }
-.cpub-eb-preview { display: flex; flex-direction: column; gap: 6px; position: sticky; top: 16px; }
-.cpub-eb-frame { width: 100%; height: 520px; border: var(--border-width-default) solid var(--border); background: #fff; }
-.cpub-eb-frame-empty { display: flex; align-items: center; justify-content: center; color: var(--text-faint); font-size: 13px; }
-@media (max-width: 760px) { .cpub-eb-cols { grid-template-columns: 1fr; } }
+.cpub-eb-preview { display: flex; flex-direction: column; gap: var(--space-2); position: sticky; top: var(--space-4); }
+/* #fff frame: real server-rendered email (inline-styled, no CSS vars in the srcdoc). */
+.cpub-eb-frame { width: 100%; height: clamp(420px, 60vh, 560px); border: var(--border-width-default) solid var(--border); background: #fff; }
+.cpub-eb-frame-empty { display: flex; align-items: center; justify-content: center; color: var(--text-faint); font-size: var(--text-sm); }
+@media (max-width: 760px) {
+  .cpub-eb-cols { grid-template-columns: 1fr; }
+  .cpub-eb-preview { position: static; }
+}
 </style>

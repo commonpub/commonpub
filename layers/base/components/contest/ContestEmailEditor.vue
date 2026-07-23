@@ -220,7 +220,7 @@ async function sendTest(): Promise<void> {
 
     <div class="cpub-cee-cols">
       <div class="cpub-cee-form">
-        <label class="cpub-form-field">
+        <label class="cpub-cee-field">
           <span class="cpub-form-label">Subject</span>
           <input v-model="subject" type="text" maxlength="200" class="cpub-form-input" placeholder="Use the built-in default subject" />
         </label>
@@ -243,7 +243,10 @@ async function sendTest(): Promise<void> {
       </div>
 
       <div class="cpub-cee-preview">
-        <span class="cpub-form-label">Live preview</span>
+        <div class="cpub-cee-preview-head">
+          <span class="cpub-form-label">Live preview</span>
+          <span class="cpub-cee-preview-tag">What recipients see</span>
+        </div>
         <iframe
           v-if="previewHtml"
           :srcdoc="previewHtml"
@@ -318,68 +321,76 @@ async function sendTest(): Promise<void> {
 
 <style scoped>
 .cpub-cee { display: flex; flex-direction: column; gap: var(--space-3); }
-.cpub-cee-templates { display: flex; gap: 6px; flex-wrap: wrap; }
+.cpub-cee-templates { display: flex; gap: var(--space-2); flex-wrap: wrap; }
 .cpub-cee-tpl {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 6px 12px; background: transparent; cursor: pointer;
+  display: inline-flex; align-items: center; gap: var(--space-2);
+  padding: var(--space-2) var(--space-3); background: transparent; cursor: pointer;
   border: var(--border-width-default) solid var(--border);
-  font-size: var(--text-sm); font-weight: 600; color: var(--text-dim);
+  font-size: var(--text-sm); font-weight: var(--font-weight-semibold); color: var(--text-dim);
 }
 .cpub-cee-tpl:hover { color: var(--text); }
 .cpub-cee-tpl-active { background: var(--accent-bg); color: var(--accent); border-color: var(--accent); }
 
 .cpub-cee-cols { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); align-items: start; }
 .cpub-cee-form { display: flex; flex-direction: column; gap: var(--space-3); }
-.cpub-cee-field { display: flex; flex-direction: column; gap: 4px; }
+.cpub-cee-field { display: flex; flex-direction: column; gap: var(--space-1); }
 .cpub-cee-body {
   border: var(--border-width-default) solid var(--border);
   background: var(--surface);
-  min-height: 220px;
-  padding: 8px;
+  min-height: clamp(200px, 30vh, 280px);
+  padding: var(--space-2);
 }
 
-.cpub-cee-tokens { display: flex; flex-direction: column; gap: 6px; }
-.cpub-cee-token-list { display: flex; flex-wrap: wrap; gap: 6px; list-style: none; margin: 0; padding: 0; }
+.cpub-cee-tokens { display: flex; flex-direction: column; gap: var(--space-2); }
+.cpub-cee-token-list { display: flex; flex-wrap: wrap; gap: var(--space-2); list-style: none; margin: 0; padding: 0; }
 .cpub-cee-token-list code {
   font-family: var(--font-mono); font-size: var(--text-xs);
-  padding: 2px 6px; background: var(--surface2); color: var(--text-dim);
+  padding: var(--space-1) var(--space-2); background: var(--surface2); color: var(--text-dim);
   border: var(--border-width-default) solid var(--border);
 }
 
-.cpub-cee-preview { position: sticky; top: 16px; display: flex; flex-direction: column; gap: 6px; }
-.cpub-cee-frame { width: 100%; height: 520px; border: var(--border-width-default) solid var(--border); background: #fff; }
+.cpub-cee-preview { position: sticky; top: var(--space-4); display: flex; flex-direction: column; gap: var(--space-2); }
+.cpub-cee-preview-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-2); }
+.cpub-cee-preview-head .cpub-form-label { margin: 0; }
+.cpub-cee-preview-tag { font-size: var(--text-label); font-family: var(--font-mono); text-transform: uppercase; letter-spacing: var(--tracking-wide); color: var(--text-faint); }
+/* #fff frame: the preview is a REAL email (server-rendered, inline-styled) whose
+   client is white — CSS vars don't exist inside the sandboxed srcdoc. Intentional. */
+.cpub-cee-frame { width: 100%; height: clamp(420px, 60vh, 560px); border: var(--border-width-default) solid var(--border); background: #fff; }
 .cpub-cee-frame-empty {
-  width: 100%; height: 520px; display: flex; align-items: center; justify-content: center;
+  width: 100%; height: clamp(420px, 60vh, 560px); display: flex; align-items: center; justify-content: center;
   border: var(--border-width-default) solid var(--border); background: var(--surface2); color: var(--text-faint); font-size: var(--text-sm);
 }
 
-@media (max-width: 760px) { .cpub-cee-cols { grid-template-columns: 1fr; } }
+@media (max-width: 760px) {
+  .cpub-cee-cols { grid-template-columns: 1fr; }
+  .cpub-cee-preview { position: static; }
+}
 
 /* --- Send a test --- */
 .cpub-cee-test {
-  display: flex; flex-direction: column; gap: 6px;
+  display: flex; flex-direction: column; gap: var(--space-2);
   padding-top: var(--space-3);
   border-top: var(--border-width-default) solid var(--border);
 }
-.cpub-cee-test-row { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px; }
+.cpub-cee-test-row { display: flex; flex-wrap: wrap; align-items: flex-start; gap: var(--space-2); }
 .cpub-cee-test-email { flex: 1 1 220px; min-width: 180px; }
 .cpub-cee-usersearch { position: relative; flex: 1 1 220px; min-width: 180px; }
 .cpub-cee-userdrop {
-  position: absolute; top: calc(100% + 2px); left: 0; right: 0; z-index: 20;
+  position: absolute; top: calc(100% + var(--space-1)); left: 0; right: 0; z-index: var(--z-dropdown);
   background: var(--surface); border: var(--border-width-default) solid var(--border);
   box-shadow: var(--shadow-md); max-height: 240px; overflow-y: auto;
 }
 .cpub-cee-userdrop-item {
-  display: flex; align-items: baseline; gap: 8px; width: 100%;
-  padding: 8px 12px; background: transparent; border: none; cursor: pointer; text-align: left;
+  display: flex; align-items: baseline; gap: var(--space-2); width: 100%;
+  padding: var(--space-2) var(--space-3); background: transparent; border: none; cursor: pointer; text-align: left;
 }
 .cpub-cee-userdrop-item:hover { background: var(--surface2); }
 .cpub-cee-userdrop-name { color: var(--text); font-size: var(--text-sm); }
 .cpub-cee-userdrop-handle { color: var(--text-dim); font-family: var(--font-mono); font-size: var(--text-xs); }
-.cpub-cee-userdrop-empty { display: block; padding: 8px 12px; color: var(--text-dim); font-size: var(--text-sm); }
+.cpub-cee-userdrop-empty { display: block; padding: var(--space-2) var(--space-3); color: var(--text-dim); font-size: var(--text-sm); }
 .cpub-cee-chip {
-  display: inline-flex; align-items: center; gap: 8px;
-  padding: 6px 12px; background: var(--accent-bg); color: var(--accent-text);
+  display: inline-flex; align-items: center; gap: var(--space-2);
+  padding: var(--space-2) var(--space-3); background: var(--accent-bg); color: var(--accent-text);
   border: var(--border-width-default) solid var(--accent);
 }
 .cpub-cee-chip i { color: var(--accent); }
