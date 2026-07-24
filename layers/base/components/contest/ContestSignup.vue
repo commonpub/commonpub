@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { Serialized, ContestDetail } from '@commonpub/server';
 import { templateHasRequiredField } from '@commonpub/schema';
-import { effectiveRegistrationTemplate } from '../../utils/contestRegistration';
+import { effectiveRegistrationTemplate, isRichRegistrationForm } from '../../utils/contestRegistration';
 
 type Tier = 'full' | 'reminders';
 
@@ -34,6 +34,7 @@ const REGISTERABLE = ['upcoming', 'active'];
 const status = computed(() => props.contest?.status ?? '');
 const canRegister = computed(() => REGISTERABLE.includes(status.value));
 const loginLink = computed(() => `/auth/login?redirect=/contests/${props.contest?.slug ?? ''}`);
+const registerLink = computed(() => `/contests/${props.contest?.slug ?? ''}/register`);
 
 const isFull = computed(() => props.tier === 'full');
 const isReminders = computed(() => props.tier === 'reminders');
@@ -110,35 +111,51 @@ const whatsNext = computed<string>(() => {
   }
 });
 
-// --- Optional info form (template-driven) ---
-// Show the info form expanded automatically when a fresh full registrant has no
-// info yet (the high-intent nudge); collapsed once they've saved something.
-const infoOpen = ref(false);
-
 const hasSavedInfo = computed(() => Object.keys(props.savedFields ?? {}).length > 0);
 
-// Auto-open the form for a full registrant who hasn't shared anything yet.
-watch(isFull, (full) => { if (full && !hasSavedInfo.value) infoOpen.value = true; }, { immediate: true });
-
 // When the operator's form has any REQUIRED field or must-accept agreement, FULL
-// registration MUST go through the form (so the requirement is actually enforced +
-// consent recorded) — a bare one-click full register would silently skip it. A form
-// with only optional fields (incl. the legacy default) keeps the one-click flow.
+// registration MUST go through the form (so the requirement is enforced + consent
+// recorded); an all-optional form (incl. the legacy default) keeps the one-click flow.
 const templateHasRequired = computed(() => templateHasRequiredField(registrationTemplate.value));
-// The pre-registration form is showing (operator-required-fields flow).
-const showRegForm = ref(false);
 
-function registerFull(): void {
-  // Route through the form when the operator requires fields; otherwise one-click.
-  if (templateHasRequired.value) { showRegForm.value = true; return; }
-  emit('register', { tier: 'full' });
+// A "rich" form (sections / address / file / signature / many fields) is too big for
+// the sidebar → it opens on the dedicated /register page; a short-but-required form
+// opens in a modal; the bare optional default one-click registers with no form.
+const isRich = computed(() => isRichRegistrationForm(registrationTemplate.value));
+
+// --- Modal (short forms only) ---
+const modalOpen = ref(false);
+const modalRef = ref<HTMLElement | null>(null);
+useFocusTrap(modalRef, () => modalOpen.value, () => { modalOpen.value = false; });
+
+/** Primary register CTA: one-click when no fields are required; otherwise route to
+ *  the page (rich) or open the modal (short). */
+function onRegisterCta(): void {
+  if (!templateHasRequired.value) { emit('register', { tier: 'full' }); return; }
+  if (isRich.value) { navigateTo(registerLink.value); return; }
+  modalOpen.value = true;
+}
+/** Edit/add optional details (a full participant): page when rich, else modal. */
+function onEditDetails(): void {
+  if (isRich.value) { navigateTo(registerLink.value); return; }
+  modalOpen.value = true;
 }
 function registerReminders(): void {
   emit('register', { tier: 'reminders' });
 }
-function saveInfo(fields: Record<string, string>): void {
+function onModalSave(fields: Record<string, string>): void {
+  const wasFull = isFull.value;
   emit('register', { tier: 'full', fields });
+  // Initial register: DON'T close synchronously — the parent's register() is async
+  // and a server-only check (bad email, unowned file, invalid option) can 400 after
+  // client validation passes. Closing now would discard the typed answers. The isFull
+  // watch below closes the modal only once registration actually succeeds; on failure
+  // it stays open with the data intact. Editing details (already full) has no state
+  // flip to observe, so close optimistically there (a rare 400 loses only a small edit).
+  if (wasFull) modalOpen.value = false;
 }
+// Close the initial-register modal only on a confirmed success (tier → full).
+watch(isFull, (full) => { if (full) modalOpen.value = false; });
 </script>
 
 <template>
@@ -168,31 +185,16 @@ function saveInfo(fields: Record<string, string>): void {
     <!-- AUTHENTICATED, NOT REGISTERED: the two-tier choice -->
     <template v-else-if="isAuthenticated && !isRegistered && canRegister">
       <button
-        v-if="!showRegForm"
         type="button"
         class="cpub-btn cpub-btn-primary cpub-su-btn cpub-su-register"
         :disabled="registering"
-        @click="registerFull"
+        @click="onRegisterCta"
       >
         <i class="fa-solid fa-flag-checkered"></i>
         {{ registering ? 'Registering…' : 'Register for this contest' }}
       </button>
 
-      <!-- Operator-required registration form (the Save IS the registration). -->
-      <div v-if="showRegForm" class="cpub-su-form">
-        <p class="cpub-su-hint" style="margin-top: 0;">This contest asks a few questions to register.</p>
-        <ContestRegistrationForm
-          :template="registrationTemplate"
-          :saved-fields="savedFields"
-          :registering="registering"
-          id-prefix="cpub-su-reg"
-          save-label="Register"
-          @save="saveInfo"
-        />
-      </div>
-
       <button
-        v-if="!showRegForm"
         type="button"
         class="cpub-btn cpub-su-btn cpub-su-remind"
         :disabled="registering"
@@ -200,7 +202,7 @@ function saveInfo(fields: Record<string, string>): void {
       >
         <i class="fa-solid fa-bell"></i> Just get reminders
       </button>
-      <p v-if="!showRegForm" class="cpub-su-hint">Register to enter + get every update and reminder. Not ready? Get reminders only, no commitment.</p>
+      <p class="cpub-su-hint">Register to enter + get every update and reminder. Not ready? Get reminders only, no commitment.</p>
     </template>
 
     <!-- REGISTERED (either tier): confirmation + what's next -->
@@ -215,53 +217,24 @@ function saveInfo(fields: Record<string, string>): void {
       <!-- Reminders-only: offer the upgrade to full participation -->
       <template v-if="isReminders && canRegister">
         <button
-          v-if="!showRegForm"
           type="button"
           class="cpub-btn cpub-btn-primary cpub-su-btn cpub-su-register"
           :disabled="registering"
-          @click="registerFull"
+          @click="onRegisterCta"
         >
           <i class="fa-solid fa-flag-checkered"></i>
           {{ registering ? 'Registering…' : 'Register for the contest' }}
         </button>
-        <div v-if="showRegForm" class="cpub-su-form">
-          <p class="cpub-su-hint" style="margin-top: 0;">This contest asks a few questions to register.</p>
-          <ContestRegistrationForm
-            :template="registrationTemplate"
-            :saved-fields="savedFields"
-            :registering="registering"
-            id-prefix="cpub-su-regup"
-            save-label="Register"
-            @save="saveInfo"
-          />
-        </div>
-        <p v-if="!showRegForm" class="cpub-su-hint">You're only getting reminders. Register to enter the contest.</p>
+        <p class="cpub-su-hint">You're only getting reminders. Register to enter the contest.</p>
       </template>
 
-      <!-- Full participant: the optional "tell us about you" form -->
-      <!-- Only offer the info form while registration is still open: saveInfo()
-           POSTs to register, which 400s once the contest leaves upcoming/active. -->
+      <!-- Full participant: add / edit optional details (opens the page or modal). -->
       <template v-if="isFull && canRegister">
-        <button
-          type="button"
-          class="cpub-su-infotoggle"
-          :aria-expanded="infoOpen"
-          @click="infoOpen = !infoOpen"
-        >
-          <i class="fa-solid" :class="infoOpen ? 'fa-chevron-down' : 'fa-chevron-right'"></i>
+        <button type="button" class="cpub-su-infotoggle" @click="onEditDetails">
+          <i class="fa-solid fa-pen-to-square"></i>
           {{ hasSavedInfo ? 'Edit your details' : 'Tell the organizers about you' }}
           <span class="cpub-su-optional">optional</span>
         </button>
-
-        <div v-if="infoOpen" class="cpub-su-form">
-          <ContestRegistrationForm
-            :template="registrationTemplate"
-            :saved-fields="savedFields"
-            :registering="registering"
-            id-prefix="cpub-su-reg"
-            @save="saveInfo"
-          />
-        </div>
       </template>
 
       <!-- Leave / turn off -->
@@ -281,6 +254,27 @@ function saveInfo(fields: Record<string, string>): void {
       <p v-if="whatsNext" class="cpub-su-next">{{ whatsNext }}</p>
     </template>
   </div>
+
+  <!-- Short-form modal (rich forms route to /register instead). -->
+  <Teleport to="body">
+    <div v-if="modalOpen" class="cpub-modal-backdrop" @click.self="modalOpen = false">
+      <div ref="modalRef" class="cpub-modal-content cpub-su-modal" role="dialog" aria-modal="true" aria-labelledby="cpub-su-modal-title">
+        <div class="cpub-modal-header">
+          <h2 id="cpub-su-modal-title" class="cpub-modal-title">Register for {{ contest?.title }}</h2>
+          <button class="cpub-modal-close" aria-label="Close" @click="modalOpen = false"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <p class="cpub-modal-desc">This contest asks a few questions to register.</p>
+        <ContestRegistrationForm
+          :template="registrationTemplate"
+          :saved-fields="savedFields"
+          :registering="registering"
+          id-prefix="cpub-su-reg"
+          save-label="Register"
+          @save="onModalSave"
+        />
+      </div>
+    </div>
+  </Teleport>
 </template>
 
 <style scoped>
@@ -288,7 +282,7 @@ function saveInfo(fields: Record<string, string>): void {
 .cpub-su-milestone { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; margin: 0 0 10px; padding-bottom: 10px; border-bottom: var(--border-width-default) solid var(--border2); }
 .cpub-su-ms-label { font-size: 12px; font-weight: 700; color: var(--text); }
 .cpub-su-ms-date { font-size: 11px; font-family: var(--font-mono); color: var(--text-dim); }
-.cpub-su-ms-hint { font-size: 10px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: .06em; color: var(--accent); border: var(--border-width-default) solid var(--accent-border); background: var(--accent-bg); padding: 1px 6px; }
+.cpub-su-ms-hint { font-size: 10px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: .06em; color: var(--accent-text); border: var(--border-width-default) solid var(--accent-border); background: var(--accent-bg); padding: 1px 6px; }
 
 .cpub-su-count { font-size: 12px; color: var(--text-dim); margin: 0 0 12px; }
 .cpub-su-count strong { color: var(--text); font-family: var(--font-mono); }
@@ -303,16 +297,24 @@ function saveInfo(fields: Record<string, string>): void {
 
 .cpub-su-state { display: flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 700; margin: 0 0 8px; }
 .cpub-su-state-full { color: var(--green-text); }
-.cpub-su-state-rem { color: var(--accent); }
+.cpub-su-state-rem { color: var(--accent-text); }
 
 .cpub-su-next { font-size: 12px; color: var(--text-dim); line-height: 1.6; margin: 0 0 12px; }
 
-/* Optional info form */
 .cpub-su-infotoggle { display: flex; align-items: center; gap: 7px; width: 100%; background: none; border: none; padding: 8px 0; cursor: pointer; font-size: 12px; font-weight: 600; color: var(--text-dim); font-family: inherit; text-align: left; }
 .cpub-su-infotoggle:hover { color: var(--text); }
 .cpub-su-optional { margin-left: auto; font-size: 9px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: .06em; color: var(--text-dim); border: var(--border-width-default) solid var(--border2); padding: 1px 5px; }
 
-.cpub-su-form { display: flex; flex-direction: column; gap: 12px; padding: 4px 0 12px; }
 .cpub-su-leave { color: var(--text-dim); margin-top: 4px; margin-bottom: 0; }
 .cpub-su-leave:hover:not(:disabled) { color: var(--red-text); border-color: var(--red-border); background: var(--red-bg); }
+
+/* Modal (mirrors the shared modal pattern; scoped per component). */
+.cpub-modal-backdrop { position: fixed; inset: 0; background: var(--color-surface-scrim, rgba(0,0,0,0.5)); z-index: var(--z-modal-backdrop); display: flex; align-items: center; justify-content: center; padding: var(--space-4); }
+.cpub-modal-content { background: var(--surface); border: var(--border-width-default) solid var(--border); box-shadow: var(--shadow-lg); padding: var(--space-6); }
+.cpub-su-modal { max-width: 560px; width: 100%; max-height: 88vh; overflow-y: auto; }
+.cpub-modal-header { display: flex; justify-content: space-between; align-items: center; gap: var(--space-3); margin-bottom: var(--space-2); }
+.cpub-modal-title { font-size: var(--text-md); font-weight: var(--font-weight-bold); }
+.cpub-modal-close { background: none; border: none; color: var(--text-faint); cursor: pointer; font-size: var(--text-base); padding: var(--space-1); }
+.cpub-modal-close:hover { color: var(--text); }
+.cpub-modal-desc { font-size: var(--text-sm); color: var(--text-dim); margin-bottom: var(--space-4); }
 </style>

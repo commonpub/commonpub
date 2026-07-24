@@ -1,4 +1,4 @@
-import { and, eq, desc, inArray } from 'drizzle-orm';
+import { and, eq, desc, inArray, sql } from 'drizzle-orm';
 import { contests, contestRegistrations, users, contestRegistrationPrivateFields, contestAgreementAcceptances, contestRegistrationFieldsSchema, templateHasRequiredField } from '@commonpub/schema';
 import type { FormField } from '@commonpub/schema';
 import type { CommonPubConfig } from '@commonpub/config';
@@ -347,6 +347,7 @@ export async function listContestRegistrants(
     db
       .select({
         userId: contestRegistrations.userId,
+        registrationId: contestRegistrations.id,
         registeredAt: contestRegistrations.createdAt,
         fields: contestRegistrations.fields,
         username: users.username,
@@ -377,6 +378,22 @@ export async function listContestRegistrants(
     privateByUser = new Map(priv.map((p) => [p.userId, p.fields]));
   }
 
+  // Consent audit (NOT PII — an organizer can see that agreements were accepted
+  // without holding contest.pii, mirroring the entry side): count distinct accepted
+  // agreement fields per registrant for the page.
+  let consentByReg = new Map<string, number>();
+  if (rows.length > 0) {
+    const acc = await db
+      .select({
+        registrationId: contestAgreementAcceptances.registrationId,
+        n: sql<number>`count(distinct ${contestAgreementAcceptances.fieldKey})::int`,
+      })
+      .from(contestAgreementAcceptances)
+      .where(inArray(contestAgreementAcceptances.registrationId, rows.map((r) => r.registrationId)))
+      .groupBy(contestAgreementAcceptances.registrationId);
+    consentByReg = new Map(acc.map((a) => [a.registrationId as string, a.n]));
+  }
+
   return {
     items: rows.map((r) => ({
       userId: r.userId,
@@ -386,6 +403,7 @@ export async function listContestRegistrants(
       registeredAt: r.registeredAt,
       fields: r.fields ?? null,
       privateFields: opts.includePii ? (privateByUser.get(r.userId) ?? null) : undefined,
+      consentCount: consentByReg.get(r.registrationId) ?? 0,
     })),
     total,
   };

@@ -112,10 +112,9 @@ watch(() => props.reviewStages, (stages) => {
 </template>
 
 <style scoped>
-/* Form-control + advancement styles travel with the markup (scoped CSS is per
-   component; the global theme only ships .cpub-form-label/-hint/-btn). */
-.cpub-form-input { width: 100%; padding: var(--space-2) var(--space-3); border: var(--border-width-default) solid var(--border); background: var(--surface); color: var(--text); font-size: var(--text-sm); font-family: var(--font-sans); }
-.cpub-form-input:focus { border-color: var(--accent); outline: none; box-shadow: var(--shadow-accent); }
+/* Advancement styles travel with the markup (scoped CSS is per component). The
+   form control .cpub-form-input / :focus + .cpub-form-label/-hint/-btn come from
+   the global theme (.cpub-form-input hoisted to forms.css, session 246). */
 .cpub-form-subtitle { font-size: 12px; font-weight: 700; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: .06em; color: var(--text-dim); display: flex; align-items: center; gap: 8px; margin: 0 0 8px; }
 .cpub-form-check { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-dim); cursor: pointer; }
 .cpub-form-check input { width: 14px; height: 14px; flex-shrink: 0; }

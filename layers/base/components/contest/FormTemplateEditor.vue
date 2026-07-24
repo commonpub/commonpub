@@ -23,6 +23,7 @@ import {
   type FieldPreset,
   type SubmissionFormTemplate,
 } from '../../utils/contestSubmissionTemplates';
+import { registrationMarkdownToTemplate, templateToRegistrationMarkdown } from '../../utils/registrationMarkdown';
 
 type FieldType = FormField['type'];
 
@@ -32,6 +33,8 @@ const props = withDefaults(defineProps<{
   instructions?: BlockTuple[];
   /** Show the block-intro affordance (stage editor only). */
   enableIntro?: boolean;
+  /** Show the "Import / export as markdown" affordance (registration editor). */
+  enableMarkdown?: boolean;
   /** Heading shown above the builder. */
   label?: string;
   /** One-line hint under the heading. */
@@ -43,7 +46,7 @@ const props = withDefaults(defineProps<{
    * change); the registration builder syncs it with its live preview.
    */
   activeIndex?: number;
-}>(), { enableIntro: false, label: 'Form', hint: '', activeIndex: -1 });
+}>(), { enableIntro: false, enableMarkdown: false, label: 'Form', hint: '', activeIndex: -1 });
 
 const emit = defineEmits<{
   'update:template': [template: FormField[]];
@@ -157,6 +160,34 @@ function applyFormTemplate(tpl: SubmissionFormTemplate): void {
   emit('update:template', tpl.build({ pii: piiEnabled.value, privateFiles: privateFilesEnabled.value }));
 }
 
+// ─── Import / export as markdown (registration editor only) ───
+const showMarkdown = ref(false);
+const markdownText = ref('');
+const markdownErrors = ref<string[]>([]);
+function toggleMarkdown(): void {
+  closeMenu();
+  showMarkdown.value = !showMarkdown.value;
+  if (showMarkdown.value) loadCurrentMarkdown();
+}
+function loadCurrentMarkdown(): void {
+  markdownText.value = templateToRegistrationMarkdown(props.template);
+  markdownErrors.value = [];
+}
+function importMarkdown(): void {
+  const { fields, errors } = registrationMarkdownToTemplate(markdownText.value);
+  markdownErrors.value = errors;
+  if (errors.length) return; // block on problems; the operator fixes + re-imports
+  if (
+    props.template.length &&
+    typeof window !== 'undefined' &&
+    !window.confirm(`Replace the current ${props.template.length} field(s) with ${fields.length} field(s) from markdown?`)
+  ) {
+    return;
+  }
+  emit('update:template', fields);
+  showMarkdown.value = false;
+}
+
 // ─── Per-field edits (delegate to the pure array ops) ───
 function labelInput(fi: number, e: Event): void {
   emit('update:template', templateFieldLabelChanged(props.template, fi, (e.target as HTMLInputElement).value));
@@ -215,6 +246,10 @@ function toggleIntro(): void {
     <div class="cpub-fte-head">
       <span class="cpub-form-label cpub-fte-title">{{ label }}</span>
       <div ref="menuWrap" class="cpub-fte-menus">
+        <!-- Import / export as markdown -->
+        <button v-if="enableMarkdown" type="button" class="cpub-btn cpub-btn-sm" :aria-expanded="showMarkdown" @click="toggleMarkdown">
+          <i class="fa-solid fa-file-lines"></i> Markdown
+        </button>
         <!-- Use a template -->
         <div class="cpub-fte-menu">
           <button type="button" class="cpub-btn cpub-btn-sm" aria-haspopup="menu" :aria-expanded="openMenu === 'template'" @click="toggleMenu('template')">
@@ -242,6 +277,37 @@ function toggleIntro(): void {
       </div>
     </div>
     <p v-if="hint" class="cpub-form-hint cpub-fte-hint">{{ hint }}</p>
+
+    <!-- Import / export as markdown (registration editor). Author the whole form as
+         text, or copy the current form out as markdown to hand off / regenerate. -->
+    <div v-if="enableMarkdown && showMarkdown" class="cpub-fte-md">
+      <div class="cpub-fte-md-head">
+        <span class="cpub-form-label cpub-fte-md-label">Form as markdown</span>
+        <button type="button" class="cpub-btn cpub-btn-sm" @click="loadCurrentMarkdown">
+          <i class="fa-solid fa-rotate"></i> Load current form
+        </button>
+      </div>
+      <textarea
+        v-model="markdownText"
+        class="cpub-form-input cpub-form-textarea cpub-fte-md-text"
+        rows="12"
+        spellcheck="false"
+        aria-label="Registration form as markdown"
+        placeholder="## Section title&#10;- Field label* (type): option one, option two&#10;  > help text"
+      ></textarea>
+      <ul v-if="markdownErrors.length" class="cpub-fte-md-errors" role="alert">
+        <li v-for="(e, ei) in markdownErrors" :key="ei">{{ e }}</li>
+      </ul>
+      <div class="cpub-fte-md-actions">
+        <button type="button" class="cpub-btn cpub-btn-primary cpub-btn-sm" @click="importMarkdown">
+          <i class="fa-solid fa-file-import"></i> Import (replace form)
+        </button>
+        <span class="cpub-form-hint cpub-fte-md-hint">
+          <code>## Title</code> = section · <code>- Label* (type): a, b</code> = field ·
+          indented <code>-</code> lines under an <code>(agreement)</code> = its terms.
+        </span>
+      </div>
+    </div>
 
     <!-- Stage-only block intro. -->
     <div v-if="enableIntro" class="cpub-fte-intro">
@@ -351,7 +417,16 @@ function toggleIntro(): void {
 .cpub-fte-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); flex-wrap: wrap; }
 .cpub-fte-title { margin: 0; }
 .cpub-fte-hint { margin: var(--space-1) 0 0; }
-.cpub-fte-menus { display: flex; gap: var(--space-2); }
+.cpub-fte-menus { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+
+/* Import / export as markdown panel. */
+.cpub-fte-md { margin-top: var(--space-3); padding: var(--space-3); border: var(--border-width-default) solid var(--border2); background: var(--surface2); display: flex; flex-direction: column; gap: var(--space-2); }
+.cpub-fte-md-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); flex-wrap: wrap; }
+.cpub-fte-md-label { margin: 0; }
+.cpub-fte-md-text { font-family: var(--font-mono); font-size: var(--text-xs); line-height: var(--leading-snug); background: var(--surface); }
+.cpub-fte-md-errors { margin: 0; padding-left: var(--space-4); color: var(--red-text); font-size: var(--text-xs); display: flex; flex-direction: column; gap: var(--space-1); }
+.cpub-fte-md-actions { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; }
+.cpub-fte-md-hint { margin: 0; }
 .cpub-fte-menu { position: relative; }
 .cpub-fte-dropdown { position: absolute; right: 0; top: calc(100% + var(--space-1)); z-index: var(--z-dropdown); min-width: 220px; max-height: 320px; overflow-y: auto; background: var(--surface); border: var(--border-width-default) solid var(--border); box-shadow: var(--shadow-md); display: flex; flex-direction: column; }
 .cpub-fte-item { display: flex; flex-direction: column; gap: var(--space-1); align-items: flex-start; text-align: left; padding: var(--space-2) var(--space-3); background: transparent; border: none; border-bottom: var(--border-width-thin) solid var(--border2); cursor: pointer; color: var(--text); }

@@ -189,8 +189,7 @@ function onInstructionsUpdate(blocks: BlockTuple[]): void {
    .cpub-form-label/.cpub-form-hint/.cpub-btn). */
 .cpub-form-field { display: flex; flex-direction: column; gap: var(--space-1); margin-bottom: var(--space-3); }
 .cpub-form-field:last-child { margin-bottom: 0; }
-.cpub-form-input { width: 100%; padding: var(--space-2) var(--space-3); border: var(--border-width-default) solid var(--border); background: var(--surface); color: var(--text); font-size: var(--text-sm); font-family: var(--font-sans); }
-.cpub-form-input:focus { border-color: var(--accent); outline: none; box-shadow: var(--shadow-accent); }
+/* .cpub-form-input / :focus now come from the global forms.css (hoisted session 246). */
 .cpub-form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: var(--space-3); }
 
 .cpub-stage-row { border: var(--border-width-default) solid var(--border); background: var(--surface2); padding: 12px; }

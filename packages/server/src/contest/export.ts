@@ -1,5 +1,5 @@
 import { eq, desc, sql, inArray, and } from 'drizzle-orm';
-import { contests, contestEntries, users, contentItems, contestEntryPrivateFields, contestRegistrations, contestRegistrationPrivateFields, isFormFieldPii, effectiveRegistrationTemplate } from '@commonpub/schema';
+import { contests, contestEntries, users, contentItems, contestEntryPrivateFields, contestRegistrations, contestRegistrationPrivateFields, contestAgreementAcceptances, isFormFieldPii, effectiveRegistrationTemplate } from '@commonpub/schema';
 import type { DB } from '../types.js';
 import type { ContestStageSubmission, FormField } from '@commonpub/schema';
 import { currentStage, isEliminated } from './stages.js';
@@ -178,6 +178,7 @@ export async function buildRegistrantsExport(
 
   const rows = await db
     .select({
+      registrationId: contestRegistrations.id,
       username: users.username,
       displayName: users.displayName,
       registeredAt: contestRegistrations.createdAt,
@@ -188,6 +189,21 @@ export async function buildRegistrantsExport(
     .where(and(eq(contestRegistrations.contestId, contestId), eq(contestRegistrations.tier, 'full')))
     .orderBy(desc(contestRegistrations.createdAt), desc(contestRegistrations.id))
     .limit(10000);
+
+  // Consent audit column (not PII): distinct accepted agreement fields per registrant.
+  const agreementCount = template.filter((f) => f.type === 'agreement').length;
+  let consentByReg = new Map<string, number>();
+  if (agreementCount > 0 && rows.length > 0) {
+    const acc = await db
+      .select({
+        registrationId: contestAgreementAcceptances.registrationId,
+        n: sql<number>`count(distinct ${contestAgreementAcceptances.fieldKey})::int`,
+      })
+      .from(contestAgreementAcceptances)
+      .where(inArray(contestAgreementAcceptances.registrationId, rows.map((r) => r.registrationId)))
+      .groupBy(contestAgreementAcceptances.registrationId);
+    consentByReg = new Map(acc.map((a) => [a.registrationId as string, a.n]));
+  }
 
   // PII answers (only when allowed), keyed by userId → keep the join off the hot path.
   let privateByUser = new Map<string, Record<string, string>>();
@@ -200,7 +216,7 @@ export async function buildRegistrantsExport(
     privateByUser = new Map(priv.map((p) => [p.username, p.fields]));
   }
 
-  const header = ['Username', 'Name', 'Registered', ...cols.map((f) => f.label)];
+  const header = ['Username', 'Name', 'Registered', ...(agreementCount > 0 ? ['Consents'] : []), ...cols.map((f) => f.label)];
   const body = rows.map((r) => {
     const pub = (r.fields ?? {}) as Record<string, string>;
     const priv = privateByUser.get(r.username) ?? {};
@@ -208,6 +224,7 @@ export async function buildRegistrantsExport(
       r.username,
       r.displayName ?? '',
       r.registeredAt.toISOString(),
+      ...(agreementCount > 0 ? [`${consentByReg.get(r.registrationId) ?? 0}/${agreementCount}`] : []),
       ...cols.map((f) => {
         const v = (isPii(f) ? priv[f.key] : pub[f.key]) ?? '';
         // A `file` answer is a bare files.id uuid — useless in a spreadsheet. Emit

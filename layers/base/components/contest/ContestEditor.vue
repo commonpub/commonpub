@@ -609,6 +609,7 @@ const reviewStages = computed(() => (contest.value?.stages ?? []).filter((s) => 
                   <FormTemplateEditor
                     v-model:template="registrationTemplate"
                     :active-index="activeRegField"
+                    enable-markdown
                     label="Registration form"
                     hint="Add the fields you want to collect at sign-up. Group them with section headers; mark personal-data fields as PII."
                     @field-activate="activeRegField = $event"
@@ -908,11 +909,7 @@ const reviewStages = computed(() => (contest.value?.stages ?? []).filter((s) => 
 .cpub-form-field { display: flex; flex-direction: column; gap: var(--space-1); margin-bottom: var(--space-3); }
 .cpub-form-field:last-child { margin-bottom: 0; }
 .cpub-form-label { font-size: 11px; font-weight: 600; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: .06em; color: var(--text-dim); }
-.cpub-form-input {
-  width: 100%; padding: var(--space-2) var(--space-3); border: var(--border-width-default) solid var(--border);
-  background: var(--surface); color: var(--text); font-size: var(--text-sm); font-family: var(--font-sans);
-}
-.cpub-form-input:focus { border-color: var(--accent); outline: none; box-shadow: var(--shadow-accent); }
+/* .cpub-form-input / :focus now come from the global forms.css (hoisted session 246). */
 .cpub-form-error { font-size: 12px; color: var(--red-text); margin-top: 8px; }
 .cpub-form-check { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-dim); cursor: pointer; }
 .cpub-form-check input { width: 14px; height: 14px; flex-shrink: 0; }

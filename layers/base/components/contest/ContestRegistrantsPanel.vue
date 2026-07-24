@@ -15,6 +15,7 @@ interface Registrant {
   registeredAt: string;
   fields: Record<string, string> | null;
   privateFields?: Record<string, string> | null;
+  consentCount: number;
 }
 interface RegistrantsResponse {
   items: Registrant[];
@@ -38,6 +39,10 @@ const columns = computed<FormField[]>(() => {
   const pii = data.value?.includePii ?? false;
   return t.filter((f: FormField) => f.type !== 'section' && f.type !== 'agreement' && (pii || !isPii(f)));
 });
+
+// Consent denominator: how many agreement fields the form asks. `consentCount` on a
+// registrant is how many they accepted. Consent isn't PII, so it shows to every organizer.
+const agreementCount = computed<number>(() => (data.value?.template ?? []).filter((f: FormField) => f.type === 'agreement').length);
 
 function answer(r: Registrant, f: FormField): string {
   const v = isPii(f) ? r.privateFields?.[f.key] : r.fields?.[f.key];
@@ -68,6 +73,7 @@ function fmtDate(iso: string): string {
           <tr>
             <th scope="col">Participant</th>
             <th scope="col">Registered</th>
+            <th v-if="agreementCount" scope="col">Consents</th>
             <th v-for="f in columns" :key="f.key" scope="col">
               {{ f.label }}<span v-if="isPii(f)" class="cpub-rp-pii" title="Personal data"> · PII</span>
             </th>
@@ -79,6 +85,12 @@ function fmtDate(iso: string): string {
               <NuxtLink :to="`/u/${r.username}`" class="cpub-rp-user">{{ r.displayName || r.username }}</NuxtLink>
             </td>
             <td class="cpub-rp-date">{{ fmtDate(r.registeredAt) }}</td>
+            <td v-if="agreementCount" class="cpub-rp-consent">
+              <span :class="r.consentCount >= agreementCount ? 'cpub-rp-consent-ok' : 'cpub-rp-consent-partial'">
+                <i class="fa-solid" :class="r.consentCount >= agreementCount ? 'fa-circle-check' : 'fa-circle-half-stroke'"></i>
+                {{ r.consentCount }}/{{ agreementCount }}
+              </span>
+            </td>
             <td v-for="f in columns" :key="f.key">
               <a
                 v-if="f.type === 'file' && answer(r, f)"
@@ -115,4 +127,7 @@ function fmtDate(iso: string): string {
 .cpub-rp-date { font-family: var(--font-mono); color: var(--text-dim); }
 .cpub-rp-file { color: var(--accent); text-decoration: none; white-space: nowrap; }
 .cpub-rp-file:hover { text-decoration: underline; }
+.cpub-rp-consent { font-family: var(--font-mono); font-size: var(--text-xs); }
+.cpub-rp-consent-ok { color: var(--green-text); display: inline-flex; align-items: center; gap: var(--space-1); }
+.cpub-rp-consent-partial { color: var(--text-dim); display: inline-flex; align-items: center; gap: var(--space-1); }
 </style>

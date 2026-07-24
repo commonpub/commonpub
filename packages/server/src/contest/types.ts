@@ -278,4 +278,7 @@ export interface ContestRegistrantItem {
   /** Private (PII) answers — present ONLY when the reader holds `contest.pii` and
    *  requested them; `undefined` otherwise, `null` when the registrant gave none. */
   privateFields?: Record<string, string> | null;
+  /** Number of distinct agreement fields this registrant accepted (consent audit).
+   *  Not PII — surfaced to any organizer, mirroring the entry side. */
+  consentCount: number;
 }
