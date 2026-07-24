@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { optionalUrl } from './_shared.js';
+import { optionalUrl, httpUrl } from './_shared.js';
 
 // --- Hub validators ---
 
@@ -105,7 +105,7 @@ export type ResourceCategory = z.infer<typeof resourceCategorySchema>;
 
 export const createHubResourceSchema = z.object({
   title: z.string().min(1).max(255),
-  url: z.string().url().max(2048),
+  url: httpUrl(2048),
   description: z.string().max(2000).optional(),
   category: resourceCategorySchema.default('other'),
   sortOrder: z.number().int().min(0).optional(),

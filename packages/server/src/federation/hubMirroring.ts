@@ -26,6 +26,16 @@ import { normalizePagination, escapeLike, USER_REF_SELECT } from '../query.js';
 import { safeFetch } from '../import/ssrf.js';
 import { emitHook } from '../hooks.js';
 
+/**
+ * Scheme-guard a URL arriving from a remote OrderedCollection. Federated resource
+ * and product objects bypass local zod validation, so a hostile instance could ship
+ * a `javascript:`/`data:` url that becomes stored XSS when rendered into an :href.
+ * Returns the value only if it is an http(s) URL, else null.
+ */
+function safeRemoteUrl(value: unknown): string | null {
+  return typeof value === 'string' && /^https?:\/\//i.test(value.trim()) ? value : null;
+}
+
 // --- Federated Hub CRUD ---
 
 /**
@@ -1545,7 +1555,7 @@ async function syncFederatedHubCollection(
         if (existing.length > 0) {
           await db.update(federatedHubResources).set({
             title: (item.name as string) ?? '',
-            url: (item.url as string) ?? '',
+            url: safeRemoteUrl(item.url) ?? '',
             description: (item.summary as string) ?? null,
             category: (item['cpub:category'] as string) ?? 'other',
             sortOrder: (item['cpub:sortOrder'] as number) ?? 0,
@@ -1555,7 +1565,7 @@ async function syncFederatedHubCollection(
             federatedHubId,
             objectUri,
             title: (item.name as string) ?? 'Untitled',
-            url: (item.url as string) ?? '',
+            url: safeRemoteUrl(item.url) ?? '',
             description: (item.summary as string) ?? null,
             category: (item['cpub:category'] as string) ?? 'other',
             sortOrder: (item['cpub:sortOrder'] as number) ?? 0,
@@ -1593,9 +1603,9 @@ async function syncFederatedHubCollection(
             slug,
             description: (item.summary as string) ?? null,
             category: (item['cpub:category'] as string) ?? null,
-            imageUrl: typeof item.image === 'object' && item.image ? (item.image as Record<string, unknown>).url as string : null,
-            purchaseUrl: (item.url as string) ?? null,
-            datasheetUrl: (item['cpub:datasheetUrl'] as string) ?? null,
+            imageUrl: safeRemoteUrl(typeof item.image === 'object' && item.image ? (item.image as Record<string, unknown>).url : null),
+            purchaseUrl: safeRemoteUrl(item.url),
+            datasheetUrl: safeRemoteUrl(item['cpub:datasheetUrl']),
             specs: (item['cpub:specs'] as Record<string, string>) ?? null,
             pricing: (item['cpub:pricing'] as Record<string, unknown>) ?? null,
             status: (item['cpub:status'] as string) ?? 'active',
@@ -1608,9 +1618,9 @@ async function syncFederatedHubCollection(
             slug,
             description: (item.summary as string) ?? null,
             category: (item['cpub:category'] as string) ?? null,
-            imageUrl: typeof item.image === 'object' && item.image ? (item.image as Record<string, unknown>).url as string : null,
-            purchaseUrl: (item.url as string) ?? null,
-            datasheetUrl: (item['cpub:datasheetUrl'] as string) ?? null,
+            imageUrl: safeRemoteUrl(typeof item.image === 'object' && item.image ? (item.image as Record<string, unknown>).url : null),
+            purchaseUrl: safeRemoteUrl(item.url),
+            datasheetUrl: safeRemoteUrl(item['cpub:datasheetUrl']),
             specs: (item['cpub:specs'] as Record<string, string>) ?? null,
             pricing: (item['cpub:pricing'] as { min?: number; max?: number; currency?: string }) ?? null,
             status: (item['cpub:status'] as string) ?? 'active',

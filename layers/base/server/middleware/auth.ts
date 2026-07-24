@@ -106,6 +106,15 @@ async function enrichUser(auth: AuthLocals): Promise<void> {
     const [row] = await db.select({ role: users.role, username: users.username, status: users.status })
       .from(users).where(eq(users.id, auth.user.id)).limit(1);
     if (row) {
+      // Ban/suspend enforcement: a non-active user must not carry an authenticated
+      // context, even with a still-valid session cookie. This is the single choke
+      // point every SSR + API request flows through, so nulling here revokes access
+      // immediately on the next request after a suspend/delete.
+      if (row.status !== 'active') {
+        auth.user = null;
+        auth.session = null;
+        return;
+      }
       (auth.user as unknown as Record<string, unknown>).role = row.role;
       (auth.user as unknown as Record<string, unknown>).username = row.username;
       (auth.user as unknown as Record<string, unknown>).status = row.status;

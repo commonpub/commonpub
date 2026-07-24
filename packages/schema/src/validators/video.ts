@@ -1,12 +1,12 @@
 import { z } from 'zod';
-import { optionalUrl } from './_shared.js';
+import { optionalUrl, httpUrl } from './_shared.js';
 
 // --- Video validators ---
 
 export const createVideoSchema = z.object({
   title: z.string().min(1).max(255),
   description: z.string().max(5000).optional(),
-  url: z.string().url(),
+  url: httpUrl(),
   embedUrl: optionalUrl(),
   platform: z.enum(['youtube', 'vimeo', 'other']).default('other'),
   thumbnailUrl: optionalUrl(),

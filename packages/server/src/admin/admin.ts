@@ -375,7 +375,13 @@ export async function updateUserStatus(
 
   await db
     .update(users)
-    .set({ status: newStatus, updatedAt: new Date() })
+    .set({
+      status: newStatus,
+      // A deleted user is also soft-deleted so the login lookups (which filter
+      // `isNull(deletedAt)`) stop resolving the account, not just the status gate.
+      ...(newStatus === 'deleted' ? { deletedAt: new Date() } : {}),
+      updatedAt: new Date(),
+    })
     .where(eq(users.id, userId));
 
   // Invalidate all sessions when suspending or deleting a user

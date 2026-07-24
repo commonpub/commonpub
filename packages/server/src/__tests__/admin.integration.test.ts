@@ -15,7 +15,7 @@ import {
   setInstanceSetting,
   removeContent,
 } from '../admin/admin.js';
-import { contentItems, roles, userRoles } from '@commonpub/schema';
+import { contentItems, roles, userRoles, users } from '@commonpub/schema';
 import { seedRbac } from '../rbac/seed.js';
 
 describe('admin module', () => {
@@ -281,6 +281,22 @@ describe('admin module', () => {
       await expect(
         updateUserStatus(db, '00000000-0000-0000-0000-000000000000', 'active', adminId),
       ).rejects.toThrow('User not found');
+    });
+
+    it('suspending does NOT soft-delete (deletedAt stays null)', async () => {
+      const u = await createTestUser(db, { username: 'suspendme', email: 'suspendme@test.dev', role: 'member' });
+      await updateUserStatus(db, u.id, 'suspended', adminId);
+      const [row] = await db.select({ status: users.status, deletedAt: users.deletedAt }).from(users).where(eq(users.id, u.id));
+      expect(row!.status).toBe('suspended');
+      expect(row!.deletedAt).toBeNull();
+    });
+
+    it('deleting soft-deletes the user (sets deletedAt) so login lookups skip it', async () => {
+      const u = await createTestUser(db, { username: 'deleteme', email: 'deleteme@test.dev', role: 'member' });
+      await updateUserStatus(db, u.id, 'deleted', adminId);
+      const [row] = await db.select({ status: users.status, deletedAt: users.deletedAt }).from(users).where(eq(users.id, u.id));
+      expect(row!.status).toBe('deleted');
+      expect(row!.deletedAt).not.toBeNull();
     });
   });
 

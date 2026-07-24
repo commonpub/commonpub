@@ -1,4 +1,4 @@
-import { getContestBySlug, getContestEntry, canViewContest, getEntryPrivateData } from '@commonpub/server';
+import { getContestBySlug, getContestEntry, canViewContest, getEntryPrivateData, isContestEditor, isContestJudge } from '@commonpub/server';
 import type { EntryPrivateData } from '@commonpub/server';
 
 /**
@@ -28,9 +28,17 @@ export default defineEventHandler(async (event): Promise<EntryPrivateData> => {
     throw createError({ statusCode: 404, statusMessage: 'Entry not found' });
   }
 
-  // Authz: the entrant reads their own PII; everyone else needs contest.pii.
+  // Authz: the entrant reads their own PII. Everyone else needs BOTH the
+  // contest.pii permission AND a per-contest organizer/judge scope on THIS contest —
+  // an instance-wide contest.pii grant alone must not cross into another contest's
+  // entrant PII (mirrors the per-contest scoping the registrants/files routes use).
   const isEntrant = user.id === entry.userId;
-  if (!isEntrant && !hasPermission(event, 'contest.pii')) {
+  const canManage =
+    user.id === contest.createdById ||
+    hasPermission(event, 'contest.manage') ||
+    (await isContestEditor(db, contest.id, user.id));
+  const isJudge = await isContestJudge(db, contest.id, user.id);
+  if (!isEntrant && !(hasPermission(event, 'contest.pii') && (canManage || isJudge))) {
     throw createError({ statusCode: 403, statusMessage: 'You do not have access to entrant personal data' });
   }
 

@@ -15,6 +15,7 @@ import {
   createLearningPathSchema,
   createLessonSchema,
   createVideoSchema,
+  createHubResourceSchema,
   videoFiltersSchema,
   updateContentSchema,
   createReportSchema,
@@ -1826,5 +1827,27 @@ describe('validator field-drop regressions', () => {
     expect(contentFiltersSchema.parse({ sort: 'likes' }).sort).toBe('likes');
     expect(contentFiltersSchema.parse({ sort: 'popular' }).sort).toBe('popular');
     expect(() => contentFiltersSchema.parse({ sort: 'bogus' })).toThrow();
+  });
+});
+
+describe('URL scheme allowlist (stored-XSS guard)', () => {
+  const XSS = ['javascript:alert(1)', 'JavaScript:alert(1)', 'data:text/html,<script>alert(1)</script>', 'vbscript:msgbox(1)', ' javascript:alert(1)'];
+  const OK = ['https://example.com', 'http://example.com/path?q=1'];
+
+  it('updateProfileSchema.website (optionalUrl) rejects non-http(s) schemes', () => {
+    for (const url of XSS) expect(updateProfileSchema.safeParse({ website: url }).success, url).toBe(false);
+    for (const url of OK) expect(updateProfileSchema.safeParse({ website: url }).success, url).toBe(true);
+    // Empty string still normalizes to undefined (optional), not an error.
+    expect(updateProfileSchema.safeParse({ website: '' }).success).toBe(true);
+  });
+
+  it('createVideoSchema.url (httpUrl) rejects non-http(s) schemes', () => {
+    for (const url of XSS) expect(createVideoSchema.safeParse({ title: 'v', url }).success, url).toBe(false);
+    expect(createVideoSchema.safeParse({ title: 'v', url: 'https://youtu.be/x' }).success).toBe(true);
+  });
+
+  it('createHubResourceSchema.url (httpUrl) rejects non-http(s) schemes', () => {
+    for (const url of XSS) expect(createHubResourceSchema.safeParse({ title: 't', url }).success, url).toBe(false);
+    expect(createHubResourceSchema.safeParse({ title: 't', url: 'https://datasheet.example/x.pdf' }).success).toBe(true);
   });
 });

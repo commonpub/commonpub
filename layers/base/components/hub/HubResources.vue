@@ -12,6 +12,12 @@ const emit = defineEmits<{ 'resource-changed': [] }>();
 const canManage = computed(() => ['owner', 'admin', 'moderator'].includes(props.currentUserRole ?? ''));
 const isMember = computed(() => !!props.currentUserRole);
 
+// Render-side scheme guard: a resource url may be a federated value that bypassed
+// local zod validation, so never bind a raw url to :href. Non-http(s) → dead link.
+function safeHref(url: string): string {
+  return /^https?:\/\//i.test((url ?? '').trim()) ? url : '#';
+}
+
 const showForm = ref(false);
 const formTitle = ref('');
 const formUrl = ref('');
@@ -118,7 +124,7 @@ async function handleDelete(id: string): Promise<void> {
           <a
             v-for="item in group.items"
             :key="item.id"
-            :href="item.url"
+            :href="safeHref(item.url)"
             target="_blank"
             rel="noopener noreferrer"
             class="cpub-resource-item"
