@@ -16,9 +16,11 @@
 
 Do these first: they make a large body of just-shipped work actually useful, or protect it cheaply.
 
-- **0.1 Enable email on an instance** — *operator decision + a Resend secret.* The ENTIRE email
-  subsystem (notifications, digests, branding, admin broadcast) is inert in prod
-  (`emailNotifications=false`, console adapter). Wire `NUXT_EMAIL_ADAPTER=resend` +
+- **0.1 Enable email on the remaining instances** — *operator decision + a Resend secret.*
+  UPDATE (2026-07-23): email is NO LONGER entirely inert — **deveco.io runs Resend LIVE**
+  (`emailUnverified` ON) since session 237; contest confirmations/reminders + the block-email
+  editor shipped. commonpub.io + heatsynclabs.io still default to the console adapter
+  (`emailNotifications=false`). To enable on those: wire `NUXT_EMAIL_ADAPTER=resend` +
   `NUXT_RESEND_API_KEY`/`NUXT_RESEND_FROM` + `NUXT_PUBLIC_FEATURES_EMAIL_NOTIFICATIONS=true`, verify a
   sending domain in Resend, smoke one real send. Cost/scale model:
   `docs/reference/email-gdpr-scaling-analysis.md`. **Highest leverage** — a whole session's work is dormant. *(operator gate)*

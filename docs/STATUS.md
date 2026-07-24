@@ -1,13 +1,47 @@
 # CommonPub — Status & Operator Runbook
 
-> **Living doc — your "come back later" reference.** Snapshot updated 2026-07-23 (through session 245).
+> **Living doc — your "come back later" reference.** Snapshot updated 2026-07-24 (through session 246).
 > Verify any version/flag claim before trusting it: `npm view @commonpub/<pkg> version`,
 > `curl https://<instance>/api/features`, `cargo search create-commonpub`.
-> Companion docs: **`docs/ROADMAP.md`** (prioritized remaining work — the master backlog), the
-> latest session log `docs/sessions/245-roll-registration-editor-and-fixes.md` + **next-session kickoff
-> `docs/sessions/246-kickoff.md`** (polish the email + registration editors to the design system), the
-> audit `docs/sessions/203-full-codebase-audit.md` + `204-deep-audit-round2.md`, contest guide
-> `docs/reference/guides/contests.md`.
+> Companion docs: **`docs/ROADMAP.md`** (prioritized remaining work), **next-session kickoff
+> `docs/sessions/247-kickoff.md`** (make the contest system fully work end-to-end + markdown import +
+> fix the reported broken save + the 4 P1 security blockers), the production-readiness audit
+> `docs/reviews/production-readiness-audit-2026-07-23.md`, contest guide `docs/reference/guides/contests.md`.
+
+---
+
+## Session 247 (2026-07-24) — contest markdown-import + register UX + consent surfacing + 4 P1 security blockers, ROLLED to all 3
+
+**schema 0.61→0.62 · server 2.119→2.120 · layer 0.113→0.114** (config 0.35 / infra 0.19 unchanged), **NO
+migration** (`status`/`deletedAt` columns already existed). The session-246 uncommitted changeset was
+verified end-to-end in a real browser, one real bug fixed, the 4 security blockers fixed, and everything
+rolled together.
+
+- **Markdown import for registration forms** — `layers/base/utils/registrationMarkdown.ts` parser/serializer
+  + "Markdown" panel in `FormTemplateEditor.vue` (gated `enableMarkdown`, registration tab). **Bug fixed:** the
+  parser choked on `<!-- -->` HTML comments, so pasting the shipped jinger example (its own header says "paste
+  to rebuild all 41 fields") failed to import; parser now ignores comments → jinger imports to 41 fields, 0
+  errors, round-trip stable. Verified E2E (paste → Import → 41 fields; export→edit→import round-trips). DSL:
+  `docs/reference/registration-markdown.md`; example: `docs/reference/examples/jinger-registration-form.md`.
+- **Register UX** — dedicated `pages/contests/[slug]/register.vue` (rich forms), short-form modal in
+  `ContestSignup.vue`, `isRichRegistrationForm` heuristic. Verified all 3 paths (one-click default, modal,
+  rich page) + create + edit-every-tab save surfaces persist (200s). "Broken save" could NOT be reproduced on
+  any surface — the likely operator hit was the jinger-import comment bug above.
+- **Consent surfacing** — `registrations.ts`/`export.ts`/`types.ts` + `ContestRegistrantsPanel.vue`
+  per-registrant "Consents X/N" column + CSV. Verified E2E (panel `✓ 2/2`, CSV `Consents` column).
+- **4 P1 security blockers fixed** (`docs/reviews/production-readiness-audit-2026-07-23.md`): (1) ban/suspend
+  enforced in `middleware/auth.ts` enrichUser + login route + `updateUserStatus('deleted')` now sets
+  `deletedAt`; (2)+(3) stored-XSS — http(s)-only URL allowlist at the schema root (`_shared.ts` `httpUrl`/
+  `optionalUrl`) + `video.ts`/`hub.ts`, hub-resource render guard (`HubResources.vue safeHref`) + federated
+  ingestion guard (`hubMirroring.ts safeRemoteUrl`); (4) entrant-PII now requires per-contest organizer/judge
+  scope, not instance-wide `contest.pii`. `javascript:`/`data:` URL rejection verified E2E (PUT /api/profile
+  → 400). Tests added (schema URL-scheme, admin `deletedAt` integration).
+- **Deferred to a follow-up:** P2 registration↔entry unification (plans in `docs/plans/`).
+
+All green: schema 527 · server 1772 (+ admin integration 32) · layer 5736 · reference typecheck 0.
+Local dev: run on a **trusted port (3001, NOT 3100/127.0.0.1)** or login CSRF-403s; the dev server runs
+`@commonpub/{schema,server}` from **`dist/`** — rebuild dist + **restart** to see package src changes in the
+browser (layer changes HMR live); `packages/ui/theme` CSS needs `node layers/base/scripts/bundle-theme.mjs`.
 
 ---
 
@@ -593,19 +627,19 @@ a minute (`curl deveco.io/api/content?limit=5`, today's timestamp).
 
 ## 📌 Reference
 
-### Published versions (verified 2026-07-17 — session 243 CI-restore + P0 private-storage)
+### Published versions (verified 2026-07-23 — session 246, via `npm view`)
 | Package | Version | | Package | Version |
 |---|---|---|---|---|
-| @commonpub/schema | **0.60.0** | | @commonpub/infra | **0.19.0** |
-| @commonpub/config | **0.34.0** | | @commonpub/editor | 0.14.0 |
+| @commonpub/schema | **0.61.0** | | @commonpub/infra | **0.19.0** |
+| @commonpub/config | **0.35.0** | | @commonpub/editor | 0.14.0 |
 | @commonpub/protocol | 0.15.1 | | @commonpub/explainer | 0.8.0 |
 | @commonpub/auth | 0.11.0 | | @commonpub/docs | 0.6.3 |
-| @commonpub/server | **2.117.3** | | @commonpub/learning | 0.5.2 |
-| @commonpub/ui | 0.13.3 | | @commonpub/test-utils | 0.5.13 |
-| @commonpub/layer | **0.109.0** | | @commonpub/theme-studio | 0.6.1 |
-| create-commonpub (crates.io) | 0.5.29 (pins ^0.59/^0.33/^2.113/^0.106 — **stale, behind; follow-up re-pin**) | | | |
+| @commonpub/server | **2.119.0** | | @commonpub/learning | 0.5.2 |
+| @commonpub/ui | 0.13.3 | | @commonpub/test-utils | 0.5.14 |
+| @commonpub/layer | **0.113.0** | | @commonpub/theme-studio | 0.6.1 |
+| create-commonpub (crates.io) | 0.5.29 (pins may lag — re-verify before a roll) | | | |
 
-_Live on all 3 instances (commonpub.io, deveco.io, heatsynclabs.io): **38 feature flags**, latest migration **0043**._
+_Live on all 3 instances (commonpub.io, deveco.io, heatsynclabs.io): **38 feature flags** (verified `/api/features`), latest migration **0045**._
 _(Note: this table jumps from session 240 → 243; sessions 241/242 rolls — protocol 0.15.1, editor 0.14, ui 0.13.3,
 server 2.117.x, layer 0.107.x, auth 0.11 — were not separately tabulated but are reflected above.)_
 

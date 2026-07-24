@@ -1017,7 +1017,7 @@ All incoming HTML content is sanitized before storage:
 
 ## Learn More
 
-- **[Codebase analysis](../codebase-analysis/)** — exhaustive current inventory: schema, server modules, API routes, state diagrams. Always current.
+- **[Codebase analysis](../reference/codebase-analysis.md)** — inventory: schema, server modules, API routes, state diagrams. Periodically regenerated, not auto-maintained — check the "Last verified" date and re-verify version/LOC claims against source before relying on them.
 - **[Developers guide](guides/developers.md)** — federation-for-developers section with implementation notes
 - **[ADR 019](adr/019-federation-architecture.md)** — original architecture decision record
 - **[Archived federation plan](archive/federation-plan.md)** — original 10-phase roadmap (all phases complete)

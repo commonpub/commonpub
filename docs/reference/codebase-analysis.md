@@ -1,14 +1,16 @@
 # CommonPub Codebase Analysis (canonical)
 
-_Last verified: 2026-07-17 (session 243). Regenerate/re-verify before relying on
-LOC/version/test counts — they drift._
+_Last verified: 2026-07-23 (session 246). Regenerate/re-verify before relying on
+LOC/version/test counts — they drift. This file's PROSE (architecture/subsystem sections
+below) predates the session 244-246 contest rich-registration arc + the register-UX/markdown
+work and is due a full regen — treat sections past the baseline as approximate._
 
-Baseline (verified 2026-07-17, session 243): npm latest
-server **2.117.3** / schema **0.60** / config **0.34** / protocol **0.15.1** / auth **0.11** /
+Baseline (verified 2026-07-23, session 246): npm latest
+server **2.119.0** / schema **0.61** / config **0.35** / protocol **0.15.1** / auth **0.11** /
 ui **0.13.3** / editor **0.14** / infra **0.19** / docs **0.6.3** / explainer **0.8** /
-learning **0.5.2** / theme-studio **0.6.1** / test-utils **0.5.13** / layer **0.109**;
-CLI create-commonpub **0.5.29** (pins stale — behind current). **38 feature flags** live on all 3 instances
-(commonpub.io, deveco.io, heatsynclabs.io — all health ok). Latest migration **0043**.
+learning **0.5.2** / theme-studio **0.6.1** / test-utils **0.5.14** / layer **0.113**;
+CLI create-commonpub **0.5.29** (pins may lag — re-verify before a roll). **38 feature flags**
+live (verified via `/api/features`). Latest migration **0045**.
 
 ## 1. Architecture
 
@@ -20,6 +22,9 @@ layers/base       @commonpub/layer — the Nuxt 3 layer where the PRODUCT lives
                   (all pages/components/server API/theme). Published to npm.
 apps/reference    @commonpub/reference — thin Nuxt shell consuming @commonpub/layer
                   (config + a couple overrides + seed + E2E). private.
+apps/shell        @commonpub/shell (private, v0.1.0) — second thin consumer shell with
+                  its own build/dev/typecheck/db:migrate. (Newer; document its purpose
+                  or retire it — flagged in the 2026-07-23 audit.)
 tools/create-commonpub   Rust CLI that scaffolds a new instance.
 ../deveco-io, ../heatsynclabs-io   two consumer forks (out of this repo).
 ```
