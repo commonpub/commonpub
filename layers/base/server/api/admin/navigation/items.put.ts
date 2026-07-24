@@ -1,5 +1,6 @@
 import type { NavItem } from '@commonpub/server';
 import { setNavItems } from '@commonpub/server';
+import { optionalUrl } from '@commonpub/schema';
 import { z } from 'zod';
 
 const navItemSchema: z.ZodType<NavItem> = z.lazy(() =>
@@ -9,7 +10,7 @@ const navItemSchema: z.ZodType<NavItem> = z.lazy(() =>
     label: z.string().min(1).max(128),
     icon: z.string().max(128).optional(),
     route: z.string().max(255).optional(),
-    href: z.string().url().max(1024).optional(),
+    href: optionalUrl(1024),
     featureGate: z.string().max(64).optional(),
     children: z.array(navItemSchema).max(20).optional(),
     visibleTo: z.enum(['all', 'authenticated', 'admin']).optional(),

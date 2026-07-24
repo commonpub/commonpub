@@ -101,9 +101,11 @@ export function registrationMarkdownToTemplate(md: string): ParseResult {
     const raw2 = line;
     const trimmed = raw2.trim();
     if (!trimmed) return;
-    // Count leading indentation, treating a tab as two spaces so tab-indented help /
-    // agreement terms aren't misread as unparseable top-level lines.
-    const indent = (raw2.match(/^[ \t]*/)?.[0] ?? '').replace(/\t/g, '  ').length;
+    // Count leading indentation from the ORIGINAL line, treating a tab as two spaces
+    // so tab-indented help / terms aren't misread as top-level. Using `raw` (not the
+    // comment-stripped `raw2`) so a leading inline comment — `<!-- x --> ## Section`
+    // — doesn't leave a residual space that poisons the indent and drops the line.
+    const indent = (raw.match(/^[ \t]*/)?.[0] ?? '').replace(/\t/g, '  ').length;
 
     // Heading → section field.
     const heading = trimmed.match(/^#{1,6}\s+(.*)$/);
@@ -150,6 +152,9 @@ export function registrationMarkdownToTemplate(md: string): ParseResult {
     errors.push(`Line ${ln}: could not parse "${trimmed.slice(0, 60)}" (expected a "## Section", a "- Field", or indented help/terms).`);
   });
   flushTerms();
+  // An unterminated `<!--` swallows every line after it — surface that as a blocking
+  // error rather than silently dropping the rest of the form.
+  if (inComment) errors.push('Unterminated HTML comment: a `<!--` was never closed with `-->`, so the rest of the form was ignored.');
 
   // Advisory validation (the server PUT re-validates authoritatively).
   if (fields.length > 50) errors.push(`Too many fields (${fields.length}); the maximum is 50.`);

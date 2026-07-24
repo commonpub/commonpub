@@ -12,6 +12,12 @@ const emit = defineEmits<{
 }>();
 
 const config = useRuntimeConfig();
+// Defense-in-depth for the "view original" link: content.url is a remote value, so
+// even though ingestion now scheme-guards it, a legacy row could carry a non-http(s)
+// scheme. Render a dead link rather than a javascript:/data: href.
+function safeHref(url: string | null | undefined): string {
+  return url && /^https?:\/\//i.test(url.trim()) ? url : '#';
+}
 // Federated covers are remote HTTPS; the shared guard also serves a relative or
 // same-origin cover directly instead of 400-ing the proxy on it.
 const proxiedCover = computed(() => proxiedImageUrl(props.content.coverImageUrl, (config.public?.domain as string) || ''));
@@ -87,7 +93,7 @@ function stripHtml(html: string): string {
     </div>
 
     <h3 v-if="content.title" class="cpub-fed-card__title">
-      <a v-if="content.url" :href="content.url" target="_blank" rel="noopener">
+      <a v-if="content.url" :href="safeHref(content.url)" target="_blank" rel="noopener">
         {{ content.title }}
       </a>
       <span v-else>{{ content.title }}</span>
@@ -120,7 +126,7 @@ function stripHtml(html: string): string {
       </button>
       <a
         v-if="content.url"
-        :href="content.url"
+        :href="safeHref(content.url)"
         target="_blank"
         rel="noopener"
         class="cpub-fed-card__action"

@@ -337,7 +337,7 @@ export async function getViewerRegistration(
 export async function listContestRegistrants(
   db: DB,
   contestId: string,
-  opts: { limit?: number; offset?: number; includePii?: boolean } = {},
+  opts: { limit?: number; offset?: number; includePii?: boolean; agreementKeys?: string[] } = {},
 ): Promise<{ items: ContestRegistrantItem[]; total: number }> {
   const { limit, offset } = normalizePagination(opts);
   // Only `full` participants are "registrants" (reminders-only opt-ins are a
@@ -379,17 +379,24 @@ export async function listContestRegistrants(
   }
 
   // Consent audit (NOT PII — an organizer can see that agreements were accepted
-  // without holding contest.pii, mirroring the entry side): count distinct accepted
-  // agreement fields per registrant for the page.
+  // without holding contest.pii, mirroring the entry side): count of the CURRENT
+  // template's agreement fields each registrant accepted. Filtering by the live
+  // agreement keys keeps the count ≤ denominator (stale acceptances for removed/
+  // renamed agreements don't inflate it), and skips the query entirely when the
+  // form has no agreements.
+  const agreementKeys = opts.agreementKeys ?? [];
   let consentByReg = new Map<string, number>();
-  if (rows.length > 0) {
+  if (rows.length > 0 && agreementKeys.length > 0) {
     const acc = await db
       .select({
         registrationId: contestAgreementAcceptances.registrationId,
         n: sql<number>`count(distinct ${contestAgreementAcceptances.fieldKey})::int`,
       })
       .from(contestAgreementAcceptances)
-      .where(inArray(contestAgreementAcceptances.registrationId, rows.map((r) => r.registrationId)))
+      .where(and(
+        inArray(contestAgreementAcceptances.registrationId, rows.map((r) => r.registrationId)),
+        inArray(contestAgreementAcceptances.fieldKey, agreementKeys),
+      ))
       .groupBy(contestAgreementAcceptances.registrationId);
     consentByReg = new Map(acc.map((a) => [a.registrationId as string, a.n]));
   }

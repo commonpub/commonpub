@@ -29,6 +29,7 @@ import { resolveRemoteActor } from './federation.js';
 import { matchMirrorForContent } from './mirroring.js';
 import { handleHubFollow, handleHubUnfollow } from './hubFederation.js';
 import { recordActivitySeen } from './activityDedup.js';
+import { safeRemoteUrl } from './urlGuard.js';
 import { createNotification } from '../notification/notification.js';
 import { isPrivateUrl, safeFetch } from '../import/ssrf.js';
 import {
@@ -816,7 +817,9 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
             title: typeof object.name === 'string' ? object.name : null,
             content: sanitizedContent || null,
             summary: typeof object.summary === 'string' ? sanitizeHtml(object.summary) : null,
-            url: typeof object.url === 'string' ? object.url : null,
+            // Scheme-guard the remote url — it's rendered as a clickable "View original"
+            // link, so a javascript:/data: value would be stored XSS.
+            url: safeRemoteUrl(object.url),
             coverImageUrl: coverImage ?? null,
             tags,
             attachments,
@@ -1054,7 +1057,7 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
         if (typeof object.name === 'string') updates.title = object.name;
         if (typeof object.content === 'string') updates.content = sanitizeHtml(object.content);
         if (typeof object.summary === 'string') updates.summary = sanitizeHtml(object.summary);
-        if (typeof object.url === 'string') updates.url = object.url;
+        if (typeof object.url === 'string') updates.url = safeRemoteUrl(object.url);
 
         // Update attachments, cover image, and cpub:type if present
         const rawAttachments = Array.isArray(object.attachment) ? object.attachment : [];

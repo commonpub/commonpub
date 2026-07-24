@@ -636,6 +636,13 @@ export async function createFederatedSession(
   ipAddress?: string,
   userAgent?: string,
 ): Promise<FederatedSessionResult> {
+  // Ban/suspend enforcement at the session mint site: SSO callbacks don't flow
+  // through the username-login status gate, so a suspended user could otherwise
+  // re-authenticate via a linked remote account and obtain a live session.
+  const [account] = await db.select({ status: users.status }).from(users).where(eq(users.id, userId)).limit(1);
+  if (!account || account.status !== 'active') {
+    throw new Error('This account has been suspended');
+  }
   const sessionToken = generateSecureToken();
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days, matches Better Auth config
 

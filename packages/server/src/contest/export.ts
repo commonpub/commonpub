@@ -190,8 +190,12 @@ export async function buildRegistrantsExport(
     .orderBy(desc(contestRegistrations.createdAt), desc(contestRegistrations.id))
     .limit(10000);
 
-  // Consent audit column (not PII): distinct accepted agreement fields per registrant.
-  const agreementCount = template.filter((f) => f.type === 'agreement').length;
+  // Consent audit column (not PII): count of the CURRENT template's agreement fields
+  // this registrant accepted. Filtering by the live agreement keys keeps the count
+  // from exceeding the denominator when an operator later removes/renames an agreement
+  // (stale acceptance rows for dropped keys must not show as "3/2" or false-complete).
+  const agreementKeys = template.filter((f) => f.type === 'agreement').map((f) => f.key);
+  const agreementCount = agreementKeys.length;
   let consentByReg = new Map<string, number>();
   if (agreementCount > 0 && rows.length > 0) {
     const acc = await db
@@ -200,7 +204,10 @@ export async function buildRegistrantsExport(
         n: sql<number>`count(distinct ${contestAgreementAcceptances.fieldKey})::int`,
       })
       .from(contestAgreementAcceptances)
-      .where(inArray(contestAgreementAcceptances.registrationId, rows.map((r) => r.registrationId)))
+      .where(and(
+        inArray(contestAgreementAcceptances.registrationId, rows.map((r) => r.registrationId)),
+        inArray(contestAgreementAcceptances.fieldKey, agreementKeys),
+      ))
       .groupBy(contestAgreementAcceptances.registrationId);
     consentByReg = new Map(acc.map((a) => [a.registrationId as string, a.n]));
   }

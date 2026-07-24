@@ -25,16 +25,7 @@ import type {
 import { normalizePagination, escapeLike, USER_REF_SELECT } from '../query.js';
 import { safeFetch } from '../import/ssrf.js';
 import { emitHook } from '../hooks.js';
-
-/**
- * Scheme-guard a URL arriving from a remote OrderedCollection. Federated resource
- * and product objects bypass local zod validation, so a hostile instance could ship
- * a `javascript:`/`data:` url that becomes stored XSS when rendered into an :href.
- * Returns the value only if it is an http(s) URL, else null.
- */
-function safeRemoteUrl(value: unknown): string | null {
-  return typeof value === 'string' && /^https?:\/\//i.test(value.trim()) ? value : null;
-}
+import { safeRemoteUrl } from './urlGuard.js';
 
 // --- Federated Hub CRUD ---
 

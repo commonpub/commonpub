@@ -90,7 +90,12 @@ export function useMirrorContent(fedContent: Ref<Record<string, unknown> | null>
   });
 
   const originDomain = computed(() => (fedContent.value?.originDomain as string) || 'unknown');
-  const originUrl = computed(() => (fedContent.value?.url as string) || null);
+  // Scheme-guard the remote origin url (rendered as a clickable link): ingestion now
+  // blocks non-http(s), but a legacy row could still carry a javascript:/data: value.
+  const originUrl = computed(() => {
+    const u = fedContent.value?.url as string | undefined;
+    return u && /^https?:\/\//i.test(u.trim()) ? u : null;
+  });
   const authorHandle = computed(() => {
     if (!actor.value) return '';
     return `@${actor.value.preferredUsername ?? 'unknown'}@${actor.value.instanceDomain ?? ''}`;

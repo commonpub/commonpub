@@ -1,4 +1,5 @@
 import { updateEvent } from '@commonpub/server';
+import { optionalUrl } from '@commonpub/schema';
 import { z } from 'zod';
 
 const updateEventSchema = z.object({
@@ -11,8 +12,8 @@ const updateEventSchema = z.object({
   endDate: z.string().datetime().optional(),
   timezone: z.string().max(64).optional(),
   location: z.string().max(500).optional(),
-  locationUrl: z.string().url().max(500).optional(),
-  onlineUrl: z.string().url().max(500).optional(),
+  locationUrl: optionalUrl(500),
+  onlineUrl: optionalUrl(500),
   capacity: z.number().int().min(1).max(100000).optional(),
   isFeatured: z.boolean().optional(),
 });

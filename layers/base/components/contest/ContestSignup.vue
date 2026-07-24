@@ -260,16 +260,16 @@ watch(isFull, (full) => { if (full) modalOpen.value = false; });
     <div v-if="modalOpen" class="cpub-modal-backdrop" @click.self="modalOpen = false">
       <div ref="modalRef" class="cpub-modal-content cpub-su-modal" role="dialog" aria-modal="true" aria-labelledby="cpub-su-modal-title">
         <div class="cpub-modal-header">
-          <h2 id="cpub-su-modal-title" class="cpub-modal-title">Register for {{ contest?.title }}</h2>
+          <h2 id="cpub-su-modal-title" class="cpub-modal-title">{{ isFull ? 'Your details' : 'Register' }} for {{ contest?.title }}</h2>
           <button class="cpub-modal-close" aria-label="Close" @click="modalOpen = false"><i class="fa-solid fa-xmark"></i></button>
         </div>
-        <p class="cpub-modal-desc">This contest asks a few questions to register.</p>
+        <p class="cpub-modal-desc">{{ isFull ? 'Update the details the organizers asked for.' : 'This contest asks a few questions to register.' }}</p>
         <ContestRegistrationForm
           :template="registrationTemplate"
           :saved-fields="savedFields"
           :registering="registering"
           id-prefix="cpub-su-reg"
-          save-label="Register"
+          :save-label="isFull ? 'Save details' : 'Register'"
           @save="onModalSave"
         />
       </div>

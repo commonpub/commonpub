@@ -2,6 +2,9 @@
 // (audit-203). Each file mirrors a table-file domain; all exports are
 // re-exported here so `@commonpub/schema` exposes them unchanged.
 
+// Shared URL helpers (http(s)-only allowlist) — public so route-level schemas
+// outside this package can reuse the same stored-XSS guard.
+export { httpUrl, optionalUrl } from './_shared.js';
 export * from './auth.js';
 export * from './content.js';
 export * from './social.js';
