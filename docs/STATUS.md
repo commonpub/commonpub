@@ -10,12 +10,25 @@
 
 ---
 
-## Session 247 (2026-07-24) — contest markdown-import + register UX + consent surfacing + 4 P1 security blockers, ROLLED to all 3
+## Session 247 (2026-07-24) — contest markdown-import + register UX + consent + 4 P1 security blockers, then a deep-audit hardening pass, ROLLED to all 3
 
-**schema 0.61→0.62 · server 2.119→2.120 · layer 0.113→0.114** (config 0.35 / infra 0.19 unchanged), **NO
-migration** (`status`/`deletedAt` columns already existed). The session-246 uncommitted changeset was
-verified end-to-end in a real browser, one real bug fixed, the 4 security blockers fixed, and everything
-rolled together.
+**schema 0.61→0.63 · server 2.119→2.121 · layer 0.113→0.115** (config 0.35 / infra 0.19 unchanged), **NO
+migration**. Rolled in two passes: (1) the contest changeset + 4 P1 blockers (0.62/2.120/0.114); (2) a
+10-agent-style deep audit that confirmed the four fixes correct and surfaced same-class gaps in paths they
+didn't reach — hardening roll (0.63/2.121/0.115):
+- **stored-XSS extended:** federated-content `url` ingestion (`inboxHandlers`) now scheme-guarded via a
+  shared `safeRemoteUrl`; http(s) allowlist added to events `locationUrl`/`onlineUrl` + admin nav `href`;
+  render guards on `FederatedContentCard` + mirror origin url (defense for pre-fix rows). `optionalUrl`/
+  `httpUrl` now exported from `@commonpub/schema` for route reuse.
+- **ban/suspend:** `createFederatedSession` (SSO mint site) now rejects non-active users (the native
+  `/sign-in/email` endpoint, unused by the app UI, still relies on the `enrichUser` next-request backstop).
+- **markdown parser:** an unterminated `<!--` now errors instead of silently dropping the rest of the form;
+  a leading inline comment no longer poisons indent.
+- **consent count:** filtered to the current template's agreement keys so a removed/renamed agreement can't
+  render `3/2` or a false-complete check.
+- **CI fix:** the jinger-fixture test now walks up from cwd (the layer suite runs from `layers/base` in CI).
+Browser-verified: `javascript:`/`data:` → 400 on profile + nav; consent panel + CSV correct. Landmine noted:
+if Docker Desktop stops mid-session the dev DB drops and every query 500s — restart Docker + `docker compose up -d` + the dev server.
 
 - **Markdown import for registration forms** — `layers/base/utils/registrationMarkdown.ts` parser/serializer
   + "Markdown" panel in `FormTemplateEditor.vue` (gated `enableMarkdown`, registration tab). **Bug fixed:** the
