@@ -99,7 +99,13 @@ export default defineEventHandler(async (event) => {
   // rejected before).
   const existingLink = await findUserByFederatedAccount(db, verified.profile.actorUri);
   if (existingLink) {
-    const session = await createFederatedSession(db, existingLink.userId, ipAddress, userAgent);
+    let session;
+    try {
+      // Throws for a suspended/inactive account (ban enforcement at the mint site).
+      session = await createFederatedSession(db, existingLink.userId, ipAddress, userAgent);
+    } catch {
+      return sendRedirect(event, '/auth/login?error=account-suspended', 302);
+    }
     setBetterAuthSessionCookie(event, session.sessionToken, session.expiresAt);
     // Only honor a same-origin returnTo. `returnTo` is attacker-suppliable via the /start
     // query and would otherwise be a post-auth open redirect. Resolve it against a throwaway

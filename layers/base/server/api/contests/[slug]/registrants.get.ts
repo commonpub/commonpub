@@ -39,9 +39,10 @@ export default defineEventHandler(async (event) => {
   // Echo the EFFECTIVE template (the default 3 fields for legacy contests) so the
   // client can label-map even legacy {building,experience,team} answers.
   const template = effectiveRegistrationTemplate(contest.registrationTemplate);
-  // Pass the live agreement keys so the consent count reflects only agreements the
-  // form currently asks (stale acceptances for removed/renamed ones don't inflate it).
-  const agreementKeys = template.filter((f) => f.type === 'agreement').map((f) => f.key);
+  // Pass the live REQUIRED-agreement keys so the consent count reflects only agreements
+  // the form currently requires — stale acceptances for removed/renamed ones don't inflate
+  // it, and declining an optional agreement doesn't flag a compliant registrant as partial.
+  const agreementKeys = template.filter((f) => f.type === 'agreement' && f.mustAccept !== false).map((f) => f.key);
   const { items, total } = await listContestRegistrants(db, contest.id, { limit, offset, includePii, agreementKeys });
 
   // Registrant answers can carry PII — never cache anywhere.

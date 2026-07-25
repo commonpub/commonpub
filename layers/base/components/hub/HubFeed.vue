@@ -155,7 +155,7 @@ async function handleVote(postId: string): Promise<void> {
           </div>
         </div>
       </NuxtLink>
-      <a v-else-if="post.sharedContent?.url" :href="post.sharedContent.url" target="_blank" rel="noopener noreferrer" class="cpub-share-card">
+      <a v-else-if="post.sharedContent?.url" :href="safeHref(post.sharedContent.url)" target="_blank" rel="noopener noreferrer" class="cpub-share-card">
         <div class="cpub-share-card-context">
           <i class="fa-solid fa-share-nodes"></i>
           {{ post.author.name }} shared a {{ post.sharedContent.type }}

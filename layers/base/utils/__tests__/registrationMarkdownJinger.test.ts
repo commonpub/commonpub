@@ -77,3 +77,20 @@ describe('HTML comment handling', () => {
     expect(errors.some((e) => /Unterminated HTML comment/.test(e))).toBe(true); // ...but no longer silently
   });
 });
+
+describe('server field-cap mirroring', () => {
+  it('errors when help text exceeds 300 chars (server rejects >300)', () => {
+    const md = `## S\n- Name (text)\n  > ${'x'.repeat(301)}`;
+    const { errors } = registrationMarkdownToTemplate(md);
+    expect(errors.some((e) => /help text is 301 characters/.test(e))).toBe(true);
+  });
+  it('errors when agreement terms exceed 20000 chars', () => {
+    const md = `- Agree (agreement)\n  - ${'y'.repeat(20001)}`;
+    const { errors } = registrationMarkdownToTemplate(md);
+    expect(errors.some((e) => /terms are 20001 characters/.test(e))).toBe(true);
+  });
+  it('accepts help at exactly the 300-char cap', () => {
+    const { errors } = registrationMarkdownToTemplate(`- Name (text)\n  > ${'x'.repeat(300)}`);
+    expect(errors.filter((e) => /help text/.test(e))).toEqual([]);
+  });
+});

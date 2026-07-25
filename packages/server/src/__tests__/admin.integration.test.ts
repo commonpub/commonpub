@@ -298,6 +298,15 @@ describe('admin module', () => {
       expect(row!.status).toBe('deleted');
       expect(row!.deletedAt).not.toBeNull();
     });
+
+    it('reactivating a deleted user CLEARS deletedAt (else username login stays broken)', async () => {
+      const u = await createTestUser(db, { username: 'restoreme', email: 'restoreme@test.dev', role: 'member' });
+      await updateUserStatus(db, u.id, 'deleted', adminId);
+      await updateUserStatus(db, u.id, 'active', adminId);
+      const [row] = await db.select({ status: users.status, deletedAt: users.deletedAt }).from(users).where(eq(users.id, u.id));
+      expect(row!.status).toBe('active');
+      expect(row!.deletedAt).toBeNull();
+    });
   });
 
   // --- Instance Settings ---

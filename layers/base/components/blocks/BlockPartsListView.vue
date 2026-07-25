@@ -43,7 +43,7 @@ const totalPrice = computed(() => {
       <tbody>
         <tr v-for="(part, idx) in parts" :key="idx">
           <td class="cpub-part-name">
-            <a v-if="part.url" :href="part.url" target="_blank" rel="noopener">{{ part.name }}</a>
+            <a v-if="part.url" :href="safeHref(part.url)" target="_blank" rel="noopener">{{ part.name }}</a>
             <span v-else>{{ part.name || 'Unknown' }}</span>
           </td>
           <td class="cpub-col-qty">{{ (part.qty ?? part.quantity) ?? 1 }}</td>

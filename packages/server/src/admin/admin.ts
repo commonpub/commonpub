@@ -377,9 +377,11 @@ export async function updateUserStatus(
     .update(users)
     .set({
       status: newStatus,
-      // A deleted user is also soft-deleted so the login lookups (which filter
-      // `isNull(deletedAt)`) stop resolving the account, not just the status gate.
-      ...(newStatus === 'deleted' ? { deletedAt: new Date() } : {}),
+      // A deleted user is soft-deleted so the login lookups (which filter
+      // `isNull(deletedAt)`) stop resolving them; reactivating to any non-deleted
+      // status must CLEAR deletedAt, else the account is status='active' yet
+      // invisible to username login — a half-broken state.
+      deletedAt: newStatus === 'deleted' ? new Date() : null,
       updatedAt: new Date(),
     })
     .where(eq(users.id, userId));

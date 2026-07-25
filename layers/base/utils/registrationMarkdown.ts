@@ -165,6 +165,14 @@ export function registrationMarkdownToTemplate(md: string): ParseResult {
     if (f.type === 'agreement' && !f.terms?.trim()) {
       errors.push(`Agreement "${f.label}" has no terms (add indented bullet lines under it).`);
     }
+    // Mirror the server's field caps (help ≤ 300, terms ≤ 20000) so an over-long
+    // value fails at import with an attributed message, not as an opaque PUT 400.
+    if (f.help && f.help.length > 300) {
+      errors.push(`Field "${f.label}" help text is ${f.help.length} characters; the maximum is 300.`);
+    }
+    if (f.type === 'agreement' && f.terms && f.terms.length > 20000) {
+      errors.push(`Agreement "${f.label}" terms are ${f.terms.length} characters; the maximum is 20000.`);
+    }
   }
   return { fields, errors };
 }

@@ -1464,8 +1464,10 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
                     type: String(cpubShared.type ?? 'blog'),
                     title: String(cpubShared.title ?? ''),
                     summary: cpubShared.summary ? String(cpubShared.summary) : null,
-                    coverImageUrl: cpubShared.coverImageUrl ? String(cpubShared.coverImageUrl) : null,
-                    originUrl: cpubShared.originUrl ? String(cpubShared.originUrl) : null,
+                    coverImageUrl: safeRemoteUrl(cpubShared.coverImageUrl),
+                    // Scheme-guard the shared-content link — it's rendered as a clickable
+                    // share card (HubFeed), so a remote javascript:/data: value is stored XSS.
+                    originUrl: safeRemoteUrl(cpubShared.originUrl),
                     originDomain: cpubShared.originDomain ? String(cpubShared.originDomain) : null,
                   };
                 } else if (note.type === 'Article' || (note.name && typeof note.name === 'string')) {
@@ -1478,8 +1480,8 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
                     type: sharedCpubType === 'article' ? 'blog' : sharedCpubType,
                     title: note.name as string,
                     summary: typeof note.summary === 'string' ? note.summary : null,
-                    coverImageUrl: imageUrl,
-                    originUrl: typeof note.url === 'string' ? note.url : objectUri,
+                    coverImageUrl: safeRemoteUrl(imageUrl),
+                    originUrl: safeRemoteUrl(note.url) ?? safeRemoteUrl(objectUri),
                     originDomain: (() => { try { return new URL(objectUri).hostname; } catch { return null; } })(),
                   };
                 }

@@ -194,7 +194,9 @@ export async function buildRegistrantsExport(
   // this registrant accepted. Filtering by the live agreement keys keeps the count
   // from exceeding the denominator when an operator later removes/renames an agreement
   // (stale acceptance rows for dropped keys must not show as "3/2" or false-complete).
-  const agreementKeys = template.filter((f) => f.type === 'agreement').map((f) => f.key);
+  // Only REQUIRED agreements (mustAccept !== false) count toward consent — declining
+  // an optional agreement (e.g. marketing) must not flag a compliant registrant as partial.
+  const agreementKeys = template.filter((f) => f.type === 'agreement' && f.mustAccept !== false).map((f) => f.key);
   const agreementCount = agreementKeys.length;
   let consentByReg = new Map<string, number>();
   if (agreementCount > 0 && rows.length > 0) {

@@ -26,7 +26,7 @@ const tools = computed<Tool[]>(() => {
       <div v-for="(tool, i) in tools" :key="i" class="cpub-tool-item">
         <i class="fa-solid fa-wrench cpub-tool-bullet"></i>
         <span class="cpub-tool-name">
-          <a v-if="tool.url" :href="tool.url" target="_blank" rel="noopener">{{ tool.name }}</a>
+          <a v-if="tool.url" :href="safeHref(tool.url)" target="_blank" rel="noopener">{{ tool.name }}</a>
           <template v-else>{{ tool.name }}</template>
         </span>
         <span v-if="tool.notes" class="cpub-tool-notes">{{ tool.notes }}</span>

@@ -300,14 +300,14 @@ async function handleReport(): Promise<void> {
 
         <div class="cpub-profile-meta">
           <span v-if="p.location" class="cpub-profile-meta-item"><i class="fa-solid fa-location-dot"></i> {{ p.location }}</span>
-          <span v-if="p.website" class="cpub-profile-meta-item"><i class="fa-solid fa-globe"></i> <a :href="p.website" target="_blank" rel="noopener">{{ p.website.replace(/^https?:\/\//, '') }}</a></span>
+          <span v-if="p.website" class="cpub-profile-meta-item"><i class="fa-solid fa-globe"></i> <a :href="safeHref(p.website)" target="_blank" rel="noopener">{{ p.website.replace(/^https?:\/\//, '') }}</a></span>
           <span class="cpub-profile-meta-item"><i class="fa-solid fa-calendar"></i> Joined {{ new Date(p.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) }}</span>
           <span v-if="p.socialLinks && (p.socialLinks.github || p.socialLinks.twitter || p.socialLinks.linkedin || p.socialLinks.youtube || p.socialLinks.mastodon)" class="cpub-profile-social">
-            <a v-if="p.socialLinks.github" :href="p.socialLinks.github" class="cpub-social-btn" target="_blank" rel="noopener" aria-label="GitHub"><i class="fa-brands fa-github"></i></a>
-            <a v-if="p.socialLinks.twitter" :href="p.socialLinks.twitter" class="cpub-social-btn" target="_blank" rel="noopener" aria-label="Twitter"><i class="fa-brands fa-x-twitter"></i></a>
-            <a v-if="p.socialLinks.linkedin" :href="p.socialLinks.linkedin" class="cpub-social-btn" target="_blank" rel="noopener" aria-label="LinkedIn"><i class="fa-brands fa-linkedin-in"></i></a>
-            <a v-if="p.socialLinks.youtube" :href="p.socialLinks.youtube" class="cpub-social-btn" target="_blank" rel="noopener" aria-label="YouTube"><i class="fa-brands fa-youtube"></i></a>
-            <a v-if="p.socialLinks.mastodon" :href="p.socialLinks.mastodon" class="cpub-social-btn" target="_blank" rel="noopener" aria-label="Mastodon"><i class="fa-brands fa-mastodon"></i></a>
+            <a v-if="p.socialLinks.github" :href="safeHref(p.socialLinks.github)" class="cpub-social-btn" target="_blank" rel="noopener" aria-label="GitHub"><i class="fa-brands fa-github"></i></a>
+            <a v-if="p.socialLinks.twitter" :href="safeHref(p.socialLinks.twitter)" class="cpub-social-btn" target="_blank" rel="noopener" aria-label="Twitter"><i class="fa-brands fa-x-twitter"></i></a>
+            <a v-if="p.socialLinks.linkedin" :href="safeHref(p.socialLinks.linkedin)" class="cpub-social-btn" target="_blank" rel="noopener" aria-label="LinkedIn"><i class="fa-brands fa-linkedin-in"></i></a>
+            <a v-if="p.socialLinks.youtube" :href="safeHref(p.socialLinks.youtube)" class="cpub-social-btn" target="_blank" rel="noopener" aria-label="YouTube"><i class="fa-brands fa-youtube"></i></a>
+            <a v-if="p.socialLinks.mastodon" :href="safeHref(p.socialLinks.mastodon)" class="cpub-social-btn" target="_blank" rel="noopener" aria-label="Mastodon"><i class="fa-brands fa-mastodon"></i></a>
           </span>
         </div>
 
@@ -487,7 +487,7 @@ async function handleReport(): Promise<void> {
               </div>
               <div class="cpub-about-details">
                 <div v-if="p.location" class="cpub-about-detail"><i class="fa-solid fa-location-dot"></i> {{ p.location }}</div>
-                <div v-if="p.website" class="cpub-about-detail"><i class="fa-solid fa-globe"></i> <a :href="p.website" target="_blank" rel="noopener">{{ p.website.replace(/^https?:\/\//, '') }}</a></div>
+                <div v-if="p.website" class="cpub-about-detail"><i class="fa-solid fa-globe"></i> <a :href="safeHref(p.website)" target="_blank" rel="noopener">{{ p.website.replace(/^https?:\/\//, '') }}</a></div>
                 <div v-if="p.pronouns" class="cpub-about-detail"><i class="fa-solid fa-comment"></i> {{ p.pronouns }}</div>
                 <div class="cpub-about-detail"><i class="fa-solid fa-calendar"></i> Joined {{ new Date(p.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) }}</div>
               </div>

@@ -53,7 +53,7 @@ const authorInitial = computed(() => {
       <div v-else class="cpub-video-placeholder">
         <i class="fa-solid fa-play"></i>
         <p>Video preview not available</p>
-        <a v-if="video.url" :href="video.url" target="_blank" rel="noopener" class="cpub-link">Open video link</a>
+        <a v-if="video.url" :href="safeHref(video.url)" target="_blank" rel="noopener" class="cpub-link">Open video link</a>
       </div>
     </div>
 

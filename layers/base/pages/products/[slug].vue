@@ -87,10 +87,10 @@ useSeoMeta({
 
         <!-- Links -->
         <div class="product-links">
-          <a v-if="product.purchaseUrl" :href="product.purchaseUrl" target="_blank" rel="noopener" class="product-link-btn">
+          <a v-if="product.purchaseUrl" :href="safeHref(product.purchaseUrl)" target="_blank" rel="noopener" class="product-link-btn">
             <i class="fa-solid fa-cart-shopping"></i> Purchase
           </a>
-          <a v-if="product.datasheetUrl" :href="product.datasheetUrl" target="_blank" rel="noopener" class="product-link-btn">
+          <a v-if="product.datasheetUrl" :href="safeHref(product.datasheetUrl)" target="_blank" rel="noopener" class="product-link-btn">
             <i class="fa-solid fa-file-pdf"></i> Datasheet
           </a>
         </div>

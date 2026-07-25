@@ -42,7 +42,7 @@ const columns = computed<FormField[]>(() => {
 
 // Consent denominator: how many agreement fields the form asks. `consentCount` on a
 // registrant is how many they accepted. Consent isn't PII, so it shows to every organizer.
-const agreementCount = computed<number>(() => (data.value?.template ?? []).filter((f: FormField) => f.type === 'agreement').length);
+const agreementCount = computed<number>(() => (data.value?.template ?? []).filter((f: FormField) => f.type === 'agreement' && f.mustAccept !== false).length);
 
 function answer(r: Registrant, f: FormField): string {
   const v = isPii(f) ? r.privateFields?.[f.key] : r.fields?.[f.key];

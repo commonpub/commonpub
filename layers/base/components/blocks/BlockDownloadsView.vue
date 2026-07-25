@@ -26,10 +26,10 @@ const files = computed<FileItem[]>(() => {
       <div v-for="(file, i) in files" :key="i" class="cpub-dl-item">
         <div class="cpub-dl-file-icon"><i class="fa-solid fa-file-arrow-down"></i></div>
         <div class="cpub-dl-info">
-          <a :href="file.url" class="cpub-dl-name" download>{{ file.name }}</a>
+          <a :href="safeHref(file.url)" class="cpub-dl-name" download>{{ file.name }}</a>
           <span v-if="file.size" class="cpub-dl-size">{{ file.size }}</span>
         </div>
-        <a :href="file.url" class="cpub-dl-btn" download aria-label="Download">
+        <a :href="safeHref(file.url)" class="cpub-dl-btn" download aria-label="Download">
           <i class="fa-solid fa-download"></i>
         </a>
       </div>

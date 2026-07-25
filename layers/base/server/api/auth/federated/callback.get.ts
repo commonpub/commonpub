@@ -52,7 +52,13 @@ export default defineEventHandler(async (event) => {
     // before the fix the bare-token/bare-name cookie was rejected by
     // Better Auth's getSession on the next request, leaving the redirect
     // anonymous.
-    const session = await createFederatedSession(db, existingLink.userId, ipAddress, userAgent);
+    let session;
+    try {
+      // Throws for a suspended/inactive account (ban enforcement at the mint site).
+      session = await createFederatedSession(db, existingLink.userId, ipAddress, userAgent);
+    } catch {
+      return sendRedirect(event, '/auth/login?error=account-suspended', 302);
+    }
     setBetterAuthSessionCookie(event, session.sessionToken, session.expiresAt);
     return sendRedirect(event, '/dashboard', 302);
   }

@@ -410,7 +410,7 @@ async function onRefreshGallery(): Promise<void> {
         <p class="cpub-prose-p">{{ hub?.description || 'No description available.' }}</p>
         <div v-if="hub?.website" class="cpub-meta-link">
           <i class="fa-solid fa-link"></i>
-          <a :href="hub.website" target="_blank" rel="noopener">{{ hub.website }}</a>
+          <a :href="safeHref(hub.website)" target="_blank" rel="noopener">{{ hub.website }}</a>
         </div>
       </div>
     </template>
@@ -460,7 +460,7 @@ async function onRefreshGallery(): Promise<void> {
         <HubSidebarCard v-if="hub?.website" title="Links">
           <div class="cpub-resource-item">
             <i class="fa-solid fa-link"></i>
-            <a :href="hub.website" target="_blank" rel="noopener">{{ hub.website }}</a>
+            <a :href="safeHref(hub.website)" target="_blank" rel="noopener">{{ hub.website }}</a>
           </div>
         </HubSidebarCard>
       </HubSidebar>

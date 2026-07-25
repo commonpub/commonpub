@@ -114,13 +114,13 @@ const typeIcon = computed(() => {
             <i class="fa-solid fa-map-pin"></i>
             <div>
               <div>{{ event.location }}</div>
-              <a v-if="event.locationUrl" :href="event.locationUrl" target="_blank" rel="noopener" class="cpub-event-info-sub">View map <i class="fa-solid fa-arrow-up-right-from-square" style="font-size: 8px;"></i></a>
+              <a v-if="event.locationUrl" :href="safeHref(event.locationUrl)" target="_blank" rel="noopener" class="cpub-event-info-sub">View map <i class="fa-solid fa-arrow-up-right-from-square" style="font-size: 8px;"></i></a>
             </div>
           </div>
           <div v-if="event.onlineUrl" class="cpub-event-info-item">
             <i class="fa-solid fa-video"></i>
             <div>
-              <a :href="event.onlineUrl" target="_blank" rel="noopener">Join online <i class="fa-solid fa-arrow-up-right-from-square" style="font-size: 8px;"></i></a>
+              <a :href="safeHref(event.onlineUrl)" target="_blank" rel="noopener">Join online <i class="fa-solid fa-arrow-up-right-from-square" style="font-size: 8px;"></i></a>
             </div>
           </div>
         </div>

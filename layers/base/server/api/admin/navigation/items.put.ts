@@ -1,7 +1,19 @@
 import type { NavItem } from '@commonpub/server';
 import { setNavItems } from '@commonpub/server';
-import { optionalUrl } from '@commonpub/schema';
 import { z } from 'zod';
+
+// A nav `href` is an EXTERNAL link target: http(s) plus the contact schemes an
+// operator legitimately uses (mailto:/tel:), but never a script-executing scheme.
+// (Internal destinations use `route`, not `href`.) An http(s)-only allowlist here
+// would reject a pre-existing mailto: item and, since the nav PUT is all-or-nothing,
+// brick every save — so this is a targeted dangerous-scheme denylist.
+const navHref = z
+  .string()
+  .max(1024)
+  .refine((u) => /^(https?:|mailto:|tel:)/i.test(u.trim()), {
+    message: 'External link must be an http(s), mailto:, or tel: URL',
+  })
+  .optional();
 
 const navItemSchema: z.ZodType<NavItem> = z.lazy(() =>
   z.object({
@@ -10,7 +22,7 @@ const navItemSchema: z.ZodType<NavItem> = z.lazy(() =>
     label: z.string().min(1).max(128),
     icon: z.string().max(128).optional(),
     route: z.string().max(255).optional(),
-    href: optionalUrl(1024),
+    href: navHref,
     featureGate: z.string().max(64).optional(),
     children: z.array(navItemSchema).max(20).optional(),
     visibleTo: z.enum(['all', 'authenticated', 'admin']).optional(),
