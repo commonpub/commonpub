@@ -10,10 +10,24 @@
 
 ---
 
-## Session 247 (2026-07-24) — contest markdown-import + register UX + consent + 4 P1 security blockers, then a deep-audit hardening pass, ROLLED to all 3
+## Session 247 (2026-07-24/25) — contest work + 4 P1 blockers + deep-audit hardening + adversarial-audit fixes, ROLLED to all 3
 
-**schema 0.61→0.63 · server 2.119→2.121 · layer 0.113→0.115** (config 0.35 / infra 0.19 unchanged), **NO
-migration**. Rolled in two passes: (1) the contest changeset + 4 P1 blockers (0.62/2.120/0.114); (2) a
+**schema 0.61→0.63 · server 2.119→2.122 · layer 0.113→0.116** (config 0.35 / infra 0.19 unchanged), **NO
+migration**. Rolled in THREE passes; pass 3 = an `ultracode` adversarial audit (44 agents, refute-by-default;
+12 raw / 9 distinct confirmed, 0 refuted) that found same-class XSS sinks the hardening missed AND regressions
+the hardening itself introduced — **server 2.122 / layer 0.116**:
+- **stored-XSS (systemic):** shared `layers/base/utils/safeUrl.ts#safeHref` now guards the parts/tool/downloads
+  block views + hub-share card + profile/hub/product/video/event stored-URL `:href` sinks (covers legacy
+  pre-guard rows); federated hub-share `originUrl` ingestion guarded (`inboxHandlers` — the sink pass-2 missed).
+- **regressions fixed:** nav `href` allows `mailto:`/`tel:` again (pass-2's http(s)-only allowlist bricked
+  saves on a legacy contact link); `updateUserStatus` CLEARS `deletedAt` on reactivation (delete→active no
+  longer strands an account that can't username-login); SSO ban throw is caught → clean redirect not 500;
+  sign-in status gate moved AFTER password verification (no pre-auth enumeration oracle).
+- **accuracy:** consent counts only REQUIRED agreements; markdown import errors on help>300/terms>20000
+  instead of an opaque PUT 400.
+Deferred (noted, larger): a legacy-row URL scrub migration and CSP nonce (`script-src 'unsafe-inline'` is what
+makes these `javascript:` sinks executable). Browser-verified: nav mailto/tel 200 + javascript/data 400;
+login active→200, wrong/nonexistent→401 (no oracle); consent 2/2. Earlier passes: (1) the contest changeset + 4 P1 blockers (0.62/2.120/0.114); (2) a
 10-agent-style deep audit that confirmed the four fixes correct and surfaced same-class gaps in paths they
 didn't reach — hardening roll (0.63/2.121/0.115):
 - **stored-XSS extended:** federated-content `url` ingestion (`inboxHandlers`) now scheme-guarded via a
