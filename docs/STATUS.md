@@ -1,12 +1,17 @@
 # CommonPub — Status & Operator Runbook
 
-> **Living doc — your "come back later" reference.** Snapshot updated 2026-07-24 (through session 246).
+> **Living doc — your "come back later" reference.** Snapshot updated 2026-07-25 (through session 247).
 > Verify any version/flag claim before trusting it: `npm view @commonpub/<pkg> version`,
 > `curl https://<instance>/api/features`, `cargo search create-commonpub`.
+> **Current LIVE (all 3 instances):** schema **0.63** / config **0.35** / infra **0.19** / server **2.122** /
+> layer **0.116**, migration **0045**, 38 flags. Deploy Production is green; **CI shows red only because of a
+> long-standing pre-existing `e2e` (Playwright) failure** — a stale `/auth/register` submit-enabled assertion
+> red on every commit since ≥2026-07-17, NOT from recent work; the gating `check` job (typecheck/lint/unit)
+> is green. Fixing that e2e test is an open item (see the kickoff).
 > Companion docs: **`docs/ROADMAP.md`** (prioritized remaining work), **next-session kickoff
-> `docs/sessions/247-kickoff.md`** (make the contest system fully work end-to-end + markdown import +
-> fix the reported broken save + the 4 P1 security blockers), the production-readiness audit
-> `docs/reviews/production-readiness-audit-2026-07-23.md`, contest guide `docs/reference/guides/contests.md`.
+> `docs/sessions/248-kickoff.md`** (deferred security follow-ups + P2 contest unification + the red e2e),
+> the production-readiness audit `docs/reviews/production-readiness-audit-2026-07-23.md`, contest guide
+> `docs/reference/guides/contests.md`.
 
 ---
 
