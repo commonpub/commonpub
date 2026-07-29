@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { toLocalInput, fromLocalInput, formatLocalDate } from '../datetime';
+import { toLocalInput, fromLocalInput, formatLocalDate, formatLocalDateRange } from '../datetime';
 
 // These assertions are timezone-independent for the CORRECT implementation: they
 // build an instant from LOCAL components and read it back as local, so they hold
@@ -47,3 +47,38 @@ describe('formatLocalDate', () => {
     expect(formatLocalDate('not-a-date')).toBe('');
   });
 });
+
+// TZ-independent: assertions compare formatLocalDateRange against formatLocalDate on
+// the SAME instants, so the runner's zone cancels out.
+describe('formatLocalDateRange', () => {
+  const start = '2026-08-15T12:00:00Z';
+  const end = '2026-09-15T12:00:00Z';
+  const endOtherYear = '2027-01-05T12:00:00Z';
+
+  it('renders a range with the year once when both dates share a year', () => {
+    expect(formatLocalDateRange(start, end)).toBe(`${formatLocalDate(start, { year: false })} to ${formatLocalDate(end)}`);
+  });
+  it('shows the year on both sides across a year boundary', () => {
+    expect(formatLocalDateRange(start, endOtherYear)).toBe(`${formatLocalDate(start)} to ${formatLocalDate(endOtherYear)}`);
+  });
+  it('collapses to a single date when only one bound is set', () => {
+    expect(formatLocalDateRange(start, null)).toBe(formatLocalDate(start));
+    expect(formatLocalDateRange(null, end)).toBe(formatLocalDate(end));
+  });
+  it('collapses to a single date when the two bounds are equal', () => {
+    expect(formatLocalDateRange(start, start)).toBe(formatLocalDate(start));
+  });
+  it('collapses when both bounds fall on the same displayed day at different times', () => {
+    // Midday UTC on the same date stays the same calendar day in any runner zone
+    // within +/-12h; the range must not print "Aug 15 to Aug 15".
+    const a = '2026-08-15T11:00:00Z';
+    const b = '2026-08-15T12:30:00Z';
+    expect(formatLocalDateRange(a, b)).toBe(formatLocalDate(a));
+    expect(formatLocalDateRange(a, b)).not.toContain(' to ');
+  });
+  it('returns empty for no/invalid input', () => {
+    expect(formatLocalDateRange(null, null)).toBe('');
+    expect(formatLocalDateRange('', undefined)).toBe('');
+    expect(formatLocalDateRange('not-a-date', null)).toBe('');
+  });
+})

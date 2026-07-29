@@ -54,6 +54,19 @@ function fmt(d: string | null | undefined): string | null {
   return formatLocalDate(d);
 }
 
+// A stage's schedule line: both bounds as a range ("Aug 15 to Sep 15, 2026"), or a
+// single labeled date when a stage carries only one (a synthesized Judging/Results
+// stage often has just an end) so "Sep 15" is never ambiguously start-or-end.
+function stageDates(startsAt?: string | null, endsAt?: string | null): string | null {
+  if (!mounted.value) return null;
+  const hasStart = !!startsAt;
+  const hasEnd = !!endsAt;
+  if (hasStart && hasEnd) return formatLocalDateRange(startsAt, endsAt);
+  if (hasEnd) return `Ends ${formatLocalDate(endsAt)}`;
+  if (hasStart) return `Starts ${formatLocalDate(startsAt)}`;
+  return null;
+}
+
 // Phase B1 — the timeline renders the contest's stages (its explicit `stages`, or
 // the synthesized classic Submissions → Judging → Results when none are defined).
 // done/current/upcoming derive from the position of the current stage.
@@ -63,12 +76,26 @@ const timeline = computed<TimelineStep[]>(() => {
   const stages = normalizeStages(c);
   const curId = currentStageId(c);
   const curIdx = curId ? stages.findIndex((s) => s.id === curId) : -1;
-  return stages.map((s, i): TimelineStep => ({
-    label: s.name,
-    date: fmt(s.endsAt ?? s.startsAt ?? null),
-    state: curIdx < 0 ? 'upcoming' : i < curIdx ? 'done' : i === curIdx ? 'current' : 'upcoming',
-    icon: STAGE_KIND_ICON[s.kind] ?? 'fa-circle-dot',
-  }));
+  return stages.map((s, i): TimelineStep => {
+    // A stage's END is its own deadline; its START is its explicit `startsAt`, else
+    // the previous stage's end (a contest timeline is contiguous — one stage begins
+    // where the last ended), else the contest start for the first stage. This surfaces
+    // a start→end span for every stage even when only per-stage deadlines are stored.
+    const end = s.endsAt ?? null;
+    const derivedStart = s.startsAt ?? (i > 0 ? stages[i - 1].endsAt : c.startDate) ?? null;
+    // A DERIVED (non-explicit) start that lands after this stage's end would render a
+    // backwards "later to earlier" span (out-of-order stages / judgingEndDate < endDate);
+    // drop it so the stage shows a single "Ends X" instead. Explicit startsAt is honored.
+    const start = (!s.startsAt && derivedStart && end && new Date(derivedStart).getTime() > new Date(end).getTime())
+      ? null
+      : derivedStart;
+    return {
+      label: s.name,
+      date: stageDates(start, end),
+      state: curIdx < 0 ? 'upcoming' : i < curIdx ? 'done' : i === curIdx ? 'current' : 'upcoming',
+      icon: STAGE_KIND_ICON[s.kind] ?? 'fa-circle-dot',
+    };
+  });
 });
 
 function statusClass(status: string): string {
@@ -224,7 +251,7 @@ function statusClass(status: string): string {
 .cpub-tl-dot { width: 23px; height: 23px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border: var(--border-width-default) solid var(--border2); background: var(--surface); color: var(--text-faint); font-size: 9px; border-radius: 50%; z-index: 1; }
 .cpub-tl-content { padding-top: 2px; }
 .cpub-tl-label { font-size: 12px; font-weight: 600; color: var(--text-dim); display: flex; align-items: center; gap: 6px; }
-.cpub-tl-date { font-size: 10px; font-family: var(--font-mono); color: var(--text-faint); margin-top: 1px; }
+.cpub-tl-date { font-size: 10px; font-family: var(--font-mono); color: var(--text-faint); margin-top: 1px; line-height: 1.45; }
 .cpub-tl-now { font-size: 8px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: .08em; color: var(--accent); border: var(--border-width-default) solid var(--accent-border); background: var(--accent-bg); padding: 1px 5px; }
 
 .cpub-tl-done .cpub-tl-dot { color: var(--green-text); border-color: var(--green-border); background: var(--green-bg); }

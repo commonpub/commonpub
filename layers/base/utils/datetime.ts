@@ -43,3 +43,25 @@ export function formatLocalDate(iso?: string | null, opts?: { year?: boolean }):
   if (Number.isNaN(d.getTime())) return '';
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', ...(opts?.year === false ? {} : { year: 'numeric' }) });
 }
+
+/**
+ * Compact human date range: `Aug 15 to Sep 15, 2026` (year shown once when the two
+ * dates share it; on both when they don't). Returns a single formatted date when only
+ * one bound is set or the two are equal, and '' when neither is set. Like
+ * `formatLocalDate`, this is timezone-dependent — gate the CALL behind a client
+ * `mounted` flag on anything that renders server-side.
+ */
+export function formatLocalDateRange(start?: string | null, end?: string | null): string {
+  const s = start ? new Date(start) : null;
+  const e = end ? new Date(end) : null;
+  const sOk = !!s && !Number.isNaN(s.getTime());
+  const eOk = !!e && !Number.isNaN(e.getTime());
+  if (!sOk && !eOk) return '';
+  if (sOk && !eOk) return formatLocalDate(start);
+  if (!sOk && eOk) return formatLocalDate(end);
+  // Collapse when both bounds render as the same day — the display is day-granular,
+  // so different times on one calendar day must not print "Aug 15 to Aug 15, 2026".
+  if (formatLocalDate(start) === formatLocalDate(end)) return formatLocalDate(start);
+  const sameYear = s!.getFullYear() === e!.getFullYear();
+  return `${formatLocalDate(start, { year: !sameYear })} to ${formatLocalDate(end)}`;
+}
