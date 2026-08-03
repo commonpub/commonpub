@@ -36,6 +36,15 @@ const coverWhole = computed(() => isWholeImage(c.value?.coverMeta ?? null));
 // fills in on mount.
 const mounted = ref(false);
 
+// Hero tagline expand/collapse. The tagline is CSS line-clamped to keep the hero
+// compact, but a long subheading / description excerpt gets cut off mid-sentence
+// on narrow (mobile) screens with no way to read the rest. Measure whether the
+// clamped text actually overflows and, when it does, offer a Show more/less toggle
+// so the full text is reachable in the hero itself.
+const taglineEl = ref<HTMLElement | null>(null);
+const taglineExpanded = ref(false);
+const taglineClamps = ref(false);
+
 // Countdown timer
 const countdown = ref({ days: '00', hours: '00', mins: '00', secs: '00' });
 const targetPassed = ref(false);
@@ -67,14 +76,26 @@ function updateCountdown(): void {
   countdown.value = { days: pad(days), hours: pad(hours), mins: pad(mins), secs: pad(secs) };
 }
 
+// Whether the clamped tagline overflows its 5-line box (only meaningful while
+// collapsed — a clamped element's scrollHeight exceeds its clientHeight when the
+// full text doesn't fit). Re-run on mount, on resize, and when the text changes.
+function measureTagline(): void {
+  const el = taglineEl.value;
+  if (!el || taglineExpanded.value) return;
+  taglineClamps.value = el.scrollHeight - el.clientHeight > 2;
+}
+
 onMounted(() => {
   mounted.value = true;
   updateCountdown();
   countdownInterval = setInterval(updateCountdown, 1000);
+  nextTick(measureTagline);
+  window.addEventListener('resize', measureTagline);
 });
 
 onUnmounted(() => {
   if (countdownInterval) clearInterval(countdownInterval);
+  window.removeEventListener('resize', measureTagline);
 });
 
 // Compact "5d 12h" style remaining-time string for the inline countdown chip.
@@ -126,9 +147,21 @@ const statusAction = contestStatusAction;
 // the (possibly long Markdown) description — so the hero never dumps a raw
 // `## ...` wall. The full formatted description renders in the About tab.
 const tagline = computed<string>(() => {
+  // Subheading is a plain-text tagline entered in a text input — show it verbatim
+  // (running it through markdownToExcerpt would strip literal `*`/`_`/`#` a tagline
+  // may legitimately contain). The description fallback is (possibly long) Markdown,
+  // so it's excerpted — which also drops any `<!-- -->` import header.
   const sub = (c.value?.subheading ?? '').trim();
   if (sub) return sub;
   return markdownToExcerpt(c.value?.description) || '';
+});
+
+// Reset expand state + re-measure clamping when the tagline changes (e.g. client
+// navigation to another contest).
+watch(tagline, () => {
+  taglineExpanded.value = false;
+  taglineClamps.value = false;
+  nextTick(measureTagline);
 });
 
 // When a contest defines explicit stages, surface the current stage's name beside
@@ -181,7 +214,16 @@ const entryCount = computed<number>(() => c.value?.entryCount ?? 0);
         </div>
 
         <h1 class="cpub-hero-title">{{ c?.title || 'Contest' }}</h1>
-        <p v-if="tagline" class="cpub-hero-tagline">{{ tagline }}</p>
+        <template v-if="tagline">
+          <p ref="taglineEl" class="cpub-hero-tagline" :class="{ 'cpub-hero-tagline--clamped': !taglineExpanded }">{{ tagline }}</p>
+          <button
+            v-if="taglineClamps"
+            type="button"
+            class="cpub-hero-tagline-toggle"
+            :aria-expanded="taglineExpanded"
+            @click="taglineExpanded = !taglineExpanded"
+          >{{ taglineExpanded ? 'Show less' : 'Show more' }}</button>
+        </template>
         <img
           v-if="coverInHero"
           :src="c!.coverImageUrl!"
@@ -264,7 +306,10 @@ const entryCount = computed<number>(() => c.value?.entryCount ?? 0);
 .cpub-countdown-chip-muted i { color: var(--text-faint); }
 
 .cpub-hero-title { font-size: 26px; font-weight: 800; letter-spacing: -.02em; line-height: 1.15; margin: 0 0 6px; color: var(--text); }
-.cpub-hero-tagline { font-size: 14px; color: var(--text-dim); line-height: 1.6; max-width: 760px; margin: 0 0 14px; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 5; line-clamp: 5; overflow: hidden; }
+.cpub-hero-tagline { font-size: 14px; color: var(--text-dim); line-height: 1.6; max-width: 760px; margin: 0 0 14px; }
+.cpub-hero-tagline--clamped { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 5; line-clamp: 5; overflow: hidden; }
+.cpub-hero-tagline-toggle { display: inline-block; background: none; border: none; padding: 0; margin: -8px 0 14px; font-size: 11px; font-weight: 700; color: var(--accent); cursor: pointer; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: .08em; }
+.cpub-hero-tagline-toggle:hover { text-decoration: underline; }
 
 .cpub-hero-foot { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
 .cpub-hero-meta { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; font-size: 11px; color: var(--text-faint); font-family: var(--font-mono); }

@@ -39,6 +39,20 @@ describe('markdownToExcerpt', () => {
     expect(markdownToExcerpt('a\n\n\nb     c')).toBe('a b c');
   });
 
+  it('strips HTML comments (e.g. a Markdown-import header) — never leaks raw <!--', () => {
+    const out = markdownToExcerpt('<!-- ============================ -->\nThe Resilient America Challenge invites makers to build.');
+    expect(out).not.toMatch(/<!--/);
+    expect(out).toBe('The Resilient America Challenge invites makers to build.');
+  });
+
+  it('strips a multi-line HTML comment mid-content', () => {
+    expect(markdownToExcerpt('Before\n<!-- hidden\nnotes\nhere -->\nAfter')).toBe('Before After');
+  });
+
+  it('strips an unterminated trailing HTML comment', () => {
+    expect(markdownToExcerpt('Visible text <!-- dangling comment with no close')).toBe('Visible text');
+  });
+
   it('never leaves a raw heading wall', () => {
     const out = markdownToExcerpt('# Rules\n\n## Eligibility\n\nAnyone may enter.');
     expect(out).not.toMatch(/#/);

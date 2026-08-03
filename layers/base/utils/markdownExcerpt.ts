@@ -14,6 +14,11 @@ export function markdownToExcerpt(raw: string | null | undefined): string {
   const d = (raw ?? '').trim();
   if (!d) return '';
   return d
+    // Strip HTML comments FIRST — a Markdown import can leave a `<!-- ==== -->`
+    // header at the top of the description, which would otherwise surface as raw
+    // `<!--` text in a plain-text excerpt (hero tagline, homepage banner). Handles
+    // an unterminated trailing comment too (`... -->` or end-of-string).
+    .replace(/<!--[\s\S]*?(?:-->|$)/g, ' ')
     .replace(/```[\s\S]*?```/g, ' ')
     .replace(/`([^`]*)`/g, '$1')
     .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')

@@ -111,7 +111,7 @@ watchEffect(() => {
             <span class="cpub-hero-badge">{{ activeContest.entryCount ?? 0 }} entries</span>
           </div>
           <h1 class="cpub-hero-title">{{ activeContest.title }}</h1>
-          <p v-if="activeContest.description" class="cpub-hero-excerpt">{{ activeContest.description }}</p>
+          <p v-if="activeContest.description" class="cpub-hero-excerpt">{{ markdownToExcerpt(String(activeContest.description)) }}</p>
           <div class="cpub-hero-actions">
             <NuxtLink :to="`/contests/${activeContest.slug}`" class="cpub-btn cpub-btn-primary"><i class="fa-solid fa-trophy"></i> Enter Contest</NuxtLink>
             <NuxtLink :to="`/contests/${activeContest.slug}`" class="cpub-btn"><i class="fa-solid fa-circle-info"></i> View Details</NuxtLink>
