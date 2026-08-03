@@ -12,7 +12,7 @@ import type {
   UserRef,
 } from '../types.js';
 import type { CreateContentInput, UpdateContentInput } from '@commonpub/schema';
-import { generateSlug } from '../utils.js';
+import { generateSlug, htmlToPlainText } from '../utils.js';
 import { ensureUniqueSlugFor, USER_REF_SELECT, USER_REF_WITH_HEADLINE_SELECT, normalizePagination, countRows, escapeLike, buildContentPath, decodeCursor, asDateUuidCursor, encodeCursor, keysetWhere, type KeysetCursor } from '../query.js';
 import { federateContent, federateUpdate, federateDelete } from '../federation/federation.js';
 import { createNotification } from '../notification/notification.js';
@@ -223,7 +223,9 @@ async function queryFederatedAsListItems(
     type: (row.fed.cpubType ?? row.fed.apType?.toLowerCase() ?? 'blog') as string,
     title: row.fed.title ?? 'Untitled',
     slug: `mirror-${row.fed.id.slice(0, 8)}`, // Placeholder slug for routing
-    description: row.fed.summary,
+    // Remote AP `summary` is HTML — reduce to plain text so a card blurb never
+    // shows raw `<p>`/`<style>`/`<!--` markup in the local feed.
+    description: htmlToPlainText(row.fed.summary),
     coverImageUrl: row.fed.coverImageUrl,
     status: 'published',
     difficulty: null,

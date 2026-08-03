@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { generateSlug, hasPermission, canManageRole } from '../utils';
+import { generateSlug, hasPermission, canManageRole, htmlToPlainText } from '../utils';
 
 describe('utils', () => {
   describe('generateSlug', () => {
@@ -194,4 +194,23 @@ describe('utils', () => {
       }
     });
   });
+
+  describe('htmlToPlainText', () => {
+    it('returns null for empty / nullish', () => {
+      expect(htmlToPlainText(null)).toBeNull();
+      expect(htmlToPlainText(undefined)).toBeNull();
+      expect(htmlToPlainText('   ')).toBeNull();
+    });
+    it('strips tags but keeps text', () => {
+      expect(htmlToPlainText('<p>Hello <strong>world</strong></p>')).toBe('Hello world');
+    });
+    it('drops comments and <style>/<script> blocks with contents', () => {
+      expect(htmlToPlainText('<!-- x --><style>.a{color:red}</style><p>Body</p>')).toBe('Body');
+      expect(htmlToPlainText('<script>alert(1)</script>Text')).toBe('Text');
+    });
+    it('decodes common entities', () => {
+      expect(htmlToPlainText('A &amp; B &lt;3')).toBe('A & B <3');
+    });
+  });
+
 });

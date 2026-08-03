@@ -26,6 +26,7 @@ export {
   synthesizeStages,
   normalizeStages,
   currentStage,
+  currentStageEndDate,
   isEliminated,
   nextContestDeadline,
 } from './stages.js';

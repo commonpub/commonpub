@@ -56,6 +56,11 @@ export interface ContestListItem {
   status: ContestStatus;
   startDate: Date;
   endDate: Date;
+  /** The CURRENT stage's end — the deadline list-card countdowns should target so
+   *  a multi-stage contest shows the open round's close, not the far-off final
+   *  endDate. Equals endDate for a classic (stage-less) contest. Present on the
+   *  list shape; ContestDetail computes it client-side from `stages`. */
+  currentStageEndDate?: Date;
   entryCount: number;
   createdAt: Date;
 }

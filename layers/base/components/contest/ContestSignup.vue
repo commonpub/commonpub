@@ -70,9 +70,14 @@ const milestone = computed<{ label: string; date: string | null; hint: string | 
   const c = props.contest;
   if (!c) return null;
   const start = fmtDate(c.startDate);
-  const end = fmtDate(c.endDate);
   const dStart = daysUntil(c.startDate);
-  const dEnd = daysUntil(c.endDate);
+  // For an active multi-stage contest, "Submissions close" is the CURRENT stage's
+  // deadline (the open proposal/build round), not the far-off final endDate — the
+  // reason this card read "Dec 18 / in 5 months" instead of the Sep-6 proposal
+  // close. currentStageEnd falls back to endDate for classic contests.
+  const closeAt = currentStageEnd(c) ?? c.endDate;
+  const end = fmtDate(closeAt);
+  const dEnd = daysUntil(closeAt);
   switch (status.value) {
     case 'upcoming':
       // Suppress the countdown hint when the start date is already past (status

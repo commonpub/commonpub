@@ -81,7 +81,9 @@ const canCreateContest = computed(() => {
             {{ cardBlurb(contest) }}
           </p>
           <div v-if="contest.endDate && (contest.status === 'active' || contest.status === 'upcoming')" class="cpub-contest-card-countdown">
-            <CountdownTimer :target-date="contest.endDate" compact />
+            <!-- Upcoming counts to when it OPENS; active counts to the CURRENT
+                 stage's close (the open round), not the far-off final endDate. -->
+            <CountdownTimer :target-date="contest.status === 'upcoming' ? contest.startDate : (contest.currentStageEndDate ?? contest.endDate)" compact />
           </div>
           <div class="cpub-contest-card-meta">
             <span><i class="fa-solid fa-users"></i> {{ contest.entryCount }} entries</span>

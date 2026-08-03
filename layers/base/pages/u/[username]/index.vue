@@ -865,7 +865,13 @@ async function handleReport(): Promise<void> {
   padding: 0 32px;
   display: flex;
   gap: 2px;
+  /* Scroll the tab row on narrow screens instead of overflowing the page — the
+     profile can show up to 7 tabs (overview/projects/blog/explainers/learning/
+     drafts/about) which don't fit at 390px. Scrollbar hidden for a clean bar. */
+  overflow-x: auto;
+  scrollbar-width: none;
 }
+.cpub-profile-tabs-inner::-webkit-scrollbar { display: none; }
 
 .cpub-tab-btn {
   font-size: 12px;
@@ -881,6 +887,10 @@ async function handleReport(): Promise<void> {
   gap: 6px;
   position: relative;
   top: 2px;
+  /* Keep each tab its natural width so the row scrolls (see overflow-x on the
+     inner) rather than squishing/wrapping the labels on mobile. */
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .cpub-tab-btn:hover { color: var(--text); }

@@ -5,6 +5,7 @@ import type { DB } from '../types.js';
 import { normalizePagination, countRows } from '../query.js';
 import { isContestStakeholder } from './stakeholders.js';
 import { isContestJudge } from './judges.js';
+import { currentStageEndDate } from './stages.js';
 import type {
   ContestFilters,
   ContestListItem,
@@ -91,6 +92,10 @@ export async function listContests(
     status: row.status,
     startDate: row.startDate,
     endDate: row.endDate,
+    // The current stage's close (falls back to the final endDate for classic /
+    // stage-less contests) so list-card countdowns target the open round, not the
+    // far-off final date on a multi-stage contest.
+    currentStageEndDate: currentStageEndDate(row) ?? row.endDate,
     entryCount: row.entryCount,
     createdAt: row.createdAt,
   }));

@@ -19,6 +19,30 @@ export function generateSlug(text: string): string {
   return slug;
 }
 
+/**
+ * Reduce (possibly HTML) text to clean single-line plain text — for a CARD blurb
+ * / list description built from remote ActivityPub `summary` HTML, which would
+ * otherwise render its raw `<p>`/`<style>`/`<!--` markup as literal text in the
+ * feed. Drops comments + style/script blocks (with contents), strips remaining
+ * tags (keeping their text), decodes the common entities, and collapses
+ * whitespace. Mirrors the client `markdownToExcerpt` HTML handling. Returns null
+ * for empty/nullish input so a missing summary stays null.
+ */
+export function htmlToPlainText(raw: string | null | undefined): string | null {
+  if (raw == null) return null;
+  const s = String(raw).trim();
+  if (!s) return null;
+  const out = s
+    .replace(/<!--[\s\S]*?(?:-->|$)/g, ' ')
+    .replace(/<(style|script|template)\b[^>]*>[\s\S]*?(?:<\/\1\s*>|$)/gi, ' ')
+    .replace(/<\/?[a-z][^>]*>/gi, ' ')
+    .replace(/&(nbsp|amp|lt|gt|quot|#39|apos);/gi, (m) =>
+      ({ '&nbsp;': ' ', '&amp;': '&', '&lt;': '<', '&gt;': '>', '&quot;': '"', '&#39;': "'", '&apos;': "'" }[m.toLowerCase()] ?? ' '))
+    .replace(/\s+/g, ' ')
+    .trim();
+  return out || null;
+}
+
 // --- Hub Permission Helpers ---
 
 const ROLE_HIERARCHY: Record<string, number> = {

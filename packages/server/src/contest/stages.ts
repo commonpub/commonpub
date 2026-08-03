@@ -53,6 +53,23 @@ export function currentStage(c: StageSource): ContestStage | null {
   }
 }
 
+/**
+ * The END date of the CURRENT stage (the deadline a running contest's countdown /
+ * "submissions close" surfaces should target — e.g. the open proposal round's
+ * close), or null when nothing is running or the current stage carries no `endsAt`.
+ * For a classic (synthesized) contest the current submission stage's end IS the
+ * contest `endDate`, so callers that fall back to `endDate` are unchanged. Mirrors
+ * the client helper in layers/base/utils/contestStages.ts. Used to derive the
+ * list-card deadline so /contests + the homepage widget don't count down to the
+ * far-off FINAL endDate on a multi-stage contest.
+ */
+export function currentStageEndDate(c: StageSource): Date | null {
+  const end = currentStage(c)?.endsAt;
+  if (!end) return null;
+  const d = new Date(end);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
 /** True when an entry was culled at some review stage (Phase B2 cohort gate). */
 export function isEliminated(entry: { stageState?: Array<{ status: string }> | null }): boolean {
   return !!entry.stageState?.some((s) => s.status === 'eliminated');

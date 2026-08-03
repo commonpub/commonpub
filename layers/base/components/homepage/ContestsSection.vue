@@ -27,7 +27,9 @@ const visibleContests = computed(() =>
       <div class="cpub-contest-row">
         <span class="cpub-contest-entries">{{ c.entryCount ?? 0 }} entries</span>
         <span v-if="c.endDate" class="cpub-contest-deadline">
-          <i class="fa-regular fa-clock"></i> {{ Math.max(0, Math.ceil((new Date(c.endDate).getTime() - Date.now()) / 86400000)) }}d left
+          <!-- Days to the CURRENT stage's close (falls back to endDate for a
+               classic contest), not the far-off final date on a multi-stage one. -->
+          <i class="fa-regular fa-clock"></i> {{ Math.max(0, Math.ceil((new Date(c.currentStageEndDate ?? c.endDate).getTime() - Date.now()) / 86400000)) }}d left
         </span>
       </div>
       <NuxtLink :to="`/contests/${c.slug}`" class="cpub-btn-enter">Enter Contest</NuxtLink>

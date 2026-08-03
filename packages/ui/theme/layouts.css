@@ -165,8 +165,20 @@
 /* ─── STAT BAR ─── */
 .cpub-stat-bar {
   display: flex;
+  /* Wrap on narrow screens — a profile stat bar can hold 6 items (projects,
+     followers, following, posts, views, likes) which otherwise overflow the
+     viewport horizontally on mobile (no per-consumer media query reaches these
+     globally-styled items — the profile page's `.cpub-profile-stat` rule doesn't
+     apply across the StatBar component boundary). */
+  flex-wrap: wrap;
   gap: var(--space-6);
   padding: var(--space-4) 0;
+}
+
+@media (max-width: 480px) {
+  .cpub-stat-bar {
+    gap: var(--space-4) var(--space-5);
+  }
 }
 
 .cpub-stat-bar-item {

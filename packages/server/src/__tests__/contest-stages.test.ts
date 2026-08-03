@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { synthesizeStages, normalizeStages, currentStage, nextContestDeadline } from '../contest/index.js';
+import { synthesizeStages, normalizeStages, currentStage, currentStageEndDate, nextContestDeadline } from '../contest/index.js';
 import type { ContestStage } from '@commonpub/schema';
 
 // Pure helpers — no DB. Phase B1 stage-timeline derivation + back-compat.
@@ -138,5 +138,40 @@ describe('nextContestDeadline', () => {
     expect(d.stageId).toBe('final');
     expect(d.at.toISOString()).toBe('2026-10-01T00:00:00.000Z');
     expect(d.isOwnDeadline).toBe(true);
+  });
+});
+
+describe('currentStageEndDate', () => {
+  const iso = (d) => new Date(d).toISOString();
+  const staged = {
+    ...base,
+    status: 'active',
+    startDate: new Date('2026-08-03T00:00:00.000Z'),
+    endDate: new Date('2026-12-18T00:00:00.000Z'),
+    stages: [
+      { id: 'proposals', name: 'Proposals', kind: 'submission', startsAt: iso('2026-08-03'), endsAt: iso('2026-09-06') },
+      { id: 'build', name: 'Build Sprint', kind: 'submission', startsAt: iso('2026-09-14'), endsAt: iso('2026-11-09') },
+      { id: 'results', name: 'Results', kind: 'results', endsAt: iso('2026-12-18') },
+    ],
+    currentStageId: 'proposals',
+  };
+
+  it('returns the CURRENT stage end, not the final endDate (the 137-day bug)', () => {
+    const d = currentStageEndDate(staged);
+    expect(d?.toISOString()).toBe(new Date('2026-09-06T00:00:00.000Z').toISOString());
+    expect(d?.toISOString()).not.toBe(staged.endDate.toISOString());
+  });
+
+  it('follows currentStageId as it advances', () => {
+    expect(currentStageEndDate({ ...staged, currentStageId: 'build' })?.toISOString())
+      .toBe(new Date('2026-11-09T00:00:00.000Z').toISOString());
+  });
+
+  it('classic (stage-less) contest resolves to endDate (unchanged)', () => {
+    expect(currentStageEndDate(base)?.toISOString()).toBe(base.endDate.toISOString());
+  });
+
+  it('null when nothing is running (draft/cancelled)', () => {
+    expect(currentStageEndDate({ ...base, status: 'draft' })).toBeNull();
   });
 });

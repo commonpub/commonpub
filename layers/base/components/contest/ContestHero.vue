@@ -56,10 +56,16 @@ function pad(n: number): string { return String(n).padStart(2, '0'); }
 // down to when it OPENS (startDate); while JUDGING, to the judging deadline;
 // otherwise (active) to the submission close (endDate).
 const countdownTargetStr = computed<string | null>(() => {
-  const s = c.value?.status;
-  if (s === 'judging') return c.value?.judgingEndDate ?? c.value?.endDate ?? null;
-  if (s === 'upcoming') return c.value?.startDate ?? null;
-  return c.value?.endDate ?? null;
+  const cv = c.value;
+  if (!cv) return null;
+  const s = cv.status;
+  if (s === 'judging') return cv.judgingEndDate ?? cv.endDate ?? null;
+  if (s === 'upcoming') return cv.startDate ?? null;
+  // active / paused: the CURRENT stage's end (the open round for a multi-stage
+  // contest — e.g. the Proposals deadline), NOT the far-off final endDate. For a
+  // classic (synthesized) contest the current submission stage's end IS endDate,
+  // so behaviour is unchanged.
+  return currentStageEnd(cv) ?? cv.endDate ?? null;
 });
 
 function updateCountdown(): void {
@@ -111,10 +117,17 @@ const compactCountdown = computed<string>(() => {
 });
 
 const countdownLabel = computed(() => {
-  const s = c.value?.status;
+  const cv = c.value;
+  const s = cv?.status;
   if (s === 'completed' || s === 'cancelled') return 'Contest ended';
   if (s === 'judging') return 'Judging ends in';
   if (s === 'upcoming') return 'Opens in';
+  // active / paused: "Submissions close in" is right for the open submission round
+  // (and every classic contest); for a multi-stage contest sitting in a non-
+  // submission round (e.g. a selection stage), name that round so the label can't
+  // claim "Submissions close" when nothing is open.
+  const stage = cv ? currentStage(cv) : null;
+  if (stage && stage.kind !== 'submission' && stage.name) return `${stage.name} ends in`;
   return 'Submissions close in';
 });
 
@@ -134,7 +147,8 @@ function fmtDate(s: string | null | undefined): string {
 const dateNote = computed<string | null>(() => {
   if (!mounted.value || isEnded.value || isPaused.value || isDraft.value || !targetPassed.value) return null;
   if (c.value?.status === 'upcoming') return c.value?.startDate ? `Opens ${fmtDate(c.value.startDate)}` : null;
-  return c.value?.endDate ? `Closed ${fmtDate(c.value.endDate)}` : null;
+  // The passed target is the current stage's end (falls back to endDate).
+  return countdownTargetStr.value ? `Closed ${fmtDate(countdownTargetStr.value)}` : null;
 });
 
 // Bidirectional lifecycle controls — the valid-transition map + button metadata

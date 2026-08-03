@@ -49,6 +49,27 @@ export function currentStageId(c: StageSource): string | null {
   }
 }
 
+/** The stage that is "now" (the resolved current stage object), or null. */
+export function currentStage(c: StageSource): ContestStage | null {
+  const cid = currentStageId(c);
+  if (!cid) return null;
+  return normalizeStages(c).find((s) => s.id === cid) ?? null;
+}
+
+/**
+ * The deadline a running contest's hero/countdown + "submissions close" card
+ * should target: the END of the CURRENT stage (e.g. the open proposal round),
+ * NOT the contest's far-off final `endDate`. For a classic (synthesized) contest
+ * the current submission stage's `endsAt` IS `endDate`, so behaviour is unchanged;
+ * for a multi-stage contest it resolves to the current round's close (the reason a
+ * "Submissions close in 137d / Dec 18" bug showed the final date, not the Sep-6
+ * proposal deadline). Returns null when nothing is running (draft/cancelled) or
+ * the current stage carries no `endsAt` — callers fall back to `endDate`.
+ */
+export function currentStageEnd(c: StageSource): string | null {
+  return currentStage(c)?.endsAt ?? null;
+}
+
 // ─── Pure stage-array operations (used by ContestStagesEditor; unit-tested) ───
 
 export function newStageId(): string {
