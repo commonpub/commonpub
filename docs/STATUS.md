@@ -1,16 +1,20 @@
 # CommonPub — Status & Operator Runbook
 
-> **Living doc — your "come back later" reference.** Snapshot updated 2026-07-25 (through session 247).
+> **Living doc — your "come back later" reference.** Snapshot updated 2026-08-02 (through session 248).
 > Verify any version/flag claim before trusting it: `npm view @commonpub/<pkg> version`,
 > `curl https://<instance>/api/features`, `cargo search create-commonpub`.
 > **Current LIVE (all 3 instances):** schema **0.63** / config **0.35** / infra **0.19** / server **2.122** /
-> layer **0.116**, migration **0045**, 38 flags. Deploy Production is green; **CI shows red only because of a
+> layer **0.117**, migration **0045**, 38 flags. Deploy Production is green; **CI shows red only because of a
 > long-standing pre-existing `e2e` (Playwright) failure** — a stale `/auth/register` submit-enabled assertion
 > red on every commit since ≥2026-07-17, NOT from recent work; the gating `check` job (typecheck/lint/unit)
-> is green. Fixing that e2e test is an open item (see the kickoff).
-> Companion docs: **`docs/ROADMAP.md`** (prioritized remaining work), **next-session kickoff
-> `docs/sessions/248-kickoff.md`** (deferred security follow-ups + P2 contest unification + the red e2e),
-> the production-readiness audit `docs/reviews/production-readiness-audit-2026-07-23.md`, contest guide
+> is green. Fixing that e2e test is an open item.
+> **⚠️ A real contest goes LIVE on deveco.io 2026-08-03 with real traffic.** deveco has ALL contest flags +
+> `emailNotifications`/`emailUnverified`/`contestReminders`/`contestEmailEditor` ON (more complete than
+> commonpub.io, which has reminders/emailEditor OFF). **Next session is a production-readiness sweep** —
+> `docs/sessions/249-kickoff.md`.
+> Companion docs: **`docs/ROADMAP.md`** (prioritized remaining work), **production-readiness sweep kickoff
+> `docs/sessions/249-kickoff.md`**, the session-246 audit `docs/reviews/production-readiness-audit-2026-07-23.md`
+> (batch-2 P2s still open), scalability memory `project_pagination_scalability.md`, contest guide
 > `docs/reference/guides/contests.md`.
 
 ---
