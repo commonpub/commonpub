@@ -53,6 +53,28 @@ describe('markdownToExcerpt', () => {
     expect(markdownToExcerpt('Visible text <!-- dangling comment with no close')).toBe('Visible text');
   });
 
+  it('drops a <style> block WITH its CSS content (Markdown-import artifact)', () => {
+    const out = markdownToExcerpt('<style> .rac{ --rac-bg:var(--color-surface,#ffffff); color:red } </style>\nThe Challenge invites makers.');
+    expect(out).not.toMatch(/<style|--rac-bg|color:red/);
+    expect(out).toBe('The Challenge invites makers.');
+  });
+
+  it('drops an unterminated <style> block to end of input', () => {
+    expect(markdownToExcerpt('Intro text <style> .x { color: red } and more css')).toBe('Intro text');
+  });
+
+  it('strips generic HTML tags but keeps their text', () => {
+    expect(markdownToExcerpt('<div class="rac"><h2>Rules</h2><p>Build something &amp; ship it</p></div>'))
+      .toBe('Rules Build something & ship it');
+  });
+
+  it('handles the real jinger-style header: comment + style + text', () => {
+    const raw = '<!-- ===================== -->\n<style> .rac{ --rac-bg:var(--c,#fff) } </style>\nThe Resilient America Preparedness Challenge invites makers to build edge AI.';
+    const out = markdownToExcerpt(raw);
+    expect(out).not.toMatch(/<!--|<style|--rac-bg/);
+    expect(out).toBe('The Resilient America Preparedness Challenge invites makers to build edge AI.');
+  });
+
   it('never leaves a raw heading wall', () => {
     const out = markdownToExcerpt('# Rules\n\n## Eligibility\n\nAnyone may enter.');
     expect(out).not.toMatch(/#/);
