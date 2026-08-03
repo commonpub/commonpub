@@ -4,7 +4,7 @@
 > Verify any version/flag claim before trusting it: `npm view @commonpub/<pkg> version`,
 > `curl https://<instance>/api/features`, `cargo search create-commonpub`.
 > **Current LIVE (all 3 instances):** schema **0.63** / config **0.35** / infra **0.19** / server **2.123** /
-> layer **0.119**, migration **0045**, 38 flags. **Layer 0.119 = post-launch hotfix: contest hero mobile
+> layer **0.120**, migration **0045**, 38 flags. **Layer 0.119 = post-launch hotfix: contest hero mobile
 > description Show more/less toggle + `markdownToExcerpt` strips `<!--` HTML comments so a Markdown-imported
 > description header no longer leaks into homepage/list excerpts.** **Session 249 (2026-08-02/03) — production-readiness sweep
 > before the deveco contest launch: rolled the upload-OOM guard (deveco Caddyfile 128MB catch-all cap +

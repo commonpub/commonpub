@@ -140,7 +140,18 @@ Playwright 11/12 (the one miss was a test artifact — the contest LIST shows a 
 not its description, when it has one) + visual review: toggle appears only on mobile-long, absent on
 desktop/short; homepage/list/About all clean; markdown descriptions excerpt without over-stripping.
 **Rolled layer 0.118→0.119 (layer-only, no server/schema/migration) to all 3.**
-Current LIVE (all 3): schema 0.63 / config 0.35 / infra 0.19 / server 2.123 / **layer 0.119**, mig 0045.
+
+**Follow-up (layer 0.120) — adversarial verify after the 0.119 roll caught the NEXT layer:** the live
+deveco banner, now comment-free, revealed the description ALSO carries a `<style>…</style>` CSS block
+(the jinger import embeds a styled card), which surfaced as raw `<style> .rac{ --rac-bg:…` text in the
+excerpt. Hardened `markdownToExcerpt` to remove `<style>/<script>/<template>` blocks WITH their
+contents, strip remaining HTML tags (keeping text), and decode common entities. The full About render
+was already safe (`sanitizeRichHtml` drops style/script with contents — useSanitize.ts:224). 16/16
+unit tests, typecheck clean, reproduced the exact comment+style scenario locally (5/5, homepage banner
+renders clean plain text), then rolled 0.119→0.120 to all 3 + live-verified rendered text on all three
+homepages has no `<!--`/`<style>`/CSS. **Lesson (again): adversarially verify AFTER each hotfix roll —
+the first fix exposed the second.**
+Current LIVE (all 3): schema 0.63 / config 0.35 / infra 0.19 / server 2.123 / **layer 0.120**, mig 0045.
 
 ## Open / next
 
