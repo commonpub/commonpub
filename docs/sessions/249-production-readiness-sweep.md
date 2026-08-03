@@ -153,6 +153,33 @@ homepages has no `<!--`/`<style>`/CSS. **Lesson (again): adversarially verify AF
 the first fix exposed the second.**
 Current LIVE (all 3): schema 0.63 / config 0.35 / infra 0.19 / server 2.123 / **layer 0.120**, mig 0045.
 
+### Post-launch batch 2 (server 2.124 / layer 0.121) — stage-aware deadlines + profile mobile + audit
+
+Operator reported: (a) the contest hero + registration card showed "Submissions close in 137d / Dec 18"
+(the FINAL endDate) instead of the CURRENT stage's close (Proposals, Sep 6); (b) profile pages broke on
+mobile. Ran a **deep fan-out audit** (`deveco-launch-bug-audit`, 18 agents, refute-by-default; 10 confirmed)
+which independently re-found both and surfaced the same date bug on MORE public surfaces + a federated leak.
+
+- **Stage-aware deadlines (the 137-day class), fixed on EVERY surface:** `ContestHero` countdown + label,
+  `ContestSignup` "Submissions close" card, the `/contests` list card countdown, the homepage "Active
+  Contests" widget, AND deveco's fork homepage widget — all now target the CURRENT stage's end
+  (`currentStageEnd` client / `currentStageEndDate` server), falling back to `endDate` for classic contests.
+  Root cause for the list/homepage: `ContestListItem` omitted stage data, so the server now derives a
+  `currentStageEndDate` field. `nextContestDeadline` (emails) was already correct — these DISPLAY surfaces
+  weren't. Verified: hero 33d / signup Sep-6 / list-card 33d / homepage no-137d (not 137d/Dec-18).
+- **Profile mobile (390px page overflow):** `.cpub-stat-bar` (theme) now `flex-wrap`s (6 stats wrapped 2
+  rows, not overflowing — the profile's own `.cpub-profile-stat` mobile rule couldn't reach the extracted
+  `StatBar` component; classic scope-across-extraction bug); the profile tab bar (`.cpub-profile-tabs-inner`)
+  now `overflow-x: auto` (scrolls). Verified 390px docScroll 587→390 (no overflow).
+- **Federated content leak:** `htmlToPlainText()` server helper; the federated content card `description`
+  (remote AP `summary` HTML) is now stripped to plain text (was rendered raw in the feed) — same leak class
+  as the `<!--`/`<style>` excerpt bug. (Deferred, low: federated-hub page description + actor-summary cache.)
+- 55 stage/util unit tests (incl. currentStageEndDate + htmlToPlainText), 1784 server tests, reference
+  typecheck clean. **Rolled server 2.123→2.124 + layer 0.120→0.121 to all 3** (deveco also got its fork
+  `index.vue` widget fix). Lesson reinforced: the audit caught the same class on adjacent surfaces the
+  one-at-a-time reports hadn't reached yet.
+Current LIVE (all 3): schema 0.63 / config 0.35 / infra 0.19 / **server 2.124** / **layer 0.121**, mig 0045.
+
 ## Open / next
 
 - Fix the long-red `e2e` CI (stale `/auth/register` submit assertion) — deferred this session
