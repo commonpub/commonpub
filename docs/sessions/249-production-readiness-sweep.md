@@ -98,21 +98,30 @@ consent precondition to `entries.post.ts`.**
   register form renders (37 inputs) at desktop + **390px with no horizontal overflow**; contest
   detail loads. Screenshots in scratchpad.
 
-## Roll status
+## Roll status — ROLLED TO ALL 3
 
-- **deveco Caddyfile (blocker):** DEPLOYED to deveco (operator-approved; the deploy was already
-  in flight when the operator said "no deploys without confirm" — kept per confirmation).
-- **App hardening (server 2.122→2.123 + layer 0.117→0.118, NO migration, NO schema/config/infra
-  change):** staged on branch `session-249-launch-hardening`, versions bumped, **NOT published /
-  NOT deployed — pending operator confirmation** for the npm publish + consumer pin bumps +
-  commonpub.io/heatsync roll.
+- **deveco Caddyfile (blocker):** DEPLOYED to deveco first, independently (operator-approved).
+- **App hardening — server 2.122→2.123 + layer 0.117→0.118, NO migration, NO schema/config/infra
+  change — ROLLED to all 3** (operator approved "deploy on all instances"):
+  - Published `@commonpub/server@2.123.0` + `@commonpub/layer@0.118.0` to npm (propagated).
+  - ff-merged `main` → **commonpub.io** deploy (uses the local layer).
+  - Bumped **deveco** + **heatsync** pins (`@commonpub/server ^2.123.0`, `@commonpub/layer
+    ^0.118.0`; layer hand-edited — 0.x caret locks the minor) + regen BOTH lockfiles
+    (`npm install --package-lock-only` + `pnpm install --lockfile-only`) → pushed → deploys.
+  - **Full-lifecycle contest E2E: 44/44** on a deveco-matching config (all email flags ON) —
+    rich registration (file+signature+address+2 agreements) → consent+PII → confirmation-email
+    enqueue → entry → judging → **advance topN (the changed path): correct 2-advanced/1-eliminated
+    results + idempotent** → completed/ranks → CSV export (PII+consent+no-store, non-org 403) →
+    private-file per-contest scoping (owner/organizer 200, other 404) → upload 413 → health probe.
+    Visually confirmed via screenshots (results podium, judge view, registrants, 390px form).
+
+Current LIVE (all 3): schema 0.63 / config 0.35 / infra 0.19 / **server 2.123** / **layer 0.118**,
+migration 0045.
 
 ## Open / next
 
-- On confirm: publish `@commonpub/server` 2.123 → `pnpm publish:layer` 0.118 → poll npm →
-  bump deveco/heatsync pins (`^0.117`↛`0.118` hand-edit, 0.x minor) + regen BOTH lockfiles →
-  ff-merge `main` (commonpub.io) → deploy. Re-verify the upload 413 on deveco after its next app
-  deploy picks up 0.118.
 - Fix the long-red `e2e` CI (stale `/auth/register` submit assertion) — deferred this session
   (operator chose the middle scope, not the ops-extras option).
 - Backup + rollback runbook — deferred (same).
+- Deferred hardening (documented above): nonce CSP; legacy-URL scrub migration 0046; global-feed
+  composite indexes; entry-consent guard (if entry-without-registration becomes UI-reachable).
