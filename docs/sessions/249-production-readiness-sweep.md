@@ -118,6 +118,30 @@ consent precondition to `entries.post.ts`.**
 Current LIVE (all 3): schema 0.63 / config 0.35 / infra 0.19 / **server 2.123** / **layer 0.118**,
 migration 0045.
 
+### Post-launch hotfix — two contest UX bugs reported on the live instance (layer 0.119)
+
+Reported via chat with screenshots while the contest was live:
+1. **Mobile hero description cut off, no expand.** `ContestHero.vue` clamped the tagline to 5 lines
+   (`-webkit-line-clamp:5; overflow:hidden`) with no affordance — on a phone it cut off mid-sentence.
+   Added a **Show more / Show less** toggle that appears ONLY when the text actually overflows
+   (measured on mount + resize; SSR-safe — starts hidden, no hydration mismatch). Short taglines and
+   desktop (where the text fits) are unchanged.
+2. **Raw `<!--` HTML comment in the description excerpt.** A Markdown-imported contest description
+   can start with a `<!-- ==== -->` header, which surfaced as literal `<!--` text in plain-text
+   excerpts. Root fix in the shared `markdownToExcerpt` (now strips HTML comments — terminated or
+   trailing-unterminated); routed the raw-description homepage surfaces through it
+   (`HeroSection.vue`, legacy `index.vue`) and the deveco fork's `de-contest-banner-desc` (the actual
+   element in the screenshot — deveco overrides the homepage). Left the ContestHero **subheading**
+   raw (it's a plain-text input; excerpting it would strip literal `*`/`_`/`#` — a degradation for a
+   non-bug), only the description branch is excerpted.
+
+Verified: 12/12 markdownToExcerpt unit tests (3 new comment cases), reference typecheck clean,
+Playwright 11/12 (the one miss was a test artifact — the contest LIST shows a contest's subheading,
+not its description, when it has one) + visual review: toggle appears only on mobile-long, absent on
+desktop/short; homepage/list/About all clean; markdown descriptions excerpt without over-stripping.
+**Rolled layer 0.118→0.119 (layer-only, no server/schema/migration) to all 3.**
+Current LIVE (all 3): schema 0.63 / config 0.35 / infra 0.19 / server 2.123 / **layer 0.119**, mig 0045.
+
 ## Open / next
 
 - Fix the long-red `e2e` CI (stale `/auth/register` submit assertion) — deferred this session
