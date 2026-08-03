@@ -148,7 +148,7 @@ watch(contestPii, (on) => { if (on) void loadPrivate(); }, { immediate: true });
               <template v-for="row in item.rows" :key="row.key">
                 <dt>{{ row.label }}</dt>
                 <dd>
-                  <a v-if="row.type === 'url'" :href="row.value" target="_blank" rel="noopener noreferrer nofollow">{{ row.value }}</a>
+                  <a v-if="row.type === 'url'" :href="safeHref(row.value)" target="_blank" rel="noopener noreferrer nofollow">{{ row.value }}</a>
                   <span v-else>{{ row.value }}</span>
                 </dd>
               </template>

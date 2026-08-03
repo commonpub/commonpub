@@ -15,6 +15,19 @@ export default defineEventHandler(async (event) => {
   const db = useDB();
   const user = requireAuth(event);
 
+  // Fast-path DoS guard: reject an oversized body via its Content-Length BEFORE
+  // readMultipartFormData buffers the whole thing into memory. The largest
+  // legitimate upload is 100MB (MAX_UPLOAD_SIZES); 128MB leaves headroom for
+  // multipart framing and matches the edge cap in deploy/Caddyfile. Per-purpose
+  // caps are still enforced post-parse by validateUpload — this only stops a
+  // multi-GB body from being fully resident before that check runs. A chunked
+  // body with no Content-Length is bounded by the reverse-proxy request_body cap.
+  const MAX_UPLOAD_BODY_BYTES = 128 * 1024 * 1024;
+  const contentLength = Number(getHeader(event, 'content-length'));
+  if (Number.isFinite(contentLength) && contentLength > MAX_UPLOAD_BODY_BYTES) {
+    throw createError({ statusCode: 413, statusMessage: 'Upload too large' });
+  }
+
   const formData = await readMultipartFormData(event);
   if (!formData || formData.length === 0) {
     throw createError({ statusCode: 400, statusMessage: 'No file uploaded' });

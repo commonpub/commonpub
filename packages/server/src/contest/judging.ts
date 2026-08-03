@@ -229,38 +229,42 @@ export async function advanceContestStage(
   if (idx < 0) return fail('Unknown stage');
   if (stages[idx]!.kind !== 'review') return fail('Advancement applies to review stages only');
 
-  const rows = await db
-    .select({ id: contestEntries.id, userId: contestEntries.userId, score: contestEntries.score, rank: contestEntries.rank, stageState: contestEntries.stageState })
-    .from(contestEntries)
-    .where(eq(contestEntries.contestId, contestId));
-
-  // Only the running cohort (not already eliminated) is subject to the cut.
-  const eligible = rows.filter((r) => !isEliminated(r));
-
-  let advancedIds: Set<string>;
-  if (input.mode === 'manual') {
-    const picked = new Set(input.advancedEntryIds ?? []);
-    advancedIds = new Set(eligible.filter((e) => picked.has(e.id)).map((e) => e.id));
-  } else {
-    const n = Math.max(0, input.topN ?? 0);
-    const sorted = [...eligible].sort(
-      (a, b) =>
-        (b.score ?? -Infinity) - (a.score ?? -Infinity) ||
-        (a.rank ?? Infinity) - (b.rank ?? Infinity) ||
-        a.id.localeCompare(b.id),
-    );
-    advancedIds = new Set(sorted.slice(0, n).map((e) => e.id));
-  }
-
   const nextStage = stages[idx + 1];
 
-  // Per-entry stage advance + the currentStageId bump must be atomic so a
-  // partial failure can't leave the cohort half-advanced against the new stage.
-  let advancedCount = 0;
-  let eliminatedCount = 0;
-  await db.transaction(async (tx) => {
-    advancedCount = 0;
-    eliminatedCount = 0;
+  // Read the cohort, compute the cut, and write it all inside ONE transaction
+  // with the entry rows locked FOR UPDATE. Reading the entries OUTSIDE the tx
+  // (as this did) let two organizers advancing concurrently — or a judge scoring
+  // mid-advance — each compute their new stageState from a pre-write snapshot and
+  // clobber the other's (lost update on stageState/currentStageId). Locking the
+  // rows serializes concurrent advances, mirroring the row-lock in
+  // judgeContestEntry above. `topN` ties broken by score → rank → id.
+  const { advancedCount, eliminatedCount, eligible, advancedIds } = await db.transaction(async (tx) => {
+    const rows = await tx
+      .select({ id: contestEntries.id, userId: contestEntries.userId, score: contestEntries.score, rank: contestEntries.rank, stageState: contestEntries.stageState })
+      .from(contestEntries)
+      .where(eq(contestEntries.contestId, contestId))
+      .for('update');
+
+    // Only the running cohort (not already eliminated) is subject to the cut.
+    const eligible = rows.filter((r) => !isEliminated(r));
+
+    let advancedIds: Set<string>;
+    if (input.mode === 'manual') {
+      const picked = new Set(input.advancedEntryIds ?? []);
+      advancedIds = new Set(eligible.filter((e) => picked.has(e.id)).map((e) => e.id));
+    } else {
+      const n = Math.max(0, input.topN ?? 0);
+      const sorted = [...eligible].sort(
+        (a, b) =>
+          (b.score ?? -Infinity) - (a.score ?? -Infinity) ||
+          (a.rank ?? Infinity) - (b.rank ?? Infinity) ||
+          a.id.localeCompare(b.id),
+      );
+      advancedIds = new Set(sorted.slice(0, n).map((e) => e.id));
+    }
+
+    let advancedCount = 0;
+    let eliminatedCount = 0;
     for (const e of eligible) {
       const isAdv = advancedIds.has(e.id);
       const prior = (e.stageState ?? []).filter((s) => s.stageId !== input.reviewStageId);
@@ -273,6 +277,8 @@ export async function advanceContestStage(
     if (nextStage) {
       await tx.update(contests).set({ currentStageId: nextStage.id, updatedAt: new Date() }).where(eq(contests.id, contestId));
     }
+
+    return { advancedCount, eliminatedCount, eligible, advancedIds };
   });
 
   // Notify entrants of the outcome (non-critical, de-duped by user).
