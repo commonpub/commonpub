@@ -1,11 +1,12 @@
 import { eq, ne, and, or, desc, sql, inArray } from 'drizzle-orm';
-import { contests, contestJudges, contestStakeholders } from '@commonpub/schema';
+import { contests, contestJudges, contestStakeholders, contestRegistrations } from '@commonpub/schema';
 import type { ContestStatus } from '@commonpub/schema';
 import type { DB } from '../types.js';
 import { normalizePagination, countRows } from '../query.js';
 import { isContestStakeholder } from './stakeholders.js';
 import { isContestJudge } from './judges.js';
 import { currentStageEndDate } from './stages.js';
+import { getRegistrationCounts } from './registrations.js';
 import type {
   ContestFilters,
   ContestListItem,
@@ -80,6 +81,18 @@ export async function listContests(
     countRows(db, contests, where),
   ]);
 
+  // Follower ("N following") counts for exactly this page's contests in ONE
+  // grouped query (never a per-row count — that would be N+1 on every listing).
+  const pageIds = rows.map((r) => r.id);
+  const followerRows = pageIds.length
+    ? await db
+        .select({ contestId: contestRegistrations.contestId, n: sql<number>`count(*)::int` })
+        .from(contestRegistrations)
+        .where(inArray(contestRegistrations.contestId, pageIds))
+        .groupBy(contestRegistrations.contestId)
+    : [];
+  const followersByContest = new Map(followerRows.map((r) => [r.contestId, r.n]));
+
   const items: ContestListItem[] = rows.map((row) => ({
     id: row.id,
     title: row.title,
@@ -97,6 +110,7 @@ export async function listContests(
     // far-off final date on a multi-stage contest.
     currentStageEndDate: currentStageEndDate(row) ?? row.endDate,
     entryCount: row.entryCount,
+    followerCount: followersByContest.get(row.id) ?? 0,
     createdAt: row.createdAt,
   }));
 
@@ -105,8 +119,10 @@ export async function listContests(
 
 type ContestRow = typeof contests.$inferSelect;
 
-/** Map a contest row to the API detail shape. Shared by the CRUD writers. */
-export function toContestDetail(row: ContestRow): ContestDetail {
+/** Map a contest row to the API detail shape. Shared by the CRUD writers.
+ *  `followerCount` is the "N following" total (all registrations); CRUD writers
+ *  leave it at 0 (a freshly-created/edited contest is re-fetched for display). */
+export function toContestDetail(row: ContestRow, followerCount = 0): ContestDetail {
   return {
     id: row.id,
     title: row.title,
@@ -118,6 +134,7 @@ export function toContestDetail(row: ContestRow): ContestDetail {
     startDate: row.startDate,
     endDate: row.endDate,
     entryCount: row.entryCount,
+    followerCount,
     createdAt: row.createdAt,
     subheading: row.subheading,
     rules: row.rules,
@@ -189,7 +206,8 @@ export async function getContestBySlug(
     .limit(1);
 
   if (rows.length === 0) return null;
-  return toContestDetail(rows[0]!);
+  const { followers } = await getRegistrationCounts(db, rows[0]!.id);
+  return toContestDetail(rows[0]!, followers);
 }
 
 /**

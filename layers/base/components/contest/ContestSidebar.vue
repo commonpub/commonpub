@@ -20,6 +20,8 @@ const props = defineProps<{
   savedFields?: Record<string, string> | null;
   /** Public count of registered participants. */
   registrantCount?: number;
+  /** Public count of everyone following the contest (all registrations). */
+  followerCount?: number;
   /** In-flight register/unregister request (disables the toggle). */
   registering?: boolean;
 }>();
@@ -123,6 +125,7 @@ function statusClass(status: string): string {
           <span class="cpub-sb-status" :class="statusClass(contest?.status ?? '')">{{ contest?.status ?? 'unknown' }}</span>
         </div>
         <div class="cpub-sb-row"><strong>Entries:</strong> {{ contest?.entryCount ?? 0 }}</div>
+        <div v-if="(followerCount ?? 0) > 0" class="cpub-sb-row"><strong>Following:</strong> {{ followerCount }}</div>
       </div>
 
       <ol v-if="timeline.length" class="cpub-timeline">
@@ -150,6 +153,7 @@ function statusClass(status: string): string {
       :tier="tier"
       :saved-fields="savedFields"
       :registrant-count="registrantCount"
+      :follower-count="followerCount"
       :registering="registering"
       @register="(payload) => emit('register', payload)"
       @unregister="emit('unregister')"
@@ -173,7 +177,7 @@ function statusClass(status: string): string {
              by text + icon (not colour alone) and aria-pressed for assistive tech. -->
         <template v-else-if="registered">
           <p class="cpub-sb-regstate">
-            <i class="fa-solid fa-circle-check"></i> You'll get deadline reminders
+            <i class="fa-solid fa-circle-check"></i> You're following this contest
           </p>
           <button
             type="button"
@@ -183,7 +187,7 @@ function statusClass(status: string): string {
             @click="emit('unregister')"
           >
             <i class="fa-solid fa-bell-slash"></i>
-            {{ registering ? 'Saving...' : 'Turn off reminders' }}
+            {{ registering ? 'Saving...' : 'Unfollow' }}
           </button>
         </template>
 
@@ -199,10 +203,10 @@ function statusClass(status: string): string {
           @click="emit('register')"
         >
           <i class="fa-solid fa-bell"></i>
-          {{ registering ? 'Saving...' : 'Get deadline reminders' }}
+          {{ registering ? 'Saving...' : 'Follow this contest' }}
         </button>
 
-        <p class="cpub-sb-reghint">Submitting an entry registers you automatically. Opt in here to get deadline reminders even before you enter.</p>
+        <p class="cpub-sb-reghint">Submitting an entry registers you automatically. Follow to get deadline reminders — and be counted among those following — even before you enter.</p>
       </template>
     </div>
 

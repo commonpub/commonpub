@@ -2,7 +2,7 @@ import {
   getContestBySlug,
   canViewContest,
   getViewerRegistration,
-  getRegistrantCount,
+  getRegistrationCounts,
 } from '@commonpub/server';
 
 /**
@@ -14,7 +14,7 @@ import {
  * for a non-public contest, one the viewer can't see (so we never leak that it
  * exists). Feature-gated behind `contests`.
  */
-export default defineEventHandler(async (event): Promise<{ registered: boolean; tier: 'full' | 'reminders' | null; fields: Record<string, string> | null; count: number }> => {
+export default defineEventHandler(async (event): Promise<{ registered: boolean; tier: 'full' | 'reminders' | null; fields: Record<string, string> | null; count: number; followerCount: number }> => {
   requireFeature('contests');
   const db = useDB();
   const { slug } = parseParams(event, { slug: 'string' });
@@ -27,10 +27,12 @@ export default defineEventHandler(async (event): Promise<{ registered: boolean; 
     throw createError({ statusCode: 404, statusMessage: 'Contest not found' });
   }
 
-  const [reg, count] = await Promise.all([
+  const [reg, counts] = await Promise.all([
     user ? getViewerRegistration(db, contest.id, user.id) : Promise.resolve(null),
-    getRegistrantCount(db, contest.id),
+    getRegistrationCounts(db, contest.id),
   ]);
 
-  return { registered: !!reg, tier: reg?.tier ?? null, fields: reg?.fields ?? null, count };
+  // `count` stays full-participant-only for back-compat; `followerCount` = all
+  // registrations (the "N following" total).
+  return { registered: !!reg, tier: reg?.tier ?? null, fields: reg?.fields ?? null, count: counts.full, followerCount: counts.followers };
 });

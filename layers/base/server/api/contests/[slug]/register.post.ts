@@ -2,7 +2,7 @@ import {
   getContestBySlug,
   canViewContest,
   registerForContest,
-  getRegistrantCount,
+  getRegistrationCounts,
 } from '@commonpub/server';
 import { contestRegisterSchema } from '@commonpub/schema';
 
@@ -18,7 +18,7 @@ import { contestRegisterSchema } from '@commonpub/schema';
  * an unknown slug or an unviewable contest; 400s when the contest is not open for
  * registration. Requires auth; feature-gated behind `contests`.
  */
-export default defineEventHandler(async (event): Promise<{ registered: boolean; tier: 'full' | 'reminders'; count: number }> => {
+export default defineEventHandler(async (event): Promise<{ registered: boolean; tier: 'full' | 'reminders'; count: number; followerCount: number }> => {
   requireFeature('contests');
   const user = requireAuth(event);
   const db = useDB();
@@ -52,6 +52,6 @@ export default defineEventHandler(async (event): Promise<{ registered: boolean; 
     throw createError({ statusCode: 400, statusMessage: result.error ?? 'Could not register for this contest' });
   }
 
-  const count = await getRegistrantCount(db, contest.id);
-  return { registered: true, tier: result.tier ?? tier, count };
+  const counts = await getRegistrationCounts(db, contest.id);
+  return { registered: true, tier: result.tier ?? tier, count: counts.full, followerCount: counts.followers };
 });

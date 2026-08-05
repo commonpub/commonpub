@@ -63,6 +63,7 @@ export {
   getViewerRegistration,
   listContestRegistrants,
   getRegistrantCount,
+  getRegistrationCounts,
 } from './registrations.js';
 export type { RegisterForContestResult, ContestRegistrationTier } from './registrations.js';
 

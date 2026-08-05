@@ -424,3 +424,28 @@ export async function getRegistrantCount(db: DB, contestId: string): Promise<num
     and(eq(contestRegistrations.contestId, contestId), eq(contestRegistrations.tier, 'full')),
   );
 }
+
+/**
+ * Both registration counts in ONE grouped query:
+ * - `full` = counted participants (tier `full`), same as getRegistrantCount.
+ * - `followers` = everyone who registered in ANY tier ("following" the contest).
+ *   A `full` participant is a stronger interest signal than a reminders-only
+ *   opt-in, so full ⊆ followers and `followers >= full` always holds — the
+ *   invariant behind the "N following" social-proof number shown on the banner,
+ *   contest page, and list card. The uq(contestId,userId) constraint guarantees
+ *   one row per user, so there is no double-count.
+ */
+export async function getRegistrationCounts(db: DB, contestId: string): Promise<{ full: number; followers: number }> {
+  const rows = await db
+    .select({ tier: contestRegistrations.tier, n: sql<number>`count(*)::int` })
+    .from(contestRegistrations)
+    .where(eq(contestRegistrations.contestId, contestId))
+    .groupBy(contestRegistrations.tier);
+  let full = 0;
+  let followers = 0;
+  for (const r of rows) {
+    followers += r.n;
+    if (r.tier === 'full') full = r.n;
+  }
+  return { full, followers };
+}

@@ -17,9 +17,13 @@ if (!token.value) {
 } else {
   onMounted(async () => {
     try {
+      // Better Auth exposes /verify-email as GET reading `token` from the QUERY.
+      // With no callbackURL it returns JSON {status:true} instead of redirecting,
+      // so the branded page can render its own success/error UI. (A POST body — the
+      // previous call — matched no route and always failed.)
       await $fetch('/api/auth/verify-email', {
-        method: 'POST',
-        body: { token: token.value },
+        method: 'GET',
+        query: { token: token.value },
       });
       status.value = 'success';
     } catch (err: unknown) {

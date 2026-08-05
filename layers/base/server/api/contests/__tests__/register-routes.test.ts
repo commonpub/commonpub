@@ -36,9 +36,10 @@ describe('contest registration routes — shared contract', () => {
     }
   });
 
-  it('every method returns the registrant count', () => {
+  it('every method returns the registrant + follower counts', () => {
     for (const [name, src] of [['GET', get], ['POST', post], ['DELETE', del]] as const) {
-      expect(src, `${name} must compute the count via getRegistrantCount`).toMatch(/getRegistrantCount\(/);
+      expect(src, `${name} must compute counts via getRegistrationCounts`).toMatch(/getRegistrationCounts\(/);
+      expect(src, `${name} must return followerCount`).toMatch(/followerCount/);
     }
   });
 });

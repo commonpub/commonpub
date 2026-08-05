@@ -87,6 +87,7 @@ const canCreateContest = computed(() => {
           </div>
           <div class="cpub-contest-card-meta">
             <span><i class="fa-solid fa-users"></i> {{ contest.entryCount }} entries</span>
+            <span v-if="(contest.followerCount ?? 0) > 0"><i class="fa-solid fa-bell"></i> {{ contest.followerCount }} following</span>
           </div>
         </div>
       </NuxtLink>

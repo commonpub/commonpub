@@ -15,6 +15,8 @@ const props = defineProps<{
   savedFields?: Record<string, string> | null;
   /** Public count of `full` participants. */
   registrantCount?: number;
+  /** Public count of everyone following the contest (all registrations). */
+  followerCount?: number;
   /** In-flight register/unregister request (disables controls). */
   registering?: boolean;
 }>();
@@ -178,13 +180,18 @@ watch(isFull, (full) => { if (full) modalOpen.value = false; });
       <strong>{{ registrantCount ?? 0 }}</strong>
       {{ (registrantCount ?? 0) === 1 ? 'maker registered' : 'makers registered' }}
     </p>
+    <!-- Everyone following (all registrations) — only when it adds info beyond
+         the participant count (i.e. there are reminders-only followers). -->
+    <p v-if="(followerCount ?? 0) > (registrantCount ?? 0)" class="cpub-su-count cpub-su-following">
+      <i class="fa-solid fa-bell"></i> <strong>{{ followerCount }}</strong> following
+    </p>
 
     <!-- ANONYMOUS: send to sign-in -->
     <template v-if="!isAuthenticated && canRegister">
       <NuxtLink :to="loginLink" class="cpub-btn cpub-btn-primary cpub-su-btn">
         <i class="fa-solid fa-right-to-bracket"></i> Log in to register
       </NuxtLink>
-      <p class="cpub-su-hint">Registering enters you into the contest and gets you deadline reminders. You can also just opt in for reminders.</p>
+      <p class="cpub-su-hint">Registering enters you into the contest and gets you every update. You can also just follow it for deadline reminders.</p>
     </template>
 
     <!-- AUTHENTICATED, NOT REGISTERED: the two-tier choice -->
@@ -205,16 +212,16 @@ watch(isFull, (full) => { if (full) modalOpen.value = false; });
         :disabled="registering"
         @click="registerReminders"
       >
-        <i class="fa-solid fa-bell"></i> Just get reminders
+        <i class="fa-solid fa-bell"></i> Follow this contest
       </button>
-      <p class="cpub-su-hint">Register to enter + get every update and reminder. Not ready? Get reminders only, no commitment.</p>
+      <p class="cpub-su-hint">Register to enter + get every update. Not ready to enter? Follow to get deadline reminders and be counted among those following.</p>
     </template>
 
     <!-- REGISTERED (either tier): confirmation + what's next -->
     <template v-else-if="isRegistered">
       <p class="cpub-su-state" :class="isFull ? 'cpub-su-state-full' : 'cpub-su-state-rem'">
         <i class="fa-solid" :class="isFull ? 'fa-circle-check' : 'fa-bell'"></i>
-        <span>{{ isFull ? "You're registered" : "You'll get reminders" }}</span>
+        <span>{{ isFull ? "You're registered" : "You're following this contest" }}</span>
       </p>
 
       <p v-if="whatsNext" class="cpub-su-next">{{ whatsNext }}</p>
@@ -230,7 +237,7 @@ watch(isFull, (full) => { if (full) modalOpen.value = false; });
           <i class="fa-solid fa-flag-checkered"></i>
           {{ registering ? 'Registering…' : 'Register for the contest' }}
         </button>
-        <p class="cpub-su-hint">You're only getting reminders. Register to enter the contest.</p>
+        <p class="cpub-su-hint">You're following this contest. Register to enter and compete.</p>
       </template>
 
       <!-- Full participant: add / edit optional details (opens the page or modal). -->

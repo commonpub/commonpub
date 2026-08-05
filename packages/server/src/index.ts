@@ -635,6 +635,7 @@ export {
   getViewerRegistration,
   listContestRegistrants,
   getRegistrantCount,
+  getRegistrationCounts,
   sweepContestReminders,
   formatDeadlineUtc,
   nextContestDeadline,

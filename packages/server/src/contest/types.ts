@@ -62,6 +62,11 @@ export interface ContestListItem {
    *  list shape; ContestDetail computes it client-side from `stages`. */
   currentStageEndDate?: Date;
   entryCount: number;
+  /** Everyone "following" the contest = all registrations (full participants +
+   *  reminders-only opt-ins). Social-proof "N following" on the banner/card/page.
+   *  followerCount >= the full-participant count always. Defaults to 0 on a
+   *  freshly-created contest (no registrations yet). */
+  followerCount: number;
   createdAt: Date;
 }
 

@@ -11,6 +11,7 @@ import {
   getViewerRegistration,
   listContestRegistrants,
   getRegistrantCount,
+  getRegistrationCounts,
 } from '../contest/registrations.js';
 import { verifyUnsubscribeToken } from '../comms/unsubscribe.js';
 
@@ -73,6 +74,21 @@ describe('contest registrations', () => {
     expect(rows).toHaveLength(1);
     expect(rows[0]!.userId).toBe(userId);
     expect(await isRegisteredForContest(db, contestId, userId)).toBe(true);
+  });
+
+  it('getRegistrationCounts: followers = all tiers, full = participants only', async () => {
+    const contestId = await makeContest(db, organizerId);
+    const other = (await createTestUser(db, { username: 'reg-follower', email: 'f@example.com' })).id;
+    // userId = full participant; other = reminders-only follower.
+    await registerForContest(db, cfg({ emailNotifications: false }), { contestId, userId, tier: 'full' });
+    await registerForContest(db, cfg({ emailNotifications: false }), { contestId, userId: other, tier: 'reminders' });
+    expect(await getRegistrationCounts(db, contestId)).toEqual({ full: 1, followers: 2 });
+    // The full-only count matches getRegistrantCount; followers >= full always.
+    expect(await getRegistrantCount(db, contestId)).toBe(1);
+
+    // A reminders->full upgrade moves a follower into `full` — followers unchanged.
+    await registerForContest(db, cfg({ emailNotifications: false }), { contestId, userId: other, tier: 'full' });
+    expect(await getRegistrationCounts(db, contestId)).toEqual({ full: 2, followers: 2 });
   });
 
   it('is idempotent: a second register does not duplicate or re-report', async () => {

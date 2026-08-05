@@ -196,6 +196,8 @@ const dateRange = computed<string>(() => {
 });
 
 const entryCount = computed<number>(() => c.value?.entryCount ?? 0);
+// Everyone following (all registrations) — social proof next to the entry count.
+const followerCount = computed<number>(() => c.value?.followerCount ?? 0);
 </script>
 
 <template>
@@ -251,6 +253,7 @@ const entryCount = computed<number>(() => c.value?.entryCount ?? 0);
           <div class="cpub-hero-meta">
             <span v-if="dateRange" class="cpub-hero-meta-item"><i class="fa fa-calendar"></i> {{ dateRange }}</span>
             <span class="cpub-hero-meta-item"><i class="fa fa-folder-open"></i> {{ entryCount }} {{ entryCount === 1 ? 'entry' : 'entries' }}</span>
+            <span v-if="followerCount > 0" class="cpub-hero-meta-item"><i class="fa fa-bell"></i> {{ followerCount }} following</span>
           </div>
           <div class="cpub-hero-cta">
             <button v-if="isAuthenticated && c?.status === 'active'" class="cpub-btn cpub-btn-primary" @click="emit('submit-entry')"><i class="fa fa-upload"></i> Submit Entry</button>

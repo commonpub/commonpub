@@ -80,6 +80,7 @@ interface ContestListItem {
   startDate?: string | null;
   endDate?: string | null;
   entryCount?: number;
+  followerCount?: number;
 }
 
 const { data: contests, pending: contestsPending } = await useFetch<{ items: ContestListItem[] }>('/api/contests', {
@@ -206,6 +207,7 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
             </div>
             <div class="cpub-hero-meta">
               <span class="cpub-hero-stat"><i class="fa-solid fa-users"></i> <strong>{{ activeContest.entryCount ?? 0 }}</strong> entries</span>
+              <span v-if="(activeContest.followerCount ?? 0) > 0" class="cpub-hero-stat"><i class="fa-solid fa-bell"></i> <strong>{{ activeContest.followerCount }}</strong> following</span>
               <span v-if="activeContest.endDate" class="cpub-hero-stat"><i class="fa-solid fa-calendar"></i> Ends <strong>{{ new Date(activeContest.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) }}</strong></span>
             </div>
           </template>
@@ -402,6 +404,7 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
             <NuxtLink :to="`/contests/${c.slug}`" class="cpub-contest-name">{{ c.title }}</NuxtLink>
             <div class="cpub-contest-row">
               <span class="cpub-contest-entries">{{ c.entryCount ?? 0 }} entries</span>
+              <span v-if="(c.followerCount ?? 0) > 0" class="cpub-contest-entries"><i class="fa-solid fa-bell"></i> {{ c.followerCount }} following</span>
               <span v-if="c.endDate" class="cpub-contest-deadline">
                 <i class="fa-regular fa-clock"></i> {{ Math.max(0, Math.ceil((new Date(c.endDate).getTime() - Date.now()) / 86400000)) }}d left
               </span>

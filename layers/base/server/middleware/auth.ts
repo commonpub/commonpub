@@ -38,8 +38,14 @@ function getAuthMiddleware(): ReturnType<typeof createAuthMiddleware> {
         const template = emailTemplates.passwordReset(siteName, url, await getEmailBranding(db));
         await emailAdapter.send({ ...template, to: email });
       },
-      async sendVerificationEmail(email: string, url: string, _token: string): Promise<void> {
-        const template = emailTemplates.verification(siteName, url, await getEmailBranding(db));
+      async sendVerificationEmail(email: string, _url: string, token: string): Promise<void> {
+        // Point the email at the app's OWN branded verify page — NOT Better Auth's
+        // raw `url` (the GET API route `/api/auth/verify-email`, which on click
+        // 302-redirects to the homepage and shows no confirmation UI). The page
+        // then calls the GET endpoint with this token. `_url` is intentionally
+        // ignored for that reason.
+        const verifyUrl = `${siteUrl}/auth/verify-email?token=${encodeURIComponent(token)}`;
+        const template = emailTemplates.verification(siteName, verifyUrl, await getEmailBranding(db));
         await emailAdapter.send({ ...template, to: email });
       },
     },

@@ -1,4 +1,4 @@
-import { getContestBySlug, unregisterForContest, getRegistrantCount } from '@commonpub/server';
+import { getContestBySlug, unregisterForContest, getRegistrationCounts } from '@commonpub/server';
 
 /**
  * DELETE /api/contests/:slug/register
@@ -8,7 +8,7 @@ import { getContestBySlug, unregisterForContest, getRegistrantCount } from '@com
  * later went private. Returns the viewer's (now-false) registration state and the
  * up-to-date registrant count. Requires auth; feature-gated behind `contests`.
  */
-export default defineEventHandler(async (event): Promise<{ registered: boolean; count: number }> => {
+export default defineEventHandler(async (event): Promise<{ registered: boolean; count: number; followerCount: number }> => {
   requireFeature('contests');
   const user = requireAuth(event);
   const db = useDB();
@@ -19,6 +19,6 @@ export default defineEventHandler(async (event): Promise<{ registered: boolean; 
 
   await unregisterForContest(db, contest.id, user.id);
 
-  const count = await getRegistrantCount(db, contest.id);
-  return { registered: false, count };
+  const counts = await getRegistrationCounts(db, contest.id);
+  return { registered: false, count: counts.full, followerCount: counts.followers };
 });

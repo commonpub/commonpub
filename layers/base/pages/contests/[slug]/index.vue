@@ -20,7 +20,7 @@ const { data: judgesData, refresh: refreshJudges } = useLazyFetch<ContestJudgeIt
 // client showed the real count, so every contest with registrants warned. With
 // server:false, SSR and the first client render both use the seed, and the real
 // values fill in post-hydration.
-const { data: registrationData } = useLazyFetch<{ registered: boolean; tier: 'full' | 'reminders' | null; fields: Record<string, string> | null; count: number }>(`/api/contests/${slug}/register`, { server: false });
+const { data: registrationData } = useLazyFetch<{ registered: boolean; tier: 'full' | 'reminders' | null; fields: Record<string, string> | null; count: number; followerCount: number }>(`/api/contests/${slug}/register`, { server: false });
 
 useSeoMeta({
   title: () => `${contest.value?.title || 'Contest'}, ${useSiteName()}`,
@@ -283,6 +283,7 @@ const registered = ref(false);
 const registrationTier = ref<'full' | 'reminders' | null>(null);
 const registrationFields = ref<Record<string, string> | null>(null);
 const registrantCount = ref(0);
+const followerCount = ref(0);
 const registering = ref(false);
 watch(
   registrationData,
@@ -292,6 +293,7 @@ watch(
       registrationTier.value = d.tier;
       registrationFields.value = d.fields;
       registrantCount.value = d.count;
+      followerCount.value = d.followerCount;
     }
   },
   { immediate: true },
@@ -303,17 +305,18 @@ async function register(payload?: { tier: 'full' | 'reminders'; fields?: Record<
   const tier = payload?.tier ?? 'full';
   const wasFull = registrationTier.value === 'full';
   try {
-    const res = await $fetch<{ registered: boolean; tier: 'full' | 'reminders'; count: number }>(
+    const res = await $fetch<{ registered: boolean; tier: 'full' | 'reminders'; count: number; followerCount: number }>(
       `/api/contests/${slug}/register`,
       { method: 'POST', body: payload ?? { tier } },
     );
     registered.value = res.registered;
     registrationTier.value = res.tier;
     registrantCount.value = res.count;
+    followerCount.value = res.followerCount;
     // Reflect the info the viewer just submitted so the form stays in sync.
     if (payload?.fields) registrationFields.value = payload.fields;
     // Tailor the confirmation to what actually happened.
-    if (res.tier === 'reminders') toast.success("You'll get deadline reminders");
+    if (res.tier === 'reminders') toast.success("You're now following this contest");
     else if (payload?.fields && wasFull) toast.success('Your details were saved');
     else toast.success("You're registered for this contest");
   } catch (err: unknown) {
@@ -327,11 +330,12 @@ async function unregister(): Promise<void> {
   if (registering.value) return;
   registering.value = true;
   try {
-    const res = await $fetch<{ registered: boolean; count: number }>(`/api/contests/${slug}/register`, { method: 'DELETE' });
+    const res = await $fetch<{ registered: boolean; count: number; followerCount: number }>(`/api/contests/${slug}/register`, { method: 'DELETE' });
     registered.value = res.registered;
     registrationTier.value = null;
     registrationFields.value = null;
     registrantCount.value = res.count;
+    followerCount.value = res.followerCount;
     toast.success('Registration cancelled');
   } catch (err: unknown) {
     toast.error(extractError(err));
@@ -583,6 +587,7 @@ async function withdrawEntry(entryId: string): Promise<void> {
           :tier="registrationTier"
           :saved-fields="registrationFields"
           :registrant-count="registrantCount"
+          :follower-count="followerCount"
           :registering="registering"
           @copy-link="copyLink"
           @register="register"

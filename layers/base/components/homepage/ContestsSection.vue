@@ -26,6 +26,7 @@ const visibleContests = computed(() =>
       <NuxtLink :to="`/contests/${c.slug}`" class="cpub-contest-name">{{ c.title }}</NuxtLink>
       <div class="cpub-contest-row">
         <span class="cpub-contest-entries">{{ c.entryCount ?? 0 }} entries</span>
+        <span v-if="(c.followerCount ?? 0) > 0" class="cpub-contest-entries"><i class="fa-solid fa-bell"></i> {{ c.followerCount }} following</span>
         <span v-if="c.endDate" class="cpub-contest-deadline">
           <!-- Days to the CURRENT stage's close (falls back to endDate for a
                classic contest), not the far-off final date on a multi-stage one. -->
