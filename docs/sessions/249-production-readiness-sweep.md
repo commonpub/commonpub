@@ -180,6 +180,37 @@ which independently re-found both and surfaced the same date bug on MORE public 
   one-at-a-time reports hadn't reached yet.
 Current LIVE (all 3): schema 0.63 / config 0.35 / infra 0.19 / **server 2.124** / **layer 0.121**, mig 0045.
 
+### Post-launch batch 3 (server 2.125 / layer 0.122) — contest follow/interest + verify-link fix
+
+Operator asks (ultracode design workflow `contest-email-interest-design`, 4 investigators + synthesizer):
+(1) a broken "verify email" link; (2) should it show after full registration; (3) nicer instance-themed
+emails; (4) reframe "Get reminders" as declaring interest + surface an interest count. Operator decisions:
+button = **"Follow this contest" → "N following"**, count = **all registrations**, **email redesign deferred**.
+
+- **Verify-link fix (root cause found):** the branded page `pages/auth/verify-email.vue` did a
+  `POST {token}` but Better Auth registers `/verify-email` as **GET reading `token` from the query** — so it
+  ALWAYS failed; and the email linked to the raw API route (dead-ends on the homepage) instead of the branded
+  page. Fixed both: `auth.ts` builds `${siteUrl}/auth/verify-email?token=…`; the page calls
+  `GET ?token=`. No contest-side suppression needed — it's a signup-time account email, decoupled from contest
+  registration, and no-ops when already verified (deveco keeps `requireEmailVerification` OFF).
+- **Follow / "N following" metric (NO migration — derived):** `getRegistrationCounts(db, contestId) →
+  {full, followers}` (followers = ALL registrations; `followers >= full` invariant). `followerCount` on
+  `ContestListItem`/`ContestDetail` (list via ONE grouped subquery, no N+1; detail via getRegistrationCounts);
+  register get/post/delete return it; detail page live-updates the viewer's own follow. Reframed the
+  reminders opt-in to **"Follow this contest"** / "You're following this contest" (ContestSignup +
+  ContestSidebar). Surfaced "N following" on: hero, status + registration cards, contest list card, homepage
+  banner + Active-Contests widget, legacy homepage, **and the deveco fork homepage**.
+- Verified: 1785 server tests (+ getRegistrationCounts integration: followers=full+reminders, upgrade keeps
+  followers), register-routes 12, reference typecheck, browser E2E 9/9 (follow button, "N following" on hero/
+  status/registration/list, verify page GET+result). **Rolled server 2.124→2.125 + layer 0.121→0.122 to all 3**
+  (deveco fork got its own homepage follower edits).
+- **DEFERRED (operator choice): the themed-email redesign** (Area 2) — auto-derive the email accent from the
+  instance theme + rewrite the email HTML shell (table layout, preheader, bulletproof button, auto-contrast
+  label), keeping `getEmailBranding` + per-contest `contestEmailEditor` overrides. Full file-level plan in the
+  `contest-email-interest-design` synthesis (STEP 4). Riskiest change (email-client rendering isn't CI-testable
+  — verify via the email-preview route + a real client before deploying).
+Current LIVE (all 3): schema 0.63 / config 0.35 / infra 0.19 / **server 2.125** / **layer 0.122**, mig 0045.
+
 ## Open / next
 
 - Fix the long-red `e2e` CI (stale `/auth/register` submit assertion) — deferred this session
