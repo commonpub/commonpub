@@ -114,6 +114,10 @@ export async function registerForContest(
         tokens: { username: target.username, contestTitle: contestRow.title, deadline, contestUrl },
         accent: branding?.accentColor,
         siteUrl: email.siteUrl,
+        // A blank registration-link block points at THIS contest's registration page,
+        // not the account-signup page: this mail only goes to someone who just became
+        // a participant, so "create an account" would be a dead end.
+        registrationUrl: `${contestUrl}/register`,
       });
       const tpl = emailTemplates.contestRegistrationConfirmation(
         email.siteName,

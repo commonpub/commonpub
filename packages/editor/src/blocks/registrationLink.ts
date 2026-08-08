@@ -32,13 +32,21 @@ export interface RegistrationLinkContent {
 type MaybeContent = RegistrationLinkContent | Record<string, unknown>;
 
 /**
- * Resolve the SAFE href for a registration-link block. Falls back to the
- * register page when the URL is blank or not an allowed anchor target
- * (http(s), root path, fragment, mailto, tel — `URL_LINK_STRICT`; blocks
- * `javascript:` and other smuggles). A referral code is appended as a query
- * param, but only to http(s)/root targets (never a fragment/mailto/tel).
+ * Resolve the SAFE href for a registration-link block. Falls back to
+ * `opts.fallbackUrl` (default: the instance register page) when the URL is blank
+ * or not an allowed anchor target (http(s), root path, fragment, mailto, tel —
+ * `URL_LINK_STRICT`; blocks `javascript:` and other smuggles). A referral code is
+ * appended as a query param, but only to http(s)/root targets (never a
+ * fragment/mailto/tel).
+ *
+ * `opts.fallbackUrl` exists because the account-signup page is the right default
+ * only in PUBLIC content. In a contest participation email the recipient already
+ * has an account and is already registered, so "create an account" is a dead end —
+ * those send paths pass the contest's own registration page instead. The injected
+ * fallback goes through the same safety guard, so an unusable value degrades to
+ * the register page rather than emitting an unsafe href.
  */
-export function buildRegistrationHref(content: MaybeContent): string {
+export function buildRegistrationHref(content: MaybeContent, opts?: { fallbackUrl?: string }): string {
   const rawUrl = typeof content.url === 'string' ? content.url.trim() : '';
   // URL_LINK_STRICT permits any `/`-prefixed value, which includes off-site
   // targets a browser resolves against the current origin: protocol-relative
@@ -46,8 +54,10 @@ export function buildRegistrationHref(content: MaybeContent): string {
   // parser normalizes `\` → `/`, so `/\evil.com` becomes `//evil.com`). A
   // registration CTA must not become an open redirect, so reject any leading
   // `/` immediately followed by another `/` or `\`.
-  const safe = !!rawUrl && URL_LINK_STRICT.test(rawUrl) && !/^\/[/\\]/.test(rawUrl);
-  const base = safe ? rawUrl : REGISTRATION_DEFAULT_URL;
+  const isSafeTarget = (u: string): boolean => !!u && URL_LINK_STRICT.test(u) && !/^\/[/\\]/.test(u);
+  const rawFallback = typeof opts?.fallbackUrl === 'string' ? opts.fallbackUrl.trim() : '';
+  const fallback = isSafeTarget(rawFallback) ? rawFallback : REGISTRATION_DEFAULT_URL;
+  const base = isSafeTarget(rawUrl) ? rawUrl : fallback;
   const ref = typeof content.ref === 'string' ? content.ref.trim() : '';
   if (!ref) return base;
   if (base.startsWith('#') || base.startsWith('mailto:') || base.startsWith('tel:')) return base;

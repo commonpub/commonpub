@@ -1,18 +1,29 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, inject } from 'vue';
 
 /**
  * Registration-link block (edit side). Renders a call-to-action button that
  * points at a sign-up / registration URL, droppable into any BlockTuple[]
  * content (articles, projects, explainers, contests, and the contest email
  * body). Content shape: { label?, url?, ref? }.
- *  - `url` defaults to the instance register page (`/auth/register`) when blank.
+ *  - `url` defaults to the instance register page (`/auth/register`) when blank —
+ *    EXCEPT where the renderer injects a different fallback. Contest emails do:
+ *    their recipients already have an account, so a blank url resolves to that
+ *    contest's registration page (see `registrationUrl` in `renderEmailBlocks`).
+ *    The placeholder follows suit via the `cpubRegistrationLinkDefault` inject.
  *  - `ref` (optional) is appended as `?ref=<code>` so a referral link can be
  *    attached for signup attribution (session 229 referralLinks); harmless when
  *    that feature is off (the register page just ignores an unknown ref).
  * Href safety is enforced on the VIEW side (URL_LINK_STRICT) — no server route
  * validates block content, so the renderer is the guard.
  */
+/** What a BLANK url resolves to, for the placeholder only — the renderer decides the
+ *  real fallback. Editors embedded in a context with a different default (the contest
+ *  email editor, whose sends target the contest's own registration page) provide this;
+ *  everywhere else the account-signup default stands. `inject` with a default value is
+ *  safe outside a provider. */
+const urlPlaceholder = inject<string>('cpubRegistrationLinkDefault', '/auth/register (default)');
+
 const props = defineProps<{ content: Record<string, unknown> }>();
 const emit = defineEmits<{ update: [content: Record<string, unknown>] }>();
 
@@ -54,7 +65,7 @@ function setVariant(v: Variant): void {
         class="cpub-reglink-input"
         type="text"
         :value="url"
-        placeholder="/auth/register (default)"
+        :placeholder="urlPlaceholder"
         @input="updateField('url', ($event.target as HTMLInputElement).value)"
       />
     </label>

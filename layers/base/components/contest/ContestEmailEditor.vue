@@ -11,10 +11,21 @@
  * includes `emailCopy` once loaded). Empty field = built-in default, mirroring the
  * admin email-branding editor. Preview uses a sandboxed iframe srcdoc (never v-html).
  */
+// `provide` is imported explicitly rather than left to Nuxt's auto-import: the
+// layer's bare component-test harness doesn't provide auto-imports, and a missing
+// one is a hard ReferenceError at setup rather than a silent no-op.
+import { provide } from 'vue';
 import { useBlockEditor, BlockCanvas, type BlockTypeGroup } from '@commonpub/editor/vue';
 import type { ContestEmailCopy } from '@commonpub/schema';
 import type { ContestEmailCopyForm } from '../../composables/useContestEditor';
 import { seedEmailBlocks } from '../../utils/contestEmailDefaults';
+
+// A registration-link block left blank in a CONTEST email resolves to this contest's
+// registration page, not the instance account-signup page (every recipient of a
+// contest email already has an account). Tell the block's URL field so, so the
+// placeholder matches what the send actually does — see `registrationUrl` in
+// renderEmailBlocks.
+provide('cpubRegistrationLinkDefault', 'this contest’s registration page (default)');
 
 const props = defineProps<{ slug: string; modelValue: ContestEmailCopyForm }>();
 const emit = defineEmits<{ 'update:modelValue': [v: ContestEmailCopyForm]; load: [c: ContestEmailCopy] }>();
@@ -70,7 +81,7 @@ const emailBlockGroups: BlockTypeGroup[] = [
       { type: 'callout', label: 'Callout', icon: 'fa-circle-info', description: 'Highlighted note', attrs: { variant: 'info' } },
       { type: 'image', label: 'Image', icon: 'fa-image', description: 'Upload or link an image' },
       { type: 'horizontal_rule', label: 'Divider', icon: 'fa-minus', description: 'Horizontal rule' },
-      { type: 'registrationLink', label: 'Registration Link', icon: 'fa-user-plus', description: 'Sign-up CTA button' },
+      { type: 'registrationLink', label: 'Registration Link', icon: 'fa-user-plus', description: 'Button to this contest’s registration page' },
     ],
   },
 ];
@@ -227,7 +238,7 @@ async function sendTest(): Promise<void> {
 
         <div class="cpub-cee-field">
           <span class="cpub-form-label">Body</span>
-          <p class="cpub-form-hint">Compose the email body with blocks. Add a <strong>Registration Link</strong> block for a sign-up button. It opens with the built-in default message you can edit.</p>
+          <p class="cpub-form-hint">Compose the email body with blocks. A <strong>Registration Link</strong> block adds a button to this contest's registration page, where a participant can review or edit their details; set its Link URL to send them somewhere else. It opens with the built-in default message you can edit.</p>
           <div class="cpub-cee-body">
             <BlockCanvas :key="active" :block-editor="activeEditor" :block-types="emailBlockGroups" />
           </div>

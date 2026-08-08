@@ -88,6 +88,11 @@ export interface RenderEmailBlocksOptions {
    *  are resolved against it — REQUIRED for a real send, since an email has no base
    *  URL (see the module note). Omitted ⇒ URLs are emitted as authored. */
   siteUrl?: string;
+  /** Where a registration-link block with NO explicit URL should point. The block's
+   *  own default is the instance account-signup page, which is a dead end in a
+   *  participation email — the recipient necessarily has an account already. Contest
+   *  sends pass that contest's registration page. Omitted ⇒ the block's own default. */
+  registrationUrl?: string;
 }
 
 /**
@@ -175,9 +180,14 @@ export function renderEmailBlocks(blocks: unknown, opts?: RenderEmailBlocksOptio
         break;
       }
       case 'registrationLink': {
-        // Absolute, always: the block's default (`/auth/register`) is root-relative,
-        // and a relative href in an email resolves to a bogus host (see module note).
-        const href = absolutizeHref(buildRegistrationHref(content), siteUrl);
+        // Absolute, always: a relative href in an email resolves to a bogus host
+        // (see module note). `registrationUrl` also replaces the block's own
+        // account-signup default, which is a dead end for a recipient who by
+        // definition already has an account.
+        const href = absolutizeHref(
+          buildRegistrationHref(content, { fallbackUrl: opts?.registrationUrl }),
+          siteUrl,
+        );
         const label = registrationLabel(content);
         const secondary = registrationVariant(content) === 'secondary';
         const bg = secondary ? '#ffffff' : accent;

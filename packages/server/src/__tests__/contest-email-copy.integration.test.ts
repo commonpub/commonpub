@@ -126,9 +126,13 @@ describe('per-contest email copy application', () => {
     const contestId = await makeContest(db, organizerId, new Date('2026-12-01T00:00:00Z'), blockCopy);
     await registerForContest(db, cfg({ emailNotifications: true, contestEmailEditor: true }), { contestId, userId }, EMAIL);
     const [mail] = await db.select().from(emailOutbox);
-    expect(mail!.html).toContain('href="https://test.example/auth/register"');
-    expect(mail!.html).not.toContain('href="/auth/register"');
-    expect(mail!.text).toContain('Register now: https://test.example/auth/register');
+    // ...and points at THIS contest's registration page, not the account-signup
+    // page: the recipient necessarily has an account and just registered.
+    const [c] = await db.select({ slug: contests.slug }).from(contests).where(eq(contests.id, contestId));
+    const expected = `https://test.example/contests/${c!.slug}/register`;
+    expect(mail!.html).toContain(`href="${expected}"`);
+    expect(mail!.html).not.toContain('/auth/register');
+    expect(mail!.text).toContain(`Register now: ${expected}`);
     // An instance-hosted image is likewise unreachable relative.
     expect(mail!.html).toContain('src="https://test.example/uploads/banner.png"');
   });

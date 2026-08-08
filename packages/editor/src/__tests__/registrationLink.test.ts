@@ -47,6 +47,42 @@ describe('buildRegistrationHref', () => {
   });
 });
 
+describe('buildRegistrationHref — injected fallback (contest emails)', () => {
+  const CONTEST = 'https://deveco.io/contests/resilient/register';
+
+  it('uses the injected fallback instead of the account-signup page when url is blank', () => {
+    // The recipient of a contest email already HAS an account, so /auth/register is
+    // a dead end — the send path retargets the blank block at the contest.
+    expect(buildRegistrationHref({}, { fallbackUrl: CONTEST })).toBe(CONTEST);
+    expect(buildRegistrationHref({ url: '   ' }, { fallbackUrl: CONTEST })).toBe(CONTEST);
+  });
+
+  it('still lets an explicitly authored safe url win', () => {
+    expect(buildRegistrationHref({ url: 'https://partner.example/join' }, { fallbackUrl: CONTEST }))
+      .toBe('https://partner.example/join');
+    expect(buildRegistrationHref({ url: '/auth/register' }, { fallbackUrl: CONTEST })).toBe('/auth/register');
+  });
+
+  it('falls back for an UNSAFE authored url (no javascript: smuggling past the fallback)', () => {
+    expect(buildRegistrationHref({ url: 'javascript:alert(1)' }, { fallbackUrl: CONTEST })).toBe(CONTEST);
+    expect(buildRegistrationHref({ url: '//evil.com' }, { fallbackUrl: CONTEST })).toBe(CONTEST);
+  });
+
+  it('appends a referral code to the fallback target', () => {
+    expect(buildRegistrationHref({ ref: 'abc' }, { fallbackUrl: CONTEST })).toBe(`${CONTEST}?ref=abc`);
+  });
+
+  it('degrades to the register page when the injected fallback is itself unusable', () => {
+    for (const bad of ['javascript:alert(1)', '//evil.com', '', '   ']) {
+      expect(buildRegistrationHref({}, { fallbackUrl: bad })).toBe(REGISTRATION_DEFAULT_URL);
+    }
+  });
+
+  it('is unchanged without opts (public content keeps the account-signup default)', () => {
+    expect(buildRegistrationHref({})).toBe(REGISTRATION_DEFAULT_URL);
+  });
+});
+
 describe('absolutizeHref', () => {
   const ORIGIN = 'https://deveco.io';
 

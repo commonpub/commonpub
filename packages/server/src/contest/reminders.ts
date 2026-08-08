@@ -222,6 +222,10 @@ export async function sweepContestReminders(
         tokens: { username: r.username, contestTitle: contest.title, deadline, timeRemaining, contestUrl },
         accent: branding?.accentColor,
         siteUrl: ctx.siteUrl,
+        // Reminders go to registered participants, so a blank registration-link
+        // block targets this contest's registration page (where they can review or
+        // edit their details), never the account-signup page.
+        registrationUrl: `${contestUrl}/register`,
       });
       const tpl = emailTemplates.contestDeadlineReminder(
         ctx.siteName,

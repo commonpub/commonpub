@@ -77,6 +77,26 @@ describe('renderEmailBlocks', () => {
     expect(html).not.toContain('href="/auth/register');
   });
 
+  it('retargets a blank CTA at registrationUrl (contest page), not the account-signup page', () => {
+    // Everyone who receives a contest email already has an account and is already
+    // registered, so `/auth/register` is a dead end for them.
+    const { html, text } = renderEmailBlocks([['registrationLink', { label: 'Your registration' }]], {
+      siteUrl: 'https://deveco.io',
+      registrationUrl: 'https://deveco.io/contests/resilient/register',
+    });
+    expect(html).toContain('href="https://deveco.io/contests/resilient/register"');
+    expect(html).not.toContain('/auth/register');
+    expect(text).toContain('Your registration: https://deveco.io/contests/resilient/register');
+  });
+
+  it('registrationUrl does not override an explicitly authored url', () => {
+    const { html } = renderEmailBlocks([['registrationLink', { url: 'https://partner.example/join' }]], {
+      siteUrl: 'https://deveco.io',
+      registrationUrl: 'https://deveco.io/contests/resilient/register',
+    });
+    expect(html).toContain('href="https://partner.example/join"');
+  });
+
   it('leaves an organizer-supplied absolute CTA url alone, and still blocks unsafe ones', () => {
     const abs = renderEmailBlocks([['registrationLink', { url: 'https://partner.example/join' }]], {
       siteUrl: 'https://deveco.io',

@@ -52,7 +52,14 @@ export default defineEventHandler(async (event): Promise<{ html: string; subject
   // siteUrl so the preview shows the SAME absolute URLs a delivered mail carries
   // (a root-relative CTA href would silently "work" in the preview iframe and break
   // in the inbox — the exact bug that shipped `https://auth/register`).
-  const body = renderEmailBlocks(copy?.bodyBlocks, { accent: branding?.accentColor, tokens, siteUrl: origin });
+  const body = renderEmailBlocks(copy?.bodyBlocks, {
+    accent: branding?.accentColor,
+    tokens,
+    siteUrl: origin,
+    // Match the real send: a blank registration-link block points at this contest's
+    // registration page (recipients already have accounts), not account signup.
+    registrationUrl: `${contestUrl}/register`,
+  });
   const copyForTemplate = {
     subject: copy?.subject,
     intro: copy?.intro,

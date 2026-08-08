@@ -24,10 +24,13 @@ export interface ContestEmailCopyRendered {
  * `opts.siteUrl` is the instance origin every block URL is resolved against — pass
  * it from EVERY send path (an email has no base URL, so a root-relative CTA href
  * such as the registration block's `/auth/register` default lands on a bogus host).
+ * `opts.registrationUrl` retargets a blank registration-link block at the CONTEST's
+ * registration page: every recipient of a contest email already has an account and
+ * is already registered, so the block's account-signup default is a dead end.
  */
 export function buildContestEmailCopyOverride(
   field: ContestEmailCopyField | undefined,
-  opts?: { tokens?: Record<string, string>; accent?: string; siteUrl?: string },
+  opts?: { tokens?: Record<string, string>; accent?: string; siteUrl?: string; registrationUrl?: string },
 ): ContestEmailCopyRendered | undefined {
   if (!field) return undefined;
   const body = renderEmailBlocks(field.bodyBlocks, opts);
