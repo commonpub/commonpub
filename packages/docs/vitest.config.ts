@@ -18,5 +18,14 @@ export default defineConfig({
     // errors — it hit CI twice on 2026-06-09). Process isolation keeps the
     // RPC channel responsive under that load.
     pool: 'forks',
+    // ...and one fork, run serially. `pool: 'forks'` alone was NOT enough — the
+    // same `onTaskUpdate` timeout came back on 2026-08-08, twice in three runs.
+    // Spawning a fork per test file multiplies the processes competing for a
+    // 2-4 core runner (every other package's suite is running too), and the
+    // birpc call times out when either end stalls. One fork, one RPC channel,
+    // no intra-package contention: the shiki cold-load is paid once regardless
+    // (beforeAll in pipeline.test.ts), so serial costs little here.
+    fileParallelism: false,
+    poolOptions: { forks: { singleFork: true } },
   },
 });

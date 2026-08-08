@@ -68,7 +68,14 @@ jobs:
       # REDIS_URL_TEST opts the redis.integration.test.ts suite in against
       # the sidecar above.
       - name: Test
-        run: pnpm test
+        # Cap turbo's fan-out on the runner. Unbounded (default 10) it starts a
+        # vitest instance for every package at once on 2-4 cores; the CPU-bound
+        # suites (docs' shiki pipeline) then stall long enough for vitest's
+        # worker RPC to time out and fail the run even though every test passed.
+        # Local runs keep the default — this is a shared-runner problem.
+        # NB: invoke turbo directly — `pnpm test -- --concurrency=…` forwards the
+        # flag to each package's vitest, not to turbo, and vitest rejects it.
+        run: pnpm exec turbo run test --concurrency=50%
         env:
           DATABASE_URL: postgresql://commonpub:commonpub_test@localhost:5432/commonpub_test
           REDIS_URL_TEST: redis://localhost:6379
