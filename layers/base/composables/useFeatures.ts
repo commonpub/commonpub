@@ -37,6 +37,9 @@ export interface FeatureFlags {
   /** Two-tier contest signup card (register + reminders-only) with optional info
    *  form + status-aware onboarding copy. Default ON; off ⇒ simple reminders opt-in. */
   contestSignup: boolean;
+  /** Registration is a precondition for entering: entry + proposal submission
+   *  require a completed `full` registration. Default ON. */
+  contestEntryRequiresRegistration: boolean;
   events: boolean;
   learning: boolean;
   explainers: boolean;
@@ -98,6 +101,7 @@ export const DEFAULT_FLAGS: FeatureFlags = {
   content: true, social: true, hubs: true, docs: true, video: true,
   contests: false, contestStageSubmissions: true, contestProposals: false, contestPii: false, contestPrivateFiles: false,
   contestReminders: false, contestEmailEditor: false, contestSignup: true,
+  contestEntryRequiresRegistration: true,
   events: false, learning: true, explainers: true,
   editorial: true, registrationBlock: true, federation: false, admin: false, themeStudio: true, emailNotifications: false, emailUnverified: false,
   publicApi: false, contentImport: true,
@@ -207,6 +211,7 @@ export function useFeatures() {
     contestReminders: computed(() => flags.value.contestReminders),
     contestEmailEditor: computed(() => flags.value.contestEmailEditor),
     contestSignup: computed(() => flags.value.contestSignup),
+    contestEntryRequiresRegistration: computed(() => flags.value.contestEntryRequiresRegistration),
     events: computed(() => flags.value.events),
     learning: computed(() => flags.value.learning),
     explainers: computed(() => flags.value.explainers),

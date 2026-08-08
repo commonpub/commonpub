@@ -221,6 +221,7 @@ export async function sweepContestReminders(
       const copy = buildContestEmailCopyOverride(reminderField, {
         tokens: { username: r.username, contestTitle: contest.title, deadline, timeRemaining, contestUrl },
         accent: branding?.accentColor,
+        siteUrl: ctx.siteUrl,
       });
       const tpl = emailTemplates.contestDeadlineReminder(
         ctx.siteName,

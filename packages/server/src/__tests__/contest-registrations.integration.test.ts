@@ -12,6 +12,7 @@ import {
   listContestRegistrants,
   getRegistrantCount,
   getRegistrationCounts,
+  getRegistrationTier,
 } from '../contest/registrations.js';
 import { verifyUnsubscribeToken } from '../comms/unsubscribe.js';
 
@@ -89,6 +90,35 @@ describe('contest registrations', () => {
     // A reminders->full upgrade moves a follower into `full` — followers unchanged.
     await registerForContest(db, cfg({ emailNotifications: false }), { contestId, userId: other, tier: 'full' });
     expect(await getRegistrationCounts(db, contestId)).toEqual({ full: 2, followers: 2 });
+  });
+
+  it('getRegistrationTier: drives the entry gate — null / reminders / full', async () => {
+    const contestId = await makeContest(db, organizerId);
+    const follower = (await createTestUser(db, { username: 'tier-follower', email: 'tf@example.com' })).id;
+
+    // Never registered ⇒ null. This is the state the entry route rejects.
+    expect(await getRegistrationTier(db, contestId, userId)).toBeNull();
+
+    // Following the contest is NOT registering: a reminders-tier opt-in accepted no
+    // agreements and answered no required fields, so it must not satisfy the gate.
+    await registerForContest(db, cfg({ emailNotifications: false }), { contestId, userId: follower, tier: 'reminders' });
+    expect(await getRegistrationTier(db, contestId, follower)).toBe('reminders');
+
+    // A completed registration ⇒ full, the only tier that may enter.
+    await registerForContest(db, cfg({ emailNotifications: false }), { contestId, userId, tier: 'full' });
+    expect(await getRegistrationTier(db, contestId, userId)).toBe('full');
+
+    // The upgrade path moves a follower to full.
+    await registerForContest(db, cfg({ emailNotifications: false }), { contestId, userId: follower, tier: 'full' });
+    expect(await getRegistrationTier(db, contestId, follower)).toBe('full');
+
+    // Scoped per contest: registering for one grants nothing in another.
+    const otherContest = await makeContest(db, organizerId, { slug: `tier-other-${crypto.randomUUID().slice(0, 8)}` });
+    expect(await getRegistrationTier(db, otherContest, userId)).toBeNull();
+
+    // Unregistering clears it (they can no longer enter).
+    await unregisterForContest(db, contestId, userId);
+    expect(await getRegistrationTier(db, contestId, userId)).toBeNull();
   });
 
   it('is idempotent: a second register does not duplicate or re-report', async () => {

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   buildRegistrationHref,
+  absolutizeHref,
   registrationLabel,
   registrationVariant,
   REGISTRATION_DEFAULT_URL,
@@ -43,6 +44,45 @@ describe('buildRegistrationHref', () => {
 
   it('ignores an unsafe url even when a ref is present (no smuggling)', () => {
     expect(buildRegistrationHref({ url: 'javascript:alert(1)', ref: 'abc' })).toBe(`${REGISTRATION_DEFAULT_URL}?ref=abc`);
+  });
+});
+
+describe('absolutizeHref', () => {
+  const ORIGIN = 'https://deveco.io';
+
+  it('resolves a root-relative href against the origin (the https://auth/register bug)', () => {
+    // Left relative, a mail client prepends the scheme -> https:///auth/register,
+    // which URL-normalizes to the host `auth`. This is the guard against that.
+    expect(absolutizeHref('/auth/register', ORIGIN)).toBe('https://deveco.io/auth/register');
+    expect(absolutizeHref(buildRegistrationHref({}), ORIGIN)).toBe('https://deveco.io/auth/register');
+    expect(absolutizeHref(buildRegistrationHref({ ref: 'abc' }), ORIGIN)).toBe('https://deveco.io/auth/register?ref=abc');
+  });
+
+  it('leaves absolute and non-navigational targets untouched', () => {
+    expect(absolutizeHref('https://example.com/join', ORIGIN)).toBe('https://example.com/join');
+    expect(absolutizeHref('http://example.com/join', ORIGIN)).toBe('http://example.com/join');
+    expect(absolutizeHref('mailto:a@b.com', ORIGIN)).toBe('mailto:a@b.com');
+    expect(absolutizeHref('tel:+15551234', ORIGIN)).toBe('tel:+15551234');
+  });
+
+  it('anchors a bare fragment at the site root (no page base in an email)', () => {
+    expect(absolutizeHref('#signup', ORIGIN)).toBe('https://deveco.io/#signup');
+  });
+
+  it('tolerates a trailing slash / missing origin without producing a double slash', () => {
+    expect(absolutizeHref('/auth/register', 'https://deveco.io/')).toBe('https://deveco.io/auth/register');
+    expect(absolutizeHref('/auth/register', 'https://deveco.io///')).toBe('https://deveco.io/auth/register');
+    expect(absolutizeHref('/auth/register', undefined)).toBe('/auth/register');
+    expect(absolutizeHref('/auth/register', '')).toBe('/auth/register');
+    expect(absolutizeHref('/auth/register', '   ')).toBe('/auth/register');
+  });
+
+  it('ignores a hostless origin rather than corrupting the href', () => {
+    // A misconfigured instance can produce `https://` (siteUrl unset + blank domain).
+    expect(absolutizeHref('/auth/register', 'https://')).toBe('/auth/register');
+    expect(absolutizeHref('/auth/register', 'deveco.io')).toBe('/auth/register');
+    // A site served under a sub-path is a legitimate base.
+    expect(absolutizeHref('/auth/register', 'https://x.example/app')).toBe('https://x.example/app/auth/register');
   });
 });
 

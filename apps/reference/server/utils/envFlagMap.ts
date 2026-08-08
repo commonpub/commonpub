@@ -22,6 +22,7 @@ export const ENV_FLAG_MAP: Record<string, string> = {
   contestReminders: 'FEATURE_CONTEST_REMINDERS',
   contestEmailEditor: 'FEATURE_CONTEST_EMAIL_EDITOR',
   contestSignup: 'FEATURE_CONTEST_SIGNUP',
+  contestEntryRequiresRegistration: 'FEATURE_CONTEST_ENTRY_REQUIRES_REGISTRATION',
   events: 'FEATURE_EVENTS',
   learning: 'FEATURE_LEARNING',
   explainers: 'FEATURE_EXPLAINERS',

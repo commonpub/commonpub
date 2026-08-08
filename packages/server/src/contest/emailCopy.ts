@@ -20,10 +20,14 @@ export interface ContestEmailCopyRendered {
  * values. Returns undefined when the field is absent, so the template falls back
  * to its built-in default. An empty block body yields no bodyHtml/bodyText, so
  * the legacy `intro` (or default) still applies.
+ *
+ * `opts.siteUrl` is the instance origin every block URL is resolved against — pass
+ * it from EVERY send path (an email has no base URL, so a root-relative CTA href
+ * such as the registration block's `/auth/register` default lands on a bogus host).
  */
 export function buildContestEmailCopyOverride(
   field: ContestEmailCopyField | undefined,
-  opts?: { tokens?: Record<string, string>; accent?: string },
+  opts?: { tokens?: Record<string, string>; accent?: string; siteUrl?: string },
 ): ContestEmailCopyRendered | undefined {
   if (!field) return undefined;
   const body = renderEmailBlocks(field.bodyBlocks, opts);

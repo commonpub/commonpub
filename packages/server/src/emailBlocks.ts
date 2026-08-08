@@ -1,4 +1,4 @@
-import { buildRegistrationHref, registrationLabel, registrationVariant } from '@commonpub/editor';
+import { absolutizeHref, buildRegistrationHref, registrationLabel, registrationVariant } from '@commonpub/editor';
 
 /**
  * Render a BlockTuple[] email body (from the per-contest block editor) to an
@@ -16,6 +16,11 @@ import { buildRegistrationHref, registrationLabel, registrationVariant } from '@
  *    / phishing is still guarded here, the single render choke point).
  *  - Image + link URLs are restricted to http(s) (+ the shared registration-href
  *    guard), so no `javascript:`/`data:` smuggling.
+ *  - Every URL is made ABSOLUTE against the instance's `siteUrl`. An email has no
+ *    document base, so a root-relative `/auth/register` (the registration block's
+ *    default) is not merely ugly — a mail client that prepends the scheme yields
+ *    `https:///auth/register`, which URL-normalizes to the host `auth`. ALWAYS pass
+ *    `siteUrl` from a send path.
  */
 
 const DEFAULT_ACCENT = '#5b9cf6';
@@ -79,6 +84,10 @@ export interface RenderEmailBlocksOptions {
   /** `{token}` values interpolated into text content (e.g. username, contestTitle,
    *  deadline) — parity with the legacy `intro` tokenizer. */
   tokens?: Record<string, string>;
+  /** The instance's public origin (`https://example.org`). Root-relative block URLs
+   *  are resolved against it — REQUIRED for a real send, since an email has no base
+   *  URL (see the module note). Omitted ⇒ URLs are emitted as authored. */
+  siteUrl?: string;
 }
 
 /**
@@ -89,6 +98,7 @@ export interface RenderEmailBlocksOptions {
 export function renderEmailBlocks(blocks: unknown, opts?: RenderEmailBlocksOptions): RenderedEmailBody {
   const accent = opts?.accent && HEX.test(opts.accent) ? opts.accent : DEFAULT_ACCENT;
   const tokens = opts?.tokens;
+  const siteUrl = opts?.siteUrl;
   const tok = (s: string): string => interpolate(s, tokens);
   const list = Array.isArray(blocks) ? blocks : [];
   const htmlParts: string[] = [];
@@ -139,9 +149,17 @@ export function renderEmailBlocks(blocks: unknown, opts?: RenderEmailBlocksOptio
       }
       case 'image': {
         // The block editor's ImageBlock writes `src`; older/AP content uses `url`.
-        const url =
+        const raw =
           (typeof content.url === 'string' && content.url) ? content.url
           : typeof content.src === 'string' ? content.src : '';
+        // An instance-hosted image is stored root-relative (`/uploads/…`), which no
+        // mail client can fetch — resolve it against siteUrl. Anything that is still
+        // not http(s) after that (a `data:`/`javascript:` smuggle, or a relative src
+        // with no siteUrl to resolve it) is dropped rather than emitted broken.
+        // `//host/x` (and its `/\host` backslash variant) is an OFF-SITE target, not
+        // an instance path — resolving it against siteUrl would invent a bogus local
+        // URL. Leave those to the http(s) check below, which drops them.
+        const url = raw.startsWith('/') && !/^\/[/\\]/.test(raw) ? absolutizeHref(raw, siteUrl) : raw;
         if (!HTTP.test(url)) break;
         const alt = typeof content.alt === 'string' ? content.alt : '';
         htmlParts.push(
@@ -157,7 +175,9 @@ export function renderEmailBlocks(blocks: unknown, opts?: RenderEmailBlocksOptio
         break;
       }
       case 'registrationLink': {
-        const href = buildRegistrationHref(content);
+        // Absolute, always: the block's default (`/auth/register`) is root-relative,
+        // and a relative href in an email resolves to a bogus host (see module note).
+        const href = absolutizeHref(buildRegistrationHref(content), siteUrl);
         const label = registrationLabel(content);
         const secondary = registrationVariant(content) === 'secondary';
         const bg = secondary ? '#ffffff' : accent;

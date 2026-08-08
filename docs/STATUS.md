@@ -25,6 +25,33 @@
 
 ---
 
+## Session 250 (2026-08-07) — absolute email links + hero register CTA + registration-before-entry — **BUILT + VERIFIED LOCALLY, NOT ROLLED**
+
+Three operator-reported contest items. **Nothing published or deployed yet** — the versions in the header
+above are still what is LIVE. Rolling this publishes **editor + config + server + layer** and takes the
+instance flag count **38 → 39** (new `contestEntryRequiresRegistration`, default **ON**).
+
+1. **`https://auth/register` in contest emails — fixed at the source.** The registration-link block's
+   default href is the root-relative `/auth/register`; emails have no document base, so a mail client
+   prepending the scheme yields `https:///auth/register` → normalized to the host `auth`. New shared
+   `absolutizeHref()` (`@commonpub/editor`) + a `siteUrl` option on `renderEmailBlocks`, threaded through
+   every send path (confirmation, reminder, email-test, email-preview). Also fixes instance-hosted
+   (`/uploads/…`) images being silently dropped from mail.
+2. **Register CTA now sits at the top of the contest page**, in the hero CTA row beside Submit Entry
+   (was sidebar-only, below the fold on a long description). Required-field templates route to the
+   full-width `/contests/:slug/register` page; all-optional templates one-click register.
+3. **Registration is a precondition for entering** (`contestEntryRequiresRegistration`, default ON):
+   `POST /entries` and `POST /proposal` 403 unless the caller holds a `full` registration. This closes
+   the hole session 249 documented and deferred (entry auto-registered a counted participant with **no
+   agreement acceptance**). Following (`reminders` tier) is not enough. **Behaviour change on upgrade:**
+   existing entrants already hold a `full` row and keep entering; new participants must complete the
+   contest's registration form first.
+
+Verified locally: server 1790/1790, layer 1591, `pnpm typecheck` 28/28, browser E2E 12/12 (+ screenshots).
+See `docs/sessions/250-email-links-and-registration-gate.md`.
+
+---
+
 ## Session 247 (2026-07-24/25) — contest work + 4 P1 blockers + deep-audit hardening + adversarial-audit fixes, ROLLED to all 3
 
 **schema 0.61→0.63 · server 2.119→2.122 · layer 0.113→0.116** (config 0.35 / infra 0.19 unchanged), **NO

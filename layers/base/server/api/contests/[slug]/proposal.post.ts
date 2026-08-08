@@ -1,4 +1,4 @@
-import { submitContestProposal, getContestBySlug, canViewContest } from '@commonpub/server';
+import { submitContestProposal, getContestBySlug, canViewContest, getRegistrationTier } from '@commonpub/server';
 import { stageSubmissionSchema } from '@commonpub/schema';
 
 /**
@@ -19,6 +19,19 @@ export default defineEventHandler(async (event): Promise<{ entryId: string; proj
   if (!contest) throw createError({ statusCode: 404, statusMessage: 'Contest not found' });
   if (!(await canViewContest(db, contest, user))) {
     throw createError({ statusCode: 404, statusMessage: 'Contest not found' });
+  }
+
+  // Same registration precondition as a normal entry (a proposal IS an entry — it
+  // creates a contest_entries row and counts the user as a participant). See
+  // entries.post.ts for why only `full` passes.
+  if (useConfig().features.contestEntryRequiresRegistration !== false) {
+    const tier = await getRegistrationTier(db, contest.id, user.id);
+    if (tier !== 'full') {
+      throw createError({
+        statusCode: 403,
+        statusMessage: 'Register for this contest before submitting a proposal.',
+      });
+    }
   }
 
   const input = await parseBody(event, stageSubmissionSchema);

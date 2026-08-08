@@ -104,9 +104,21 @@ test.describe('Register form', () => {
     // Ensure Vue has hydrated before we fill — otherwise `fill` sets the
     // DOM value before v-model's input listener attaches and hydration
     // clobbers our value back to the initial empty ref.
+    //
+    // "Enabled" is NOT that signal: the button stays disabled until the
+    // affirmative-consent box is ticked (GDPR). Tick-until-enabled instead —
+    // the button can only flip once v-model is live, which is exactly the
+    // barrier this test needs. Retried as a unit because a tick landing before
+    // hydration is discarded.
     const submitBtn = page.locator('form button[type="submit"]');
     await submitBtn.waitFor({ state: 'visible' });
-    await expect(submitBtn).toBeEnabled();
+    await expect(submitBtn).toBeDisabled();
+
+    const consent = page.locator('.register-consent-box');
+    await expect(async () => {
+      await consent.check();
+      await expect(submitBtn).toBeEnabled({ timeout: 1000 });
+    }).toPass({ timeout: 20_000 });
 
     await page.locator('#username').fill('testuser');
     await page.locator('#email').fill('test@example.com');

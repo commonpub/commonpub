@@ -299,7 +299,17 @@ async function handlePublish(): Promise<void> {
     try {
       await $fetch(`/api/contests/${contestFromQuery}/entries`, { method: 'POST', body: { contentId: contentId.value } });
       submitToast.success('Entered into the contest!');
-    } catch { /* non-blocking, user can submit manually from the contest page */ }
+    } catch (err: unknown) {
+      // Non-blocking — the project is published either way and can be entered from
+      // the contest page. But a 403 here is the "register for the contest first"
+      // gate, which the author MUST see: swallowing it silently left them believing
+      // they had entered. Publish-validation races stay quiet (400).
+      const status = (err as { statusCode?: number; status?: number })?.statusCode
+        ?? (err as { status?: number })?.status;
+      if (status === 403) {
+        submitToast.error('Published. Register for the contest to enter this project.');
+      }
+    }
   }
 }
 

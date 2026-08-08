@@ -49,7 +49,10 @@ export default defineEventHandler(async (event): Promise<{ html: string; subject
   };
   // Render the block body (if any) to email-safe HTML; empty ⇒ fall back to the
   // legacy intro / built-in default inside the template.
-  const body = renderEmailBlocks(copy?.bodyBlocks, { accent: branding?.accentColor, tokens });
+  // siteUrl so the preview shows the SAME absolute URLs a delivered mail carries
+  // (a root-relative CTA href would silently "work" in the preview iframe and break
+  // in the inbox — the exact bug that shipped `https://auth/register`).
+  const body = renderEmailBlocks(copy?.bodyBlocks, { accent: branding?.accentColor, tokens, siteUrl: origin });
   const copyForTemplate = {
     subject: copy?.subject,
     intro: copy?.intro,

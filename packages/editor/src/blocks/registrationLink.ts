@@ -55,6 +55,34 @@ export function buildRegistrationHref(content: MaybeContent): string {
   return `${base}${sep}ref=${encodeURIComponent(ref)}`;
 }
 
+/**
+ * Absolutize a site-relative href against the instance origin, for renderers that
+ * have NO base URL to resolve against — email above all.
+ *
+ * A root-relative `/auth/register` is correct in the app (it resolves against
+ * whatever host serves the page) but is BROKEN in an email: there is no document
+ * base, so a mail client that prepends the scheme produces `https:///auth/register`,
+ * which the URL parser normalizes by promoting the first path segment to the host —
+ * the user lands on `https://auth/register`. Every non-browser renderer of a block
+ * href MUST run it through here with the instance's site URL.
+ *
+ * Already-absolute (`http(s)://`) and non-navigational (`mailto:`/`tel:`) targets are
+ * returned untouched, as is any href when no origin is supplied (nothing better to do
+ * than leave it as authored).
+ */
+export function absolutizeHref(href: string, origin?: string | null): string {
+  const trimmed = typeof origin === 'string' ? origin.trim().replace(/\/+$/, '') : '';
+  // Require a real scheme+host. A misconfigured instance can hand us `https://`
+  // (siteUrl unset AND instance.domain blank); prefixing with that would emit
+  // `https:/auth/register` — leave the href as authored instead of corrupting it.
+  const base = /^https?:\/\/[^/\s]+(\/\S*)?$/i.test(trimmed) ? trimmed : '';
+  if (!base) return href;
+  if (href.startsWith('/')) return `${base}${href}`;
+  // A bare fragment has no page to anchor to in an email; point it at the site root.
+  if (href.startsWith('#')) return `${base}/${href}`;
+  return href;
+}
+
 /** Resolve the button label, defaulting to "Register" when blank. */
 export function registrationLabel(content: MaybeContent): string {
   const label = typeof content.label === 'string' ? content.label.trim() : '';

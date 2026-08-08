@@ -1,4 +1,4 @@
-import { submitContestEntry, getContestBySlug, canViewContest } from '@commonpub/server';
+import { submitContestEntry, getContestBySlug, canViewContest, getRegistrationTier } from '@commonpub/server';
 import type { ContestEntryItem } from '@commonpub/server';
 import { contentItems } from '@commonpub/schema';
 import { eq } from 'drizzle-orm';
@@ -31,6 +31,22 @@ export default defineEventHandler(async (event): Promise<ContestEntryItem> => {
         : `The contest is ${contest.status}.`;
     throw createError({ statusCode: 400, statusMessage: `This contest isn't accepting entries right now. ${detail}` });
   }
+  // Registration precondition (features.contestEntryRequiresRegistration, default ON).
+  // The registration flow is where the contest's REQUIRED fields are enforced and its
+  // agreements are recorded to the consent log; without this gate `submitContestEntry`
+  // silently auto-registers the entrant as a counted `full` participant who accepted
+  // nothing. A `reminders`-tier follower has accepted nothing either, so only `full`
+  // passes. 403 (not 400): the request is well-formed, the actor lacks standing.
+  if (useConfig().features.contestEntryRequiresRegistration !== false) {
+    const tier = await getRegistrationTier(db, contest.id, user.id);
+    if (tier !== 'full') {
+      throw createError({
+        statusCode: 403,
+        statusMessage: 'Register for this contest before submitting an entry.',
+      });
+    }
+  }
+
   const [content] = await db
     .select({ authorId: contentItems.authorId, status: contentItems.status, type: contentItems.type })
     .from(contentItems)

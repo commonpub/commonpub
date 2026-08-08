@@ -63,6 +63,47 @@ describe('renderEmailBlocks', () => {
     expect(html).toContain('/auth/register');
   });
 
+  it('makes the registrationLink CTA ABSOLUTE against siteUrl (no https://auth/register)', () => {
+    // Regression: the CTA shipped as a bare `/auth/register`. An email has no
+    // document base, so a mail client prepending the scheme produced
+    // `https:///auth/register` → normalized to the host `auth`. Both MIME parts
+    // must carry the absolute URL.
+    const { html, text } = renderEmailBlocks(
+      [['registrationLink', { label: 'Enter now', ref: 'abc' }]],
+      { siteUrl: 'https://deveco.io' },
+    );
+    expect(html).toContain('<a href="https://deveco.io/auth/register?ref=abc"');
+    expect(text).toContain('Enter now: https://deveco.io/auth/register?ref=abc');
+    expect(html).not.toContain('href="/auth/register');
+  });
+
+  it('leaves an organizer-supplied absolute CTA url alone, and still blocks unsafe ones', () => {
+    const abs = renderEmailBlocks([['registrationLink', { url: 'https://partner.example/join' }]], {
+      siteUrl: 'https://deveco.io',
+    });
+    expect(abs.html).toContain('href="https://partner.example/join"');
+    const unsafe = renderEmailBlocks([['registrationLink', { url: 'javascript:alert(1)' }]], {
+      siteUrl: 'https://deveco.io',
+    });
+    expect(unsafe.html).not.toContain('javascript:');
+    expect(unsafe.html).toContain('href="https://deveco.io/auth/register"');
+  });
+
+  it('resolves an instance-hosted (root-relative) image against siteUrl, drops it without one', () => {
+    const withSite = renderEmailBlocks([['image', { src: '/uploads/a.png', alt: 'A' }]], {
+      siteUrl: 'https://deveco.io',
+    });
+    expect(withSite.html).toContain('<img src="https://deveco.io/uploads/a.png"');
+    // No origin to resolve against ⇒ dropped rather than emitted un-fetchable.
+    const without = renderEmailBlocks([['image', { src: '/uploads/a.png', alt: 'A' }]]);
+    expect(without.html).toBe('');
+    // A protocol-relative (off-site) src is NOT an instance path — still dropped,
+    // never rewritten into a bogus local URL.
+    for (const src of ['//evil.example/x.png', '/\\evil.example/x.png']) {
+      expect(renderEmailBlocks([['image', { src }]], { siteUrl: 'https://deveco.io' }).html).toBe('');
+    }
+  });
+
   it('only allows http(s) images, and reads the editor `src` field as well as `url`', () => {
     const ok = renderEmailBlocks([['image', { url: 'https://cdn.example.com/a.png', alt: 'A' }]]);
     expect(ok.html).toContain('<img src="https://cdn.example.com/a.png"');

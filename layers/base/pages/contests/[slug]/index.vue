@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import type { Serialized, ContestEntryItem, ContestJudgeItem } from '@commonpub/server';
+import { templateHasRequiredField } from '@commonpub/schema';
+import { effectiveRegistrationTemplate } from '../../../utils/contestRegistration';
 
 const route = useRoute();
 const router = useRouter();
@@ -225,6 +227,14 @@ function onProposalSubmitted(projectSlug: string, contentType: string): void {
 // to the form. The attach-an-existing-project option is also on that tab, so the
 // dialog is only the right destination when there is no form-based path.
 function onHeroSubmitEntry(): void {
+  // Registration first: the server rejects an entry from anyone without a `full`
+  // registration, so route them into the registration flow instead of letting them
+  // pick a project and hit a 403 at the end.
+  if (mustRegisterFirst.value) {
+    toast.show('Register for this contest before submitting an entry', 'info');
+    startRegistration();
+    return;
+  }
   if (currentProposalStage.value || (currentSubmissionStage.value && myEntries.value.length)) {
     activeTab.value = 'entries';
     if (typeof document !== 'undefined') {
@@ -263,6 +273,13 @@ function copyLink(): void {
 
 async function submitEntry(): Promise<void> {
   if (!submitContentId.value) return;
+  // Belt for any path that opened the dialog while unregistered (the server would
+  // 403 anyway) — send them to registration rather than surfacing a raw error.
+  if (mustRegisterFirst.value) {
+    showSubmitDialog.value = false;
+    startRegistration();
+    return;
+  }
   submitting.value = true;
   try {
     await $fetch(`/api/contests/${slug}/entries`, { method: 'POST', body: { contentId: submitContentId.value } });
@@ -326,6 +343,38 @@ async function register(payload?: { tier: 'full' | 'reminders'; fields?: Record<
   }
 }
 
+// --- Registration as the gate on entering ---------------------------------
+// `contestEntryRequiresRegistration` (default ON): the entry + proposal routes only
+// accept a submission from a `full` registrant, because the registration flow is
+// what enforces the contest's required fields and records its agreements. The UI
+// mirrors that server rule so an entrant is routed into registration BEFORE picking
+// a project, never bounced by a 403 afterwards. A `reminders`-tier follower has
+// accepted nothing, so following is not enough.
+const entryRequiresRegistration = computed(() => features.value.contestEntryRequiresRegistration !== false);
+const isFullyRegistered = computed(() => registrationTier.value === 'full');
+const mustRegisterFirst = computed(() => entryRequiresRegistration.value && !isFullyRegistered.value);
+
+// Which registration flow this contest needs — the same decision the signup card
+// makes: a template with any required field or must-accept agreement has to be
+// filled in (the dedicated page renders any form at full width), while an
+// all-optional template (including the legacy default) is a one-click register.
+const registrationTemplate = computed(() => effectiveRegistrationTemplate(c.value?.registrationTemplate));
+const registrationNeedsForm = computed(() => templateHasRequiredField(registrationTemplate.value));
+
+/** Start (or complete) registration — from the hero CTA, or from any entry path
+ *  taken by someone who isn't registered yet. */
+function startRegistration(): void {
+  if (!isAuthenticated.value) {
+    navigateTo(`/auth/login?redirect=/contests/${slug}`);
+    return;
+  }
+  if (registrationNeedsForm.value) {
+    navigateTo(`/contests/${slug}/register`);
+    return;
+  }
+  register({ tier: 'full' });
+}
+
 async function unregister(): Promise<void> {
   if (registering.value) return;
   registering.value = true;
@@ -362,7 +411,11 @@ async function withdrawEntry(entryId: string): Promise<void> {
       :is-admin="isAdmin"
       :is-authenticated="isAuthenticated"
       :transitioning="transitioning"
+      :registration-tier="registrationTier"
+      :entry-requires-registration="entryRequiresRegistration"
+      :registering="registering"
       @submit-entry="onHeroSubmitEntry"
+      @register="startRegistration"
       @transition="transitionStatus"
       @copy-link="copyLink"
     />
@@ -509,9 +562,12 @@ async function withdrawEntry(entryId: string): Promise<void> {
               :entries="myEntries"
               @saved="refreshEntries"
             />
-            <!-- Proposal mode: a first-time entrant submits the form (no project yet). -->
+            <!-- Proposal mode: a first-time entrant submits the form (no project yet).
+                 Hidden until they're registered — the proposal route rejects a
+                 submission from a non-participant, and the CTA below offers the
+                 registration step instead. -->
             <ContestProposalForm
-              v-if="currentProposalStage && isAuthenticated && !myEntries.length"
+              v-if="currentProposalStage && isAuthenticated && !myEntries.length && !mustRegisterFirst"
               :contest-slug="slug"
               :stage="currentProposalStage"
               @submitted="onProposalSubmitted"
@@ -523,11 +579,20 @@ async function withdrawEntry(entryId: string): Promise<void> {
               <div class="cpub-entries-cta-text">
                 <p class="cpub-entries-cta-title">
                   <i class="fa-solid fa-trophy"></i>
-                  {{ (currentProposalStage || currentSubmissionStage) ? 'Enter with an existing project' : 'Enter this contest' }}
+                  <template v-if="isAuthenticated && mustRegisterFirst">Register to enter this contest</template>
+                  <template v-else>{{ (currentProposalStage || currentSubmissionStage) ? 'Enter with an existing project' : 'Enter this contest' }}</template>
                 </p>
-                <p class="cpub-entries-cta-sub">Submit one of your published projects, or start a new one.</p>
+                <p class="cpub-entries-cta-sub">
+                  <template v-if="isAuthenticated && mustRegisterFirst">Registration comes first, then you can submit a project.</template>
+                  <template v-else>Submit one of your published projects, or start a new one.</template>
+                </p>
               </div>
-              <button v-if="isAuthenticated" class="cpub-btn cpub-btn-primary cpub-btn-lg" @click="showSubmitDialog = true">
+              <!-- Registration is the precondition for entering, so an unregistered
+                   participant gets the register CTA here instead of the submit one. -->
+              <button v-if="isAuthenticated && mustRegisterFirst" class="cpub-btn cpub-btn-primary cpub-btn-lg" :disabled="registering" @click="startRegistration">
+                <i class="fa-solid fa-flag-checkered"></i> {{ registering ? 'Registering...' : 'Register for this contest' }}
+              </button>
+              <button v-else-if="isAuthenticated" class="cpub-btn cpub-btn-primary cpub-btn-lg" @click="showSubmitDialog = true">
                 <i class="fa-solid fa-upload"></i> Submit Entry
               </button>
               <NuxtLink v-else :to="`/auth/login?redirect=/contests/${slug}`" class="cpub-btn cpub-btn-primary cpub-btn-lg">

@@ -5,6 +5,7 @@ export type { BlockTuple, TypedBlockTuple, BlockDefinition } from './blocks/type
 export {
   REGISTRATION_DEFAULT_URL,
   buildRegistrationHref,
+  absolutizeHref,
   registrationLabel,
   registrationVariant,
 } from './blocks/registrationLink.js';

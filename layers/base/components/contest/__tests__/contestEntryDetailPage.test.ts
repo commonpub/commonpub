@@ -22,6 +22,7 @@ import { defineComponent, h, ref } from 'vue';
 import axe from 'axe-core';
 import EntryDetailPage from '../../../pages/contests/[slug]/entries/[entryId].vue';
 import { normalizeStages, currentStageId } from '../../../utils/contestStages';
+import { safeHref } from '../../../utils/safeUrl';
 
 const NuxtLink = defineComponent({
   name: 'NuxtLink',
@@ -110,7 +111,11 @@ Object.assign(globalThis, {
 });
 
 function mount() {
-  return render(EntryDetailPage, { global: { stubs } });
+  // `safeHref` (the shared url render guard, session 249) is used in the page
+  // TEMPLATE, so it resolves via the render proxy — a globalThis stub can't reach
+  // it the way the script-scope auto-imports above do. Provide the real util as a
+  // global property.
+  return render(EntryDetailPage, { global: { stubs, mocks: { safeHref } } });
 }
 
 beforeEach(() => {

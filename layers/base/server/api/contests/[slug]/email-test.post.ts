@@ -61,7 +61,9 @@ export default defineEventHandler(async (event): Promise<{ sent: true; to: strin
     timeRemaining: '24 hours',
     contestUrl,
   };
-  const body = renderEmailBlocks(copy?.bodyBlocks, { accent: branding?.accentColor, tokens });
+  // siteUrl: block URLs (the registration CTA above all) MUST be absolute — a test
+  // send goes to a real inbox, where a root-relative href resolves to a bogus host.
+  const body = renderEmailBlocks(copy?.bodyBlocks, { accent: branding?.accentColor, tokens, siteUrl: origin });
   const copyForTemplate = {
     subject: copy?.subject,
     intro: copy?.intro,

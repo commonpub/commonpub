@@ -107,6 +107,32 @@ describe('per-contest email copy application', () => {
     expect(mail!.html).toContain('You are now registered for');
   });
 
+  it('renders block-body URLs ABSOLUTE in the delivered mail (no https://auth/register)', async () => {
+    // Regression (session 250): a registration-link block's default href is the
+    // root-relative `/auth/register`. Delivered as-is it has no base to resolve
+    // against, so a mail client prepending the scheme produced `https:///auth/register`
+    // → normalized to the host `auth`. Assert on the REAL enqueued outbox row, both
+    // MIME parts, so a future caller dropping `siteUrl` fails here.
+    const blockCopy: ContestEmailCopy = {
+      confirmation: {
+        subject: 'Enter {contestTitle}',
+        bodyBlocks: [
+          ['paragraph', { html: 'Ready to build?' }],
+          ['registrationLink', { label: 'Register now' }],
+          ['image', { src: '/uploads/banner.png', alt: 'Banner' }],
+        ],
+      },
+    };
+    const contestId = await makeContest(db, organizerId, new Date('2026-12-01T00:00:00Z'), blockCopy);
+    await registerForContest(db, cfg({ emailNotifications: true, contestEmailEditor: true }), { contestId, userId }, EMAIL);
+    const [mail] = await db.select().from(emailOutbox);
+    expect(mail!.html).toContain('href="https://test.example/auth/register"');
+    expect(mail!.html).not.toContain('href="/auth/register"');
+    expect(mail!.text).toContain('Register now: https://test.example/auth/register');
+    // An instance-hosted image is likewise unreachable relative.
+    expect(mail!.html).toContain('src="https://test.example/uploads/banner.png"');
+  });
+
   it('deadline reminder uses the override when the flag is ON', async () => {
     const now = new Date('2026-06-01T00:00:00Z');
     // 5 days out ⇒ only the 7-day milestone fires (one email).

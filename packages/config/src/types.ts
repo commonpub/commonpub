@@ -70,6 +70,16 @@ export interface FeatureFlags {
    * `contests` is also on.
    */
   contestSignup: boolean;
+  /**
+   * Registration is a PRECONDITION for entering a contest (session 250). When ON,
+   * `POST /api/contests/:slug/entries` and `/proposal` require an existing `full`
+   * registration, so a participant cannot become a counted entrant without going
+   * through the registration flow — which is what enforces the contest's required
+   * fields and records acceptance of its agreements. When OFF, the legacy behaviour
+   * applies: submitting an entry auto-registers the entrant with no consent step.
+   * Default ON. No effect unless `contests` is also on.
+   */
+  contestEntryRequiresRegistration: boolean;
   /** Enable events system (listing, RSVP, calendar) */
   events: boolean;
   /** Enable learning paths (enrollment, progress, certificates) */

@@ -66,6 +66,13 @@ export const featureFlagsSchema = z.object({
   // when off the card falls back to the simple single reminders opt-in. No effect
   // unless `contests` is also on.
   contestSignup: z.boolean().default(true),
+  // Registration is a PRECONDITION for entering (session 250). Default ON: a
+  // participant must complete the contest's registration flow (accepting its
+  // required agreements + answering its required fields) before an entry or a
+  // proposal is accepted, instead of the entry silently auto-registering them.
+  // Off ⇒ the legacy behaviour (submitting an entry registers you). No effect
+  // unless `contests` is also on.
+  contestEntryRequiresRegistration: z.boolean().default(true),
   events: z.boolean().default(false),
   learning: z.boolean().default(true),
   explainers: z.boolean().default(true),

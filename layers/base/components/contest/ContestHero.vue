@@ -6,10 +6,19 @@ const props = defineProps<{
   isAdmin: boolean;
   isAuthenticated: boolean;
   transitioning: boolean;
+  /** Viewer's registration tier (`full` / `reminders` / null). Client-only data —
+   *  null during SSR, filled in after hydration (same as the sidebar card). */
+  registrationTier?: 'full' | 'reminders' | null;
+  /** Whether entering requires a completed registration first
+   *  (`features.contestEntryRequiresRegistration`). */
+  entryRequiresRegistration?: boolean;
+  /** In-flight register request (disables the CTA). */
+  registering?: boolean;
 }>();
 
 const emit = defineEmits<{
   (e: 'submit-entry'): void;
+  (e: 'register'): void;
   (e: 'transition', status: string): void;
   (e: 'copy-link'): void;
 }>();
@@ -198,6 +207,25 @@ const dateRange = computed<string>(() => {
 const entryCount = computed<number>(() => c.value?.entryCount ?? 0);
 // Everyone following (all registrations) — social proof next to the entry count.
 const followerCount = computed<number>(() => c.value?.followerCount ?? 0);
+
+// ── Primary CTA ── the hero carries the same registration call-to-action as the
+// signup card, so it's reachable from the top of the page (not only after scrolling
+// past the description). Registration is the FIRST step: with
+// `entryRequiresRegistration` on, an entry is only accepted from a `full` registrant,
+// so the hero offers "Register" until they are one and "Submit Entry" after.
+// Registration is open only while a contest is upcoming or active (mirrors the
+// server's REGISTERABLE_STATUSES + the signup card).
+const REGISTERABLE = ['upcoming', 'active'];
+const canRegister = computed(() => REGISTERABLE.includes(c.value?.status ?? ''));
+const isFullyRegistered = computed(() => props.registrationTier === 'full');
+const loginLink = computed(() => `/auth/login?redirect=/contests/${c.value?.slug ?? ''}`);
+const showRegisterCta = computed(() => canRegister.value && !isFullyRegistered.value);
+const showSubmitCta = computed(
+  () =>
+    props.isAuthenticated &&
+    c.value?.status === 'active' &&
+    (isFullyRegistered.value || props.entryRequiresRegistration === false),
+);
 </script>
 
 <template>
@@ -256,7 +284,20 @@ const followerCount = computed<number>(() => c.value?.followerCount ?? 0);
             <span v-if="followerCount > 0" class="cpub-hero-meta-item"><i class="fa fa-bell"></i> {{ followerCount }} following</span>
           </div>
           <div class="cpub-hero-cta">
-            <button v-if="isAuthenticated && c?.status === 'active'" class="cpub-btn cpub-btn-primary" @click="emit('submit-entry')"><i class="fa fa-upload"></i> Submit Entry</button>
+            <!-- Register: anonymous visitors go to sign-in and come back here. -->
+            <NuxtLink v-if="showRegisterCta && !isAuthenticated" :to="loginLink" class="cpub-btn cpub-btn-primary">
+              <i class="fa-solid fa-right-to-bracket"></i> Log in to register
+            </NuxtLink>
+            <button
+              v-else-if="showRegisterCta"
+              class="cpub-btn cpub-btn-primary"
+              :disabled="registering"
+              @click="emit('register')"
+            >
+              <i class="fa-solid fa-flag-checkered"></i>
+              {{ registering ? 'Registering...' : registrationTier === 'reminders' ? 'Register for the contest' : 'Register for this contest' }}
+            </button>
+            <button v-if="showSubmitCta" class="cpub-btn cpub-btn-primary" @click="emit('submit-entry')"><i class="fa fa-upload"></i> Submit Entry</button>
             <button class="cpub-btn" @click="emit('copy-link')"><i class="fa fa-link"></i> Share</button>
           </div>
         </div>

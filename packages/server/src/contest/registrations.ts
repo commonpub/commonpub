@@ -113,6 +113,7 @@ export async function registerForContest(
       const copy = buildContestEmailCopyOverride(copyField, {
         tokens: { username: target.username, contestTitle: contestRow.title, deadline, contestUrl },
         accent: branding?.accentColor,
+        siteUrl: email.siteUrl,
       });
       const tpl = emailTemplates.contestRegistrationConfirmation(
         email.siteName,
@@ -291,6 +292,33 @@ export async function isRegisteredForContest(
     .where(and(eq(contestRegistrations.contestId, contestId), eq(contestRegistrations.userId, userId)))
     .limit(1);
   return !!row;
+}
+
+/**
+ * A user's registration TIER for a contest, or null when they have no registration
+ * row. The cheap read behind the "you must register before you can enter" gate
+ * (`features.contestEntryRequiresRegistration`): only a `full` participant has been
+ * through the registration flow, which is what enforces the contest's required
+ * fields and records its agreement acceptances. A `reminders`-tier follower has
+ * accepted nothing, so it does NOT satisfy the gate.
+ *
+ * Prefer this over `getViewerRegistration` when only the tier is needed — that one
+ * additionally joins PII + acceptances to rebuild the form's prefill.
+ */
+export async function getRegistrationTier(
+  db: DB,
+  contestId: string,
+  userId: string,
+): Promise<ContestRegistrationTier | null> {
+  const [row] = await db
+    .select({ tier: contestRegistrations.tier })
+    .from(contestRegistrations)
+    .where(and(eq(contestRegistrations.contestId, contestId), eq(contestRegistrations.userId, userId)))
+    .limit(1);
+  if (!row) return null;
+  // Legacy rows predate the tier column's default; treat an absent value as `full`
+  // (they were created by the pre-tier register/enter paths, both participants).
+  return (row.tier as ContestRegistrationTier) ?? 'full';
 }
 
 /**

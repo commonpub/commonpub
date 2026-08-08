@@ -60,6 +60,7 @@ export {
   registerForContest,
   unregisterForContest,
   isRegisteredForContest,
+  getRegistrationTier,
   getViewerRegistration,
   listContestRegistrants,
   getRegistrantCount,
