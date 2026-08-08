@@ -86,7 +86,8 @@ stops the hole growing, it does not retroactively collect consent.
   **1790/1790** (incl. a new `getRegistrationTier` integration case and an
   email-copy case asserting the **delivered outbox row** carries
   `href="https://test.example/auth/register"` in both MIME parts), layer 1591
-  (new: 8 `ContestHero` CTA cases, 10 route-contract cases for the gate).
+  (new: 8 `ContestHero` CTA cases, 10 route-contract cases for the gate); full
+  monorepo `pnpm test` 33/33 tasks; layer suite 1598/1598.
 - Typecheck: `pnpm typecheck` 28/28 (both apps' `nuxt typecheck` over the layer).
 - Browser E2E against a local reference instance, **12/12**: absolute CTA in the
   email preview + test-send; hero shows Register→Submit Entry across
@@ -98,10 +99,47 @@ stops the hole growing, it does not retroactively collect consent.
   session 249's `safeHref` render guard is used in the page TEMPLATE, so the test's
   `globalThis` auto-import stubs couldn't reach it; provided via VTU `mocks`.
 
+## CI — both long-red jobs fixed
+
+CI had been red on `main` since ≥2026-07-17. Two independent causes, both fixed here:
+
+- **`check` (gating) — Test step.** Failing on the `contestEntryDetailPage` suite (7 tests). Session
+  249's `safeHref` render guard is used in the page **template**, which compiles to `_ctx.safeHref` and
+  resolves through the render proxy — the test's `globalThis` auto-import stubs (which work for
+  script-scope imports) can't reach it. Supplied via VTU `mocks`.
+- **`e2e`.** `auth.spec.ts` asserted the register submit button is enabled on load as a hydration
+  barrier. The GDPR affirmative-consent checkbox made it correctly `disabled` until ticked, so the
+  assertion had been wrong ever since. Replaced with tick-until-enabled (retried as a unit) — which is
+  a *better* hydration barrier, since the button can only flip once v-model is live — plus an explicit
+  assertion of the real behaviour (disabled before consent).
+
+Result: `check` + `rust` + `e2e` all green.
+
+## Roll — SHIPPED to all 3 (2026-08-07)
+
+**config 0.35→0.36 · editor 0.14→0.15 · server 2.125→2.126 · layer 0.122→0.123**, no migration, no
+schema/infra change.
+
+- Published in dependency order (config → editor → server → layer, polling `npm view` between each;
+  layer via `pnpm run publish:layer`). Verified the published tarballs' internal pins resolved to the
+  new exact versions.
+- Pushed `main` → **commonpub.io**. The first deploy attempt failed on an SSH handshake reset (droplet
+  connection, not code); re-ran and it went green through `smoke.mjs`.
+- Bumped **deveco** + **heatsync** pins (config/server/layer; hand-edited — 0.x carets don't cross a
+  minor) + regenerated BOTH lockfiles in each fork → pushed.
+- Post-deploy verification (their workflows are warn-only on health, so this is the real gate):
+  `/api/health` ok + `/api/features` **39 flags with `contestEntryRequiresRegistration: true`** on all
+  three; `/`, `/contests`, `/about`, `/feed` all 200 on all three; the live deveco contest page SSRs the
+  new hero CTA ("Log in to register") and `POST /entries` refuses unauthenticated callers.
+
 ## Open / next
 
-- Deploy note: the gate is a behaviour change on upgrade. On deveco the live contest
-  keeps working for existing entrants; new ones must complete the 41-field form
-  before entering (intended).
+- **Behaviour change now live on deveco:** existing entrants keep working; new ones
+  must complete the 41-field registration form before an entry/proposal is accepted.
 - Still deferred from 249: themed-email redesign, nonce CSP, legacy-URL scrub
-  migration 0046, the long-red `e2e` CI job.
+  migration 0046. (The long-red `e2e` CI job is no longer deferred — fixed above.)
+- Known local-only e2e noise (NOT CI): 3 theme SSR specs + 1 homepage-sidebar spec
+  fail against a dev DB that has a custom default theme / more than one active
+  contest (`.cpub-sb-head a[href="/contests"]` then matches twice → strict-mode
+  violation). Data-dependent, green on CI's fresh DB; the sidebar locator would be
+  worth a `.first()` some day.

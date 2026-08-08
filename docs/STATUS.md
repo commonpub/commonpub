@@ -3,8 +3,9 @@
 > **Living doc — your "come back later" reference.** Snapshot updated 2026-08-02 (through session 248).
 > Verify any version/flag claim before trusting it: `npm view @commonpub/<pkg> version`,
 > `curl https://<instance>/api/features`, `cargo search create-commonpub`.
-> **Current LIVE (all 3 instances):** schema **0.63** / config **0.35** / infra **0.19** / server **2.125** /
-> layer **0.122**, migration **0045**, 38 flags. **Layer 0.119 = post-launch hotfix: contest hero mobile
+> **Current LIVE (all 3 instances):** schema **0.63** / config **0.36** / infra **0.19** / editor **0.15** /
+> server **2.126** / layer **0.123**, migration **0045**, **39 flags** (session 250, 2026-08-07 — absolute
+> email CTA links, hero register CTA, registration required before entering; **CI green again**). **Layer 0.119 = post-launch hotfix: contest hero mobile
 > description Show more/less toggle + `markdownToExcerpt` strips `<!--` HTML comments so a Markdown-imported
 > description header no longer leaks into homepage/list excerpts.** **Session 249 (2026-08-02/03) — production-readiness sweep
 > before the deveco contest launch: rolled the upload-OOM guard (deveco Caddyfile 128MB catch-all cap +
@@ -25,11 +26,12 @@
 
 ---
 
-## Session 250 (2026-08-07) — absolute email links + hero register CTA + registration-before-entry — **BUILT + VERIFIED LOCALLY, NOT ROLLED**
+## Session 250 (2026-08-07) — absolute email links + hero register CTA + registration-before-entry — **ROLLED to all 3**
 
-Three operator-reported contest items. **Nothing published or deployed yet** — the versions in the header
-above are still what is LIVE. Rolling this publishes **editor + config + server + layer** and takes the
-instance flag count **38 → 39** (new `contestEntryRequiresRegistration`, default **ON**).
+**config 0.35→0.36 · editor 0.14→0.15 · server 2.125→2.126 · layer 0.122→0.123** (schema 0.63 / infra 0.19
+unchanged), **NO migration**. Flags **38 → 39** (new `contestEntryRequiresRegistration`, default **ON**) —
+verified `/api/features` returns 39 on all three. **CI is fully green (check + rust + e2e) for the first
+time since ≥2026-07-17** — both long-red jobs were fixed here (see below).
 
 1. **`https://auth/register` in contest emails — fixed at the source.** The registration-link block's
    default href is the root-relative `/auth/register`; emails have no document base, so a mail client
@@ -47,8 +49,21 @@ instance flag count **38 → 39** (new `contestEntryRequiresRegistration`, defau
    existing entrants already hold a `full` row and keep entering; new participants must complete the
    contest's registration form first.
 
-Verified locally: server 1790/1790, layer 1591, `pnpm typecheck` 28/28, browser E2E 12/12 (+ screenshots).
+**CI fixed (both long-red jobs):** the `check` job's Test step was failing on the
+`contestEntryDetailPage` suite — session 249's `safeHref` guard is used in the page TEMPLATE, so the
+test's `globalThis` auto-import stubs couldn't reach it (supplied via VTU `mocks`). The `e2e` job was
+failing on a stale assertion that the register submit button is enabled on load; it is correctly
+disabled until the GDPR consent box is ticked (now tick-until-enabled, which is also the hydration
+barrier the test actually wanted).
+
+Verified: server 1790/1790, layer 1598/1598, `pnpm test` 33/33, `pnpm typecheck` 28/28, lint 0 errors,
+local browser E2E 12/12 (+ screenshots), **CI green**, and post-deploy `/api/health` + `/api/features`
+(39 flags) + critical routes 200 on all three. Live deveco contest page SSRs the new hero CTA
+("Log in to register") and `POST /entries` refuses unauthenticated callers.
 See `docs/sessions/250-email-links-and-registration-gate.md`.
+
+> ⚠️ **Header versions above are now stale** — current LIVE is config **0.36** / editor **0.15** /
+> server **2.126** / layer **0.123**, schema 0.63, infra 0.19, migration 0045, **39 flags**.
 
 ---
 
