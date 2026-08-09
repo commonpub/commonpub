@@ -132,6 +132,68 @@ schema/infra change.
   three; `/`, `/contests`, `/about`, `/feed` all 200 on all three; the live deveco contest page SSRs the
   new hero CTA ("Log in to register") and `POST /entries` refuses unauthenticated callers.
 
+## Follow-up — the CTA's DESTINATION was wrong too (editor 0.16 / server 2.127 / layer 0.124)
+
+Operator pushback after the first roll: *"the auth register page just has you register an
+account — wouldn't you already have an account?"* Correct, and it exposes that fixing the
+URL's **form** left its **target** wrong.
+
+`/auth/register` creates an account. But the only two templates that render a
+registration-link block are the registration confirmation (sent the instant someone becomes
+a `full` participant) and the deadline reminder (sent to registered participants) — every
+recipient necessarily has an account AND is already registered. The button was a dead end.
+Both templates already append a system CTA to the contest, so the organizer's block was
+clearly meant to be something else.
+
+**Operator decision: point a blank block at the contest's registration page.** For a
+registered participant that page reads "Edit your registration" with their answers
+prefilled; an anonymous click routes through login and back to the form.
+
+- `buildRegistrationHref(content, { fallbackUrl })` — injectable fallback, itself run
+  through the same safety guard, so an unusable value degrades to the register page rather
+  than emitting an unsafe href.
+- `renderEmailBlocks(..., { registrationUrl })`, threaded from all four contest send paths.
+- An explicitly authored URL still wins; the block keeps the account-signup default
+  everywhere else (articles, projects, explainers, contest bodies) where a reader genuinely
+  may not have an account.
+- Editor copy corrected on all three surfaces that called it a sign-up button: the palette
+  entry, the body help text, and the block's URL placeholder (via a
+  `cpubRegistrationLinkDefault` inject scoped to the contest email editor).
+- `ContestEmailEditor` imports `provide` explicitly — the layer's bare component-test
+  harness supplies no Nuxt auto-imports, and the missing one was a hard ReferenceError.
+
+Verified: server 1792/1792, layer 1598/1598, `pnpm test` 33/33, typecheck 28/28, lint 0
+errors, and a **visual browser pass, 7/7** with screenshots reviewed — the rendered
+confirmation and reminder emails (CTA resolves to the contest registration page, no
+`/auth/register` anywhere), the organizer's editor with its live preview, the CTA's
+destination showing a prefilled "Edit your registration", the hero regression, and 390px
+with no overflow. Rolled to all 3; `/api/health` + 39 flags + critical routes 200 on each.
+
+## CI flake — fixed at the source
+
+`@commonpub/docs` failed CI twice in three runs with `[vitest-worker]: Timeout calling
+"onTaskUpdate"` while reporting **131/131 tests passed**. It is a run-level unhandled error,
+so the package's existing `retry: 2` could not cover it, and the `pool: 'forks'` mitigation
+added for the same error on 2026-06-09 was not enough alone. The aggravator is contention:
+turbo fans out ~14 vitest instances on a 2-4 core runner, vitest forks a process per test
+file inside each, and the CPU-bound shiki pipeline suite stalls long enough for the birpc
+call to time out. Fixed by `fileParallelism: false` + `poolOptions.forks.singleFork` in the
+docs package (131 tests in 3.4s, faster than before) and capping CI at
+`turbo run test --concurrency=50%`.
+
+## Findings examined but NOT changed
+
+- **`/auth/register` has no already-signed-in state.** A logged-in visitor who lands there
+  (e.g. via a registration-link block on a public article) gets the account-creation form
+  with no "you're already signed in as @x" affordance. Same dead-end class, different
+  surface; a core auth page shared by every instance, so not folded into this roll.
+- **Registration-link blocks on public contest *bodies*** still default to account signup.
+  Pointing them at `/contests/:slug/register` would serve both anonymous and signed-in
+  readers better, but the Vue view has no contest context — real plumbing, not a one-liner.
+- **Email button contrast.** The organizer CTA renders white-on-accent while the system CTA
+  renders black-on-accent; on a dark accent the black label is hard to read. Pre-existing,
+  and it is part of the deliberately deferred themed-email redesign (auto-contrast label).
+
 ## Open / next
 
 - **Behaviour change now live on deveco:** existing entrants keep working; new ones

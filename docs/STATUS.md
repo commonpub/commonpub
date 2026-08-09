@@ -3,9 +3,10 @@
 > **Living doc — your "come back later" reference.** Snapshot updated 2026-08-02 (through session 248).
 > Verify any version/flag claim before trusting it: `npm view @commonpub/<pkg> version`,
 > `curl https://<instance>/api/features`, `cargo search create-commonpub`.
-> **Current LIVE (all 3 instances):** schema **0.63** / config **0.36** / infra **0.19** / editor **0.15** /
-> server **2.126** / layer **0.123**, migration **0045**, **39 flags** (session 250, 2026-08-07 — absolute
-> email CTA links, hero register CTA, registration required before entering; **CI green again**). **Layer 0.119 = post-launch hotfix: contest hero mobile
+> **Current LIVE (all 3 instances):** schema **0.63** / config **0.36** / infra **0.19** / editor **0.16** /
+> server **2.127** / layer **0.124**, migration **0045**, **39 flags** (session 250, 2026-08-07/08 — contest
+> email CTAs now absolute AND pointed at the contest instead of account signup, hero register CTA,
+> registration required before entering; **CI green**, incl. the docs worker-RPC flake fixed at the source). **Layer 0.119 = post-launch hotfix: contest hero mobile
 > description Show more/less toggle + `markdownToExcerpt` strips `<!--` HTML comments so a Markdown-imported
 > description header no longer leaks into homepage/list excerpts.** **Session 249 (2026-08-02/03) — production-readiness sweep
 > before the deveco contest launch: rolled the upload-OOM guard (deveco Caddyfile 128MB catch-all cap +
@@ -62,8 +63,12 @@ local browser E2E 12/12 (+ screenshots), **CI green**, and post-deploy `/api/hea
 ("Log in to register") and `POST /entries` refuses unauthenticated callers.
 See `docs/sessions/250-email-links-and-registration-gate.md`.
 
-> ⚠️ **Header versions above are now stale** — current LIVE is config **0.36** / editor **0.15** /
-> server **2.126** / layer **0.123**, schema 0.63, infra 0.19, migration 0045, **39 flags**.
+**Follow-up roll (editor 0.16 / server 2.127 / layer 0.124):** the registration CTA in a contest email
+now targets that contest's registration page, not the account-signup page — every recipient of those two
+templates already has an account and is already registered, so the link was a dead end. Editor copy
+corrected on all three surfaces that called it a sign-up button. Also fixed the `@commonpub/docs`
+worker-RPC CI flake (single fork + `turbo --concurrency=50%` on CI). Verified with a 7/7 visual browser
+pass; live on all 3.
 
 ---
 
