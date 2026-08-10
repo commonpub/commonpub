@@ -167,9 +167,13 @@ test.describe('Contest lifecycle', () => {
     expect(steps, 'sidebar timeline lists every stage').toBeGreaterThanOrEqual(5);
     expect(await page.locator('.cpub-tl-now').count(), 'exactly one stage is current').toBe(1);
 
-    // The registration page is auth-gated and returns you afterwards.
-    await page.goto(`${contestUrl}/register`);
-    await expect(page).toHaveURL(/\/auth\/login\?redirect=/);
+    // The registration page is auth-gated and returns you afterwards. The bounce
+    // is a CLIENT-side redirect, which aborts the in-flight navigation — goto then
+    // rejects with net::ERR_ABORTED even though the redirect is working (it went
+    // flaky in CI exactly this way). Swallow the abort; the URL is the real check,
+    // and toHaveURL retries until the redirect settles.
+    await page.goto(`${contestUrl}/register`).catch(() => { /* client redirect */ });
+    await expect(page).toHaveURL(/\/auth\/login\?redirect=/, { timeout: 20_000 });
   });
 
   test('following a contest is not registering, and does not let you enter', async () => {
