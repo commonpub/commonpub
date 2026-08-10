@@ -130,6 +130,12 @@ jobs:
       # needs a second instance to be meaningful.
       FEATURE_ADMIN: 'true'
       FEATURE_CONTESTS: 'true'
+      # The contest-lifecycle spec walks proposal-mode stages and the rich
+      # registration form, which are flag-gated. Without these the spec would
+      # silently exercise a lesser contest than any real instance runs.
+      FEATURE_CONTEST_PROPOSALS: 'true'
+      FEATURE_CONTEST_PII: 'true'
+      FEATURE_CONTEST_PRIVATE_FILES: 'true'
       FEATURE_EVENTS: 'true'
       FEATURE_EXPLAINERS: 'true'
       FEATURE_LEARNING: 'true'

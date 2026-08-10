@@ -154,7 +154,11 @@ test.describe('Sidebar interactions on homepage', () => {
   test('sidebar contest links navigate', async ({ page }) => {
     await page.goto('/');
 
-    const contestsLink = page.locator('.cpub-sb-head a[href="/contests"]');
+    // `.first()`: the sidebar can render more than one section headed by a
+    // "View all" link to /contests, and a bare locator then fails strict mode
+    // rather than the test. This only ever passed because CI's database had no
+    // contests in it — the lifecycle spec now creates one.
+    const contestsLink = page.locator('.cpub-sb-head a[href="/contests"]').first();
     if (await contestsLink.isVisible()) {
       await contestsLink.click();
       await expect(page).toHaveURL(/\/contests/);
