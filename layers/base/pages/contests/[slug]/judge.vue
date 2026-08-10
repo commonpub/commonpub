@@ -226,7 +226,12 @@ async function submitScore(entryId: string): Promise<void> {
         <span v-if="currentReviewStage" class="cpub-judge-round">{{ currentReviewStage.name }}</span>
       </h1>
       <p class="cpub-judge-desc">
-        Score each entry from 0 to 100. Add optional feedback. Scores are saved immediately.
+        <!-- With a rubric the judge scores each CRITERION against its own max (the
+             overall /100 is derived), so the flat "0 to 100" instruction would be
+             wrong — and a judge following it would have their score rejected. -->
+        <template v-if="hasCriteria">Score each criterion against its own maximum; the overall score is calculated for you.</template>
+        <template v-else>Score each entry from 0 to 100.</template>
+        Add optional feedback. Scores are saved immediately.
         <template v-if="currentReviewStage"> You're judging the <strong>{{ entryList.length }}</strong> {{ entryList.length === 1 ? 'entry' : 'entries' }} still in this round.</template>
       </p>
     </header>

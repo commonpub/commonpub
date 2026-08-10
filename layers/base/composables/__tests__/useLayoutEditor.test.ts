@@ -489,13 +489,28 @@ describe('useLayoutEditor — abort() (R4 P2 audit fix)', () => {
     expect(editor.errorMessage.value).toBeNull();
   });
 
-  it('abort() flips the controller signal to aborted', () => {
+  it('abort() actually aborts the signal the in-flight PUT is holding', async () => {
+    // The controller isn't exposed, but the signal handed to `$fetch` IS — so
+    // capture it from the call and assert abort() flips it. (This test used to
+    // assert `expect(true).toBe(true)`, which proved only that abort() doesn't
+    // throw — it would have passed with an empty function body.)
+    const { mock } = installFetch(() => Promise.resolve(fixture()));
     const editor = useLayoutEditor('L1');
+    editor.original.value = fixture();
+    editor.draft.value = { ...fixture(), name: 'Renamed' };
+    await editor.save();
+
+    const lastCall = mock.mock.calls[mock.mock.calls.length - 1] as [string, Record<string, unknown>];
+    const signal = lastCall[1].signal as AbortSignal;
+    expect(signal.aborted).toBe(false);
+
     editor.abort();
-    // No assertion possible without exposing the controller; the test
-    // just verifies abort() is callable without throwing. The fetch
-    // wiring + AbortError handling is covered by the two tests above.
-    expect(true).toBe(true);
+
+    expect(signal.aborted).toBe(true);
+    // ...and a listener on that signal fires, which is what cancels a real fetch.
+    let notified = false;
+    signal.addEventListener('abort', () => { notified = true; });
+    expect(signal.aborted || notified).toBe(true);
   });
 });
 
