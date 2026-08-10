@@ -62,10 +62,17 @@ export async function parseBody<T>(event: H3Event, schema: ZodType<T>): Promise<
   const body = await readBody(event);
   const parsed = schema.safeParse(body);
   if (!parsed.success) {
+    const fieldErrors = parsed.error.flatten().fieldErrors;
+    // Log the rejected FIELD NAMES (never the values — bodies carry PII). Without
+    // this a "validation failed" report from a user is unactionable: the operator
+    // has no way to learn which field the client sent wrong.
+    console.warn(
+      `[validation] ${event.method} ${event.path} rejected: ${Object.keys(fieldErrors).join(', ') || '<root>'}`,
+    );
     throw createError({
       statusCode: 400,
       statusMessage: 'Validation failed',
-      data: { errors: parsed.error.flatten().fieldErrors },
+      data: { errors: fieldErrors },
     });
   }
   return parsed.data;

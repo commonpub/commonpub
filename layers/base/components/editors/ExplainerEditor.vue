@@ -335,11 +335,14 @@ const blockCount = computed(() => props.blockEditor.blocks.value.length);
           </div>
           <div class="cpub-ep-field">
             <label class="cpub-ep-flabel">Description</label>
-            <textarea class="cpub-ep-textarea" rows="3" :value="metadata.description as string" placeholder="What does this explainer teach?" @input="updateMeta('description', ($event.target as HTMLTextAreaElement).value)" />
+            <textarea class="cpub-ep-textarea" rows="3" :value="metadata.description as string" placeholder="What does this explainer teach?" :maxlength="2000" @input="updateMeta('description', ($event.target as HTMLTextAreaElement).value)" />
           </div>
           <div class="cpub-ep-field">
             <label class="cpub-ep-flabel">Estimated Minutes</label>
-            <input class="cpub-ep-input" type="number" :value="metadata.estimatedMinutes" placeholder="10" @input="updateMeta('estimatedMinutes', Number(($event.target as HTMLInputElement).value))">
+            <!-- Clearing the box yields '', and Number('') is 0 — which the server
+                 rejects as "expected number to be >0". Send undefined instead so an
+                 empty optional field simply isn't set. -->
+            <input class="cpub-ep-input" type="number" min="1" :value="metadata.estimatedMinutes" placeholder="10" @input="updateMeta('estimatedMinutes', ($event.target as HTMLInputElement).value === '' ? undefined : Number(($event.target as HTMLInputElement).value))">
           </div>
           <div class="cpub-ep-field">
             <label class="cpub-ep-flabel">Tags</label>

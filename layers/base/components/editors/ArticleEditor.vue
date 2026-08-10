@@ -15,6 +15,7 @@ function updateMeta(key: string, value: unknown): void {
 }
 
 const { uploadFile } = useFileUpload();
+const toast = useToast();
 
 const blockTypes: BlockTypeGroup[] = [
   {
@@ -194,8 +195,22 @@ function onCoverUpload(event: Event): void {
 }
 
 function onCoverUrl(): void {
-  const url = window.prompt('Enter image URL:');
-  if (url) updateMeta('coverImageUrl', url);
+  // The server stores this in `coverImageUrl`, which is validated as an ABSOLUTE
+  // http(s) URL (optionalUrl → z.string().url() + scheme allowlist, the session-247
+  // stored-XSS guard). A raw prompt value like `example.com/a.jpg`, `/uploads/a.jpg`
+  // or a `data:` URI copied from another site fails that check — and the author only
+  // found out as an opaque "Validation failed" on every later save. Normalize a bare
+  // host to https:// and reject anything else HERE, with a message that says why.
+  const raw = window.prompt('Enter image URL:')?.trim();
+  if (!raw) return;
+  const candidate = /^[a-z][a-z0-9+.-]*:/i.test(raw) ? raw : `https://${raw}`;
+  let ok = /^https?:\/\//i.test(candidate);
+  if (ok) { try { new URL(candidate); } catch { ok = false; } }
+  if (!ok) {
+    toast.error('Enter a full image URL, e.g. https://example.com/photo.jpg');
+    return;
+  }
+  updateMeta('coverImageUrl', candidate);
 }
 
 function removeCover(): void {
@@ -431,11 +446,11 @@ const canvasMaxWidth = computed(() => {
           </div>
           <div class="cpub-ep-field">
             <label class="cpub-ep-flabel">Subtitle <span class="cpub-ep-optional">(optional)</span></label>
-            <input class="cpub-ep-input" type="text" :value="metadata.subtitle as string" placeholder="Add a subtitle..." @input="updateMeta('subtitle', ($event.target as HTMLInputElement).value)">
+            <input class="cpub-ep-input" type="text" :value="metadata.subtitle as string" placeholder="Add a subtitle..." :maxlength="255" @input="updateMeta('subtitle', ($event.target as HTMLInputElement).value)">
           </div>
           <div class="cpub-ep-field">
             <label class="cpub-ep-flabel">Description</label>
-            <textarea class="cpub-ep-textarea" rows="3" :value="metadata.description as string" placeholder="Brief description shown in feed previews..." @input="updateMeta('description', ($event.target as HTMLTextAreaElement).value)" />
+            <textarea class="cpub-ep-textarea" rows="3" :value="metadata.description as string" placeholder="Brief description shown in feed previews..." :maxlength="2000" @input="updateMeta('description', ($event.target as HTMLTextAreaElement).value)" />
             <span class="cpub-ep-hint cpub-ep-hint-right">{{ ((metadata.description as string) || '').length }} / 300</span>
           </div>
           <div class="cpub-ep-field">
@@ -513,7 +528,7 @@ const canvasMaxWidth = computed(() => {
           </div>
           <div class="cpub-ep-field" style="margin-top: 10px;">
             <label class="cpub-ep-flabel">SEO Description</label>
-            <textarea class="cpub-ep-textarea" rows="3" :value="metadata.seoDescription as string" placeholder="Search engine description..." @input="updateMeta('seoDescription', ($event.target as HTMLTextAreaElement).value)" />
+            <textarea class="cpub-ep-textarea" rows="3" :value="metadata.seoDescription as string" placeholder="Search engine description..." :maxlength="320" @input="updateMeta('seoDescription', ($event.target as HTMLTextAreaElement).value)" />
             <span class="cpub-ep-hint cpub-ep-hint-right">{{ ((metadata.seoDescription as string) || '').length }}/160</span>
           </div>
         </EditorSection>
@@ -530,7 +545,7 @@ const canvasMaxWidth = computed(() => {
           </div>
           <div class="cpub-ep-field">
             <label class="cpub-ep-flabel">Series <span class="cpub-ep-optional">(optional)</span></label>
-            <input class="cpub-ep-input" type="text" :value="metadata.series as string" placeholder="e.g. Home Lab Chronicles" @input="updateMeta('series', ($event.target as HTMLInputElement).value)">
+            <input class="cpub-ep-input" type="text" :value="metadata.series as string" placeholder="e.g. Home Lab Chronicles" :maxlength="128" @input="updateMeta('series', ($event.target as HTMLInputElement).value)">
           </div>
           <div class="cpub-ep-field">
             <label class="cpub-ae-schedule-row">

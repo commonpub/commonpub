@@ -3,7 +3,7 @@
  * Reusable tag input for editor panels.
  * Used by Article, Blog, Project editors.
  */
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 
 const props = defineProps<{
   tags: string[];
@@ -15,14 +15,36 @@ const emit = defineEmits<{
 
 const tagInput = ref('');
 
+/** Server caps: `tags: z.array(z.string().max(64)).max(20)`. Enforce them HERE —
+ *  an over-cap tag is rejected on every later save as an opaque "Validation
+ *  failed", with nothing in the UI to say which tag or that a limit exists. */
+const TAG_MAX_LEN = 64;
+const TAG_MAX_COUNT = 20;
+
+const atLimit = computed(() => props.tags.length >= TAG_MAX_COUNT);
+
+/** Commit whatever is typed. Splits on commas so a PASTED "a, b, c" becomes three
+ *  tags instead of one 68-character tag (paste fires no keydown, so the old
+ *  comma-key handler never saw it). Over-long tags are truncated, not dropped. */
+function commit(): void {
+  const parts = tagInput.value
+    .split(',')
+    .map((t) => t.trim().slice(0, TAG_MAX_LEN))
+    .filter(Boolean);
+  if (!parts.length) { tagInput.value = ''; return; }
+  const next = [...props.tags];
+  for (const p of parts) {
+    if (next.length >= TAG_MAX_COUNT) break;
+    if (!next.includes(p)) next.push(p);
+  }
+  if (next.length !== props.tags.length) emit('update:tags', next);
+  tagInput.value = '';
+}
+
 function addTag(e: KeyboardEvent): void {
   if (e.key === 'Enter' || e.key === ',') {
     e.preventDefault();
-    const val = tagInput.value.trim().replace(/,$/, '');
-    if (val && !props.tags.includes(val)) {
-      emit('update:tags', [...props.tags, val]);
-    }
-    tagInput.value = '';
+    commit();
   }
 }
 
@@ -45,10 +67,13 @@ function removeTag(idx: number): void {
       v-model="tagInput"
       type="text"
       class="cpub-tag-input"
-      placeholder="Add tag..."
+      :disabled="atLimit"
+      :placeholder="atLimit ? `Tag limit reached (${TAG_MAX_COUNT})` : 'Add tag...'"
       aria-label="Add tag"
       @keydown="addTag"
+      @blur="commit"
     />
+    <span class="cpub-tag-count">{{ tags.length }}/{{ TAG_MAX_COUNT }} tags</span>
   </div>
 </template>
 
@@ -57,6 +82,12 @@ function removeTag(idx: number): void {
   display: flex;
   flex-direction: column;
   gap: 6px;
+}
+.cpub-tag-count {
+  font-size: var(--text-label, 10px);
+  font-family: var(--font-mono);
+  color: var(--text-faint);
+  align-self: flex-end;
 }
 
 .cpub-tag-chips {

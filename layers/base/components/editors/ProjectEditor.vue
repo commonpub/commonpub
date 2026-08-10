@@ -95,8 +95,22 @@ function onCoverUpload(event: Event): void {
 }
 
 function onCoverUrl(): void {
-  const url = window.prompt('Enter image URL:');
-  if (url) updateMeta('coverImageUrl', url);
+  // The server stores this in `coverImageUrl`, which is validated as an ABSOLUTE
+  // http(s) URL (optionalUrl → z.string().url() + scheme allowlist, the session-247
+  // stored-XSS guard). A raw prompt value like `example.com/a.jpg`, `/uploads/a.jpg`
+  // or a `data:` URI copied from another site fails that check — and the author only
+  // found out as an opaque "Validation failed" on every later save. Normalize a bare
+  // host to https:// and reject anything else HERE, with a message that says why.
+  const raw = window.prompt('Enter image URL:')?.trim();
+  if (!raw) return;
+  const candidate = /^[a-z][a-z0-9+.-]*:/i.test(raw) ? raw : `https://${raw}`;
+  let ok = /^https?:\/\//i.test(candidate);
+  if (ok) { try { new URL(candidate); } catch { ok = false; } }
+  if (!ok) {
+    toast.error('Enter a full image URL, e.g. https://example.com/photo.jpg');
+    return;
+  }
+  updateMeta('coverImageUrl', candidate);
 }
 
 function removeCover(): void {
@@ -297,15 +311,15 @@ const blockCount = computed(() => props.blockEditor.blocks.value.length);
           </div>
           <div class="cpub-ep-field">
             <label class="cpub-ep-flabel">Build Time</label>
-            <input class="cpub-ep-input" type="text" :value="metadata.buildTime" placeholder="e.g. 2–4 hours" @input="updateMeta('buildTime', ($event.target as HTMLInputElement).value)">
+            <input class="cpub-ep-input" type="text" :value="metadata.buildTime" placeholder="e.g. 2–4 hours" :maxlength="64" @input="updateMeta('buildTime', ($event.target as HTMLInputElement).value)">
           </div>
           <div class="cpub-ep-field">
             <label class="cpub-ep-flabel">Estimated Cost</label>
-            <input class="cpub-ep-input" type="text" :value="metadata.estimatedCost" placeholder="e.g. $45-60" @input="updateMeta('estimatedCost', ($event.target as HTMLInputElement).value)">
+            <input class="cpub-ep-input" type="text" :value="metadata.estimatedCost" placeholder="e.g. $45-60" :maxlength="64" @input="updateMeta('estimatedCost', ($event.target as HTMLInputElement).value)">
           </div>
           <div class="cpub-ep-field">
             <label class="cpub-ep-flabel">Description</label>
-            <textarea class="cpub-ep-textarea" rows="3" :value="metadata.description as string" placeholder="Brief project description..." @input="updateMeta('description', ($event.target as HTMLTextAreaElement).value)" />
+            <textarea class="cpub-ep-textarea" rows="3" :value="metadata.description as string" placeholder="Brief project description..." :maxlength="2000" @input="updateMeta('description', ($event.target as HTMLTextAreaElement).value)" />
           </div>
         </EditorSection>
 
@@ -377,7 +391,7 @@ const blockCount = computed(() => props.blockEditor.blocks.value.length);
           </div>
           <div class="cpub-pe-field" style="margin-top: 10px;">
             <label class="cpub-pe-flabel">SEO Description</label>
-            <textarea class="cpub-pe-textarea" rows="3" :value="metadata.seoDescription as string" placeholder="Search engine description (recommended 50-160 chars)" @input="updateMeta('seoDescription', ($event.target as HTMLTextAreaElement).value)" />
+            <textarea class="cpub-pe-textarea" rows="3" :value="metadata.seoDescription as string" placeholder="Search engine description (recommended 50-160 chars)" :maxlength="320" @input="updateMeta('seoDescription', ($event.target as HTMLTextAreaElement).value)" />
             <span class="cpub-pe-hint cpub-pe-hint-right">{{ ((metadata.seoDescription as string) || '').length }}/160</span>
           </div>
         </EditorSection>

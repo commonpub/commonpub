@@ -8,8 +8,21 @@ import { isRequiredFormField, type ContestSubmissionTemplateField } from '@commo
 /** Markers a checkbox/agreement value counts as accepted/checked. */
 const TRUTHY = new Set(['true', 'on', '1', 'yes', 'accepted', 'checked']);
 
+/**
+ * Coerce a live form value to the string these helpers (and the wire contract)
+ * assume. The model is *typed* string, but the DOM can hand us something else:
+ * Vue's `v-model` on `<input type="number">` casts to a NUMBER, so a single
+ * numeric field used to throw `(value ?? '').trim is not a function` here —
+ * inside a computed, which killed the whole form (Save stuck disabled, answers
+ * silently dropped, nothing submittable). Never trust the declared type.
+ */
+function asText(value: unknown): string {
+  if (value == null) return '';
+  return typeof value === 'string' ? value : String(value);
+}
+
 export function isChecked(value: string | undefined): boolean {
-  return TRUTHY.has((value ?? '').trim().toLowerCase());
+  return TRUTHY.has(asText(value).trim().toLowerCase());
 }
 
 /** Structured mailing-address subfields (stored JSON-encoded in the value). */
@@ -38,7 +51,7 @@ export function parseAddress(value: string | undefined): AddressValue {
 export function serializeAddress(addr: AddressValue): string {
   const cleaned: AddressValue = {};
   for (const { key } of ADDRESS_SUBFIELDS) {
-    const v = (addr[key] ?? '').trim();
+    const v = asText(addr[key]).trim();
     if (v) cleaned[key] = v;
   }
   return Object.keys(cleaned).length ? JSON.stringify(cleaned) : '';
@@ -49,7 +62,7 @@ export function isFieldFilled(field: ContestSubmissionTemplateField, value: stri
   // Sections are display-only (no input) — never "unfilled", so a required
   // section can't block submission (mirrors the server, which skips section).
   if (field.type === 'section') return true;
-  const v = (value ?? '').trim();
+  const v = asText(value).trim();
   if (field.type === 'checkbox' || field.type === 'agreement') return isChecked(v);
   if (field.type === 'address') return Object.keys(parseAddress(v)).length > 0;
   return v.length > 0;
@@ -90,7 +103,7 @@ export function buildSubmissionPayload(
 ): Record<string, string> {
   const out: Record<string, string> = {};
   for (const f of template) {
-    const raw = (values[f.key] ?? '').trim();
+    const raw = asText(values[f.key]).trim();
     if (f.type === 'checkbox' || f.type === 'agreement') {
       // Only send a positive marker (the server treats absent as not-accepted).
       if (isChecked(raw)) out[f.key] = 'true';

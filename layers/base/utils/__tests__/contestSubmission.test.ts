@@ -67,4 +67,29 @@ describe('contestSubmission helpers', () => {
     expect(buildSubmissionPayload(template, { name: 'Ada', opt: 'false' }))
       .toEqual({ name: 'Ada', opt: 'false' });
   });
+
+  // Regression: a `number` field's <input> gave Vue's v-model a NUMBER, not the
+  // string the model is typed as. `(value ?? '').trim()` then threw inside a
+  // computed and took the whole form down — Save stuck disabled, answers silently
+  // dropped, nothing submittable. These helpers must survive any value the DOM
+  // can hand them and always emit the string wire shape.
+  it('survives non-string values from the DOM and still emits strings', () => {
+    const template = [
+      f({ key: 'size', label: 'Size', type: 'number', required: true }),
+      f({ key: 'name', label: 'Name', type: 'text', required: true }),
+      f({ key: 'tos', label: 'Terms', type: 'agreement', required: true, mustAccept: true }),
+    ];
+    const values = { size: 4, name: 'Ada', tos: true } as unknown as Record<string, string>;
+
+    expect(() => buildSubmissionPayload(template, values)).not.toThrow();
+    const payload = buildSubmissionPayload(template, values);
+    expect(payload).toEqual({ size: '4', name: 'Ada', tos: 'true' });
+    for (const v of Object.values(payload)) expect(typeof v).toBe('string');
+
+    // ...and the required-field gate must agree, or Save stays disabled forever.
+    expect(blockingFields(template, values)).toEqual([]);
+    expect(isFieldFilled(template[0]!, 0 as unknown as string)).toBe(true);
+    expect(isFieldFilled(template[0]!, undefined)).toBe(false);
+    expect(isChecked(true as unknown as string)).toBe(true);
+  });
 });

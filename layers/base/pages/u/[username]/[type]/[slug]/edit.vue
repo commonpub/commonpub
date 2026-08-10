@@ -460,6 +460,7 @@ async function handleUrlImport(result: ImportedContent): Promise<void> {
           v-model="title"
           type="text"
           class="cpub-topbar-title-input"
+          maxlength="255"
           :placeholder="`Untitled ${contentType}...`"
           aria-label="Content title"
         />
@@ -607,6 +608,12 @@ async function handleUrlImport(result: ImportedContent): Promise<void> {
         />
       </div>
     </Teleport>
+
+    <!-- The toast host lives in `layouts/default.vue`, and this page runs with
+         `layout: false` — so every toast the editor raises (a failed publish, the
+         contest auto-enter result, a rejected cover URL) was being emitted into
+         nothing. Mount it here so the editor's own messages are actually seen. -->
+    <AppToast />
   </div>
 </template>
 

@@ -81,7 +81,12 @@ export function useContentSave(opts: ContentSaveOptions): ContentSaveReturn {
     };
     if (!body.slug) delete body.slug;
     for (const key of Object.keys(body)) {
-      if (body[key] === '') body[key] = undefined;
+      // `null` as well as `''`: nearly every content field is `.optional()` but
+      // NOT nullable, so a null reaches the server as "expected string, received
+      // null" — a 400 the author sees only as an opaque "Validation failed".
+      // An editor that clears a field to null (or metadata seeded from an API
+      // row) must not be able to poison the save.
+      if (body[key] === '' || body[key] === null) body[key] = undefined;
     }
     // scheduledAt arrives from a datetime-local control as a bare local string;
     // resolve it to an absolute UTC instant client-side so the server never

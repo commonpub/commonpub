@@ -198,11 +198,27 @@ function clearFile(): void {
         <option value="" disabled>Choose…</option>
         <option v-for="o in (field.options ?? [])" :key="o.value" :value="o.value">{{ o.label }}</option>
       </select>
+      <!-- Number gets its own binding: Vue's `v-model` casts a number input's
+           value to a NUMBER, but this model — and the wire contract — is a
+           STRING. The coerced value then blew up the shared string helpers
+           inside a computed, which silently killed the whole form. `:value` +
+           `@input` keeps it a string; every other type keeps `v-model` (and with
+           it the IME-composition handling text inputs need). -->
+      <input
+        v-else-if="field.type === 'number'"
+        :id="fieldId"
+        type="number"
+        :value="model"
+        class="cpub-subfield-input"
+        :maxlength="field.maxLength ?? 4000"
+        :aria-describedby="helpId"
+        @input="model = ($event.target as HTMLInputElement).value"
+      />
       <input
         v-else
         :id="fieldId"
         v-model="model"
-        :type="field.type === 'url' ? 'url' : field.type === 'email' ? 'email' : field.type === 'number' ? 'number' : field.type === 'date' ? 'date' : field.type === 'tel' ? 'tel' : 'text'"
+        :type="field.type === 'url' ? 'url' : field.type === 'email' ? 'email' : field.type === 'date' ? 'date' : field.type === 'tel' ? 'tel' : 'text'"
         class="cpub-subfield-input"
         :class="{ 'cpub-subfield-signature': field.type === 'signature' }"
         :maxlength="field.maxLength ?? 4000"
