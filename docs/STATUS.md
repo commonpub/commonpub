@@ -3,8 +3,8 @@
 > **Living doc — your "come back later" reference.** Snapshot updated 2026-08-02 (through session 248).
 > Verify any version/flag claim before trusting it: `npm view @commonpub/<pkg> version`,
 > `curl https://<instance>/api/features`, `cargo search create-commonpub`.
-> **Current LIVE (all 3 instances):** schema **0.63** / config **0.36** / infra **0.19** / editor **0.16** /
-> server **2.127** / layer **0.124**, migration **0045**, **39 flags** (session 250, 2026-08-07/08 — contest
+> **Current LIVE (all 3 instances):** schema **0.63** / config **0.36** / infra **0.19** / editor **0.17** /
+> server **2.127** / layer **0.125**, migration **0045**, **39 flags** (session 250, 2026-08-07/08 — contest
 > email CTAs now absolute AND pointed at the contest instead of account signup, hero register CTA,
 > registration required before entering; **CI green**, incl. the docs worker-RPC flake fixed at the source). **Layer 0.119 = post-launch hotfix: contest hero mobile
 > description Show more/less toggle + `markdownToExcerpt` strips `<!--` HTML comments so a Markdown-imported
@@ -24,6 +24,29 @@
 > `docs/sessions/249-kickoff.md`**, the session-246 audit `docs/reviews/production-readiness-audit-2026-07-23.md`
 > (batch-2 P2s still open), scalability memory `project_pagination_scalability.md`, contest guide
 > `docs/reference/guides/contests.md`.
+
+---
+
+## Session 251 (2026-08-09) — "Validation failed" made diagnosable + its causes fixed — **ROLLED to all 3**
+
+**editor 0.16→0.17 · layer 0.124→0.125**, no schema/config/server change, no migration.
+
+A maker hit "validation failed" publishing a project. Root of the *mystery*: h3 nests
+`createError({data})` under a `data` key of the response body and ofetch sets `FetchError.data` to that
+whole body, so field errors live at **`err.data.data.errors`** — `useApiError` read the shallow
+`err.data.errors` (always undefined) and fell back to the bare status message. Every validation error in
+the app, all 19 call sites, was unreadable. Now widened, plus the server logs rejected field NAMES.
+
+Causes fixed: cover **"From URL"** took an unvalidated `window.prompt` string (`example.com/a.jpg`,
+`/uploads/…`, `data:` URIs all fail `optionalUrl` forever) — this is the image-shaped path, NOT the file
+upload, which is healthy; **tags** had no caps so a pasted comma list became one 68-char tag; a
+**number field broke contest forms outright** (Vue's `v-model` on `type=number` casts to a number, and
+the shared helpers `.trim()`ed it → TypeError in a computed → Save stuck disabled, answers dropped);
+missing client-side length caps; `null` in optional-but-not-nullable fields; `Number('') === 0`. Also:
+the editor runs `layout: false`, so **every toast it raised was invisible** — `AppToast` now mounted there.
+
+Found via a 16-agent ultracode audit + a live repro. 10/10 browser checks, layer 1599, editor 267,
+typecheck 28/28. See `docs/sessions/251-validation-failed-audit.md`.
 
 ---
 
