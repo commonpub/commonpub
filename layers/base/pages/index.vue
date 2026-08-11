@@ -13,6 +13,32 @@ const sortedSections = computed(() =>
   [...(homepageSections.value ?? [])].sort((a, b) => a.order - b.order),
 );
 
+// Clock- and TIMEZONE-derived text must not be rendered during SSR. The server
+// formats in the container's zone (UTC in production) and the browser re-formats
+// in the viewer's, so a date near midnight UTC renders a different day on each
+// side — "Hydration completed but contains mismatches" on every homepage load.
+// It is invisible in local dev because the dev server and the browser share a
+// timezone; only production shows it. Render after mount instead.
+const clockReady = ref(false);
+onMounted(() => { clockReady.value = true; });
+
+function endsLabel(d: string | null | undefined, withYear = false): string | null {
+  if (!clockReady.value || !d) return null;
+  const dt = new Date(d);
+  if (Number.isNaN(dt.getTime())) return null;
+  return dt.toLocaleDateString('en-US', withYear
+    ? { month: 'short', day: 'numeric', year: 'numeric' }
+    : { month: 'short', day: 'numeric' });
+}
+function daysLeftLabel(c: { currentStageEndDate?: string | null; endDate?: string | null }): string | null {
+  if (!clockReady.value) return null;
+  const target = c.currentStageEndDate ?? c.endDate;
+  if (!target) return null;
+  const ms = new Date(target).getTime() - Date.now();
+  if (!Number.isFinite(ms)) return null;
+  return `${Math.max(0, Math.ceil(ms / 86_400_000))}d left`;
+}
+
 const { user: authUser } = useAuth();
 const { hubs: hubsEnabled, contests: contestsEnabled, learning: learningEnabled, video: videoEnabled, docs: docsEnabled, editorial: editorialEnabled, layoutEngine: layoutEngineFlag } = useFeatures();
 const { enabledTypeMeta } = useContentTypes();
@@ -208,7 +234,7 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
             <div class="cpub-hero-meta">
               <span class="cpub-hero-stat"><i class="fa-solid fa-users"></i> <strong>{{ activeContest.entryCount ?? 0 }}</strong> entries</span>
               <span v-if="(activeContest.followerCount ?? 0) > 0" class="cpub-hero-stat"><i class="fa-solid fa-bell"></i> <strong>{{ activeContest.followerCount }}</strong> following</span>
-              <span v-if="activeContest.endDate" class="cpub-hero-stat"><i class="fa-solid fa-calendar"></i> Ends <strong>{{ new Date(activeContest.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) }}</strong></span>
+              <span v-if="endsLabel(activeContest.endDate, true)" class="cpub-hero-stat"><i class="fa-solid fa-calendar"></i> Ends <strong>{{ endsLabel(activeContest.endDate, true) }}</strong></span>
             </div>
           </template>
           <!-- Generic welcome hero (no active contest) -->
@@ -333,7 +359,7 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
         <NuxtLink v-if="contestsEnabled && activeContest" :to="`/contests/${activeContest.slug}`" class="cpub-contest-banner">
           <div class="cpub-contest-banner-info">
             <span class="cpub-contest-banner-label"><i class="fa-solid fa-trophy"></i> {{ activeContest.title }}</span>
-            <span class="cpub-contest-banner-meta">{{ activeContest.entryCount ?? 0 }} entries<template v-if="activeContest.endDate"> &middot; Ends {{ new Date(activeContest.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) }}</template></span>
+            <span class="cpub-contest-banner-meta">{{ activeContest.entryCount ?? 0 }} entries<template v-if="endsLabel(activeContest.endDate)"> &middot; Ends {{ endsLabel(activeContest.endDate) }}</template></span>
           </div>
           <span class="cpub-contest-banner-btn">Enter Challenge <i class="fa-solid fa-arrow-right"></i></span>
         </NuxtLink>
@@ -405,8 +431,11 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
             <div class="cpub-contest-row">
               <span class="cpub-contest-entries">{{ c.entryCount ?? 0 }} entries</span>
               <span v-if="(c.followerCount ?? 0) > 0" class="cpub-contest-entries"><i class="fa-solid fa-bell"></i> {{ c.followerCount }} following</span>
-              <span v-if="c.endDate" class="cpub-contest-deadline">
-                <i class="fa-regular fa-clock"></i> {{ Math.max(0, Math.ceil((new Date(c.endDate).getTime() - Date.now()) / 86400000)) }}d left
+              <!-- Gated on the LABEL, not on endDate: emitting the element with
+                   empty text server-side and filling it in on the client is
+                   itself a children mismatch. -->
+              <span v-if="daysLeftLabel(c)" class="cpub-contest-deadline">
+                <i class="fa-regular fa-clock"></i> {{ daysLeftLabel(c) }}
               </span>
             </div>
             <NuxtLink :to="`/contests/${c.slug}`" class="cpub-btn-enter">Enter Contest</NuxtLink>

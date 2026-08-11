@@ -29,11 +29,17 @@ function daysLeftLabel(c: { currentStageEndDate?: string | null; endDate?: strin
 // full callout, don't repeat it here. Other active contests still list.
 const heroContestId = useState<string | null>('cpub:hero-contest-id', () => null);
 interface ContestCard { id: string; slug: string; title: string; entryCount?: number; followerCount?: number; endDate?: string | null; currentStageEndDate?: string | null }
-const visibleContests = computed(() =>
-  ((contests.value?.items ?? []) as ContestCard[])
-    .filter((c) => c.id !== heroContestId.value)
-    .map((c) => ({ ...c, daysLeft: mounted.value ? daysLeftLabel(c) : null })),
-);
+const visibleContests = computed(() => {
+  const items = (contests.value?.items ?? []) as ContestCard[];
+  // Dedupe only AFTER hydration. `heroContestId` is published by a sibling
+  // component's watchEffect, and whether that has run by the time this section
+  // renders differs between the server and the client — so filtering during SSR
+  // made the server emit a list shifted by one against the client's, showing up
+  // as mismatched contest links. Costs a brief duplicate on first paint; the
+  // alternative is the server rendering links the client then replaces.
+  const deduped = mounted.value ? items.filter((c) => c.id !== heroContestId.value) : items;
+  return deduped.map((c) => ({ ...c, daysLeft: mounted.value ? daysLeftLabel(c) : null }));
+});
 </script>
 
 <template>

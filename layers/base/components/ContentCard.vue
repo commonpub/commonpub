@@ -53,9 +53,24 @@ const authorInitial = computed(() => {
   return name.charAt(0).toUpperCase();
 });
 
-const dateStr = computed(() => {
+// `toLocaleDateString` formats in the RENDERER's timezone, so the server (UTC in
+// production) and the viewer's browser disagree about the day for anything near
+// midnight UTC — a hydration mismatch on every page that lists content, which is
+// most of them. It is invisible in local dev because the dev server and the
+// browser share a zone. Render the human string only after mount (the guard
+// ContestHero already uses); the machine-readable `datetime` attribute is the
+// raw ISO value, so crawlers and assistive tech still get the date from SSR.
+const mounted = ref(false);
+onMounted(() => { mounted.value = true; });
+
+const dateIso = computed(() => {
   const d = props.item.publishedAt || props.item.createdAt;
-  return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const dt = new Date(d);
+  return Number.isNaN(dt.getTime()) ? '' : dt.toISOString();
+});
+const dateStr = computed(() => {
+  if (!mounted.value || !dateIso.value) return '';
+  return new Date(dateIso.value).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 });
 
 function formatCount(n: number | undefined): string {
@@ -112,8 +127,8 @@ function formatCount(n: number | undefined): string {
             <img v-if="item.author.avatarUrl" :src="item.author.avatarUrl" :alt="item.author.displayName || item.author.username" class="cpub-cc-av cpub-cc-av--img" />
             <span v-else class="cpub-cc-av">{{ authorInitial }}</span>
             <span class="cpub-cc-aname">{{ item.author.displayName || item.author.username }}</span>
-            <span class="cpub-cc-sep">&middot;</span>
-            <time class="cpub-cc-date">{{ dateStr }}</time>
+            <span v-if="dateStr" class="cpub-cc-sep">&middot;</span>
+            <time class="cpub-cc-date" :datetime="dateIso">{{ dateStr }}</time>
           </div>
           <div class="cpub-cc-stats">
             <span class="cpub-cc-stat"><i class="fa-solid fa-heart"></i> {{ formatCount(item.likeCount) }}</span>
