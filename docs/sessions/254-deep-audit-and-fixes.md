@@ -91,9 +91,10 @@ register. Measured:
 28 blocks converted via a **block-scoped** scan, two more than the audit listed, including the
 hardcoded `, #000` fallback on `.cpub-notif-badge` that would have survived the token change.
 
-`--red` is deliberately untouched. On agora, `on-accent` scores 3.99:1 against `--red` versus 4.51:1
+`--red` was left alone in round 1. On agora, `on-accent` scores 3.99:1 against `--red` versus 4.51:1
 for `text-inverse`; on base it is 4.62 versus 3.76. Exactly one theme fails either way, so the audit's
-suggested revert would have **moved** the failure rather than fixed it. See open questions.
+suggested revert would have **moved** the failure rather than fixed it. Resolved in round 2 below with
+a real per-fill token family.
 
 ### 5. Tests that could not fail (P2)
 
@@ -118,28 +119,63 @@ reported a clean sweep.
 
 ## Versions
 
-`infra 0.21.0` · `server 2.130.0` · `editor 0.17.1` · `explainer 0.8.1` · `layer 0.132.0`. No migration.
+`ui 0.15.0` · `auth 0.13.0` · `theme-studio 0.7.0` · `infra 0.21.0` · `server 2.130.0` · `editor 0.17.1` · `explainer 0.8.1` · `layer 0.132.0`. No migration.
 PR [#76](https://github.com/commonpub/commonpub/pull/76).
+
+## Round 2: re-auditing this session's own work
+
+"The fixes to the audit findings were never themselves audited" is the failure this session exists to
+correct, so the session's own changes were then audited the same way. **Four defects were in my work.**
+
+1. **The pagination routes re-derived `limit`** instead of sharing `normalizePagination`. `/api/events`
+   and the attendees route take a raw `Number(query.limit)` with no schema, so `?limit=500` left the
+   route comparing against 500 while the helper clamped to 100: `hasMore` goes false and the pager
+   disappears, **reintroducing the exact bug being fixed**. `?limit=abc` was worse, as NaN fails every
+   comparison.
+2. **Making `total` nullable violated the published openapi schema**, which declares a required
+   integer. Seven more public routes still emitted the old envelope, and `/api/public/v1/search` was an
+   untraced sentinel producer returning `total: -1` through the versioned contract.
+3. **The contrast scanner matched `var(--accent-bg)`**, the tint token, because `\b` sits at the hyphen.
+   Verified no tinted background was wrongly converted (all 83 on-colour usages sit on solid fills), so
+   nothing shipped wrong, but the guard would have false-positived.
+4. **The private-route rule had no real coverage.** The e2e exercised only the prefix backstop, because
+   logged out `/settings/profile` redirects to `/auth/login` and `/auth` is in the list. The derived
+   middleware check was never executed by any test. Extracted and tested; typecheck then caught that
+   Nuxt's `middleware` may be a FUNCTION, which cannot be matched by name.
+
+## Both decisions, taken
+
+**1. `--color-on-red` and `--color-on-green` (done).** Not deferred, because CLAUDE.md rule 12 makes AA
+the minimum, so knowingly shipping 3.99:1 is not an option the codebase allows. Reusing an existing
+token cannot work: on agora `--color-on-accent` is 3.99:1 on `--red` while `--color-text-inverse` is
+4.51:1, and on base the ranking inverts, so the audit's suggested revert would have **moved** the
+failure. Re-auditing also found the same defect on **green** (2.28:1 on base, worse than accent, and
+unreported by anyone) plus **25 further blocks** using `--surface` as text on a solid fill, failing on
+the shipped default. Every pairing is now >= 4.62:1 across all six themes. Theme Studio emits the
+tokens too, and they are in the canonical token registry, which is what rejected them until updated.
+The generator's first version measured `#000000` but emitted `#0a0a0a`, shipping a 4.40:1 token while
+its own check said 4.67:1 — measuring a proxy for what you ship. Verified over 72 generated pairs.
+
+**2. The email-verification gate (cleared).** `emailVerification.sendOnSignIn` is now armed, so a
+blocked sign-in mails a fresh link. Safe unconditionally, verified in better-auth's source rather than
+assumed: sign-in.mjs validates the password at `:228` and throws before the verification branch at
+`:235`, and the address comes from the stored user record, never the request body. It cannot name a
+victim and is not a relay. Inert until an operator enables the hard gate, and the dead
+`|| config.auth.requireEmailVerification` disjunct is gone from the resend route.
+
+**Still true:** do not enable the hard gate without a real mail transport. With a console sink a
+blocked sign-in mails nothing and the user is stuck exactly as before.
 
 ## Open questions
 
-1. **`--color-on-red` is a design decision.** One theme fails AA on red fills whichever token is used.
-   The durable answer is a per-theme `--color-on-red`, which adds a token to the theme contract and to
-   what Theme Studio recipes must emit. Not taken unilaterally.
-2. **Ship gate on `auth.requireEmailVerification`.** Confirmed latent, not live. In hard-gate mode no
-   unverified user can hold a session (`sign-up.mjs:160` returns `token: null`), so the session-gated
-   resend route is unreachable dead code; `sendOnSignIn` is unset so sign-in mails nothing; the stock
-   session-less sender is 404'd; password reset never writes `emailVerified`; no admin route does
-   either. A user whose 1-hour token expired has no in-app path. Recovery is reverting the config line
-   and redeploying (it is build-time only). Resolve before the flip.
-3. **The resend rate limiter fails open on a Redis blip** and is the only guard on a metered side
+1. **The resend rate limiter fails open on a Redis blip** and is the only guard on a metered side
    effect. Fail-open is a documented codebase-wide invariant, so overriding it for the mail path is an
    operator policy call.
-4. **Flag mirrors**: one flag is declared in seven places, four unguarded and drifted. Nothing is wrong
+2. **Flag mirrors**: one flag is declared in seven places, four unguarded and drifted. Nothing is wrong
    live. Same root cause as the `create-commonpub` drift.
-5. **`create-commonpub` should not publish another release** until four confirmed defects are fixed;
+3. **`create-commonpub` should not publish another release** until four confirmed defects are fixed;
    it hand-mirrors `apps/reference` config as Rust string literals and the mirrors have rotted.
-6. Remaining `-1` producers behind auth (`/api/notifications`) and hub product routes are converted but
+4. Remaining `-1` producers behind auth (`/api/notifications`) and hub product routes are converted but
    not covered by the class e2e, which probes only unauthenticated endpoints.
 
 ## Method notes
