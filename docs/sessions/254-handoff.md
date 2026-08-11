@@ -50,6 +50,27 @@ register: **2.79:1** on the shipped default. Fixed, plus green (**2.28:1**, wors
 (`--color-on-accent` / `-red` / `-green` / `-yellow`), every pairing >= 4.62:1 in all six themes, emitted
 by Theme Studio and registered in the canonical token list.
 
+### Every branded link preview on a custom instance said "CommonPub" (P1, was live)
+
+`useSeoMeta({ title: () => ... })` passes a GETTER, evaluated by the head resolver outside the
+component setup context. `useSiteName()` reads `useState()`, which throws there, and its `catch`
+returns the `'CommonPub'` fallback. The failure splits cleanly by call style, measured on live
+deveco.io:
+
+| page | title | how it was built |
+|---|---|---|
+| `/privacy`, `/explore`, `/terms` | `..., devEco.io` | eager template literal |
+| `/contests/<slug>` | `..., CommonPub` | `title: () => ...` getter |
+
+`og:site_name` was correct throughout, because the seo-brand plugin resolves it eagerly — so the page
+advertised two different brands at once, and the tag people check was the one that was fine. The tag
+that actually renders in Slack, Discord and iMessage is `og:title`, which carried another product's
+name on every contest, project, hub, doc and video page.
+
+Fixed at all 27 call sites in 25 files by resolving once in setup. **The durable fix is a
+`titleTemplate` in the head**, so pages never append the brand at all and the guard becomes
+unnecessary rather than enforced — see open items.
+
 ### Tests that could not fail
 
 Three were rewritten after proving they could not detect their own bug. The CSP decision moved into
@@ -88,20 +109,24 @@ own check reported 4.67:1.
 
 ## Open — ranked
 
-1. **The openapi document has no test coverage at all**, and this session changed its pagination
+1. **Adopt a `titleTemplate`** so pages set only their own title and the head appends the brand. That
+   removes 27 call sites where the site name is appended by hand and makes the "never resolve the site
+   name in a getter" rule unnecessary instead of merely enforced by a lint-style test. Also worth
+   normalising the separator while doing it: `/hubs` used ` -- ` where everything else uses `, `.
+2. **The openapi document has no test coverage at all**, and this session changed its pagination
    contract (`total` nullable, `hasMore` required). The fix is to extract the document builder into a
    pure function the way `buildPageCsp` was, which was too large to bundle into this roll. Until then a
    route added without `toPageMeta` will violate the published schema silently.
-2. **The resend rate limiter fails open on a Redis blip** and is the only guard on a metered side
+3. **The resend rate limiter fails open on a Redis blip** and is the only guard on a metered side
    effect. Fail-open is a documented codebase-wide invariant, so overriding it for the mail path is an
    operator policy call, not a bug fix.
-3. **Flag mirrors**: one flag is declared in seven places, four unguarded and drifted. Nothing is wrong
+4. **Flag mirrors**: one flag is declared in seven places, four unguarded and drifted. Nothing is wrong
    live. Same root cause as the `create-commonpub` drift.
-4. **`create-commonpub` must not publish another release** until its four confirmed defects are fixed;
+5. **`create-commonpub` must not publish another release** until its four confirmed defects are fixed;
    it hand-mirrors `apps/reference` config as Rust string literals and the mirrors have rotted.
-5. **`/api/notifications` and the hub product routes** are converted but not covered by the class e2e,
+6. **`/api/notifications` and the hub product routes** are converted but not covered by the class e2e,
    which probes only unauthenticated endpoints.
-6. Still deferred from 249/250: themed-email redesign, nonce CSP, legacy-URL scrub migration 0046.
+7. Still deferred from 249/250: themed-email redesign, nonce CSP, legacy-URL scrub migration 0046.
 
 ## Notes for whoever picks this up
 
