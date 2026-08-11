@@ -145,3 +145,126 @@ Correctness only. No flag, no new component, no layout risk.
 5. Roll A has not been published. Theme CSS changed, so this is a `@commonpub/ui` minor **and** a
    `@commonpub/layer` minor, both fork pins hand-edited (`^0.13.3` will not cross to `0.14.0`), four
    lockfiles, and `node layers/base/scripts/bundle-theme.mjs` before any local re-verification.
+
+---
+
+## Roll A published
+
+`@commonpub/ui@0.14.0` and `@commonpub/layer@0.129.0` are on npm; the layer's
+`workspace:*` was rewritten to an exact `ui@0.14.0`, so the theme fix reaches the
+forks on the layer pin alone. Fork PRs opened rather than pushed to their mains,
+so the production deploy stays a human decision: deveco #14 (pin + the forked
+homepage's own count markup, which the pin cannot deliver), heatsync #25 (pin
+only — verified by grep that it references none of the contest count fields, and
+its `theme/heatsync.css` already sets its own `--color-on-accent` on the orange
+accent, so the AA change is a no-op there). deveco typechecks clean against the
+published layer.
+
+## Soft email verification
+
+The operator asked for the standard pattern: signed in immediately, nagged until
+confirmed, and a record of who has confirmed. That also resolves a blocker that
+had been open since session 237.
+
+The reason it was stuck: the only switch was `auth.requireEmailVerification`,
+which gates SIGN-IN, so turning it on locks out every existing unverified
+account. The two better-auth options turn out to be independent —
+`sign-up.mjs` reads `sendOnSignUp ?? requireEmailVerification`, so an explicit
+`true` wins over the fallback — which makes the whole server change one condition
+in `createAuth`. New `features.emailVerification`, default OFF (enabling it
+starts sending mail from any instance with a transport, which an upgrade should
+not do silently).
+
+Verified against a running instance rather than reasoned about: signup returns
+200 **with a session** and `emailVerified: false`; sign-in succeeds while
+unverified; the banner renders with `role="status"`; clicking a real link flips
+the column, clears the banner, and `/api/me` reports `emailVerified: true`.
+
+**Security note.** Enabling this would have armed a mail-bomb relay. better-auth
+ships `POST /api/auth/send-verification-email` with no session, taking an
+arbitrary address in the body; it was inert only because verification was never
+wired. And everything under `/api/auth` is dispatched with `sendWebResponse`,
+which ends the response, so the CSRF and rate-limit middleware that run
+alphabetically after `auth.ts` never execute for that prefix — better-auth's own
+3/60s cap is per-process, per-IP, and off outside production. That route is now
+404'd, and resend lives at `POST /api/user/resend-verification`: session-scoped,
+address from the session and never the body, 3 per 15 min per user, silent
+no-ops so it cannot be used as a config or account oracle. Verified live: the old
+route 404s, and the fourth resend in a window returns 429.
+
+The banner renders **in flow from the layouts**, not from the global-overlays
+plugin. The audit recommended the plugin because it is the only mount point that
+survives deveco's forked layout — but that path then needs a chrome-height token,
+six offset edits, a `mount()` change to fix DOM-vs-visual focus order, print
+rules and route-based self-suppression: ~15 edits to avoid 3. In flow costs three
+mount points and gets all of that for free, plus no collision with the sticky
+action bar. The trade: it scrolls away, and a fork with its own layout must
+include it.
+
+Also: `emailVerified` on the admin user list with a filter, and a count on the
+admin dashboard. Labelled **"Email confirmed"** everywhere, never "Verified" —
+`verified` is already a user ROLE two columns over and means an editorial tier.
+The filter parses the literal `'true'`/`'false'`; `z.coerce.boolean()` maps the
+string `'false'` to TRUE and would have inverted it.
+
+## Roll B — the action bar
+
+Split by viewport, because the two have different problems.
+
+- **Desktop is one CSS rule**: stick the sidebar so the real registration card
+  follows the reader. No bar at all, so no duplicate primary button. The first
+  attempt did nothing — a sticky element taller than the viewport cannot pin its
+  top (measured at `top: -198px` after a 1400px scroll); it is now capped to the
+  viewport with internal overflow. Verified on a 9,473px contest: pins at 64px
+  and stays on screen at every depth.
+- **Mobile gets the bar**, and only mobile — so it never negotiates the topbar
+  offset (deveco does not override that token, so it is 12px wrong there) and
+  never collides with the verification banner. It measures itself and publishes
+  its height; a hardcoded 60px under-reserved by 25px and left it sitting on the
+  footer.
+
+It degrades by state rather than rendering dead controls: results for a finished
+contest, the judge's action while judging, Edit for an organizer (never "Submit
+entry" on their own contest), nothing for a draft or an unaccepted judge invite.
+Anonymous visitors get Follow, which did not exist for them anywhere before.
+
+Two live bugs fixed alongside: the `contestSignup`-off fallback's "Follow" button
+created a **full** registration (no payload → the page defaulted to `full`),
+bypassing required fields and recorded agreements; and the Entries-tab Submit
+bypassed the shared handler. Register routing is now one pure resolver — the page
+and the card had disagreed, with no anonymous branch in the card and a
+short-but-required form opening a modal from one button and a page from another.
+
+The first class namespace collided with `CpubCriteriaBar`; the e2e caught it as a
+strict-mode violation, which is what that assertion is for.
+
+## Verification state at the end of the session
+
+- `pnpm exec turbo run test --concurrency=50%` (what CI runs): **33/33**.
+  `pnpm typecheck` 28/28. `pnpm lint` clean (warnings only, all pre-existing).
+- `contest-lifecycle` E2E **9/9**, including a new 390px test for the bar.
+- Layer tests 1599 → **1677**.
+- Known flake, NOT caused by this work: under full-monorepo parallel load
+  `two-instance-federation` and `mirror-request.integration` intermittently fail.
+  Each builds TWO in-memory PGlite instances, making them the heaviest tests in
+  the suite. `createTestDB()` is per-file PGlite, so cross-file data coupling with
+  the new admin tests is mechanically impossible; the server package passes
+  129/129 every time it runs alone.
+
+## Still open
+
+1. **Nothing here is published beyond Roll A.** The verification feature and the
+   action bar need config/auth/server/test-utils/layer bumps and a second roll.
+2. **deveco's banner mount is stashed** on its branch
+   (`git stash list`, "apply after the layer with the component publishes") — it
+   references a component that does not exist in 0.129.
+3. **deveco should set `--cpub-topbar-height: 60px`** in its theme. Its bar is
+   60px and it never overrides the 48px token, so any layer CSS keyed on it lands
+   12px off. Not load-bearing for this work (the bar is mobile-only) but it is a
+   standing lie.
+4. `contestSignup`, `contestEntryRequiresRegistration`, `contestPrivateFiles` and
+   `emailUnverified` are still absent from `layers/base/nuxt.config.ts`'s
+   `features` block, so their `NUXT_PUBLIC_FEATURES_*` env overrides are silently
+   dropped. Left alone deliberately: deveco hand-duplicates that block and a
+   default could flip a live value.
+5. Analytics (plan section 5) and the contest-email question are untouched.
