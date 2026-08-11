@@ -26,11 +26,15 @@ watch(() => content.value?.type, (type) => {
   }
 }, { immediate: true });
 
+// Resolved HERE, in setup scope. Inside a useSeoMeta getter the head
+// resolver runs outside the component context, so useSiteName()'s
+// useState() throws and it silently falls back to 'CommonPub'.
+const siteName = useSiteName();
 useSeoMeta({
-  title: () => content.value?.title ? `${content.value.title}, ${useSiteName()}` : useSiteName(),
+  title: () => content.value?.title ? `${content.value.title}, ${siteName}` : siteName,
   description: () => content.value?.seoDescription || content.value?.description || '',
   ogImage: () => content.value?.coverImageUrl || '/og-default.png',
-  ogTitle: () => content.value?.title || useSiteName(),
+  ogTitle: () => content.value?.title || siteName,
   ogDescription: () => content.value?.seoDescription || content.value?.description || '',
 });
 

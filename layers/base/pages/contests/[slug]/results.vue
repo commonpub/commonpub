@@ -15,8 +15,12 @@ const totalEntries = computed(() => entriesData.value?.total ?? 0);
 const shownEntries = computed(() => rankedEntries.value.length);
 const { data: votesData } = useLazyFetch<ContestEntryVoteInfo[]>(`/api/contests/${slug}/votes`);
 
+// Resolved HERE, in setup scope. Inside a useSeoMeta getter the head
+// resolver runs outside the component context, so useSiteName()'s
+// useState() throws and it silently falls back to 'CommonPub'.
+const siteName = useSiteName();
 useSeoMeta({
-  title: () => `Results: ${contest.value?.title || 'Contest'}, ${useSiteName()}`,
+  title: () => `Results: ${contest.value?.title || 'Contest'}, ${siteName}`,
 });
 
 // Community-vote tallies (only when the contest enabled community voting).

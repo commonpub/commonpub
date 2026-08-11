@@ -46,7 +46,11 @@ watch(selectedVersion, () => {
   refreshPages();
 });
 
-useSeoMeta({ title: () => `Edit ${site.value?.name ?? 'Docs'}, ${useSiteName()}` });
+// Resolved HERE, in setup scope. Inside a useSeoMeta getter the head
+// resolver runs outside the component context, so useSiteName()'s
+// useState() throws and it silently falls back to 'CommonPub'.
+const siteName = useSiteName();
+useSeoMeta({ title: () => `Edit ${site.value?.name ?? 'Docs'}, ${siteName}` });
 
 interface DocsPage {
   id: string;

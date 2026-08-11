@@ -23,9 +23,13 @@ const { data: judgesData, refresh: refreshJudges } = useLazyFetch<ContestJudgeIt
 // values fill in post-hydration.
 const { data: registrationData } = useLazyFetch<{ registered: boolean; tier: 'full' | 'reminders' | null; fields: Record<string, string> | null; count: number; followerCount: number }>(`/api/contests/${slug}/register`, { server: false });
 
+// Resolved HERE, in setup scope. Inside a useSeoMeta getter the head
+// resolver runs outside the component context, so useSiteName()'s
+// useState() throws and it silently falls back to 'CommonPub'.
+const siteName = useSiteName();
 useSeoMeta({
-  title: () => `${contest.value?.title || 'Contest'}, ${useSiteName()}`,
-  ogTitle: () => `${contest.value?.title || 'Contest'}, ${useSiteName()}`,
+  title: () => `${contest.value?.title || 'Contest'}, ${siteName}`,
+  ogTitle: () => `${contest.value?.title || 'Contest'}, ${siteName}`,
   ogImage: () => contest.value?.bannerUrl || '/og-default.png',
 });
 

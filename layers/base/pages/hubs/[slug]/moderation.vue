@@ -22,7 +22,11 @@ watch([canReview, hubGovernance], ([ok, gov]) => { if (ok && gov) refresh(); }, 
 const flags = computed(() => flagsData.value?.items ?? []);
 const openFlags = computed(() => flags.value.filter((f) => f.status === 'open'));
 
-useSeoMeta({ title: () => `Moderation, ${hub.value?.name ?? 'Hub'}, ${useSiteName()}` });
+// Resolved HERE, in setup scope. Inside a useSeoMeta getter the head
+// resolver runs outside the component context, so useSiteName()'s
+// useState() throws and it silently falls back to 'CommonPub'.
+const siteName = useSiteName();
+useSeoMeta({ title: () => `Moderation, ${hub.value?.name ?? 'Hub'}, ${siteName}` });
 
 function targetLink(f: HubFlagItem): string {
   return f.targetType === 'member' ? `/hubs/${slug.value}/members` : `/hubs/${slug.value}`;

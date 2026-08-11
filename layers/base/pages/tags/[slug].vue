@@ -4,8 +4,12 @@ import type { Serialized, ContentListItem, PaginatedResponse } from '@commonpub/
 const route = useRoute();
 const tagSlug = computed(() => route.params.slug as string);
 
+// Resolved HERE, in setup scope. Inside a useSeoMeta getter the head
+// resolver runs outside the component context, so useSiteName()'s
+// useState() throws and it silently falls back to 'CommonPub'.
+const siteName = useSiteName();
 useSeoMeta({
-  title: () => `#${tagSlug.value}, ${useSiteName()}`,
+  title: () => `#${tagSlug.value}, ${siteName}`,
   description: () => `Content tagged with "${tagSlug.value}" on CommonPub`,
 });
 

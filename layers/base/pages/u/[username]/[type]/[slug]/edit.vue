@@ -29,8 +29,12 @@ if (user.value?.username && user.value.username !== username.value) {
   }
 }
 
+// Resolved HERE, in setup scope. Inside a useSeoMeta getter the head
+// resolver runs outside the component context, so useSiteName()'s
+// useState() throws and it silently falls back to 'CommonPub'.
+const siteName = useSiteName();
 useSeoMeta({
-  title: () => isNew.value ? `New ${contentType.value}, ${useSiteName()}` : `Edit, ${useSiteName()}`,
+  title: () => isNew.value ? `New ${contentType.value}, ${siteName}` : `Edit, ${siteName}`,
 });
 
 const title = ref('');

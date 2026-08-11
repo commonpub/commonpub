@@ -97,8 +97,12 @@ const firstPageSlug = computed(() => {
 
 const sidebarOpen = ref(false);
 
+// Resolved HERE, in setup scope. Inside a useSeoMeta getter the head
+// resolver runs outside the component context, so useSiteName()'s
+// useState() throws and it silently falls back to 'CommonPub'.
+const siteName = useSiteName();
 useSeoMeta({
-  title: () => site.value ? `${site.value.name}, Docs, ${useSiteName()}` : `Docs, ${useSiteName()}`,
+  title: () => site.value ? `${site.value.name}, Docs, ${siteName}` : `Docs, ${siteName}`,
   description: () => site.value?.description || '',
 });
 </script>

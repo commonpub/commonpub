@@ -194,8 +194,12 @@ watch(selectedVersion, () => {
 // Mobile sidebar
 const sidebarOpen = ref(false);
 
+// Resolved HERE, in setup scope. Inside a useSeoMeta getter the head
+// resolver runs outside the component context, so useSiteName()'s
+// useState() throws and it silently falls back to 'CommonPub'.
+const siteName = useSiteName();
 useSeoMeta({
-  title: () => renderedPage.value ? `${renderedPage.value.title}, ${site.value?.name ?? 'Docs'}` : `Docs, ${useSiteName()}`,
+  title: () => renderedPage.value ? `${renderedPage.value.title}, ${site.value?.name ?? 'Docs'}` : `Docs, ${siteName}`,
   description: () => renderedPage.value?.frontmatter?.description ?? '',
 });
 </script>

@@ -10,8 +10,12 @@ import type { Serialized, HubDetail } from '@commonpub/server';
 const { data: hub, refresh: refreshHub } = useLazyFetch<Serialized<HubDetail>>(() => `/api/hubs/${slug.value}`);
 const { hubGovernance } = useFeatures();
 
+// Resolved HERE, in setup scope. Inside a useSeoMeta getter the head
+// resolver runs outside the component context, so useSiteName()'s
+// useState() throws and it silently falls back to 'CommonPub'.
+const siteName = useSiteName();
 useSeoMeta({
-  title: () => `Settings, ${hub.value?.name ?? 'Hub'}, ${useSiteName()}`,
+  title: () => `Settings, ${hub.value?.name ?? 'Hub'}, ${siteName}`,
 });
 
 // --- Ownership transfer (owner-only, hub governance) ---

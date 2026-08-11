@@ -27,8 +27,12 @@ const { data: path } = useLazyFetch<Serialized<LearningPathDetail>>(() => `/api/
 const lesson = computed(() => lessonData.value?.lesson);
 const lessonModule = computed(() => lessonData.value?.module);
 
+// Resolved HERE, in setup scope. Inside a useSeoMeta getter the head
+// resolver runs outside the component context, so useSiteName()'s
+// useState() throws and it silently falls back to 'CommonPub'.
+const siteName = useSiteName();
 useSeoMeta({
-  title: () => lesson.value ? `${lesson.value.title}, ${useSiteName()}` : `Lesson, ${useSiteName()}`,
+  title: () => lesson.value ? `${lesson.value.title}, ${siteName}` : `Lesson, ${siteName}`,
 });
 
 const { isAuthenticated, user } = useAuth();

@@ -6,8 +6,12 @@ import type { Serialized, LearningPathDetail } from '@commonpub/server';
 
 const { data: path, pending: pathPending, error: pathError, refresh } = useLazyFetch<Serialized<LearningPathDetail>>(() => `/api/learn/${slug.value}`);
 
+// Resolved HERE, in setup scope. Inside a useSeoMeta getter the head
+// resolver runs outside the component context, so useSiteName()'s
+// useState() throws and it silently falls back to 'CommonPub'.
+const siteName = useSiteName();
 useSeoMeta({
-  title: () => path.value ? `${path.value.title}, Learn, ${useSiteName()}` : `Learn, ${useSiteName()}`,
+  title: () => path.value ? `${path.value.title}, Learn, ${siteName}` : `Learn, ${siteName}`,
   description: () => path.value?.description || '',
   ogImage: '/og-default.png',
 });

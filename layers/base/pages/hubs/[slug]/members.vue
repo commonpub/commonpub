@@ -73,7 +73,11 @@ async function denyRequest(userId: string): Promise<void> {
   }
 }
 
-useSeoMeta({ title: () => `Members, ${hub.value?.name ?? 'Hub'}, ${useSiteName()}` });
+// Resolved HERE, in setup scope. Inside a useSeoMeta getter the head
+// resolver runs outside the component context, so useSiteName()'s
+// useState() throws and it silently falls back to 'CommonPub'.
+const siteName = useSiteName();
+useSeoMeta({ title: () => `Members, ${hub.value?.name ?? 'Hub'}, ${siteName}` });
 
 // Steward is only assignable when hub governance is enabled.
 const roles = computed(() =>

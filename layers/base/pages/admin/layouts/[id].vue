@@ -261,8 +261,12 @@ if (initial.value) {
 // Same rule applies on refresh + save success (handled below via watch).
 history.clear();
 
+// Resolved HERE, in setup scope. Inside a useSeoMeta getter the head
+// resolver runs outside the component context, so useSiteName()'s
+// useState() throws and it silently falls back to 'CommonPub'.
+const siteName = useSiteName();
 useSeoMeta({
-  title: () => `Edit: ${editor.draft.value?.name ?? 'Layout'}, Admin, ${useSiteName()}`,
+  title: () => `Edit: ${editor.draft.value?.name ?? 'Layout'}, Admin, ${siteName}`,
 });
 
 // Viewport preview state — purely UI; doesn't mutate the layout.

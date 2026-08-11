@@ -21,7 +21,11 @@ const canManage = computed(() =>
   ['owner', 'admin'].includes(currentUserRole.value ?? ''),
 );
 
-useSeoMeta({ title: () => `Invites, ${hub.value?.name ?? 'Hub'}, ${useSiteName()}` });
+// Resolved HERE, in setup scope. Inside a useSeoMeta getter the head
+// resolver runs outside the component context, so useSiteName()'s
+// useState() throws and it silently falls back to 'CommonPub'.
+const siteName = useSiteName();
+useSeoMeta({ title: () => `Invites, ${hub.value?.name ?? 'Hub'}, ${siteName}` });
 
 // --- Create form ---
 const expiryOptions = [
