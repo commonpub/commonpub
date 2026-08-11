@@ -19,13 +19,14 @@
   --color-primary: #5b9cf6;
   --color-primary-hover: #4a8be5;
   --color-primary-text: #0c0c0b;
-  --color-on-primary: #ffffff;
+  /* Matches --color-primary-text above; white on #5b9cf6 was 2.79:1. */
+  --color-on-primary: #0c0c0b;
 
   /* Accent */
   --color-accent: #5b9cf6;
   --color-accent-hover: #4a8be5;
   --color-accent-text: #0c0c0b;
-  --color-on-accent: #ffffff;
+  --color-on-accent: #0c0c0b;
   --color-accent-bg: rgba(91, 156, 246, 0.1);
   --color-accent-border: rgba(91, 156, 246, 0.22);
 

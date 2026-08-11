@@ -24,9 +24,14 @@
 .cpub-btn:hover { background: var(--surface2); }
 .cpub-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
+/* NOTE: layouts.css also defines .cpub-btn-primary at the same specificity and
+   is imported after this file, so ITS declarations win. The two disagreed on
+   the label token (--color-text-inverse here vs --color-on-accent there), which
+   meant the value that actually shipped depended on import order. Both now name
+   --color-on-accent, the token the contrast test locks. */
 .cpub-btn-primary {
   background: var(--accent);
-  color: var(--color-text-inverse);
+  color: var(--color-on-accent);
   box-shadow: var(--shadow-block);
 }
 

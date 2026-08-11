@@ -369,6 +369,14 @@
   padding: var(--space-2) var(--space-4);
   background: var(--surface);
   color: var(--text);
+  /* Without these, a <button class="cpub-btn"> inherits the UA button font
+     shorthand's `line-height: normal` (~37px tall) while an <a class="cpub-btn">
+     inherits body's --leading-normal 1.7 (~44px). Side by side in one flex row
+     — which is every CTA row in the app — they visibly disagreed. 44px is the
+     height .cpub-btn-sm already declares, so this makes the base match the
+     house decision instead of contradicting it. */
+  min-height: 44px;
+  line-height: var(--leading-snug);
 }
 
 .cpub-btn:hover {
