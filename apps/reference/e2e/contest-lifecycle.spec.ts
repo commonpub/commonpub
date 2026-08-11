@@ -175,8 +175,15 @@ test.describe('Contest lifecycle', () => {
     // Generous timeout: this is the first hit on the register route, which the dev
     // server compiles on demand — on a loaded CI runner that alone can outlast a
     // 20s budget before the gate even runs.
-    await page.goto(`${contestUrl}/register`, { waitUntil: 'domcontentloaded' }).catch(() => { /* client redirect aborts it */ });
-    await expect(page).toHaveURL(/\/auth\/login\?redirect=/, { timeout: 60_000 });
+    // The gate redirects CLIENT-side, which aborts the in-flight navigation — and
+    // an abort can leave the page exactly where it was, so a single goto has
+    // nothing left to settle and the URL assertion just times out. Retry the
+    // navigate-and-check as a unit. (Also absorbs the dev server compiling this
+    // route on its first hit, which alone can outlast a naive budget in CI.)
+    await expect(async () => {
+      await page.goto(`${contestUrl}/register`, { waitUntil: 'domcontentloaded' }).catch(() => { /* client redirect */ });
+      await expect(page).toHaveURL(/\/auth\/login\?redirect=/, { timeout: 10_000 });
+    }).toPass({ timeout: 90_000 });
   });
 
   test('following a contest is not registering, and does not let you enter', async () => {
