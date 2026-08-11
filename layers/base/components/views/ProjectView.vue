@@ -1464,7 +1464,7 @@ async function handleBuild(): Promise<void> {
   color: var(--accent); font-size: 12px; text-decoration: none; flex-shrink: 0;
 }
 
-.cpub-file-download:hover { background: var(--accent); color: var(--color-text-inverse); }
+.cpub-file-download:hover { background: var(--accent); color: var(--color-on-accent); }
 
 /* Cover image */
 .cpub-hero-cover-has-image {

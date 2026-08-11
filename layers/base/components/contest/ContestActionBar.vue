@@ -58,7 +58,23 @@ const isOver = computed(() => status.value === 'completed' || status.value === '
 // A draft has no audience yet, and a judge sitting on an unaccepted invite has
 // exactly one thing to do (the invite banner in the body) which this must not
 // compete with.
-const shouldRender = computed(() => !!props.contest && status.value !== 'draft');
+//
+// hasPrimary mirrors the template's branch chain. Without it the bar rendered a
+// share-only strip — plus ~60px of reserved body padding — for `judging`
+// (a weeks-long state), `paused` and `cancelled`, i.e. a permanent band of
+// chrome offering nothing. A bar with no primary action is worse than no bar.
+const hasPrimary = computed(() => {
+  if (props.canManage) return true;
+  if (props.canJudge && status.value === 'judging') return true;
+  if (status.value === 'completed') return true;
+  if (status.value === 'cancelled') return false;
+  if (isFull.value) return status.value === 'active' || canRegister.value;
+  return canRegister.value;
+});
+
+const shouldRender = computed(
+  () => !!props.contest && status.value !== 'draft' && hasPrimary.value,
+);
 
 // Anonymous register goes through login and lands IN the registration form; the
 // shared resolver owns that decision for every CTA on the page.
@@ -192,11 +208,16 @@ onUnmounted(() => {
   .cpub-contest-actions {
     display: block;
     position: fixed;
-    inset: auto 0 0 0;
+    inset: auto 0 auto 0;
     /* Below the mobile menu (99) and the topbar (100), which are hardcoded in
        the layouts, and far below the cookie banner (--z-toast) that shares this
        edge of the screen. */
     z-index: 90;
+    /* CookieConsent is also fixed to this edge, at --z-toast (1050), and it is
+       shown to precisely the anonymous first-time visitor this bar exists for —
+       so it would cover the bar completely. It publishes its height; sit above
+       it when it is up. */
+    bottom: var(--cpub-consent-height, 0px);
     background: var(--surface);
     border-top: var(--border-width-default) solid var(--border);
     /* Mirrors CookieConsent's offset shadow — the house treatment for a bar

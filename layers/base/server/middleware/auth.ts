@@ -56,6 +56,20 @@ function getAuthMiddleware(): ReturnType<typeof createAuthMiddleware> {
         await emailAdapter.send({ ...template, to: email });
       },
       async sendVerificationEmail(email: string, _url: string, token: string): Promise<void> {
+        // POLICY LIVES HERE, not in createAuth. The auth instance is memoized for
+        // the process lifetime, so anything decided at construction freezes —
+        // and `features.emailVerification` is a runtime flag an admin can flip.
+        // Re-read it per call so turning it on takes effect immediately.
+        const live = useConfig();
+        const wanted = live.features.emailVerification === true
+          || live.auth.requireEmailVerification === true;
+        if (!wanted) return;
+        // A console sink is not delivery. Without this an instance with no
+        // transport would tell users "check your inbox" forever.
+        if (!isEmailDeliverable()) {
+          console.warn('[auth] verification email requested but no real transport is configured; not sent');
+          return;
+        }
         // Point the email at the app's OWN branded verify page — NOT Better Auth's
         // raw `url` (the GET API route `/api/auth/verify-email`, which on click
         // 302-redirects to the homepage and shows no confirmation UI). The page

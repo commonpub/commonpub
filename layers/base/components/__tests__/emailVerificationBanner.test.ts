@@ -81,9 +81,16 @@ describe('EmailVerificationBanner — when it shows', () => {
 });
 
 describe('EmailVerificationBanner — behaviour', () => {
+  it('offers to send rather than claiming it already did', () => {
+    // The population this flag exists for is every PRE-EXISTING account, and no
+    // mail was ever sent to them — sendOnSignUp only fires at signup.
+    const { getByText } = render(Banner);
+    expect(getByText(/We can send a link/)).toBeTruthy();
+  });
+
   it('resend POSTs the session-scoped route and never sends an address', async () => {
     const { getByText } = render(Banner);
-    await fireEvent.click(getByText('Resend email'));
+    await fireEvent.click(getByText('Send link'));
     await flush();
     expect($fetch).toHaveBeenCalledWith('/api/user/resend-verification', { method: 'POST' });
     // The address must come from the session server-side; passing one from the
@@ -95,18 +102,18 @@ describe('EmailVerificationBanner — behaviour', () => {
 
   it('will not resend twice from one page load', async () => {
     const { getByText, queryByText } = render(Banner);
-    await fireEvent.click(getByText('Resend email'));
+    await fireEvent.click(getByText('Send link'));
     await flush();
     // The button is replaced by the sent confirmation, so there is nothing to
     // double-click.
-    expect(queryByText('Resend email')).toBeNull();
+    expect(queryByText('Send link')).toBeNull();
     expect($fetch).toHaveBeenCalledTimes(1);
   });
 
   it('explains a 429 rather than reporting a generic failure', async () => {
     $fetch.mockImplementation(async () => { throw Object.assign(new Error('nope'), { statusCode: 429 }); });
     const { getByText } = render(Banner);
-    await fireEvent.click(getByText('Resend email'));
+    await fireEvent.click(getByText('Send link'));
     await flush();
     expect(toastError).toHaveBeenCalledWith(expect.stringMatching(/wait a few minutes/i));
   });

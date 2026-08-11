@@ -241,7 +241,7 @@ async function readFile(file: File): Promise<void> {
 }
 .md-import-btn {
   padding: 7px 16px; border: var(--border-width-default) solid var(--accent);
-  background: var(--accent); color: var(--color-text-inverse); font-size: 12px;
+  background: var(--accent); color: var(--color-on-accent); font-size: 12px;
   font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px;
 }
 .md-import-btn:disabled { opacity: 0.5; cursor: not-allowed; }

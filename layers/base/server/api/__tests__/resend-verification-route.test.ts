@@ -44,16 +44,23 @@ describe('resend-verification route — contract', () => {
     expect(route).toMatch(/'Retry-After'/);
   });
 
-  it('no-ops silently rather than erroring, so it is not a config or account oracle', () => {
-    // Feature off and already-verified both return the same shape as success.
+  it('stays silent about ACCOUNT state but honest about INSTANCE state', () => {
+    // Already-verified is per-account, so it returns the success shape — a
+    // distinguishing error there would be an oracle.
+    expect(route).toMatch(/emailVerified === true[\s\S]{0,40}return \{ ok: true \}/);
+    // Feature-off and no-transport are instance facts, already public via
+    // /api/features, and answering { ok: true } for them made the UI announce
+    // "Verification email sent" on an instance that sends nothing.
     expect(route).toMatch(/features\.emailVerification/);
-    expect(route).toMatch(/emailVerified === true/);
-    expect(route.match(/return \{ ok: true \}/g)?.length ?? 0).toBeGreaterThanOrEqual(3);
+    expect(route).toMatch(/isEmailDeliverable\(\)/);
+    expect(route).toMatch(/statusCode: 503/);
   });
 
-  it('swallows transport failures instead of 500ing at the caller', () => {
+  it('reports a transport failure rather than claiming success', () => {
     expect(route).toMatch(/catch\s*\(/);
     expect(route).toMatch(/console\.error\(/);
+    // Two 503 paths: unavailable, and send-failed.
+    expect(route.match(/statusCode: 503/g)?.length ?? 0).toBeGreaterThanOrEqual(2);
   });
 
   it("Better Auth's unauthenticated send-verification-email is closed off", () => {

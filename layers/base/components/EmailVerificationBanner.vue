@@ -18,8 +18,9 @@
  * show it simply does not render it.
  *
  * The cost, accepted deliberately: it scrolls away rather than following the
- * viewport, and a fork with its own layout has to include it. deveco is the only
- * such fork and does.
+ * viewport, and a fork with its own layout MUST include it or the feature is
+ * invisible there. deveco forks layouts/default.vue, so its copy has to be kept
+ * in step — that edit ships with the same roll as this component.
  *
  * SSR-safe: `user` is seeded server-side by plugins/auth.ts and the dismissal
  * cookie is readable during SSR, so this renders identically on both sides and
@@ -63,6 +64,10 @@ async function resend(): Promise<void> {
     // last fifteen minutes. Say so plainly instead of "something went wrong".
     const status = (err as { statusCode?: number })?.statusCode;
     if (status === 429) toast.error('Already sent recently. Please wait a few minutes and try again.');
+    // 503 = this instance cannot send right now (no transport, or the send
+    // failed). Say so instead of "try again shortly", which invites the user to
+    // keep pressing a button that cannot work.
+    else if (status === 503) toast.error('Email is not available on this site right now. Please contact an administrator.');
     else toast.error('Could not send the email. Please try again shortly.');
   } finally {
     sending.value = false;
@@ -84,8 +89,13 @@ function dismiss(): void {
   <div v-if="visible" class="cpub-verify-banner" role="status">
     <p class="cpub-verify-banner-text">
       <i class="fa-regular fa-envelope" aria-hidden="true"></i>
+      <!-- "We sent a link" would be a lie for the population this flag exists
+           for: every PRE-EXISTING account. Mail only goes out at signup via
+           better-auth's sendOnSignUp, so an operator switching the flag on
+           today nags thousands of people about an email that was never sent.
+           The copy therefore offers the send rather than claiming it. -->
       <span v-if="sent">Verification email sent to <strong>{{ user?.email }}</strong>. Check your inbox, and your spam folder.</span>
-      <span v-else>Confirm your email address to finish setting up your account. We sent a link to <strong>{{ user?.email }}</strong>.</span>
+      <span v-else>Confirm your email address to finish setting up your account. We can send a link to <strong>{{ user?.email }}</strong>.</span>
     </p>
     <div class="cpub-verify-banner-actions">
       <button
@@ -94,7 +104,7 @@ function dismiss(): void {
         class="cpub-btn cpub-btn-sm"
         :disabled="sending"
         @click="resend"
-      >{{ sending ? 'Sending...' : 'Resend email' }}</button>
+      >{{ sending ? 'Sending...' : 'Send link' }}</button>
       <!-- Self-descriptive out of context: a screen-reader user pulling up a
            list of controls sees what this dismisses, not a bare "Dismiss". -->
       <button
@@ -108,7 +118,13 @@ function dismiss(): void {
 </template>
 
 <style scoped>
+/* Matches the width the pages inside #main-content use. Without this the banner
+   is the only full-bleed element on the page, with its border flush to both
+   screen edges while everything below it is contained. */
 .cpub-verify-banner {
+  max-width: var(--content-max-width, 1200px);
+  margin-left: auto;
+  margin-right: auto;
   display: flex;
   align-items: center;
   justify-content: space-between;

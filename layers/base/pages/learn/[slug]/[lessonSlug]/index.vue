@@ -494,7 +494,7 @@ const isOwner = computed(() => user.value?.id === path.value?.author?.id);
 .quiz-option.selected-pending .quiz-option-text { color: var(--text); }
 .quiz-explanation { margin-top: 12px; padding: 10px 14px; background: var(--accent-bg); border: var(--border-width-default) solid var(--accent-border); color: var(--accent); font-size: 13px; display: flex; align-items: flex-start; gap: 8px; line-height: 1.5; }
 .quiz-actions { margin: 16px 0; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
-.quiz-submit-btn { padding: 10px 20px; background: var(--accent); color: var(--color-text-inverse); border: var(--border-width-default) solid var(--border); font-size: 13px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; box-shadow: var(--shadow-md); font-family: inherit; }
+.quiz-submit-btn { padding: 10px 20px; background: var(--accent); color: var(--color-on-accent); border: var(--border-width-default) solid var(--border); font-size: 13px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; box-shadow: var(--shadow-md); font-family: inherit; }
 .quiz-submit-btn:hover:not(:disabled) { box-shadow: var(--shadow-sm); transform: translate(1px, 1px); }
 .quiz-submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .quiz-signin-hint { font-size: 12px; color: var(--text-faint); font-family: var(--font-mono); }
@@ -514,7 +514,7 @@ const isOwner = computed(() => user.value?.id === path.value?.author?.id);
 /* Footer */
 .lesson-footer { margin-top: 40px; padding-top: 24px; border-top: var(--border-width-default) solid var(--border); }
 .lesson-complete-row { margin-bottom: 20px; }
-.lesson-complete-btn { padding: 10px 20px; background: var(--accent); color: var(--color-text-inverse); border: var(--border-width-default) solid var(--border); font-size: 13px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: var(--shadow-md); }
+.lesson-complete-btn { padding: 10px 20px; background: var(--accent); color: var(--color-on-accent); border: var(--border-width-default) solid var(--border); font-size: 13px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: var(--shadow-md); }
 .lesson-complete-btn:hover { box-shadow: var(--shadow-sm); transform: translate(1px, 1px); }
 .lesson-complete-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .lesson-completed-badge { display: inline-flex; align-items: center; gap: 6px; color: var(--green-text); font-size: 14px; font-weight: 600; }

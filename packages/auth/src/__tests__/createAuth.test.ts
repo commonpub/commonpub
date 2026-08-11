@@ -233,7 +233,7 @@ describe('createAuth', () => {
     );
   });
 
-  it('does NOT require or send verification by default (signup works without email)', () => {
+  it('never gates sign-in by default, whatever the verification wiring says', () => {
     const sendVerificationEmail = vi.fn();
     createAuth({
       config: createMockConfig(), // requireEmailVerification defaults off
@@ -244,16 +244,15 @@ describe('createAuth', () => {
 
     const call = (betterAuth as unknown as ReturnType<typeof vi.fn>).mock.calls.at(-1)![0];
     expect(call.emailAndPassword.requireEmailVerification).toBe(false);
-    expect(call.emailVerification).toBeUndefined();
   });
 
   // ── Soft verification (session 253) ──
   // The point of the feature: mail the link and nag, but never gate sign-in.
-  // These two options are independent in better-auth (sign-up.mjs reads
+  // These options are independent in better-auth (sign-up.mjs reads
   // `sendOnSignUp ?? requireEmailVerification`, so an explicit true wins), and
-  // this pair of tests is what stops someone "simplifying" them back together
-  // and silently locking out every existing unverified account.
-  it('sends verification on signup WITHOUT gating sign-in when features.emailVerification is on', () => {
+  // these tests are what stop someone "simplifying" them back together and
+  // silently locking out every existing unverified account.
+  it('arms sendOnSignUp whenever a sender exists, WITHOUT gating sign-in', () => {
     const sendVerificationEmail = vi.fn();
     createAuth({
       config: createMockConfig({}, { emailVerification: true }),
@@ -270,10 +269,24 @@ describe('createAuth', () => {
     expect(call.emailAndPassword.requireEmailVerification).toBe(false);
   });
 
-  it('does not wire verification with the flag on but no email sender', () => {
-    // Otherwise a new user on a transport-less instance is told to check an
-    // inbox nothing was ever sent to (useEmailAdapter falls back to a console
-    // sink, so "a sender exists" is not the same as "mail is delivered").
+  it('does not depend on the FLAG at construction — the caller\'s closure owns policy', () => {
+    // The auth instance is memoized for the process lifetime, so a flag read
+    // here would freeze. features.emailVerification is a RUNTIME flag an admin
+    // can flip, and gating construction on it meant flipping it did nothing
+    // until a redeploy while the UI still claimed "verification email sent".
+    const sendVerificationEmail = vi.fn();
+    createAuth({
+      config: createMockConfig({}, { emailVerification: false }),
+      db: {} as any,
+      secret: 'test-secret',
+      emailSender: { sendVerificationEmail },
+    });
+
+    const call = (betterAuth as unknown as ReturnType<typeof vi.fn>).mock.calls.at(-1)![0];
+    expect(call.emailVerification?.sendOnSignUp).toBe(true);
+  });
+
+  it('wires nothing at all when there is no sender to call', () => {
     createAuth({
       config: createMockConfig({}, { emailVerification: true }),
       db: {} as any,

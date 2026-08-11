@@ -233,7 +233,9 @@ async function deleteUser(userId: string, username: string): Promise<void> {
 .admin-filter-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; font-family: var(--font-mono); color: var(--text-dim); }
 .admin-verified { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; white-space: nowrap; }
 .admin-verified.is-confirmed { color: var(--green-text); }
-.admin-verified.is-unconfirmed { color: var(--text-faint); }
+/* --text-dim, not --text-faint: this text CARRIES the state (the icon is
+   aria-hidden), and faint is 2.5:1 on --surface, below the 4.5:1 AA floor. */
+.admin-verified.is-unconfirmed { color: var(--text-dim); }
 .admin-table-wrap { overflow-x: auto; }
 .admin-table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .admin-table th { text-align: left; padding: 8px 12px; border-bottom: var(--border-width-default) solid var(--border); font-weight: 600; color: var(--text-dim); font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; font-family: var(--font-mono); }

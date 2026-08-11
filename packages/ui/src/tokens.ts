@@ -77,7 +77,7 @@ export const TOKEN_SPECS: TokenSpec[] = [
   { key: 'text', group: 'text', kind: 'color', default: '#1a1a1a', description: 'Primary body text' },
   { key: 'text-dim', group: 'text', kind: 'color', default: '#6b6b66', description: 'Secondary text' },
   { key: 'text-faint', group: 'text', kind: 'color', default: '#a3a39e', description: 'Tertiary text / placeholders' },
-  { key: 'color-text-inverse', group: 'text', kind: 'color', default: '#ffffff', description: 'Text on accent backgrounds' },
+  { key: 'color-text-inverse', group: 'text', kind: 'color', default: '#ffffff', description: 'Text on an INVERTED (dark) surface. NOT for accent fills — use color-on-accent' },
 
   // Borders
   { key: 'border', group: 'borders', kind: 'color', default: '#1a1a1a', description: 'Strong border (cards, buttons)' },
@@ -88,7 +88,7 @@ export const TOKEN_SPECS: TokenSpec[] = [
   { key: 'accent-bg', group: 'accent', kind: 'color', default: 'rgba(91, 156, 246, 0.08)', description: 'Accent tinted surface' },
   { key: 'accent-border', group: 'accent', kind: 'color', default: 'rgba(91, 156, 246, 0.25)' },
   { key: 'color-primary-hover', group: 'accent', kind: 'color', default: '#4a8be5', description: 'Accent hover state' },
-  { key: 'color-on-accent', group: 'accent', kind: 'color', default: '#ffffff', description: 'Text on accent fills' },
+  { key: 'color-on-accent', group: 'accent', kind: 'color', default: '#1a1a1a', description: 'Text on accent fills' },
   { key: 'color-link', group: 'accent', kind: 'color', default: '#5b9cf6' },
   { key: 'color-link-hover', group: 'accent', kind: 'color', default: '#4a8be5' },
   // Accent tints + states — literal values a theme must override (var() aliases
@@ -99,9 +99,9 @@ export const TOKEN_SPECS: TokenSpec[] = [
   { key: 'accent-bg-heavy', group: 'accent', kind: 'color', default: 'rgba(91, 156, 246, 0.4)', description: 'Heavy accent tint' },
   { key: 'accent-bg-solid', group: 'accent', kind: 'color', default: 'rgba(91, 156, 246, 0.6)', description: 'Near-solid accent tint' },
   { key: 'accent-focus-ring', group: 'accent', kind: 'shadow', default: '0 0 0 3px rgba(91, 156, 246, 0.12)', description: 'Accent focus glow' },
-  { key: 'color-on-primary', group: 'accent', kind: 'color', default: '#ffffff', description: 'Text on primary fills' },
-  { key: 'color-primary-text', group: 'accent', kind: 'color', default: '#ffffff', description: 'Text on primary buttons' },
-  { key: 'color-accent-text', group: 'accent', kind: 'color', default: '#ffffff', description: 'Text on accent fills' },
+  { key: 'color-on-primary', group: 'accent', kind: 'color', default: '#1a1a1a', description: 'Text on primary fills' },
+  { key: 'color-primary-text', group: 'accent', kind: 'color', default: '#1a1a1a', description: 'Text on primary buttons' },
+  { key: 'color-accent-text', group: 'accent', kind: 'color', default: '#1a1a1a', description: 'Text on accent fills' },
   // Secondary accent — a second brand color for secondary CTAs (.cpub-btn-secondary)
   // + accents. Defaults to a violet so existing themes get a sensible second hue.
   { key: 'secondary', group: 'accent', kind: 'color', default: '#8b5cf6', description: 'Secondary brand accent' },

@@ -123,12 +123,16 @@ onUnmounted(() => clearInterval(timer));
 }
 
 /* Pre-mount placeholder: carries the deadline for machines, occupies the height
-   the live value will need so hydration does not shift the layout. */
+   the live value will need so hydration does not shift the layout. Both numbers
+   are the MEASURED height of the real thing, not the sum of the declared
+   paddings — the label inherits body's --leading-normal (1.7), which the first
+   attempt's arithmetic ignored and under-reserved by ~13px. */
 .cpub-countdown-ssr {
   display: block;
-  min-height: 1em;
+  min-height: calc(1em * var(--leading-normal, 1.7));
 }
 .cpub-countdown.cpub-countdown-ssr {
-  min-height: 52px; /* one .cpub-countdown-unit: 10+22+4+9+10 + 2px borders */
+  /* 2 border + 10 pad + 22 num + 4 margin + 15.3 label (9px x 1.7) + 10 pad + 2 border */
+  min-height: 66px;
 }
 </style>

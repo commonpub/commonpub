@@ -2,11 +2,39 @@
 const { hasConsented, hasNonEssentialCookies, acceptAll, acceptEssential } = useCookieConsent();
 
 const visible = computed(() => !hasConsented.value && hasNonEssentialCookies.value);
+
+// Publish this bar's height so anything else docked to the bottom edge can clear
+// it. The contest action bar is fixed to the same edge at a lower z-index, and
+// this banner is shown to exactly the anonymous first-time visitor that bar
+// exists for — so without this it covers the bar completely. Measured, because
+// the height depends on the copy wrapping and on the <=640px stacked layout.
+const root = ref<HTMLElement | null>(null);
+let ro: ResizeObserver | null = null;
+
+function publish(px: number): void {
+  document.documentElement.style.setProperty('--cpub-consent-height', `${Math.ceil(px)}px`);
+}
+function clear(): void {
+  document.documentElement.style.removeProperty('--cpub-consent-height');
+}
+
+watch(root, (el) => {
+  ro?.disconnect();
+  ro = null;
+  if (!el || typeof ResizeObserver === 'undefined') { clear(); return; }
+  ro = new ResizeObserver(([entry]) => {
+    const h = entry.target.getBoundingClientRect().height;
+    if (h > 0) publish(h); else clear();
+  });
+  ro.observe(el);
+});
+
+onUnmounted(() => { ro?.disconnect(); clear(); });
 </script>
 
 <template>
   <Transition name="cpub-consent-slide">
-    <div v-if="visible" class="cpub-consent" role="dialog" aria-label="Cookie consent">
+    <div v-if="visible" ref="root" class="cpub-consent" role="dialog" aria-label="Cookie consent">
       <div class="cpub-consent-inner">
         <p class="cpub-consent-text">
           This site uses cookies for essential functionality and to remember your preferences.

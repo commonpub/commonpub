@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import type { Serialized, ContestEntryItem, ContestJudgeItem } from '@commonpub/server';
-import { templateHasRequiredField } from '@commonpub/schema';
 import { effectiveRegistrationTemplate } from '../../../utils/contestRegistration';
 
 const route = useRoute();
@@ -81,9 +80,12 @@ const tabs = computed<Tab[]>(() => {
   const t: Tab[] = [{ key: 'overview', label: 'Overview', icon: 'fa-circle-info' }];
   if (c.value?.rules || c.value?.rulesBlocks?.length) t.push({ key: 'rules', label: 'Rules', icon: 'fa-file-lines' });
   if (c.value?.showPrizes !== false && (c.value?.prizes?.length || c.value?.prizesDescription || c.value?.prizesBlocks?.length)) t.push({ key: 'prizes', label: 'Prizes', icon: 'fa-trophy' });
-  // `|| undefined` suppresses a literal "0" chip, matching the Judges tab two
-  // lines down. The two halves of this same computed disagreed until session 253.
-  t.push({ key: 'entries', label: 'Entries', icon: 'fa-box-open', count: (c.value?.entryCount ?? entries.value.length) || undefined });
+  // Counts what the tab actually renders. `entryCount` is the denormalized
+  // column that maybeCreateCombinedEntry inflates with registration-time draft
+  // placeholders — the number utils/contestCounts.ts exists to keep off open
+  // contests — so putting it on the chip contradicted the panel below it.
+  // `|| undefined` suppresses a literal "0", matching the Judges tab.
+  t.push({ key: 'entries', label: 'Entries', icon: 'fa-box-open', count: entries.value.length || undefined });
   if (participants.value.length) t.push({ key: 'participants', label: 'Participants', icon: 'fa-users', count: participants.value.length });
   if (judges.value.length || isOwner.value) t.push({ key: 'judges', label: 'Judges', icon: 'fa-gavel', count: judges.value.length || undefined });
   return t;
@@ -381,25 +383,23 @@ const showActionBar = computed(() => features.value.contestActionBar !== false &
 const isFullyRegistered = computed(() => registrationTier.value === 'full');
 const mustRegisterFirst = computed(() => entryRequiresRegistration.value && !isFullyRegistered.value);
 
-// Which registration flow this contest needs — the same decision the signup card
-// makes: a template with any required field or must-accept agreement has to be
-// filled in (the dedicated page renders any form at full width), while an
-// all-optional template (including the legacy default) is a one-click register.
+// Which registration flow this contest needs. The decision itself lives in
+// utils/contestRegistration.ts so the page, the signup card and the action bar
+// cannot disagree — they used to, visibly: a short-but-required form opened a
+// modal from the sidebar and navigated to the full page from the hero.
 const registrationTemplate = computed(() => effectiveRegistrationTemplate(c.value?.registrationTemplate));
-const registrationNeedsForm = computed(() => templateHasRequiredField(registrationTemplate.value));
 
 /** Start (or complete) registration — from the hero CTA, or from any entry path
  *  taken by someone who isn't registered yet. */
 function startRegistration(): void {
-  if (!isAuthenticated.value) {
-    // Land in the registration form after login, not back here unregistered.
-    navigateTo(`/auth/login?redirect=/contests/${slug}/register`);
-    return;
-  }
-  if (registrationNeedsForm.value) {
-    navigateTo(`/contests/${slug}/register`);
-    return;
-  }
+  // allowModal is false: the page has nowhere to host one, so a short required
+  // form routes to the dedicated page. Only the sidebar card passes true.
+  const action = resolveRegistrationAction({
+    slug,
+    isAuthenticated: isAuthenticated.value,
+    template: registrationTemplate.value,
+  });
+  if (action.kind === 'login' || action.kind === 'page') { navigateTo(action.to); return; }
   register({ tier: 'full' });
 }
 
@@ -750,7 +750,7 @@ async function withdrawEntry(entryId: string): Promise<void> {
 .cpub-submit-tile-thumb { position: relative; aspect-ratio: 4 / 3; background: var(--surface2); display: flex; align-items: center; justify-content: center; color: var(--text-faint); overflow: hidden; }
 .cpub-submit-tile-thumb img { width: 100%; height: 100%; object-fit: cover; }
 .cpub-submit-tile-badge { position: absolute; top: 4px; right: 4px; font-size: 9px; font-family: var(--font-mono); text-transform: uppercase; background: var(--surface); border: var(--border-width-default) solid var(--border); padding: 1px 5px; color: var(--text-dim); }
-.cpub-submit-tile-check { position: absolute; top: 4px; right: 4px; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; background: var(--accent); color: var(--color-text-inverse); font-size: 10px; }
+.cpub-submit-tile-check { position: absolute; top: 4px; right: 4px; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; background: var(--accent); color: var(--color-on-accent); font-size: 10px; }
 .cpub-submit-tile-title { font-size: 12px; font-weight: 600; padding: 6px 8px 2px; line-height: 1.3; }
 .cpub-submit-tile-type { font-size: 9px; font-family: var(--font-mono); text-transform: uppercase; color: var(--text-faint); padding: 0 8px 8px; }
 .cpub-submit-footer { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 16px; border-top: var(--border-width-default) solid var(--border); }
@@ -844,8 +844,16 @@ async function withdrawEntry(entryId: string): Promise<void> {
 @media (max-width: 768px) {
   .cpub-contest-main { padding: 20px 16px; }
   .cpub-contest-layout { grid-template-columns: 1fr; }
-  /* One column: sticking it would pin a tall card over the content. */
-  .cpub-contest-layout > .cpub-sidebar { position: static; }
+  /* Unwind the WHOLE desktop treatment, not just position. Resetting only
+     `position` left max-height + overflow-y in force, which turned the entire
+     sidebar — registration card included — into a nested ~764px scroll box at
+     exactly the viewport this session set out to fix. */
+  .cpub-contest-layout > .cpub-sidebar {
+    position: static;
+    max-height: none;
+    overflow-y: visible;
+    padding-right: 0;
+  }
 }
 @media (max-width: 480px) {
   .cpub-contest-main { padding: 16px 12px; }

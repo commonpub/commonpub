@@ -397,7 +397,7 @@ async function handlePublish(): Promise<void> {
 .cpub-add-input { flex: 1; padding: 6px 10px; border: var(--border-width-default) solid var(--border); border-left: none; background: var(--surface); color: var(--text); font-size: 12px; outline: none; }
 .cpub-add-input:focus { border-color: var(--accent); }
 .cpub-add-input::placeholder { color: var(--text-faint); }
-.cpub-add-btn { padding: 6px 10px; background: var(--accent); color: var(--color-text-inverse); border: var(--border-width-default) solid var(--accent); border-left: none; font-size: 11px; cursor: pointer; }
+.cpub-add-btn { padding: 6px 10px; background: var(--accent); color: var(--color-on-accent); border: var(--border-width-default) solid var(--accent); border-left: none; font-size: 11px; cursor: pointer; }
 .cpub-add-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .cpub-link-btn { padding: 6px 10px; background: var(--surface2); color: var(--text-dim); border: var(--border-width-default) solid var(--border); font-size: 10px; font-family: var(--font-mono); cursor: pointer; display: flex; align-items: center; gap: 5px; margin-left: 4px; }
 .cpub-link-btn:hover { border-color: var(--accent); color: var(--accent); }

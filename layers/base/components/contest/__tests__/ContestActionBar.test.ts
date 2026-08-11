@@ -100,11 +100,27 @@ describe('ContestActionBar — who sees what', () => {
     expect(l).not.toContain('Register');
   });
 
-  it('offers nothing but sharing on a cancelled contest', () => {
-    const { container } = mount({ contest: { status: 'cancelled' }, isAuthenticated: true });
-    const l = labels(container);
-    expect(l).not.toContain('Register');
-    expect(l).not.toContain('View results');
+  it('does not render at all when there is no primary action to offer', () => {
+    // A share-only strip plus ~60px of reserved body padding is worse than no
+    // bar. `judging` matters most here: it is a weeks-long state, so a non-judge
+    // viewer would otherwise stare at an empty band for the whole round.
+    for (const status of ['judging', 'paused', 'cancelled']) {
+      const { container } = mount({ contest: { status }, isAuthenticated: true });
+      expect(
+        container.querySelector('.cpub-contest-actions'),
+        `${status} should not render an actionless bar`,
+      ).toBeNull();
+    }
+  });
+
+  it('still renders during judging for someone who can actually judge', () => {
+    const { container } = mount({ contest: { status: 'judging' }, isAuthenticated: true, canJudge: true });
+    expect(labels(container)).toContain('Judge entries');
+  });
+
+  it('still renders during judging for an organizer', () => {
+    const { container } = mount({ contest: { status: 'judging' }, isAuthenticated: true, canManage: true });
+    expect(labels(container)).toContain('Edit');
   });
 
   it('does not render at all for a draft, or with no contest', () => {

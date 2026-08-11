@@ -2,6 +2,22 @@ import { ConsoleEmailAdapter, SmtpEmailAdapter, ResendEmailAdapter } from '@comm
 import type { EmailAdapter } from '@commonpub/server';
 
 let cachedAdapter: EmailAdapter | null = null;
+let deliverable = false;
+
+/**
+ * Whether the configured adapter actually DELIVERS mail, as opposed to logging
+ * it to stdout.
+ *
+ * `useEmailAdapter()` silently falls back to the console sink whenever a
+ * transport is missing or half-configured, so "an email sender exists" is not
+ * the same as "mail reaches people". Anything that tells a user we sent them
+ * something has to check this first, or it lies to them — which is precisely
+ * what the verification banner would have done on a console-sink instance.
+ */
+export function isEmailDeliverable(): boolean {
+  useEmailAdapter(); // resolve + cache the choice
+  return deliverable;
+}
 
 /**
  * Create and cache an email adapter based on runtime config.
@@ -27,6 +43,7 @@ export function useEmailAdapter(): EmailAdapter {
     }
 
     cachedAdapter = new SmtpEmailAdapter({ host, port, user, pass, from });
+    deliverable = true;
     return cachedAdapter;
   }
 
@@ -41,6 +58,7 @@ export function useEmailAdapter(): EmailAdapter {
     }
 
     cachedAdapter = new ResendEmailAdapter({ apiKey, from });
+    deliverable = true;
     return cachedAdapter;
   }
 

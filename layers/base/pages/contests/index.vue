@@ -36,7 +36,7 @@ const canCreateContest = computed(() => {
   <div class="cpub-contests-page">
     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;">
       <SectionHeader title="Contests" large />
-      <NuxtLink v-if="canCreateContest" to="/contests/create" class="cpub-btn cpub-btn-primary" style="font-size: 12px; padding: 6px 14px; background: var(--accent); color: var(--color-text-inverse); border: var(--border-width-default) solid var(--border); text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
+      <NuxtLink v-if="canCreateContest" to="/contests/create" class="cpub-btn cpub-btn-primary" style="font-size: 12px; padding: 6px 14px; background: var(--accent); color: var(--color-on-accent); border: var(--border-width-default) solid var(--border); text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
         <i class="fa-solid fa-plus"></i> Create Contest
       </NuxtLink>
     </div>

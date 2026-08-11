@@ -28,6 +28,8 @@ const flagMeta: Record<string, { label: string; description: string; icon: strin
   contestProposals: { label: 'Contest Proposals', description: 'Form-first proposal entries with a draft placeholder project', icon: 'fa-solid fa-clipboard-list' },
   contestPii: { label: 'Contest PII Fields', description: 'Offer personal-data fields (email, address) in submission forms', icon: 'fa-solid fa-user-shield' },
   contestReminders: { label: 'Contest Deadline Reminders', description: 'Automatic deadline reminder emails to registered participants (needs Email Notifications)', icon: 'fa-solid fa-bell' },
+  contestActionBar: { label: 'Contest Action Bar', description: 'Persistent Register/Submit bar at the bottom of narrow screens, where the sidebar sits far below the fold', icon: 'fa-solid fa-mobile-screen-button' },
+  emailVerification: { label: 'Email Verification', description: 'Mail a confirmation link on signup and nag with a banner until confirmed. Never blocks sign-in, so nobody is locked out. Needs a real mail transport', icon: 'fa-solid fa-envelope-circle-check' },
   contestEmailEditor: { label: 'Contest Email Editor', description: 'Let contest organizers customize the confirmation + reminder email copy per contest', icon: 'fa-solid fa-envelope-open-text' },
   learning: { label: 'Learning', description: 'Learning paths and courses', icon: 'fa-solid fa-graduation-cap' },
   explainers: { label: 'Explainers', description: 'Interactive explainer modules', icon: 'fa-solid fa-lightbulb' },

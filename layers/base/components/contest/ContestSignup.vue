@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import type { Serialized, ContestDetail } from '@commonpub/server';
-import { templateHasRequiredField } from '@commonpub/schema';
 import { effectiveRegistrationTemplate, isRichRegistrationForm } from '../../utils/contestRegistration';
 
 type Tier = 'full' | 'reminders';
@@ -124,14 +123,9 @@ const whatsNext = computed<string>(() => {
 
 const hasSavedInfo = computed(() => Object.keys(props.savedFields ?? {}).length > 0);
 
-// When the operator's form has any REQUIRED field or must-accept agreement, FULL
-// registration MUST go through the form (so the requirement is enforced + consent
-// recorded); an all-optional form (incl. the legacy default) keeps the one-click flow.
-const templateHasRequired = computed(() => templateHasRequiredField(registrationTemplate.value));
-
-// A "rich" form (sections / address / file / signature / many fields) is too big for
-// the sidebar → it opens on the dedicated /register page; a short-but-required form
-// opens in a modal; the bare optional default one-click registers with no form.
+// "Rich" = too big for the ~300px sidebar, so it opens on the dedicated page.
+// Only `onEditDetails` still needs this directly; the register decision itself
+// moved into resolveRegistrationAction.
 const isRich = computed(() => isRichRegistrationForm(registrationTemplate.value));
 
 // --- Modal (short forms only) ---
@@ -139,12 +133,19 @@ const modalOpen = ref(false);
 const modalRef = ref<HTMLElement | null>(null);
 useFocusTrap(modalRef, () => modalOpen.value, () => { modalOpen.value = false; });
 
-/** Primary register CTA: one-click when no fields are required; otherwise route to
- *  the page (rich) or open the modal (short). */
+/** Primary register CTA. The decision is shared with the page and the action bar
+ *  (utils/contestRegistration.ts); this card is the one caller that CAN host a
+ *  modal, so it is the only one passing allowModal. */
 function onRegisterCta(): void {
-  if (!templateHasRequired.value) { emit('register', { tier: 'full' }); return; }
-  if (isRich.value) { navigateTo(registerLink.value); return; }
-  modalOpen.value = true;
+  const action = resolveRegistrationAction({
+    slug: props.contest?.slug ?? '',
+    isAuthenticated: props.isAuthenticated === true,
+    template: registrationTemplate.value,
+    allowModal: true,
+  });
+  if (action.kind === 'login' || action.kind === 'page') { navigateTo(action.to); return; }
+  if (action.kind === 'modal') { modalOpen.value = true; return; }
+  emit('register', { tier: 'full' });
 }
 /** Edit/add optional details (a full participant): page when rich, else modal. */
 function onEditDetails(): void {

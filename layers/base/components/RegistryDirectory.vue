@@ -123,7 +123,7 @@ async function setStatus(row: RegistryRow, status: 'active' | 'hidden' | 'blocke
 .cpub-fed-info-text { font-size: 0.8125rem; color: var(--text-dim); }
 .cpub-fed-form { display: flex; gap: 8px; }
 .cpub-fed-input { flex: 1; padding: 8px 12px; font-family: var(--font-mono); font-size: 0.8125rem; border: var(--border-width-default) solid var(--border); background: var(--surface); color: var(--text); }
-.cpub-fed-btn { padding: 8px 16px; font-family: var(--font-mono); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; cursor: pointer; background: var(--accent); color: var(--color-text-inverse); border: var(--border-width-default) solid var(--accent); box-shadow: var(--shadow-sm); }
+.cpub-fed-btn { padding: 8px 16px; font-family: var(--font-mono); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; cursor: pointer; background: var(--accent); color: var(--color-on-accent); border: var(--border-width-default) solid var(--accent); box-shadow: var(--shadow-sm); }
 .cpub-fed-btn:hover { box-shadow: none; transform: translate(2px, 2px); }
 .cpub-fed-btn-sm { padding: 4px 10px; font-family: var(--font-mono); font-size: 10px; font-weight: 600; text-transform: uppercase; cursor: pointer; background: transparent; border: var(--border-width-default) solid var(--border); color: var(--text-dim); }
 .cpub-fed-btn-sm:hover { border-color: var(--accent); color: var(--accent-text); }

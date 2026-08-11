@@ -859,7 +859,7 @@ const reviewStages = computed(() => (contest.value?.stages ?? []).filter((s) => 
 }
 .cpub-ce-topbar-btn:hover { background: var(--surface2); }
 .cpub-ce-topbar-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.cpub-ce-topbar-btn-primary { background: var(--accent); color: var(--color-text-inverse); font-weight: 600; border-color: var(--accent); box-shadow: var(--shadow-md); }
+.cpub-ce-topbar-btn-primary { background: var(--accent); color: var(--color-on-accent); font-weight: 600; border-color: var(--accent); box-shadow: var(--shadow-md); }
 .cpub-ce-topbar-btn-primary:hover:not(:disabled) { box-shadow: var(--shadow-sm); background: var(--accent); }
 
 /* Topbar Status ▾ dropdown */
@@ -1002,7 +1002,7 @@ const reviewStages = computed(() => (contest.value?.stages ?? []).filter((s) => 
   color: var(--text-dim); cursor: pointer; display: inline-flex; align-items: center; gap: 4px;
   font-family: var(--font-mono); box-shadow: var(--shadow-sm);
 }
-.cpub-ce-media-btn.primary { background: var(--accent); color: var(--color-text-inverse); border-color: var(--accent); }
+.cpub-ce-media-btn.primary { background: var(--accent); color: var(--color-on-accent); border-color: var(--accent); }
 .cpub-ce-media-btn:hover { background: var(--surface2); }
 .cpub-ce-media-btn.primary:hover { opacity: 0.9; background: var(--accent); }
 .cpub-ce-media-btn-icon { padding: 5px 7px; }

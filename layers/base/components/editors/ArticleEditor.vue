@@ -709,7 +709,7 @@ const canvasMaxWidth = computed(() => {
   color: var(--text-dim); cursor: pointer; display: inline-flex; align-items: center; gap: 4px;
   font-family: var(--font-mono); box-shadow: var(--shadow-sm);
 }
-.cpub-ae-cover-btn.primary { background: var(--accent); color: var(--color-text-inverse); border-color: var(--accent); }
+.cpub-ae-cover-btn.primary { background: var(--accent); color: var(--color-on-accent); border-color: var(--accent); }
 .cpub-ae-cover-btn:hover { background: var(--surface2); }
 .cpub-ae-cover-btn.primary:hover { opacity: 0.9; background: var(--accent); }
 

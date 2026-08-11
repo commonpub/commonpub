@@ -406,6 +406,18 @@
   min-height: 44px;
 }
 
+/* Dense row actions (admin tables, chip rows). Was declared only in page-scoped
+   CSS which set padding + font-size but no height, so when .cpub-btn gained a
+   44px floor these 10px-font buttons inflated into slabs — scoped specificity
+   beat the base for padding but there was nothing to override min-height.
+   28px is the honest size for this control; it is below the 44px touch target
+   and is therefore for pointer-dense admin surfaces only. */
+.cpub-btn-xs {
+  padding: 3px 8px;
+  font-size: 10px;
+  min-height: 28px;
+}
+
 .cpub-btn-lg {
   padding: var(--space-3) var(--space-6);
   font-size: var(--text-base);

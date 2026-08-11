@@ -51,7 +51,7 @@ const variant = computed(() => registrationVariant(props.content));
 }
 .cpub-reglink-cta-primary {
   background: var(--accent);
-  color: var(--color-text-inverse);
+  color: var(--color-on-accent);
 }
 .cpub-reglink-cta-secondary {
   background: var(--surface);

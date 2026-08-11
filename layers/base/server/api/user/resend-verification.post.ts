@@ -37,13 +37,23 @@ export default defineEventHandler(async (event): Promise<{ ok: true }> => {
   const user = requireAuth(event);
   const config = useConfig();
 
-  // Nothing to do, and say nothing about why. Covers: verification not enabled
-  // on this instance, and an address that is already confirmed (which would
-  // otherwise let a session holder mail themselves indefinitely for no reason).
+  // Already confirmed: nothing to do, and say nothing about why — that IS
+  // account state, so a distinguishing error would be an oracle.
+  if (user.emailVerified === true) return { ok: true };
+
+  // Feature off, or no real transport behind it: report honestly with a 503.
+  // Neither fact is a secret (the flag is already public via /api/features) and
+  // neither is per-account, so this leaks nothing — while silently answering
+  // `{ ok: true }` made the UI announce "Verification email sent" on an instance
+  // that had sent nothing and never would.
   const enabled = config.features.emailVerification === true
     || config.auth.requireEmailVerification === true;
-  if (!enabled) return { ok: true };
-  if (user.emailVerified === true) return { ok: true };
+  if (!enabled || !isEmailDeliverable()) {
+    throw createError({
+      statusCode: 503,
+      statusMessage: 'Verification email is not available on this instance',
+    });
+  }
 
   const rl = await store.check(`user:${user.id}`, TIER);
   if (!rl.allowed) {
@@ -62,10 +72,15 @@ export default defineEventHandler(async (event): Promise<{ ok: true }> => {
       headers: new Headers(getRequestHeaders(event) as Record<string, string>),
     });
   } catch (err: unknown) {
-    // A transport failure must not surface as a 500: the caller can only retry,
-    // and the rate limit above has already been spent. Log it for the operator,
-    // who has no other record — auth mail deliberately bypasses email_outbox.
+    // Log for the operator, who has no other record — auth mail deliberately
+    // bypasses email_outbox. Then tell the caller the truth: reporting success
+    // for a send that failed is how a user ends up waiting for a mail that is
+    // never coming. 503 carries no account information.
     console.error('[resend-verification] send failed:', err instanceof Error ? err.message : err);
+    throw createError({
+      statusCode: 503,
+      statusMessage: 'Could not send the verification email right now',
+    });
   }
 
   return { ok: true };
