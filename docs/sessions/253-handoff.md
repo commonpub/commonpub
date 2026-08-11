@@ -15,7 +15,7 @@ All three instances **healthy** (`/api/health` ok), migration **0045**, **41 fla
 
 | Package | Live on npm | Package | Live on npm |
 |---|---|---|---|
-| `@commonpub/layer` | **0.131.0** | `@commonpub/ui` | **0.14.2** |
+| `@commonpub/layer` | **0.131.2** | `@commonpub/ui` | **0.14.2** |
 | `@commonpub/server` | **2.129.0** | `@commonpub/config` | **0.38.0** |
 | `@commonpub/auth` | **0.12.0** | `@commonpub/test-utils` | **0.5.16** |
 | `@commonpub/infra` | **0.20.0** | `@commonpub/schema` | 0.63.0 (unchanged) |
@@ -251,3 +251,58 @@ analytics switched off too: `instance_settings.theme.default` is a leftover
 `cpub-custom-glass-demo-dark` from earlier theme-studio work (three theme specs assume the stock
 default), and a seeded hub avatar points at a host that no longer resolves (`/hubs` console-error
 smoke). CI runs against a fresh database.
+
+
+---
+
+## Deployed, and what the deploy verification caught
+
+All three PRs merged; commonpub.io, deveco.io and heatsynclabs.io all deployed and healthy. Two real
+defects surfaced only AFTER deploy, both because the verification checked behaviour rather than
+stopping at "it deployed".
+
+**1. The CSP opened a vendor origin on an instance with analytics off** (`layer@0.131.1`). The
+middleware read the config block alone, so *declaring* a provider was enough. The reference app
+declares one precisely so its e2e can exercise the consent gate while the flag stays off, so
+commonpub.io went live allowing `googletagmanager` in `script-src` while its own `/privacy` correctly
+said it uses no analytics. A CSP and a privacy page disagreeing is exactly what deriving everything
+from one registry is supposed to prevent, so the gate belongs in the middleware, not in how the
+reference app is configured.
+
+**2. The flag was set in the wrong file, then the tag measured nothing.** Two separate problems in a
+row on deveco:
+
+- `features.analytics` was set in `nuxt.config.ts`'s `runtimeConfig.public.features`, which only
+  carries `NUXT_PUBLIC_FEATURES_*` env overrides. `useFeatures()` primes from `commonpub.config.ts`
+  merged with the DB overrides, so the flag read **false** in production and nothing turned on. **The
+  flag belongs in `commonpub.config.ts`.**
+- Then, with it on, `gtag.js` loaded and `google_tag_manager` initialised the property, every command
+  was present in the `dataLayer` — and no hit was ever sent and no `_ga` cookie was ever set. The shim
+  pushed an **array**; Google's canonical shim pushes `arguments`. Not cosmetic: the site looked
+  instrumented and measured nothing (`layer@0.131.2`).
+
+The second one is the lesson worth keeping. "The script loaded" is not "it works". The check that
+caught it was looking for the collect beacon and the cookie.
+
+### Final live verification (deveco.io, real property)
+
+| | tag requests | `_ga` cookie |
+|---|---|---|
+| Before any choice | **0** | no |
+| After "Essential only", plus a navigation | **0** | no |
+| After "Accept all" | 5, incl. 3 collect beacons | `_ga`, `_ga_1BEXT06G60` |
+
+The two cookies set are exactly the two the cookie policy discloses, because both come from the same
+registry entry.
+
+commonpub.io is back on the tight default CSP (`script-src 'self' 'unsafe-inline'`), still reports
+`analytics: false`, and its privacy page still says it uses no analytics. heatsynclabs.io is a pin
+bump only and declares no provider.
+
+### Remaining
+
+- **`features.emailVerification` is still OFF everywhere.** Published and ready; deveco has a real
+  Resend transport, so turning it on is an admin toggle now (it is runtime-flippable) rather than a
+  redeploy.
+- The contest-email question is still unanswered.
+- `create-commonpub` pins are now ~26 minors stale.
