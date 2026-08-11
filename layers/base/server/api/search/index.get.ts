@@ -1,4 +1,4 @@
-import { searchContent, listContent, listHubs, escapeLike } from '@commonpub/server';
+import { searchContent, listContent, listHubs, escapeLike, toPageMeta } from '@commonpub/server';
 import type { ContentSearchOptions, ContentFilters, MeiliClient } from '@commonpub/server';
 import { users, follows, hubs } from '@commonpub/schema';
 import { sql, desc, ilike, or, and, isNull, eq, inArray } from 'drizzle-orm';
@@ -17,14 +17,15 @@ const searchQuerySchema = z.object({
   offset: z.coerce.number().int().min(0).optional(),
 });
 
-export default defineEventHandler(async (event): Promise<{ items: unknown[]; total: number }> => {
+export default defineEventHandler(
+  async (event): Promise<{ items: unknown[]; total: number | null; hasMore: boolean }> => {
   const db = useDB();
   const config = useConfig();
   const params = parseQueryParams(event, searchQuerySchema);
   const q = params.q?.trim();
 
   if (!q) {
-    return { items: [], total: 0 };
+    return { items: [], total: 0, hasMore: false };
   }
 
   const limit = Math.min(params.limit ?? 24, 100);
@@ -48,6 +49,7 @@ export default defineEventHandler(async (event): Promise<{ items: unknown[]; tot
         source: (hub as unknown as Record<string, unknown>).source ?? 'local',
       })),
       total: result.total,
+      hasMore: offset + result.items.length < result.total,
     };
   }
 
@@ -98,6 +100,7 @@ export default defineEventHandler(async (event): Promise<{ items: unknown[]; tot
         followerCount: followerCounts[r.id] ?? 0,
       })),
       total: countResult[0]?.count ?? rows.length,
+      hasMore: rows.length === limit,
     };
   }
 
@@ -150,9 +153,11 @@ export default defineEventHandler(async (event): Promise<{ items: unknown[]; tot
     };
     const { filters, options } = resolveContentQuery(event, raw);
     const result = await listContent(db, filters, options);
+    // listContent skips COUNT(*) past the first page. Forwarding its sentinel
+    // is what put "-1 results" on screen and unmounted the pager.
     return {
       items: result.items.map((item) => ({ ...item, _resultType: 'content' })),
-      total: result.total,
+      ...toPageMeta({ total: result.total, returned: result.items.length, limit, offset }),
     };
   }
 
@@ -174,6 +179,7 @@ export default defineEventHandler(async (event): Promise<{ items: unknown[]; tot
   const result = await searchContent(db, opts, meiliClient);
   return {
     items: result.items.map((item) => ({ ...item, _resultType: 'content' })),
-    total: result.total,
+    ...toPageMeta({ total: result.total, returned: result.items.length, limit, offset }),
   };
-});
+  },
+);

@@ -1,4 +1,4 @@
-import { getEventBySlug, listEventAttendees, canReadHubById } from '@commonpub/server';
+import { getEventBySlug, listEventAttendees, canReadHubById, toPageMeta } from '@commonpub/server';
 import type { AttendeeStatus } from '@commonpub/server';
 
 /**
@@ -35,9 +35,14 @@ export default defineEventHandler(async (event) => {
   }
 
   const query = getQuery(event);
-  return listEventAttendees(db, existing.id, {
+  const limit = query.limit ? Number(query.limit) : 20;
+  const offset = query.offset ? Number(query.offset) : 0;
+  const result = await listEventAttendees(db, existing.id, {
     status: (query.status as AttendeeStatus) || undefined,
-    limit: query.limit ? Number(query.limit) : undefined,
-    offset: query.offset ? Number(query.offset) : undefined,
+    limit,
+    offset,
   });
+  // The event page renders `+{{ attendees.total - 8 }}`, so an untranslated
+  // sentinel is an arithmetic error waiting on the guard above it.
+  return { ...result, ...toPageMeta({ total: result.total, returned: result.items.length, limit, offset }) };
 });

@@ -32,7 +32,7 @@ import {
 } from '@commonpub/protocol';
 import type { DB } from '../types.js';
 import { isPrivateUrl, safeFetch } from '../import/ssrf.js';
-import { normalizePagination } from '../query.js';
+import { normalizePagination, COUNT_NOT_COMPUTED } from '../query.js';
 
 // --- Keypair Management ---
 
@@ -934,7 +934,7 @@ export async function listFederationActivity(
           .select({ count: sql<number>`count(*)::int` })
           .from(activities)
           .where(where)
-      : Promise.resolve([{ count: -1 }]),
+      : Promise.resolve([{ count: COUNT_NOT_COMPUTED }]),
   ]);
 
   return {

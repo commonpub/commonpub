@@ -1,4 +1,4 @@
-import { listEvents, toPublicEvent, type PublicEventRow } from '@commonpub/server';
+import { listEvents, toPublicEvent, toPageMeta, type PublicEventRow } from '@commonpub/server';
 import { z } from 'zod';
 
 const PUBLIC_STATUSES = new Set(['published', 'active', 'completed']);
@@ -39,5 +39,6 @@ export default defineEventHandler(async (event) => {
   const items = (result.items as unknown as PublicEventRow[])
     .filter((r) => !r.deletedAt && PUBLIC_STATUSES.has(r.status))
     .map((r) => toPublicEvent(r, domain));
-  return { items, total: result.total, limit: filters.limit, offset: filters.offset };
+  const page = toPageMeta({ total: result.total, returned: result.items.length, limit: filters.limit, offset: filters.offset });
+  return { items, ...page, limit: filters.limit, offset: filters.offset };
 });

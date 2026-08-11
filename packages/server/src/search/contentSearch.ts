@@ -8,7 +8,7 @@
 import { eq, and, desc, sql, isNull, ilike, or, gte, lte } from 'drizzle-orm';
 import { contentItems, users, tags, contentTags } from '@commonpub/schema';
 import type { DB } from '../types.js';
-import { normalizePagination } from '../query.js';
+import { normalizePagination, COUNT_NOT_COMPUTED } from '../query.js';
 
 export interface ContentSearchResult {
   id: string;
@@ -267,7 +267,7 @@ export async function searchWithPostgres(
           .select({ count: sql<number>`count(*)::int` })
           .from(contentItems)
           .where(where)
-      : Promise.resolve([{ count: -1 }]),
+      : Promise.resolve([{ count: COUNT_NOT_COMPUTED }]),
   ]);
 
   const items: ContentSearchResult[] = rows.map((r) => ({

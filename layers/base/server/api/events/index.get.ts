@@ -1,4 +1,4 @@
-import { listEvents, canReadHubById } from '@commonpub/server';
+import { listEvents, canReadHubById, toPageMeta } from '@commonpub/server';
 import type { EventStatus } from '@commonpub/server';
 
 const PUBLIC_STATUSES = new Set<string>(['published', 'active', 'completed']);
@@ -38,16 +38,21 @@ export default defineEventHandler(async (event) => {
     const canRead = await canReadHubById(db, hubId, user?.id, {
       asPlatformAdmin: hasPermission(event, 'admin.access'),
     });
-    if (!canRead) return { items: [], total: 0 };
+    if (!canRead) return { items: [], total: 0, hasMore: false };
   }
 
-  return listEvents(db, {
+  const limit = query.limit ? Number(query.limit) : 20;
+  const offset = query.offset ? Number(query.offset) : 0;
+  const result = await listEvents(db, {
     status,
     hubId,
     upcoming: query.upcoming === 'true',
     featured: query.featured === 'true',
     userId,
-    limit: query.limit ? Number(query.limit) : undefined,
-    offset: query.offset ? Number(query.offset) : undefined,
+    limit,
+    offset,
   });
+  // Translate the skipped-count sentinel before it reaches the page, which
+  // binds its pager to `total` and would drop Previous as well as Next.
+  return { ...result, ...toPageMeta({ total: result.total, returned: result.items.length, limit, offset }) };
 });

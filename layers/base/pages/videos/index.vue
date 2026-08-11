@@ -11,7 +11,7 @@ const pageSize = 20;
 // Reset page on filter change
 watch([activeFilter, sortOption], () => { page.value = 1; });
 
-const { data: videosData, pending: loadingVideos } = useFetch<{ items: any[]; total: number }>('/api/videos', {
+const { data: videosData, pending: loadingVideos } = useFetch<{ items: any[]; total: number | null; hasMore: boolean }>('/api/videos', {
   query: computed(() => ({
     categoryId: activeFilter.value || undefined,
     sort: sortOption.value,
@@ -25,7 +25,28 @@ const videos = computed(() => videosData.value?.items ?? []);
 // The first video is shown in the Featured hero, so the grid below skips it
 // (otherwise the most-recent video renders twice).
 const gridVideos = computed(() => videos.value.slice(1));
-const totalVideos = computed(() => videosData.value?.total ?? 0);
+/**
+ * The count only when the server took one. `total` is null past the first page
+ * when COUNT(*) was skipped, and a negative is an older server forwarding the
+ * raw sentinel; both mean unknown, so this can never render "-1 videos".
+ */
+const totalVideos = computed<number | null>(() => {
+  const t = videosData.value?.total;
+  return typeof t === 'number' && t >= 0 ? t : null;
+});
+const hasMore = computed(() => videosData.value?.hasMore === true);
+/** Null when unknown, so the pager falls back to Previous/Next. */
+const totalPages = computed<number | null>(() =>
+  totalVideos.value === null ? null : Math.max(1, Math.ceil(totalVideos.value / pageSize)),
+);
+// Binding to `total > pageSize` unmounted the entire control on page 2 when the
+// count was skipped, removing Previous as well as Next.
+const showPager = computed(() =>
+  totalPages.value !== null ? totalPages.value > 1 : page.value > 1 || hasMore.value,
+);
+const canGoNext = computed(() =>
+  totalPages.value !== null ? page.value < totalPages.value : hasMore.value,
+);
 
 const filterOptions = computed(() => {
   const cats = categories.value ?? [];
@@ -120,7 +141,7 @@ function formatDate(dateStr: string): string {
           <!-- VIDEO GRID — shown when there are non-featured videos, or while loading -->
           <div v-if="loadingVideos || gridVideos.length" class="cpub-sec-head">
             <h2>Recent Videos</h2>
-            <span class="cpub-sec-sub">{{ totalVideos }} videos</span>
+            <span v-if="totalVideos !== null" class="cpub-sec-sub">{{ totalVideos }} videos</span>
           </div>
 
           <!-- Loading skeleton -->
@@ -152,12 +173,15 @@ function formatDate(dateStr: string): string {
           </div>
 
           <!-- Pagination -->
-          <div v-if="totalVideos > pageSize" class="cpub-pagination">
+          <div v-if="showPager" class="cpub-pagination">
             <button class="cpub-page-btn" :disabled="page <= 1" @click="page--">
               <i class="fa-solid fa-chevron-left" style="font-size: 10px"></i>
             </button>
-            <span class="cpub-page-info">Page {{ page }} of {{ Math.ceil(totalVideos / pageSize) }}</span>
-            <button class="cpub-page-btn" :disabled="page >= Math.ceil(totalVideos / pageSize)" @click="page++">
+            <span class="cpub-page-info">
+              <template v-if="totalPages !== null">Page {{ page }} of {{ totalPages }}</template>
+              <template v-else>Page {{ page }}</template>
+            </span>
+            <button class="cpub-page-btn" :disabled="!canGoNext" @click="page++">
               <i class="fa-solid fa-chevron-right" style="font-size: 10px"></i>
             </button>
           </div>

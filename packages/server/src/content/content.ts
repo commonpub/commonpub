@@ -13,7 +13,7 @@ import type {
 } from '../types.js';
 import type { CreateContentInput, UpdateContentInput } from '@commonpub/schema';
 import { generateSlug, htmlToPlainText } from '../utils.js';
-import { ensureUniqueSlugFor, USER_REF_SELECT, USER_REF_WITH_HEADLINE_SELECT, normalizePagination, countRows, escapeLike, buildContentPath, decodeCursor, asDateUuidCursor, encodeCursor, keysetWhere, type KeysetCursor } from '../query.js';
+import { ensureUniqueSlugFor, USER_REF_SELECT, USER_REF_WITH_HEADLINE_SELECT, normalizePagination, countRows, escapeLike, buildContentPath, decodeCursor, asDateUuidCursor, encodeCursor, keysetWhere, type KeysetCursor, COUNT_NOT_COMPUTED } from '../query.js';
 import { federateContent, federateUpdate, federateDelete } from '../federation/federation.js';
 import { createNotification } from '../notification/notification.js';
 import { visibleContentWhere } from './visibility.js';
@@ -414,7 +414,7 @@ export async function listContent(
     // detect "has more" via items.length < limit and never read `total`; numbered/admin
     // listings read it only on page 1. Deep load-more pages skip the full count. `-1` =
     // "not computed".
-    localOffset === 0 ? countRows(db, contentItems, where) : Promise.resolve(-1),
+    localOffset === 0 ? countRows(db, contentItems, where) : Promise.resolve(COUNT_NOT_COMPUTED),
   ]);
 
   const localItems: ContentListItem[] = rows.map((row) => ({

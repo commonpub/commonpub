@@ -2,7 +2,7 @@ import { eq, and, desc, sql } from 'drizzle-orm';
 import { videos, videoCategories, users } from '@commonpub/schema';
 import type { DB } from '../types.js';
 import { generateSlug } from '../utils.js';
-import { normalizePagination, countRows, ensureUniqueSlugFor } from '../query.js';
+import { normalizePagination, countRows, ensureUniqueSlugFor, COUNT_NOT_COMPUTED } from '../query.js';
 
 import type { VideoPlatform } from '@commonpub/schema';
 
@@ -89,7 +89,7 @@ export async function listVideos(
       .limit(limit)
       .offset(offset),
     // COUNT(*) only on the first page; deep load-more pages skip it (`-1` = "not computed").
-    offset === 0 ? countRows(db, videos, where) : Promise.resolve(-1),
+    offset === 0 ? countRows(db, videos, where) : Promise.resolve(COUNT_NOT_COMPUTED),
   ]);
 
   const items: VideoListItem[] = rows.map((row) => ({

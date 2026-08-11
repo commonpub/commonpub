@@ -74,7 +74,18 @@ const { data: results, status } = await useFetch<PaginatedResponse<any>>('/api/s
   lazy: true,
 });
 
-const resultCount = computed(() => results.value?.total ?? results.value?.items?.length ?? 0);
+/**
+ * The count only when the server actually took one.
+ *
+ * `total` is null when COUNT(*) was skipped for this page, and a negative value
+ * means an older server is still forwarding the raw sentinel. Both are treated
+ * as unknown, so this page can never again render "-1 results".
+ */
+const knownTotal = computed<number | null>(() => {
+  const t = results.value?.total;
+  return typeof t === 'number' && t >= 0 ? t : null;
+});
+const hasMore = computed(() => results.value?.hasMore === true);
 
 // Federated search — uses server-side Postgres FTS
 const fedResults = ref<any[]>([]);
@@ -156,13 +167,29 @@ const { data: trendingSearches } = await useFetch('/api/search/trending', {
   server: false,
 });
 
-const totalPages = computed(() => {
-  const total = results.value?.total ?? 0;
-  return Math.max(1, Math.ceil(total / pageSize));
-});
+/** Null when the total is unknown, in which case there are no numbered pages. */
+const totalPages = computed<number | null>(() =>
+  knownTotal.value === null ? null : Math.max(1, Math.ceil(knownTotal.value / pageSize)),
+);
+
+/**
+ * The pager must survive an unknown total.
+ *
+ * It used to be bound to `totalPages > 1`, and a skipped count made that 1, so
+ * the whole control unmounted on page 2 and took Previous with it. `page` is a
+ * plain ref rather than a URL query, so there was no way back at all. Without a
+ * total we still know we are past page 1, and `hasMore` answers the rest.
+ */
+const showPager = computed(() =>
+  totalPages.value !== null ? totalPages.value > 1 : page.value > 1 || hasMore.value,
+);
+const canGoNext = computed(() =>
+  totalPages.value !== null ? page.value < totalPages.value : hasMore.value,
+);
 
 const visiblePages = computed(() => {
   const tp = totalPages.value;
+  if (tp === null) return [];
   const current = page.value;
   const pages: number[] = [];
   const start = Math.max(1, current - 2);
@@ -217,8 +244,8 @@ const { data: relatedCommunities } = await useFetch('/api/hubs', {
           </div>
 
           <div class="cpub-result-meta-row">
-            <span v-if="query" class="cpub-result-count">
-              <strong>{{ resultCount.toLocaleString() }}</strong> results
+            <span v-if="query && knownTotal !== null" class="cpub-result-count">
+              <strong>{{ knownTotal.toLocaleString() }}</strong> results
             </span>
           </div>
 
@@ -384,7 +411,7 @@ const { data: relatedCommunities } = await useFetch('/api/hubs', {
           </div>
 
           <!-- PAGINATION -->
-          <div v-if="totalPages > 1" class="cpub-pagination">
+          <div v-if="showPager" class="cpub-pagination">
             <button
               class="cpub-page-btn cpub-page-wide"
               :disabled="page <= 1"
@@ -393,7 +420,7 @@ const { data: relatedCommunities } = await useFetch('/api/hubs', {
             >
               <i class="fa-solid fa-chevron-left" style="font-size: 10px"></i>
             </button>
-            <template v-if="visiblePages[0] > 1">
+            <template v-if="visiblePages.length && visiblePages[0] > 1">
               <button class="cpub-page-btn" @click="page = 1">1</button>
               <span v-if="visiblePages[0] > 2" class="cpub-page-ellipsis">&hellip;</span>
             </template>
@@ -406,15 +433,15 @@ const { data: relatedCommunities } = await useFetch('/api/hubs', {
             >
               {{ p }}
             </button>
-            <template v-if="visiblePages[visiblePages.length - 1] < totalPages">
+            <template v-if="totalPages !== null && visiblePages.length && visiblePages[visiblePages.length - 1] < totalPages">
               <span v-if="visiblePages[visiblePages.length - 1] < totalPages - 1" class="cpub-page-ellipsis">&hellip;</span>
               <button class="cpub-page-btn" @click="page = totalPages">{{ totalPages }}</button>
             </template>
             <button
               class="cpub-page-btn cpub-page-wide"
-              :disabled="page >= totalPages"
+              :disabled="!canGoNext"
               aria-label="Next page"
-              @click="page = Math.min(totalPages, page + 1)"
+              @click="page = page + 1"
             >
               <i class="fa-solid fa-chevron-right" style="font-size: 10px"></i>
             </button>

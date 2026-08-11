@@ -1,4 +1,4 @@
-import { listVideos, toPublicVideo, isPublicVideo, type PublicVideoRow } from '@commonpub/server';
+import { listVideos, toPublicVideo, isPublicVideo, toPageMeta, type PublicVideoRow } from '@commonpub/server';
 import { z } from 'zod';
 
 const querySchema = z.object({
@@ -23,5 +23,9 @@ export default defineEventHandler(async (event) => {
   const items = (result.items as unknown as PublicVideoRow[])
     .filter(isPublicVideo)
     .map((r) => toPublicVideo(r, domain));
-  return { items, total: result.total, limit: filters.limit, offset: filters.offset };
+  // `total` is null, never -1, when the count was skipped for this page: the
+  // versioned contract documents an integer, and a client looping
+  // `while (offset < total)` silently truncates on a negative.
+  const page = toPageMeta({ total: result.total, returned: result.items.length, limit: filters.limit, offset: filters.offset });
+  return { items, ...page, limit: filters.limit, offset: filters.offset };
 });

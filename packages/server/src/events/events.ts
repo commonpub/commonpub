@@ -1,7 +1,7 @@
 import { eq, and, desc, asc, gte, sql, or, isNull, notInArray } from 'drizzle-orm';
 import { events, eventAttendees, users, hubs } from '@commonpub/schema';
 import type { DB } from '../types.js';
-import { normalizePagination, countRows, ensureUniqueSlugFor } from '../query.js';
+import { normalizePagination, countRows, ensureUniqueSlugFor, COUNT_NOT_COMPUTED } from '../query.js';
 
 export type EventStatus = 'draft' | 'published' | 'active' | 'completed' | 'cancelled';
 export type EventType = 'in-person' | 'online' | 'hybrid';
@@ -146,7 +146,7 @@ export async function listEvents(
   const [rows, total] = await Promise.all([
     db.select().from(events).where(where).orderBy(asc(events.startDate), desc(events.id)).limit(limit).offset(offset),
     // COUNT(*) only on the first page; deep load-more pages skip it (`-1` = "not computed").
-    offset === 0 ? countRows(db, events, where) : Promise.resolve(-1),
+    offset === 0 ? countRows(db, events, where) : Promise.resolve(COUNT_NOT_COMPUTED),
   ]);
 
   return {
@@ -305,7 +305,7 @@ export async function listEventAttendees(
       .limit(limit)
       .offset(offset),
     // COUNT(*) only on the first page; deep load-more pages skip it (`-1` = "not computed").
-    offset === 0 ? countRows(db, eventAttendees, where) : Promise.resolve(-1),
+    offset === 0 ? countRows(db, eventAttendees, where) : Promise.resolve(COUNT_NOT_COMPUTED),
   ]);
 
   return {
