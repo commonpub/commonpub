@@ -38,6 +38,11 @@ const FILL_PAIRS: Record<string, string> = {
   '--accent': '--color-on-accent',
   '--red': '--color-on-red',
   '--green': '--color-on-green',
+  // No component puts text on a yellow fill today. It is covered anyway: the
+  // generator emits color-on-yellow, so the built-in themes must define it too,
+  // or the first component to need it resolves to nothing on a built-in theme
+  // while working on a custom one.
+  '--yellow': '--color-on-yellow',
 };
 
 const THEMES = ['base', 'dark', 'agora', 'agora-dark', 'stoa', 'stoa-dark'];

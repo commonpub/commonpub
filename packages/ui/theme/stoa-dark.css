@@ -67,6 +67,7 @@
   --color-on-accent: #0f140f;
   --color-on-red: #15130d;  /* 5.99:1 on this theme's --red */
   --color-on-green: #0f140f;  /* 6.47:1 on this theme's --green */
+  --color-on-yellow: #0f140f;  /* 8.14:1 on this theme's --yellow */
   --color-accent-bg: var(--accent-bg);
   --color-accent-border: var(--accent-border);
 

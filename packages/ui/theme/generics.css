@@ -29,6 +29,7 @@
   --color-on-accent: #0c0c0b;
   --color-on-red: #0c0c0b;  /* no --red of its own; inherits base */
   --color-on-green: #0c0c0b;  /* no --green of its own */
+  --color-on-yellow: #0c0c0b;  /* no --yellow of its own */
   --color-accent-bg: rgba(91, 156, 246, 0.1);
   --color-accent-border: rgba(91, 156, 246, 0.22);
 
