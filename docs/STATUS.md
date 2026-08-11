@@ -56,9 +56,14 @@ emitting a contest list **shifted by one**. All fixed; verified 0 warnings acros
 Also: the judge page told judges to score 0–100 while showing per-criterion inputs capped at their
 own max — a judge following it had the score rejected. Copy is now rubric-aware.
 
-**Open:** heatsynclabs.io still logs one mismatch per load from a different, unidentified source
-(needs its app run in dev to see the detail); ~10 other components still format locale dates
-during SSR. See `docs/sessions/252-lifecycle-e2e-and-hydration.md`.
+**Open (ranked):** (1) **`create-commonpub` pins are ~22 minors stale** — the crates.io scaffolder
+still pins layer ^0.106 / server ^2.113 / schema ^0.59 / config ^0.33 against live 0.128 / 2.127 /
+0.63 / 0.36, so a freshly scaffolded instance lands on ~session 240 code; `tests/cli.rs` has a
+regression test for exactly this but its assertions are hardcoded to the old versions, so it does not
+catch drift. (2) heatsynclabs.io still logs one hydration mismatch per load from a different,
+unidentified source (needs its app run in dev to see the detail). (3) ~10 other components still
+format locale dates during SSR. (4) `@commonpub/test-utils` mockConfig drifted from the published
+0.5.14. See `docs/sessions/252-lifecycle-e2e-and-hydration.md` and `252-handoff.md`.
 
 ---
 
