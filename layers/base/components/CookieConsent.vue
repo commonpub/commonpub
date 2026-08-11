@@ -1,50 +1,47 @@
 <script setup lang="ts">
-const { hasConsented, hasNonEssentialCookies, acceptAll, acceptEssential } = useCookieConsent();
+const { hasConsented, hasNonEssentialCookies, acceptAll, acceptEssential, cookies } = useCookieConsent();
 
 const visible = computed(() => !hasConsented.value && hasNonEssentialCookies.value);
 
-// Publish this bar's height so anything else docked to the bottom edge can clear
-// it. The contest action bar is fixed to the same edge at a lower z-index, and
-// this banner is shown to exactly the anonymous first-time visitor that bar
-// exists for — so without this it covers the bar completely. Measured, because
-// the height depends on the copy wrapping and on the <=640px stacked layout.
+// Name what is actually being asked about. The banner only appears because a
+// non-essential cookie is declared, and on most instances that is analytics, so
+// "essential functionality and to remember your preferences" described the one
+// category the visitor is NOT being asked to consent to. Consent has to be
+// specific to be informed.
+const asksAboutAnalytics = computed(() =>
+  cookies.value.some((c) => c.category === 'analytics'),
+);
+
+// Publish this bar's height so anything else docked to the bottom edge can
+// clear it. The contest action bar is fixed to the same edge at a lower
+// z-index, and this banner is shown to exactly the anonymous first-time visitor
+// that bar exists for, so without this it would cover the bar completely.
 const root = ref<HTMLElement | null>(null);
-let ro: ResizeObserver | null = null;
-
-function publish(px: number): void {
-  document.documentElement.style.setProperty('--cpub-consent-height', `${Math.ceil(px)}px`);
-}
-function clear(): void {
-  document.documentElement.style.removeProperty('--cpub-consent-height');
-}
-
-watch(root, (el) => {
-  ro?.disconnect();
-  ro = null;
-  if (!el || typeof ResizeObserver === 'undefined') { clear(); return; }
-  ro = new ResizeObserver(([entry]) => {
-    const h = entry.target.getBoundingClientRect().height;
-    if (h > 0) publish(h); else clear();
-  });
-  ro.observe(el);
-});
-
-onUnmounted(() => { ro?.disconnect(); clear(); });
+usePublishedHeight(root, '--cpub-consent-height');
 </script>
 
 <template>
   <Transition name="cpub-consent-slide">
-    <div v-if="visible" ref="root" class="cpub-consent" role="dialog" aria-label="Cookie consent">
+    <div v-if="visible" ref="root" class="cpub-consent cpub-overlay-surface" role="dialog" aria-label="Cookie consent">
       <div class="cpub-consent-inner">
         <p class="cpub-consent-text">
-          This site uses cookies for essential functionality and to remember your preferences.
-          <NuxtLink to="/cookies" class="cpub-consent-link">Learn more</NuxtLink>
+          <template v-if="asksAboutAnalytics">
+            Essential cookies keep this site working. Analytics cookies help us see which pages get used, and load only if you accept.
+          </template>
+          <template v-else>
+            This site uses cookies for essential functionality and to remember your preferences.
+          </template>
+          <NuxtLink to="/cookies" class="cpub-consent-link">What we collect</NuxtLink>
         </p>
+        <!-- Both choices carry the SAME visual weight. Consent is only freely
+             given if refusing is as easy as accepting, and a filled primary
+             "Accept all" next to an outlined "Essential only" is the pattern
+             regulators single out. Same size, same emphasis, one tap each. -->
         <div class="cpub-consent-actions">
-          <button class="cpub-btn cpub-btn-sm" @click="acceptEssential">
+          <button class="cpub-btn cpub-btn-sm cpub-consent-btn" @click="acceptEssential">
             Essential only
           </button>
-          <button class="cpub-btn cpub-btn-sm cpub-btn-primary" @click="acceptAll">
+          <button class="cpub-btn cpub-btn-sm cpub-consent-btn" @click="acceptAll">
             Accept all
           </button>
         </div>
@@ -60,7 +57,7 @@ onUnmounted(() => { ro?.disconnect(); clear(); });
   left: 0;
   right: 0;
   z-index: var(--z-toast);
-  background: var(--surface);
+  /* background comes from .cpub-overlay-surface (opaque compositing). */
   border-top: var(--border-width-default) solid var(--border);
   box-shadow: 0 -2px 0 var(--border);
 }
@@ -107,13 +104,20 @@ onUnmounted(() => { ro?.disconnect(); clear(); });
   opacity: 0;
 }
 
+/* Equal weight, so neither choice is the visually obvious one. */
+.cpub-consent-btn { min-width: 8.5rem; justify-content: center; }
+
 @media (max-width: 640px) {
   .cpub-consent-inner {
     flex-direction: column;
     align-items: stretch;
-    padding: var(--space-4);
+    /* Tighter than the desktop padding: this bar is fixed to the bottom of a
+       small screen and every pixel it takes is content the visitor cannot see
+       until they answer it. */
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4) calc(var(--space-3) + env(safe-area-inset-bottom));
   }
   .cpub-consent-actions { justify-content: stretch; }
-  .cpub-consent-actions .cpub-btn { flex: 1; }
+  .cpub-consent-actions .cpub-btn { flex: 1; min-width: 0; }
 }
 </style>

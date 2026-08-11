@@ -40,6 +40,7 @@ export type { EmailAdapter, EmailMessage } from './email.js';
 export {
   buildCspDirectives,
   buildCspHeader,
+  appendCspSources,
   getSecurityHeaders,
   getStaticCacheHeaders,
   generateNonce,

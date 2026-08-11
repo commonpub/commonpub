@@ -353,6 +353,20 @@
   border-color: var(--accent);
 }
 
+/* ─── FIXED OVERLAY SURFACE ─── */
+/*
+ * An element docked over the page (a consent banner, a mobile action bar) must
+ * be OPAQUE. `--surface` alone is not enough: a theme may legitimately define
+ * it with alpha for in-flow cards (the deveco theme uses 0.88), and page
+ * content then shows through the bar and makes its text hard to read.
+ * Compositing the surface tint over an opaque `--bg` keeps the theme's colour
+ * while guaranteeing coverage, with no hardcoded value.
+ */
+.cpub-overlay-surface {
+  background-color: var(--bg);
+  background-image: linear-gradient(var(--surface), var(--surface));
+}
+
 /* ─── BUTTONS (shared) ─── */
 .cpub-btn {
   display: inline-flex;

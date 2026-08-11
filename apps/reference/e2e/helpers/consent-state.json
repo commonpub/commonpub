@@ -1,0 +1,15 @@
+{
+  "cookies": [
+    {
+      "name": "cpub-consent",
+      "value": "essential",
+      "domain": "localhost",
+      "path": "/",
+      "expires": -1,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    }
+  ],
+  "origins": []
+}

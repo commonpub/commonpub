@@ -41,6 +41,27 @@ export function buildCspHeader(directives?: Record<string, string>): string {
     .join('; ');
 }
 
+/**
+ * Union extra sources into a CSP directive: de-duped, order-preserving, and
+ * never replacing what is already there.
+ *
+ * "Never replacing" is the whole point. The layer sets
+ * `connect-src 'self' ws: wss:` in dev for HMR, so anything that ASSIGNED the
+ * analytics beacon origins instead of appending would silently kill the dev
+ * websocket. Creates the directive when absent.
+ */
+export function appendCspSources(
+  directives: Record<string, string>,
+  directive: string,
+  sources: readonly string[],
+): void {
+  if (sources.length === 0) return;
+  const existing = (directives[directive] ?? '').split(/\s+/).filter(Boolean);
+  const merged = [...existing];
+  for (const src of sources) if (!merged.includes(src)) merged.push(src);
+  directives[directive] = merged.join(' ');
+}
+
 /** Security headers applied to every response (static, without nonce) */
 export function getSecurityHeaders(isDev: boolean): Record<string, string> {
   const headers: Record<string, string> = {

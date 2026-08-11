@@ -2,6 +2,7 @@
 export {
   buildCspDirectives,
   buildCspHeader,
+  appendCspSources,
   getSecurityHeaders,
   getStaticCacheHeaders,
   generateNonce,

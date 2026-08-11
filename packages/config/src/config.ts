@@ -1,5 +1,5 @@
 import { configSchema } from './schema.js';
-import type { CommonPubConfig, CookieDefinition, ReferralConfig, RegisteredTheme } from './types.js';
+import type { CommonPubConfig, CookieDefinition, ReferralConfig, RegisteredTheme, AnalyticsConfig } from './types.js';
 
 export interface ConfigWarning {
   field: string;
@@ -45,6 +45,9 @@ export function defineCommonPubConfig(input: {
    *  needs no banner. The zod schema always accepted these; the input type
    *  previously omitted them, so thin apps couldn't declare them. */
   cookies?: CookieDefinition[];
+  /** Analytics provider + property. Its cookies are derived from the provider
+   *  registry, so they do NOT need declaring in `cookies` above. */
+  analytics?: AnalyticsConfig;
 }): ConfigResult {
   const config = configSchema.parse(input) as CommonPubConfig;
   const warnings: ConfigWarning[] = [];

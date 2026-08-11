@@ -82,34 +82,12 @@ const loginTo = computed(
   () => `/auth/login?redirect=/contests/${slug.value}/register`,
 );
 
-// Publish the bar's real height so the page can reserve exactly that much and
-// the footer stays reachable. Measured rather than hardcoded: the height varies
-// with the safe-area inset, the font scale, and whether the labels wrap — a
-// literal 60px under-reserved by 25px on the first device tested. Set on <html>
-// because the consumer is a `body:has(...)` rule.
+// Publish the bar's measured height so the page can reserve exactly that much
+// and the footer stays reachable. Shared with CookieConsent, which docks to the
+// same edge; see usePublishedHeight for why it is measured and why it watches
+// the ref rather than measuring at mount.
 const root = ref<HTMLElement | null>(null);
-let ro: ResizeObserver | null = null;
-
-function publishHeight(px: number): void {
-  document.documentElement.style.setProperty('--cpub-contest-actions-h', `${Math.ceil(px)}px`);
-}
-
-onMounted(() => {
-  if (typeof ResizeObserver === 'undefined' || !root.value) return;
-  ro = new ResizeObserver(([entry]) => {
-    // 0 while the bar is display:none above 768px — leave the last good value
-    // rather than collapsing the reservation mid-resize.
-    const h = entry.target.getBoundingClientRect().height;
-    if (h > 0) publishHeight(h);
-    else document.documentElement.style.removeProperty('--cpub-contest-actions-h');
-  });
-  ro.observe(root.value);
-});
-
-onUnmounted(() => {
-  ro?.disconnect();
-  document.documentElement.style.removeProperty('--cpub-contest-actions-h');
-});
+usePublishedHeight(root, '--cpub-contest-actions-h');
 </script>
 
 <template>
@@ -119,7 +97,7 @@ onUnmounted(() => {
        (`cpub-cbar`) collided with CpubCriteriaBar, whose root is also
        role="group" — the e2e caught it as a two-element strict-mode violation,
        which is exactly what that assertion is for. Verified free before reuse. -->
-  <div v-if="shouldRender" ref="root" class="cpub-contest-actions" role="group" aria-label="Contest actions">
+  <div v-if="shouldRender" ref="root" class="cpub-contest-actions cpub-overlay-surface" role="group" aria-label="Contest actions">
     <div class="cpub-contest-actions-inner">
       <!-- ORGANIZER: never offered an entry into their own contest. -->
       <template v-if="canManage">
@@ -186,7 +164,8 @@ onUnmounted(() => {
           class="cpub-btn cpub-contest-actions-second"
           :disabled="registering"
           @click="emit('follow')"
-        ><i class="fa-solid fa-bell" aria-hidden="true"></i> Follow</button>
+          :aria-label="'Follow this contest'"
+        ><i class="fa-solid fa-bell" aria-hidden="true"></i> <span class="cpub-contest-actions-label">Follow</span></button>
       </template>
 
       <button
@@ -218,7 +197,7 @@ onUnmounted(() => {
        so it would cover the bar completely. It publishes its height; sit above
        it when it is up. */
     bottom: var(--cpub-consent-height, 0px);
-    background: var(--surface);
+    /* background comes from .cpub-overlay-surface (opaque compositing). */
     border-top: var(--border-width-default) solid var(--border);
     /* Mirrors CookieConsent's offset shadow — the house treatment for a bar
        docked to this edge. */
@@ -238,7 +217,28 @@ onUnmounted(() => {
   .cpub-contest-actions-second {
     flex: 1;
     justify-content: center;
+    /* .cpub-btn is white-space: nowrap, so at 320px two buttons plus the share
+       square leave ~117px each and the labels ran outside their borders.
+       min-width:0 lets them shrink; the label clips instead of overflowing. */
     min-width: 0;
+    overflow: hidden;
+  }
+  .cpub-contest-actions-main span,
+  .cpub-contest-actions-second span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+/* Below 360px there is not room for two labelled buttons and the share square.
+   The primary action keeps its label; the secondary drops to its icon, which is
+   still a 44px target and still named for assistive tech. */
+@media (max-width: 359px) {
+  .cpub-contest-actions-second .cpub-contest-actions-label {
+    display: none;
+  }
+  .cpub-contest-actions-second {
+    flex: 0 0 44px;
   }
 
   .cpub-contest-actions-share {

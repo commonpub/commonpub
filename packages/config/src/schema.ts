@@ -1,3 +1,4 @@
+import { ANALYTICS_PROVIDERS } from './analytics.js';
 import { z } from 'zod';
 import type { FeatureFlags } from './types.js';
 
@@ -106,6 +107,10 @@ export const featureFlagsSchema = z.object({
   // a transport configured, which is not a change an upgrade should make for an
   // operator silently.
   emailVerification: z.boolean().default(false),
+  // Consent-gated visitor analytics. Inert unless `analytics.provider` is also
+  // configured; the flag is the operator off-switch, the config block is the
+  // "which provider, which property" answer.
+  analytics: z.boolean().default(false),
   // Admin broadcast emails to users (email Phase 3). Default OFF; no effect unless
   // email is actually configured + emailNotifications is on.
   adminBroadcast: z.boolean().default(false),
@@ -250,6 +255,19 @@ export const referralConfigSchema = z.object({
   defaultAttributionWindowDays: z.number().int().min(1).max(365).default(60),
 });
 
+/**
+ * Analytics provider + property. A GA4 measurement id is validated by shape so
+ * a typo fails at config load rather than silently measuring nothing, and
+ * `provider: 'none'` is the default so an instance opts IN to being measured.
+ */
+export const analyticsConfigSchema = z.object({
+  provider: z.enum(ANALYTICS_PROVIDERS).default('none'),
+  measurementId: z.string().regex(/^G-[A-Z0-9]{4,}$/, 'GA4 measurement id looks like G-XXXXXXXXXX').optional(),
+}).refine(
+  (a) => a.provider === 'none' || !!a.measurementId,
+  { message: 'analytics.measurementId is required when a provider is set', path: ['measurementId'] },
+);
+
 export const cookieDefinitionSchema = z.object({
   name: z.string().min(1),
   category: z.enum(['essential', 'functional', 'analytics']),
@@ -291,6 +309,7 @@ export const configSchema = z.object({
   federation: federationConfigSchema.default(() => federationConfigSchema.parse({})),
   docs: docsConfigSchema.default(() => docsConfigSchema.parse({})),
   referral: referralConfigSchema.default(() => referralConfigSchema.parse({})),
+  analytics: analyticsConfigSchema.optional(),
   cookies: z.array(cookieDefinitionSchema).optional(),
   themes: z.array(registeredThemeSchema).optional(),
   defaultTheme: z.string().max(64).optional(),

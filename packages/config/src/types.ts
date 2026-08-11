@@ -1,3 +1,5 @@
+export type { AnalyticsConfig } from './analytics.js';
+import type { AnalyticsConfig } from './analytics.js';
 export interface FeatureFlags {
   /** Enable content system (CRUD, publishing, slugs) */
   content: boolean;
@@ -114,6 +116,9 @@ export interface FeatureFlags {
    *  Distinct from `auth.requireEmailVerification`, which is the hard sign-in
    *  gate and locks out existing unverified accounts. */
   emailVerification: boolean;
+  /** Consent-gated visitor analytics. Inert unless `analytics.provider` is also
+   *  configured. Default OFF: an instance opts IN to measuring its visitors. */
+  analytics: boolean;
   /** Enable admin broadcast emails to users (email Phase 3). */
   adminBroadcast: boolean;
   /** Require re-acceptance of the Terms when instance.termsVersion is bumped (GDPR Phase 2). */
@@ -364,6 +369,11 @@ export interface CommonPubConfig {
   federation?: FederationConfig;
   /** Docs module configuration */
   docs: DocsConfig;
+  /** Analytics provider + property id. Absent or `provider: 'none'` means this
+   *  instance measures nothing. Only used when `features.analytics` is on. The
+   *  provider's CSP origins and its cookie disclosures are derived from this in
+   *  analytics.ts, so a tag can never be live without the policy page listing it. */
+  analytics?: AnalyticsConfig;
   /** Referral-link operator policy (only used when features.referralLinks is on) */
   referral?: ReferralConfig;
   /**

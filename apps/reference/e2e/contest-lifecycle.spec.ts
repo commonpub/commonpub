@@ -1,4 +1,5 @@
 import { test, expect, type BrowserContext, type Page } from '@playwright/test';
+import { dismissCookieBanner } from './helpers/consent';
 
 /**
  * Full contest lifecycle — the one E2E that walks a multi-stage contest from
@@ -34,8 +35,17 @@ let danProjectId: string;
 /** Sign up a fresh user (auto-creates a session) and give them a page. */
 async function makePersona(browser: import('@playwright/test').Browser, handle: string): Promise<Persona> {
   const ctx = await browser.newContext();
+  // Answer the cookie banner up front. With analytics configured it is fixed to
+  // the bottom of every page and intercepts clicks on whatever is under it, so
+  // without this the spec would be testing the banner rather than the contest.
+  await dismissCookieBanner(ctx, BASE);
   const username = uniq(handle);
+  // Origin matters here: better-auth only runs its CSRF origin check when the
+  // request carries a Cookie header (origin-check.mjs `useCookies`), and this
+  // context now has one from dismissCookieBanner. A real browser always sends
+  // Origin, so sending it makes the call MORE realistic, not less.
   const res = await ctx.request.post(`${BASE}/api/auth/sign-up/email`, {
+    headers: ORIGIN,
     data: { email: `${handle}-${S}@example.com`, password: 'Password123!', username, name: handle },
   });
   expect(res.ok(), `sign-up ${handle}: ${res.status()}`).toBeTruthy();

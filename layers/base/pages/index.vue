@@ -237,8 +237,9 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
           <!-- Active contest hero -->
           <template v-if="contestsEnabled && activeContest">
             <div class="cpub-hero-eyebrow">
+              <!-- The registered figure lives in the meta row below, once. It
+                   used to appear here as well, for the same contest. -->
               <span class="cpub-hero-badge cpub-hero-badge-live"><span class="cpub-live-dot" /> Live Contest</span>
-              <span v-if="showsRegisteredCount(activeContest)" class="cpub-hero-badge">{{ registeredCountLabel(activeContest) }}</span>
             </div>
             <h1 class="cpub-hero-title">{{ activeContest.title }}</h1>
             <p v-if="activeContest.description" class="cpub-hero-excerpt">{{ markdownToExcerpt(activeContest.description) }}</p>
@@ -250,7 +251,7 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
               <!-- "registered" is followerCount (every registration row); entries
                    are suppressed while a contest is open. Showing both printed two
                    numbers for the same people. See utils/contestCounts.ts. -->
-              <span v-if="showsRegisteredCount(activeContest)" class="cpub-hero-stat"><i class="fa-solid fa-users"></i> <strong>{{ activeContest.followerCount }}</strong> registered</span>
+              <span v-if="showsRegisteredCount(activeContest)" class="cpub-hero-stat"><i class="fa-solid fa-users"></i> {{ registeredCountLabel(activeContest) }}</span>
               <span v-if="endsLabel(activeContest.endDate, true)" class="cpub-hero-stat"><i class="fa-solid fa-calendar"></i> Ends <strong>{{ endsLabel(activeContest.endDate, true) }}</strong></span>
             </div>
           </template>

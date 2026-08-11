@@ -7,6 +7,11 @@ import { computed, ref, reactive, watch, watchEffect, onMounted, onUnmounted, ne
 Object.assign(globalThis, {
   computed, ref, reactive, watch, watchEffect,
   onMounted, onUnmounted, nextTick, toRef, toRefs, unref, isRef,
+  // Layer composables that components auto-import and that are inert in jsdom.
+  // Stubbed here rather than in each component test so a component picking one
+  // up does not break unrelated suites. The composable's own behaviour is
+  // covered directly in composables/__tests__/usePublishedHeight.test.ts.
+  usePublishedHeight: () => {},
 });
 
 /* Phase 3c — PointerEvent shim for jsdom.

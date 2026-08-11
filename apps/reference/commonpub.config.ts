@@ -45,4 +45,11 @@ export default defineCommonPubConfig({
   },
   // Declare any non-essential (analytics/functional) cookies here to surface the
   // consent banner; an essential-only instance needs none (and shows no banner).
+  // The reference instance declares a provider so the consent-gated path is
+  // exercised by the e2e suite, but `features.analytics` stays OFF, so nothing
+  // is ever loaded here. A real instance sets both.
+  analytics: {
+    provider: 'ga4',
+    measurementId: 'G-REFERENCE0',
+  },
 });

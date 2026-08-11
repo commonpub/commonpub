@@ -16,6 +16,10 @@ export default defineNuxtConfig({
       // Keep the register page's check-email screen in sync with the server's
       // auth.requireEmailVerification (createAuth). Default OFF.
       requireEmailVerification: siteConfig.config.auth.requireEmailVerification === true,
+      // Which analytics provider this instance uses, if any. The client loader
+      // and the cookie registry both derive from it; the layer defaults it to
+      // `provider: 'none'`, so an instance that omits it measures nothing.
+      analytics: siteConfig.config.analytics ?? { provider: 'none' },
     },
   },
   devtools: { enabled: true },

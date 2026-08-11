@@ -40,6 +40,7 @@ export function createTestConfig(overrides?: Partial<CommonPubConfig>): CommonPu
       emailNotifications: false,
       emailUnverified: false,
       emailVerification: false,
+      analytics: false,
       adminBroadcast: false,
       requireTermsAcceptance: false,
       publicApi: false,
