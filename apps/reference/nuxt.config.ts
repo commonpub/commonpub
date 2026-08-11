@@ -20,6 +20,12 @@ export default defineNuxtConfig({
       // and the cookie registry both derive from it; the layer defaults it to
       // `provider: 'none'`, so an instance that omits it measures nothing.
       analytics: siteConfig.config.analytics ?? { provider: 'none' },
+      // Consent is scoped to what was disclosed when it was given, and the scope
+      // is derived from the cookie registry, so adding a provider re-asks by
+      // itself. This is the operator's manual lever for the other case: a
+      // material WORDING change that the registry cannot see. Bumping it
+      // invalidates every stored choice exactly once.
+      cookiePolicyVersion: siteConfig.config.instance.cookiePolicyVersion ?? '1',
     },
   },
   devtools: { enabled: true },

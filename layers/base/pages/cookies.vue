@@ -4,7 +4,7 @@ const siteName = computed(() => (runtimeConfig.public.siteName as string) || 'Co
 
 useSeoMeta({ title: `Cookie Policy, ${siteName.value}` });
 
-const { cookies, consentLevel, acceptAll, acceptEssential, resetConsent, hasConsented } = useCookieConsent();
+const { cookies, consentLevel, acceptAll, acceptEssential, resetConsent, hasConsented, consentIsStale } = useCookieConsent();
 
 const essentialCookies = computed(() => cookies.value.filter((c) => c.category === 'essential'));
 const functionalCookies = computed(() => cookies.value.filter((c) => c.category === 'functional'));
@@ -30,11 +30,23 @@ const analyticsCookies = computed(() => cookies.value.filter((c) => c.category =
           You have accepted <strong>{{ consentLevel === 'all' ? 'all cookies' : 'essential cookies only' }}</strong>.
           You can change this at any time.
         </p>
+        <!-- A choice made before the current disclosures is not carried over.
+             Saying so plainly is the point: the visitor agreed to something
+             else, and silently reusing that answer is the failure this state
+             exists to prevent. -->
+        <p v-else-if="consentIsStale">
+          You chose <strong>{{ consentLevel === 'all' ? 'all cookies' : 'essential cookies only' }}</strong> previously,
+          but what we ask about has changed since then, so that answer no longer applies and nothing
+          non-essential is running. Please choose again.
+        </p>
         <p v-else>You have not yet made a cookie choice.</p>
+        <!-- Equal weight, for the same reason as the banner: consent is only
+             freely given if refusing is as easy as accepting. This page kept a
+             filled primary "Accept all" after the banner was corrected. -->
         <div class="cpub-cookie-consent-actions">
-          <button class="cpub-btn cpub-btn-sm" @click="acceptEssential">Essential only</button>
-          <button class="cpub-btn cpub-btn-sm cpub-btn-primary" @click="acceptAll">Accept all</button>
-          <button v-if="hasConsented" class="cpub-btn cpub-btn-sm" @click="resetConsent">Reset choice</button>
+          <button class="cpub-btn cpub-btn-sm cpub-cookie-choice" @click="acceptEssential">Essential only</button>
+          <button class="cpub-btn cpub-btn-sm cpub-cookie-choice" @click="acceptAll">Accept all</button>
+          <button v-if="hasConsented" class="cpub-btn cpub-btn-sm" @click="resetConsent">Withdraw consent</button>
         </div>
       </section>
 
@@ -113,6 +125,7 @@ const analyticsCookies = computed(() => cookies.value.filter((c) => c.category =
       <section class="cpub-legal-section">
         <h2>Managing cookies</h2>
         <p>You can change your cookie preferences at any time using the buttons above or by clearing your browser cookies. Most browsers also allow you to control cookies through their settings.</p>
+        <p v-if="analyticsCookies.length > 0">Withdrawing consent deletes the analytics cookies listed above from this device and reloads the page without the analytics code, so nothing further is collected. Code already loaded into a page cannot be removed any other way, which is why the page reloads.</p>
         <p>For more information about how we handle your data, see our <NuxtLink to="/privacy">Privacy Policy</NuxtLink>.</p>
       </section>
     </div>
@@ -139,7 +152,11 @@ const analyticsCookies = computed(() => cookies.value.filter((c) => c.category =
   display: flex;
   gap: var(--space-2);
   margin-top: var(--space-3);
+  flex-wrap: wrap;
 }
+
+/* Neither choice may be the visually obvious one. */
+.cpub-cookie-choice { min-width: 8.5rem; justify-content: center; }
 
 .cpub-cookie-table {
   width: 100%;

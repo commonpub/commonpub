@@ -161,6 +161,10 @@ export default defineNuxtConfig({
       // `provider: 'none'` is the safe default — an instance opts IN to
       // measuring its visitors.
       analytics: { provider: 'none', measurementId: '' } as { provider: string; measurementId?: string },
+      // Feeds the consent SCOPE (see useCookieConsent). Declared here for the
+      // same reason as the keys above: undeclared keys get no NUXT_PUBLIC_*
+      // override, so an operator could not force a re-ask without a redeploy.
+      cookiePolicyVersion: '1',
       // Default OFF — the register page only shows the "check your email" screen
       // when this is on (operator opts in once email is wired). Mirrors
       // config.auth.requireEmailVerification on the server (createAuth).
