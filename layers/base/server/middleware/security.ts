@@ -101,7 +101,17 @@ export default defineEventHandler(async (event) => {
     // hardcoded: this middleware ships to every instance, and an instance that
     // measures nothing must keep the tight default. appendCspSources unions
     // rather than assigns, so the dev ws:/wss: above survives.
-    const analytics = analyticsCspOrigins(useConfig().analytics);
+    //
+    // Gated on the FLAG as well as the config block. Declaring a provider is
+    // not the same as switching it on: the reference app declares one so its
+    // e2e can exercise the consent gate, and without this check commonpub.io
+    // shipped a CSP allowing googletagmanager while its own privacy page
+    // correctly said it uses no analytics. Those two disagreeing is precisely
+    // what deriving everything from one registry is supposed to prevent.
+    const cfg = useConfig();
+    const analytics = cfg.features.analytics === true
+      ? analyticsCspOrigins(cfg.analytics)
+      : { script: [], connect: [] };
     appendCspSources(cspDirectives, 'script-src', analytics.script);
     appendCspSources(cspDirectives, 'connect-src', analytics.connect);
     setResponseHeader(event, 'Content-Security-Policy', buildCspHeader(cspDirectives));
