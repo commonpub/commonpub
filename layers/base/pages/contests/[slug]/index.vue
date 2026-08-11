@@ -30,7 +30,19 @@ useSeoMeta({
   ogImage: () => contest.value?.bannerUrl || '/og-default.png',
 });
 
-const c = computed(() => contest.value);
+// The public registration count now comes from the SSR'd contest DTO (see
+// utils/contestCounts.ts) instead of the client-only fetch above, which is what
+// made every contest page ship "0 makers registered" in its HTML. The DTO is a
+// snapshot from page render, though, so after the viewer registers it would
+// exclude them. Overlay the authoritative count returned by the mutation.
+// Starts null on server and client alike, and only a post-mount user action
+// sets it, so this cannot mismatch on hydration.
+const liveFollowerCount = ref<number | null>(null);
+const c = computed(() => {
+  const base = contest.value;
+  if (!base || liveFollowerCount.value === null) return base;
+  return { ...base, followerCount: liveFollowerCount.value };
+});
 const entries = computed(() => apiEntriesData.value?.items ?? []);
 const judges = computed<ContestJudgeItem[]>(() => judgesData.value ?? []);
 const isOwner = computed(() => isAdmin.value || !!(user.value?.id && c.value?.createdById === user.value.id));
@@ -69,7 +81,9 @@ const tabs = computed<Tab[]>(() => {
   const t: Tab[] = [{ key: 'overview', label: 'Overview', icon: 'fa-circle-info' }];
   if (c.value?.rules || c.value?.rulesBlocks?.length) t.push({ key: 'rules', label: 'Rules', icon: 'fa-file-lines' });
   if (c.value?.showPrizes !== false && (c.value?.prizes?.length || c.value?.prizesDescription || c.value?.prizesBlocks?.length)) t.push({ key: 'prizes', label: 'Prizes', icon: 'fa-trophy' });
-  t.push({ key: 'entries', label: 'Entries', icon: 'fa-box-open', count: c.value?.entryCount ?? entries.value.length });
+  // `|| undefined` suppresses a literal "0" chip, matching the Judges tab two
+  // lines down. The two halves of this same computed disagreed until session 253.
+  t.push({ key: 'entries', label: 'Entries', icon: 'fa-box-open', count: (c.value?.entryCount ?? entries.value.length) || undefined });
   if (participants.value.length) t.push({ key: 'participants', label: 'Participants', icon: 'fa-users', count: participants.value.length });
   if (judges.value.length || isOwner.value) t.push({ key: 'judges', label: 'Judges', icon: 'fa-gavel', count: judges.value.length || undefined });
   return t;
@@ -299,8 +313,6 @@ async function submitEntry(): Promise<void> {
 const registered = ref(false);
 const registrationTier = ref<'full' | 'reminders' | null>(null);
 const registrationFields = ref<Record<string, string> | null>(null);
-const registrantCount = ref(0);
-const followerCount = ref(0);
 const registering = ref(false);
 watch(
   registrationData,
@@ -309,8 +321,6 @@ watch(
       registered.value = d.registered;
       registrationTier.value = d.tier;
       registrationFields.value = d.fields;
-      registrantCount.value = d.count;
-      followerCount.value = d.followerCount;
     }
   },
   { immediate: true },
@@ -328,8 +338,7 @@ async function register(payload?: { tier: 'full' | 'reminders'; fields?: Record<
     );
     registered.value = res.registered;
     registrationTier.value = res.tier;
-    registrantCount.value = res.count;
-    followerCount.value = res.followerCount;
+    liveFollowerCount.value = res.followerCount;
     // Reflect the info the viewer just submitted so the form stays in sync.
     if (payload?.fields) registrationFields.value = payload.fields;
     // Tailor the confirmation to what actually happened.
@@ -365,7 +374,8 @@ const registrationNeedsForm = computed(() => templateHasRequiredField(registrati
  *  taken by someone who isn't registered yet. */
 function startRegistration(): void {
   if (!isAuthenticated.value) {
-    navigateTo(`/auth/login?redirect=/contests/${slug}`);
+    // Land in the registration form after login, not back here unregistered.
+    navigateTo(`/auth/login?redirect=/contests/${slug}/register`);
     return;
   }
   if (registrationNeedsForm.value) {
@@ -383,8 +393,7 @@ async function unregister(): Promise<void> {
     registered.value = res.registered;
     registrationTier.value = null;
     registrationFields.value = null;
-    registrantCount.value = res.count;
-    followerCount.value = res.followerCount;
+    liveFollowerCount.value = res.followerCount;
     toast.success('Registration cancelled');
   } catch (err: unknown) {
     toast.error(extractError(err));
@@ -651,8 +660,6 @@ async function withdrawEntry(entryId: string): Promise<void> {
           :registered="registered"
           :tier="registrationTier"
           :saved-fields="registrationFields"
-          :registrant-count="registrantCount"
-          :follower-count="followerCount"
           :registering="registering"
           @copy-link="copyLink"
           @register="register"

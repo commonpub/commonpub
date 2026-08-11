@@ -85,9 +85,13 @@ const canCreateContest = computed(() => {
                  stage's close (the open round), not the far-off final endDate. -->
             <CountdownTimer :target-date="contest.status === 'upcoming' ? contest.startDate : (contest.currentStageEndDate ?? contest.endDate)" compact />
           </div>
+          <!-- Registered (every registration row) is the headline figure while a
+               contest is open; entries only once submissions have closed, where
+               the number is final and not inflated by draft placeholders. Both
+               suppressed at zero. Rules live in utils/contestCounts.ts. -->
           <div class="cpub-contest-card-meta">
-            <span><i class="fa-solid fa-users"></i> {{ contest.entryCount }} entries</span>
-            <span v-if="(contest.followerCount ?? 0) > 0"><i class="fa-solid fa-bell"></i> {{ contest.followerCount }} following</span>
+            <span v-if="showsRegisteredCount(contest)"><i class="fa-solid fa-users"></i> {{ registeredCountLabel(contest) }}</span>
+            <span v-if="showsEntryCount(contest)"><i class="fa-solid fa-folder-open"></i> {{ entryCountLabel(contest) }}</span>
           </div>
         </div>
       </NuxtLink>
