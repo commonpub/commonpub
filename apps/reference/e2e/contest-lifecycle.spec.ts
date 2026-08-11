@@ -63,6 +63,22 @@ async function pollJson<T>(
   return last as T;
 }
 
+/**
+ * The narrow-viewport action bar's labels. Session 253: on a 390px screen the
+ * contest page is ~10,000px tall and the sidebar registration card sits at ~92%
+ * of DOM depth, so the hero CTA is the only one a visitor ever sees and it is
+ * gone after one scroll. The bar is the persistent copy. It has its own
+ * `cpub-contest-actions-*` namespace because several hero classes are asserted in
+ * strict mode elsewhere in this file.
+ */
+async function barCtas(page: Page): Promise<string[]> {
+  await page.waitForSelector('.cpub-contest-actions', { timeout: 30_000 });
+  await page.waitForTimeout(1200);
+  return page.$$eval('.cpub-contest-actions a, .cpub-contest-actions button', (els) =>
+    els.map((e) => (e.textContent ?? '').replace(/\s+/g, ' ').trim()).filter(Boolean),
+  );
+}
+
 /** The hero's call-to-action labels — the contest's primary affordance. */
 async function heroCtas(page: Page): Promise<string[]> {
   await page.waitForSelector('.cpub-hero-cta', { timeout: 30_000 });
@@ -408,5 +424,41 @@ test.describe('Contest lifecycle', () => {
       const width = await page.evaluate(() => document.documentElement.scrollWidth);
       expect(width, `${path} overflows at 390px`).toBeLessThanOrEqual(390);
     }
+  });
+
+  test('the mobile action bar is reachable without scrolling, and only on mobile', async ({ page }) => {
+    // This contest is COMPLETED by now, which is the state every contest ends in
+    // and keeps traffic in forever — so the bar must degrade to the outcome
+    // rather than render a dead register button.
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(contestUrl);
+    const labels = await barCtas(page);
+    expect(labels.join('|'), 'a finished contest offers results, never Register').toMatch(/View results/i);
+    expect(labels.join('|')).not.toMatch(/Register/i);
+
+    // Docked to the bottom of the VIEWPORT without having scrolled at all.
+    const box = await page.locator('.cpub-contest-actions').boundingBox();
+    expect(box, 'the bar renders at 390px').not.toBeNull();
+    expect(box!.y + box!.height).toBeLessThanOrEqual(845);
+    expect(box!.y).toBeGreaterThan(600);
+    expect(box!.width).toBeLessThanOrEqual(390);
+
+    // It must not sit on top of the last of the page: the page reserves its height.
+    const covered = await page.evaluate(() => {
+      const bar = document.querySelector('.cpub-contest-actions') as HTMLElement | null;
+      if (!bar) return true;
+      window.scrollTo(0, document.body.scrollHeight);
+      const barTop = bar.getBoundingClientRect().top;
+      const footer = document.querySelector('footer');
+      return footer ? footer.getBoundingClientRect().bottom > barTop : false;
+    });
+    expect(covered, 'the bar must not cover the foot of the page').toBe(false);
+
+    // Desktop keeps the sticky sidebar instead — two primary buttons 200px apart
+    // is worse than one.
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto(contestUrl);
+    await page.waitForTimeout(1200);
+    await expect(page.locator('.cpub-contest-actions')).toBeHidden();
   });
 });

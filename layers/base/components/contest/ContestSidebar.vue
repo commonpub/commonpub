@@ -30,7 +30,12 @@ const registeredCount = computed(() => props.contest?.followerCount ?? 0);
 
 const emit = defineEmits<{
   (e: 'copy-link'): void;
-  (e: 'register', payload?: { tier: Tier; fields?: Record<string, string> }): void;
+  // Payload REQUIRED. It used to be optional, and this card's fallback emitted
+  // with none — the page then defaulted to `tier: 'full'`, so a button labelled
+  // "Follow this contest" created a FULL registration, bypassing the required
+  // fields and recorded agreements that contestEntryRequiresRegistration exists
+  // to enforce, and then reported "You're following this contest".
+  (e: 'register', payload: { tier: Tier; fields?: Record<string, string> }): void;
   (e: 'unregister'): void;
 }>();
 
@@ -204,7 +209,7 @@ function statusClass(status: string): string {
           class="cpub-btn cpub-btn-primary cpub-sb-regbtn"
           :aria-pressed="false"
           :disabled="registering"
-          @click="emit('register')"
+          @click="emit('register', { tier: 'reminders' })"
         >
           <i class="fa-solid fa-bell"></i>
           {{ registering ? 'Saving...' : 'Follow this contest' }}

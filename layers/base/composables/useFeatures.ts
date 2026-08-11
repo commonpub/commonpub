@@ -40,6 +40,8 @@ export interface FeatureFlags {
   /** Registration is a precondition for entering: entry + proposal submission
    *  require a completed `full` registration. Default ON. */
   contestEntryRequiresRegistration: boolean;
+  /** Persistent contest action bar on narrow viewports. Default ON. */
+  contestActionBar: boolean;
   events: boolean;
   learning: boolean;
   explainers: boolean;
@@ -104,6 +106,7 @@ export const DEFAULT_FLAGS: FeatureFlags = {
   contests: false, contestStageSubmissions: true, contestProposals: false, contestPii: false, contestPrivateFiles: false,
   contestReminders: false, contestEmailEditor: false, contestSignup: true,
   contestEntryRequiresRegistration: true,
+  contestActionBar: true,
   events: false, learning: true, explainers: true,
   editorial: true, registrationBlock: true, federation: false, admin: false, themeStudio: true, emailNotifications: false, emailUnverified: false, emailVerification: false,
   publicApi: false, contentImport: true,
@@ -214,6 +217,7 @@ export function useFeatures() {
     contestEmailEditor: computed(() => flags.value.contestEmailEditor),
     contestSignup: computed(() => flags.value.contestSignup),
     contestEntryRequiresRegistration: computed(() => flags.value.contestEntryRequiresRegistration),
+    contestActionBar: computed(() => flags.value.contestActionBar),
     events: computed(() => flags.value.events),
     learning: computed(() => flags.value.learning),
     explainers: computed(() => flags.value.explainers),

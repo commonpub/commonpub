@@ -80,6 +80,10 @@ export interface FeatureFlags {
    * Default ON. No effect unless `contests` is also on.
    */
   contestEntryRequiresRegistration: boolean;
+  /** Persistent contest action bar at the bottom of narrow viewports, so the
+   *  register/submit action is reachable without scrolling the whole page.
+   *  Default ON; an operator running short contests may not want the 60px. */
+  contestActionBar: boolean;
   /** Enable events system (listing, RSVP, calendar) */
   events: boolean;
   /** Enable learning paths (enrollment, progress, certificates) */

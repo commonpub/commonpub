@@ -73,6 +73,9 @@ export const featureFlagsSchema = z.object({
   // Off ⇒ the legacy behaviour (submitting an entry registers you). No effect
   // unless `contests` is also on.
   contestEntryRequiresRegistration: z.boolean().default(true),
+  // Persistent action bar on narrow viewports (<=768px), where the sidebar
+  // registration card lands at the very bottom of a very long page.
+  contestActionBar: z.boolean().default(true),
   events: z.boolean().default(false),
   learning: z.boolean().default(true),
   explainers: z.boolean().default(true),
