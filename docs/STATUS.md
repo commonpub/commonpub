@@ -4,7 +4,7 @@
 > Verify any version/flag claim before trusting it: `npm view @commonpub/<pkg> version`,
 > `curl https://<instance>/api/features`, `cargo search create-commonpub`.
 > **Current LIVE (all 3 instances):** schema **0.63** / config **0.36** / infra **0.19** / editor **0.17** /
-> server **2.127** / layer **0.125**, migration **0045**, **39 flags** (session 250, 2026-08-07/08 — contest
+> server **2.127** / layer **0.128**, migration **0045**, **39 flags** (session 250, 2026-08-07/08 — contest
 > email CTAs now absolute AND pointed at the contest instead of account signup, hero register CTA,
 > registration required before entering; **CI green**, incl. the docs worker-RPC flake fixed at the source). **Layer 0.119 = post-launch hotfix: contest hero mobile
 > description Show more/less toggle + `markdownToExcerpt` strips `<!--` HTML comments so a Markdown-imported
@@ -24,6 +24,41 @@
 > `docs/sessions/249-kickoff.md`**, the session-246 audit `docs/reviews/production-readiness-audit-2026-07-23.md`
 > (batch-2 P2s still open), scalability memory `project_pagination_scalability.md`, contest guide
 > `docs/reference/guides/contests.md`.
+
+---
+
+## Session 252 (2026-08-10) — lifecycle E2E + the production-only hydration bug it found — **ROLLED to all 3**
+
+**layer 0.125 → 0.128** (four increments), plus deveco's fork homepage. No schema/config/server
+change, no migration.
+
+**Test audit:** the three modules behind session 251's live bugs had NO tests at all — coverage
+shape, not count. Added 27 genuine ones (`useApiError` against the real wire shapes,
+`buildSaveBody`, the `ContestSubmissionField` number binding, `EditorTagInput` caps); layer
+1599 → **1626**. Replaced one empty test (`expect(true).toBe(true)`, which would have passed with
+an empty function body) with a real AbortSignal assertion.
+
+**New spec `apps/reference/e2e/contest-lifecycle.spec.ts`:** one 5-stage contest walked end to
+end — anonymous → follow → upgrade through the rich form → gated entry → proposal entry →
+organizer exports → judging → top-N → ranked results → 390px. CI's e2e job gains
+`FEATURE_CONTEST_{PROPOSALS,PII,PRIVATE_FILES}`. Three self-inflicted flake sources were found
+and fixed during its own audit (sleep-then-assert; a pre-hydration click on the SSR'd invite
+banner; an aborted client-side redirect leaving the page put).
+
+**The bug it found on its first CI run:** creating a contest made the homepage report *"Hydration
+completed but contains mismatches"* — latent on every instance running one, and **invisible in
+local dev because the dev server and browser share a timezone**. Under `TZ=UTC` + an LA browser:
+`server "Aug 11" / client "Aug 10"`. Causes: **`ContentCard`'s byline date** (so every page that
+lists content), three more on the legacy homepage, and `ContestsSection`'s cross-component dedupe
+emitting a contest list **shifted by one**. All fixed; verified 0 warnings across Tokyo/LA/UTC on
+`/`, `/contests`, `/feed`, `/projects`, `/hubs`.
+
+Also: the judge page told judges to score 0–100 while showing per-criterion inputs capped at their
+own max — a judge following it had the score rejected. Copy is now rubric-aware.
+
+**Open:** heatsynclabs.io still logs one mismatch per load from a different, unidentified source
+(needs its app run in dev to see the detail); ~10 other components still format locale dates
+during SSR. See `docs/sessions/252-lifecycle-e2e-and-hydration.md`.
 
 ---
 
