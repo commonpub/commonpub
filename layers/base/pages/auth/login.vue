@@ -363,7 +363,7 @@ function handleMastodonLogin(): void {
 .submit-btn {
   padding: 7px 14px;
   background: var(--accent);
-  color: var(--color-text-inverse);
+  color: var(--color-on-accent);
   border: var(--border-width-default) solid var(--accent);
   border-radius: var(--radius);
   font-size: 13px;

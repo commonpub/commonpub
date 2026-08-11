@@ -906,7 +906,7 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
   letter-spacing: 0.04em;
   padding: 8px 14px;
   background: var(--accent);
-  color: var(--color-text-inverse);
+  color: var(--color-on-accent);
   border: var(--border-width-default) solid var(--accent);
   white-space: nowrap;
   flex-shrink: 0;
@@ -1088,7 +1088,7 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
 
 .cpub-btn-enter:hover {
   background: var(--accent);
-  color: var(--color-text-inverse);
+  color: var(--color-on-accent);
   border-color: var(--border);
   box-shadow: var(--shadow-sm);
 }

@@ -980,7 +980,7 @@ watch(site, (s) => {
   padding: 3px 10px;
   background: var(--accent);
   border: var(--border-width-default) solid var(--accent);
-  color: var(--color-text-inverse, #fff);
+  color: var(--color-on-accent);
   font-family: var(--font-mono);
   font-size: 9px;
   font-weight: 700;

@@ -321,7 +321,7 @@ useSeoMeta({
   gap: 8px;
   padding: 10px 22px;
   background: var(--accent);
-  color: var(--color-text-inverse);
+  color: var(--color-on-accent);
   border: var(--border-width-default) solid var(--border);
   font-size: 13px;
   font-weight: 600;
@@ -373,7 +373,7 @@ useSeoMeta({
   width: 44px;
   height: 44px;
   background: var(--accent);
-  color: var(--color-text-inverse);
+  color: var(--color-on-accent);
   border: var(--border-width-default) solid var(--border);
   box-shadow: var(--shadow-md);
   font-size: 16px;

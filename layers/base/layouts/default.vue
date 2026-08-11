@@ -433,7 +433,7 @@ const userUsername = computed(() => user.value?.username ?? '');
 
 .cpub-icon-btn { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; background: transparent; border: var(--border-width-default) solid transparent; color: var(--text-dim); font-size: 13px; position: relative; transition: all 0.15s; text-decoration: none; }
 .cpub-icon-btn:hover { background: var(--surface2); border-color: var(--border); color: var(--text); }
-.cpub-notif-badge { position: absolute; top: 2px; right: 0; min-width: 14px; height: 14px; padding: 0 3px; border-radius: 7px; background: var(--accent); color: var(--color-text-inverse, #000); font-size: 9px; font-weight: 700; font-family: var(--font-mono); line-height: 14px; text-align: center; border: 1.5px solid var(--surface); }
+.cpub-notif-badge { position: absolute; top: 2px; right: 0; min-width: 14px; height: 14px; padding: 0 3px; border-radius: 7px; background: var(--accent); color: var(--color-on-accent); font-size: 9px; font-weight: 700; font-family: var(--font-mono); line-height: 14px; text-align: center; border: 1.5px solid var(--surface); }
 
 .cpub-btn-new { display: flex; align-items: center; gap: 6px; padding: 6px 14px; background: var(--accent); border: var(--border-width-default) solid var(--border); color: var(--color-on-accent); font-size: 12px; font-weight: 600; transition: all 0.15s; box-shadow: var(--shadow-sm); text-decoration: none; cursor: pointer; }
 .cpub-btn-new:hover { box-shadow: var(--shadow-md); transform: translate(-1px, -1px); }

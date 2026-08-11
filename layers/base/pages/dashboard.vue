@@ -343,7 +343,7 @@ async function deleteItem(id: string, title: string): Promise<void> {
   gap: 6px;
   padding: 6px 16px;
   background: var(--accent);
-  color: var(--color-text-inverse);
+  color: var(--color-on-accent);
   border: var(--border-width-default) solid var(--border);
   font-size: 12px;
   font-weight: 600;

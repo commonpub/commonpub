@@ -125,6 +125,6 @@ const files = computed<FileItem[]>(() => {
 
 .cpub-dl-btn:hover {
   background: var(--accent);
-  color: var(--color-text-inverse);
+  color: var(--color-on-accent);
 }
 </style>

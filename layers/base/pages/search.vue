@@ -695,7 +695,7 @@ const { data: relatedCommunities } = await useFetch('/api/hubs', {
   height: 16px;
   border-radius: 50%;
   background: var(--accent);
-  color: var(--color-text-inverse);
+  color: var(--color-on-accent);
   font-size: 9px;
   display: flex;
   align-items: center;

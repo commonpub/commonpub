@@ -763,7 +763,7 @@ onUnmounted(() => { document.removeEventListener('keydown', onKeydown); });
   padding: 10px 18px;
   background: var(--accent);
   border: var(--border-width-default) solid var(--border);
-  color: var(--color-text-inverse);
+  color: var(--color-on-accent);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;

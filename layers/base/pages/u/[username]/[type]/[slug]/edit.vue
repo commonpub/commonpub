@@ -797,7 +797,7 @@ async function handleUrlImport(result: ImportedContent): Promise<void> {
 .cpub-topbar-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .cpub-topbar-btn-primary {
   background: var(--accent);
-  color: var(--color-text-inverse);
+  color: var(--color-on-accent);
   font-weight: 600;
   box-shadow: var(--shadow-md);
 }

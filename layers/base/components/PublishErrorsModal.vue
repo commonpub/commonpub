@@ -104,7 +104,7 @@ useFocusTrap(dialogRef, () => props.show, () => emit('dismiss'));
   font-family: var(--font-mono);
   padding: 8px 20px;
   background: var(--accent);
-  color: var(--color-text-inverse);
+  color: var(--color-on-accent);
   border: var(--border-width-default) solid var(--accent);
   font-size: 0.875rem;
   font-weight: 600;

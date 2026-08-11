@@ -266,7 +266,7 @@ async function removeLink(link: ReferralLink): Promise<void> {
   align-self: flex-start;
   padding: 7px 16px;
   background: var(--accent);
-  color: var(--color-text-inverse);
+  color: var(--color-on-accent);
   border: var(--border-width-default) solid var(--accent);
   font-size: 13px;
   font-weight: 500;
