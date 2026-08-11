@@ -52,11 +52,18 @@ export default defineNuxtPlugin(() => {
   // visitor says otherwise, including the ad signals we never use, because
   // Consent Mode treats an unspecified signal as unset rather than denied.
   window.dataLayer = window.dataLayer || [];
-  function gtag(...args: unknown[]): void {
-    window.dataLayer!.push(args);
+  // Pushes `arguments`, NOT an array. This is Google's canonical shim and the
+  // deviation is not cosmetic: with an array, gtag.js loaded and initialised the
+  // property but never sent a hit and never set `_ga`, so the site looked
+  // instrumented and measured nothing. Verified against the live property.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, prefer-rest-params
+  function gtag(): void {
+    // eslint-disable-next-line prefer-rest-params
+    window.dataLayer!.push(arguments);
   }
-  window.gtag = gtag;
-  gtag('consent', 'default', {
+  window.gtag = gtag as unknown as (...args: unknown[]) => void;
+  const send = window.gtag!;
+  send('consent', 'default', {
     ad_storage: 'denied',
     ad_user_data: 'denied',
     ad_personalization: 'denied',
@@ -80,12 +87,12 @@ export default defineNuxtPlugin(() => {
     script.src = `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(measurementId)}`;
     document.head.appendChild(script);
 
-    gtag('js', new Date());
+    send('js', new Date());
     // send_page_view is off on purpose: this is a single-page app, so the
     // library's automatic pageview would fire once for the whole session and
     // then never again. We send one explicitly per navigation below, which
     // gives exactly one event per route with the correct path and title.
-    gtag('config', measurementId, { send_page_view: false, anonymize_ip: true });
+    send('config', measurementId, { send_page_view: false, anonymize_ip: true });
 
     sendPageView(router.currentRoute.value.fullPath);
     stopPageViews = router.afterEach((to) => sendPageView(to.fullPath));
@@ -106,7 +113,7 @@ export default defineNuxtPlugin(() => {
   watch(
     allowsAnalytics,
     (allowed) => {
-      gtag('consent', 'update', {
+      send('consent', 'update', {
         analytics_storage: allowed ? 'granted' : 'denied',
       });
       if (allowed) load();
