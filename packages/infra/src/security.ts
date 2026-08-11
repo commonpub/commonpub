@@ -62,6 +62,56 @@ export function appendCspSources(
   directives[directive] = merged.join(' ');
 }
 
+/** What a page CSP depends on, so the decision can be taken without a request. */
+export interface PageCspInput {
+  /** Dev needs 'unsafe-eval', blob: and the HMR websocket. */
+  isDev: boolean;
+  /** The analytics FEATURE FLAG, which is not the same as declaring a provider. */
+  analyticsEnabled: boolean;
+  /** Origins the configured provider needs, from the provider registry. */
+  analyticsOrigins: { script: readonly string[]; connect: readonly string[] };
+}
+
+/**
+ * The complete CSP directive set for a page response.
+ *
+ * Extracted from the Nitro middleware so the decision is testable without an
+ * h3 event, a config singleton or a Redis client. The middleware previously
+ * inlined this, and the only test that could reach it read the middleware's
+ * SOURCE and regex-matched it. That test passed while the ternary was inverted
+ * so the vendor origin opened exactly when analytics was OFF, which is the
+ * production defect it was written to prevent. A function that returns a value
+ * can be asserted on; a source file can only be pattern-matched.
+ *
+ * The flag gate is the load-bearing part. Declaring a provider is not switching
+ * it on: the reference app declares one so its e2e can exercise the consent
+ * gate while the flag stays off, and commonpub.io once shipped a CSP allowing
+ * googletagmanager while its own privacy page correctly said it used no
+ * analytics.
+ */
+export function buildPageCsp(input: PageCspInput): Record<string, string> {
+  const { isDev, analyticsEnabled, analyticsOrigins } = input;
+  const directives = buildCspDirectives();
+
+  // Nuxt SSR emits inline scripts for payload hydration, so 'unsafe-inline' is
+  // required until the nonce CSP lands.
+  directives['script-src'] = "'self' 'unsafe-inline'" + (isDev ? " 'unsafe-eval' blob:" : '');
+  directives['style-src'] = "'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com";
+  directives['font-src'] = "'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com";
+  if (isDev) {
+    directives['connect-src'] = "'self' ws: wss:";
+    directives['worker-src'] = "'self' blob:";
+  }
+
+  // An instance that measures nothing keeps the tight default. `append` rather
+  // than assign, so the dev ws:/wss: above survives.
+  if (analyticsEnabled) {
+    appendCspSources(directives, 'script-src', analyticsOrigins.script);
+    appendCspSources(directives, 'connect-src', analyticsOrigins.connect);
+  }
+  return directives;
+}
+
 /** Security headers applied to every response (static, without nonce) */
 export function getSecurityHeaders(isDev: boolean): Record<string, string> {
   const headers: Record<string, string> = {

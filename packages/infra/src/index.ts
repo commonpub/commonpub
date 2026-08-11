@@ -40,6 +40,7 @@ export type { EmailAdapter, EmailMessage } from './email.js';
 export {
   buildCspDirectives,
   buildCspHeader,
+  buildPageCsp,
   appendCspSources,
   getSecurityHeaders,
   getStaticCacheHeaders,
@@ -51,7 +52,7 @@ export {
   shouldSkipRateLimit,
   checkRateLimit,
 } from './security.js';
-export type { RateLimitTier, RateLimitResult } from './security.js';
+export type { RateLimitTier, RateLimitResult, PageCspInput } from './security.js';
 
 // Trusted client-IP extraction (XFF-spoof-resistant)
 export { getClientIp } from './clientIp.js';

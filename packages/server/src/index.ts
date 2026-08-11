@@ -356,6 +356,7 @@ export type { UserDataExport, UserSearchResult, ConsentKind, RecordConsentInput 
 export {
   buildCspDirectives,
   buildCspHeader,
+  buildPageCsp,
   appendCspSources,
   getSecurityHeaders,
   getStaticCacheHeaders,
