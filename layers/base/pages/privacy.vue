@@ -36,6 +36,15 @@ function n(key: string): number {
 // A privacy policy on an open-source product can be checked rather than
 // trusted, which is worth more than another paragraph of assurance.
 const SOURCE_BASE = 'https://github.com/commonpub/commonpub/blob/main';
+
+// The cookie list is DERIVED from the same registry that sets the cookies and
+// renders the cookie policy. It used to be typed out by hand here, and had
+// already drifted: it omitted `cpub-verify-dismissed` entirely and described the
+// theme preference as browser local storage when it is a cookie, which this
+// page's own section 5 then contradicted. A policy page that lists cookies must
+// read them from the thing that defines them.
+const { cookies } = useCookieConsent();
+const essentialCookies = computed(() => cookies.value.filter((c) => c.category === 'essential'));
 </script>
 
 <template>
@@ -68,7 +77,7 @@ const SOURCE_BASE = 'https://github.com/commonpub/commonpub/blob/main';
         <p>We also automatically collect:</p>
         <ul>
           <li><strong>Session data:</strong> IP address and browser user agent when you log in, stored for the duration of your session (up to 7 days)</li>
-          <li><strong>Theme preference:</strong> your light/dark mode choice, stored in your browser's local storage</li>
+          <li><strong>Theme preference:</strong> your light/dark mode choice, stored in a cookie on your device and set only when you use the theme toggle</li>
         </ul>
       </section>
 
@@ -93,11 +102,11 @@ const SOURCE_BASE = 'https://github.com/commonpub/commonpub/blob/main';
 
       <section class="cpub-legal-section">
         <h2>{{ n('cookies') }}. Cookies</h2>
-        <p>We use a small number of cookies to provide and improve the service:</p>
+        <p>We use a small number of cookies to provide and improve the service. These are strictly necessary and are set whether or not you accept anything else:</p>
         <ul>
-          <li><strong>Session cookie</strong> (<code>better-auth.session_token</code>): strictly necessary, authenticates your login session. HttpOnly, secure, 7-day expiry.</li>
-          <li><strong>Consent cookie</strong> (<code>cpub-consent</code>): strictly necessary, stores your cookie consent choice.</li>
-          <li><strong>Color scheme</strong> (<code>cpub-color-scheme</code>): strictly necessary preference, remembers your light/dark mode choice. Set only when you use the theme toggle. No identifier, no tracking.</li>
+          <li v-for="cookie in essentialCookies" :key="cookie.name">
+            <code>{{ cookie.name }}</code>: {{ cookie.description }} Kept for {{ cookie.duration.toLowerCase() }}.
+          </li>
         </ul>
         <p v-if="analytics">We use analytics cookies, described in section {{ n('analytics') }} below. They are set only if you accept them, and never for advertising. For the full list of cookies and to change your choice, see our <NuxtLink to="/cookies">Cookie Policy</NuxtLink>.</p>
         <p v-else>We do not use any advertising or tracking cookies. For the full list of cookies and to manage your preferences, see our <NuxtLink to="/cookies">Cookie Policy</NuxtLink>.</p>
@@ -109,23 +118,26 @@ const SOURCE_BASE = 'https://github.com/commonpub/commonpub/blob/main';
 
         <h3>What is collected</h3>
         <ul>
-          <li>The pages you visit on this site, and the order you visit them in</li>
+          <li>The address and title of each public page you visit, and the order you visit them in. The address is sent without anything after the <code>?</code>, so what you type is removed before it leaves your browser.</li>
           <li>The site or search engine that referred you here, if any</li>
           <li>Approximate location, derived from your IP address and no more precise than a city</li>
           <li>Device type, screen size, browser and operating system</li>
           <li>A randomly generated id stored in a cookie, so a repeat visit is not counted as a new person</li>
+          <li>Some interactions on public pages that {{ analytics.processor }} records automatically: how far down a page you scroll, clicks on links that lead off this site, file downloads, and video engagement</li>
         </ul>
 
         <h3>What is not collected</h3>
         <ul>
           <li>Your name, email address, or anything else from your account. We never send account data to {{ analytics.processor }}, so analytics cannot be linked back to who you are on this site.</li>
           <li>Your full IP address. It is used to derive an approximate location and is not stored by us.</li>
-          <li>Anything you type into a form, and anything on a page you need to be logged in to see.</li>
+          <li>Anything you type. The part of a web address after the <code>?</code> is removed before it is sent, so a search you run here is recorded as a visit to the search page and never includes what you searched for.</li>
+          <li>Anything on a page you need to be logged in to see. Pages that require an account, including your settings, your messages, your notifications and the admin area, send nothing at all, not even their titles.</li>
           <li>We run no advertising, we do not track you across other websites, and we do not sell or share this data with anyone beyond the processor named below.</li>
         </ul>
 
         <h3>Who processes it, and where</h3>
-        <p>{{ analytics.processor }} acts as our processor and may process this data outside your country, including in the United States. Their handling is governed by the <a :href="analytics.policyUrl" target="_blank" rel="noopener">{{ analytics.processor }} privacy policy</a>. Our legal basis is your consent (Art. 6(1)(a)), which you can withdraw at any time from the <NuxtLink to="/cookies">Cookie Policy</NuxtLink> page. Withdrawing stops any further collection.</p>
+        <p>{{ analytics.processor }} acts as our processor and may process this data outside your country, including in the United States. Their handling is governed by the <a :href="analytics.policyUrl" target="_blank" rel="noopener">{{ analytics.processor }} privacy policy</a>. Our legal basis is your consent (Art. 6(1)(a)), which you can withdraw at any time from the <NuxtLink to="/cookies">Cookie Policy</NuxtLink> page. Withdrawing deletes the analytics cookies from this device and reloads the page without the analytics code, so collection stops there and then.</p>
+        <p>If we later change what analytics is used for, or who processes it, your previous answer no longer applies and you will be asked again rather than carried over.</p>
 
         <h3>Checking this for yourself</h3>
         <p>This site runs on CommonPub, which is open source, so you do not have to take our word for any of the above. The code that loads analytics, including the rule that nothing loads before you accept, is
