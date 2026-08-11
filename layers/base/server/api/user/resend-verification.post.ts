@@ -46,8 +46,15 @@ export default defineEventHandler(async (event): Promise<{ ok: true }> => {
   // neither is per-account, so this leaks nothing — while silently answering
   // `{ ok: true }` made the UI announce "Verification email sent" on an instance
   // that had sent nothing and never would.
-  const enabled = config.features.emailVerification === true
-    || config.auth.requireEmailVerification === true;
+  // Only the SOFT flag. `auth.requireEmailVerification` used to be ORed in here
+  // as though this route served the hard gate too. It cannot: with the hard gate
+  // on, better-auth issues no session to an unverified user, so `requireAuth`
+  // above rejects every caller this branch was meant to help, and the only
+  // callers who reach it are already verified. Recovery under the hard gate is
+  // `emailVerification.sendOnSignIn` in createAuth, which mails a fresh link on
+  // the blocked sign-in itself. Advertising support here that the route cannot
+  // deliver is worse than not offering it.
+  const enabled = config.features.emailVerification === true;
   if (!enabled || !isEmailDeliverable()) {
     throw createError({
       statusCode: 503,

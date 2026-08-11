@@ -1,4 +1,4 @@
-import { getHubBySlug, listHubProducts, toPageMeta } from '@commonpub/server';
+import { getHubBySlug, listHubProducts, toPageMeta, normalizePagination } from '@commonpub/server';
 import type { PaginatedPage, ProductListItem } from '@commonpub/server';
 import { z } from 'zod';
 import { productStatusSchema, productCategorySchema } from '@commonpub/schema';
@@ -26,13 +26,6 @@ export default defineEventHandler(async (event): Promise<PaginatedPage<ProductLi
   requireHubReadAccess(event, hub);
 
   const result = await listHubProducts(db, hub.id, filters);
-  return {
-    ...result,
-    ...toPageMeta({
-      total: result.total,
-      returned: result.items.length,
-      limit: filters.limit ?? 20,
-      offset: filters.offset ?? 0,
-    }),
-  };
+  const { limit, offset } = normalizePagination(filters);
+  return { ...result, ...toPageMeta({ total: result.total, returned: result.items.length, limit, offset }) };
 });

@@ -1,4 +1,4 @@
-import { listNotifications, toPageMeta } from '@commonpub/server';
+import { listNotifications, toPageMeta, normalizePagination } from '@commonpub/server';
 import type { PaginatedPage, NotificationItem, NotificationType } from '@commonpub/server';
 import { z } from 'zod';
 
@@ -14,8 +14,7 @@ export default defineEventHandler(async (event): Promise<PaginatedPage<Notificat
   const db = useDB();
   const query = parseQueryParams(event, notificationsQuerySchema);
 
-  const limit = query.limit ?? 20;
-  const offset = query.offset ?? 0;
+  const { limit, offset } = normalizePagination(query);
   const result = await listNotifications(db, {
     userId: user.id,
     type: query.type as NotificationType | undefined,

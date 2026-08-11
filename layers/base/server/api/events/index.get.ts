@@ -1,4 +1,4 @@
-import { listEvents, canReadHubById, toPageMeta } from '@commonpub/server';
+import { listEvents, canReadHubById, toPageMeta, normalizePagination } from '@commonpub/server';
 import type { EventStatus } from '@commonpub/server';
 
 const PUBLIC_STATUSES = new Set<string>(['published', 'active', 'completed']);
@@ -41,8 +41,15 @@ export default defineEventHandler(async (event) => {
     if (!canRead) return { items: [], total: 0, hasMore: false };
   }
 
-  const limit = query.limit ? Number(query.limit) : 20;
-  const offset = query.offset ? Number(query.offset) : 0;
+  // Normalise with the SAME helper listEvents uses. This route takes a raw
+  // Number() with no schema, so `?limit=500` would otherwise leave the route
+  // comparing against 500 while the helper clamped to 100: `returned === limit`
+  // goes false, hasMore goes false, and the pager disappears again. `?limit=abc`
+  // is worse, since NaN fails every comparison. One implementation, not two.
+  const { limit, offset } = normalizePagination({
+    limit: query.limit !== undefined ? Number(query.limit) : undefined,
+    offset: query.offset !== undefined ? Number(query.offset) : undefined,
+  });
   const result = await listEvents(db, {
     status,
     hubId,

@@ -32,10 +32,22 @@ export default defineEventHandler((event) => {
 
   const paginated = (itemsRef: string) => ({
     type: 'object',
-    required: ['items', 'total', 'limit', 'offset'],
+    required: ['items', 'total', 'hasMore', 'limit', 'offset'],
     properties: {
       items: { type: 'array', items: { $ref: itemsRef } },
-      total: { type: 'integer' },
+      // Nullable, and this is load-bearing for clients. Counting every matching
+      // row is the expensive half of the query, so it is only done for the first
+      // page; past that the count is genuinely unknown rather than zero. A
+      // client must not treat null as "no results", and must not assume it can
+      // loop `while (offset < total)`.
+      //
+      // Before session 254 this shipped as `-1` against this very schema, which
+      // documents an integer. Any client looping on it truncated the collection
+      // silently.
+      total: { type: ['integer', 'null'], description: 'Matching rows, or null when the count was not computed for this page.' },
+      // Always answerable, which is why a pager should bind to this rather than
+      // deriving page counts from `total`.
+      hasMore: { type: 'boolean', description: 'Whether a further page exists.' },
       limit: { type: 'integer' },
       offset: { type: 'integer' },
     },

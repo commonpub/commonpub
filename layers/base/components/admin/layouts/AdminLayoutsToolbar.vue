@@ -472,12 +472,12 @@ const VIEWPORTS: Array<{ value: 'mobile' | 'tablet' | 'desktop'; icon: string; l
 .cpub-admin-layouts-toolbar-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .cpub-admin-layouts-toolbar-btn--primary {
   background: var(--accent);
-  color: var(--surface);
+  color: var(--color-on-accent);
   border-color: var(--accent);
 }
 .cpub-admin-layouts-toolbar-btn--primary:hover:not(:disabled) {
   background: var(--accent);
   filter: brightness(1.1);
-  color: var(--surface);
+  color: var(--color-on-accent);
 }
 </style>

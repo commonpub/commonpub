@@ -1,4 +1,4 @@
-import { listVideos, toPageMeta } from '@commonpub/server';
+import { listVideos, toPageMeta, normalizePagination } from '@commonpub/server';
 import type { PaginatedResponse, VideoListItem } from '@commonpub/server';
 import { videoFiltersSchema } from '@commonpub/schema';
 
@@ -9,12 +9,8 @@ export default defineEventHandler(async (event) => {
   // The list helper reports COUNT_NOT_COMPUTED past the first page. Translate it
   // here rather than forwarding it: `-1` rendered as "-1 videos" and collapsed
   // the pager's `v-if`, removing Previous as well as Next.
-  const page = toPageMeta({
-    total: result.total,
-    returned: result.items.length,
-    limit: filters.limit ?? 20,
-    offset: filters.offset ?? 0,
-  });
+  const { limit, offset } = normalizePagination(filters);
+  const page = toPageMeta({ total: result.total, returned: result.items.length, limit, offset });
   return {
     ...result,
     ...page,

@@ -81,7 +81,7 @@ void props;
 /* contrast — accent inverse */
 .cpub-section-cta[data-variant='contrast'] {
   background: var(--accent);
-  color: var(--surface);
+  color: var(--color-on-accent);
   border: var(--border-width-default) solid var(--accent);
 }
 .cpub-section-cta[data-variant='contrast'] .cpub-section-cta-heading,
@@ -139,7 +139,7 @@ void props;
 }
 .cpub-section-cta-btn-primary {
   background: var(--accent);
-  color: var(--surface);
+  color: var(--color-on-accent);
 }
 .cpub-section-cta-btn-primary:hover {
   background: var(--accent-strong, var(--accent));

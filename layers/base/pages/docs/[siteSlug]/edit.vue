@@ -1284,6 +1284,6 @@ watch(site, (s) => {
 
 .cpub-btn-danger:hover {
   background: var(--red, #e04030);
-  color: var(--color-text-inverse, #fff);
+  color: var(--color-on-red);
 }
 </style>

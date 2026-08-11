@@ -1,6 +1,10 @@
 import { analyticsSpec, analyticsCookies } from '@commonpub/config/analytics';
 import type { AnalyticsConfig } from '@commonpub/config/analytics';
 import type { RouteLocationNormalized } from 'vue-router';
+// Imported explicitly rather than relying on the utils/ auto-import: a plugin
+// is not app code, and a silently-missing auto-import here would mean private
+// routes were measured.
+import { isPrivateRoute, publicPath } from '../utils/analyticsRoutes';
 
 /**
  * Consent-gated analytics loader.
@@ -43,31 +47,6 @@ declare global {
 }
 
 const SCRIPT_ID = 'cpub-analytics-tag';
-
-/**
- * Areas that must never be measured even if a page there forgets to declare
- * the auth middleware. The middleware check below is the PRIMARY signal and is
- * derived, so it covers new pages automatically; this is only a backstop for
- * the case where that signal is absent. Leaking a private path or title to a
- * third-party processor is not a failure worth being elegant about.
- */
-const NEVER_MEASURED = ['/settings', '/messages', '/admin', '/dashboard', '/notifications', '/auth'];
-
-/** True when the route is behind a login, so nothing about it may be reported. */
-function isPrivateRoute(route: RouteLocationNormalized): boolean {
-  const mw = route.meta?.middleware as string | string[] | undefined;
-  if (mw === 'auth' || (Array.isArray(mw) && mw.includes('auth'))) return true;
-  return NEVER_MEASURED.some((p) => route.path === p || route.path.startsWith(`${p}/`));
-}
-
-/**
- * The address of a page with everything the visitor typed removed. Query and
- * fragment both go: `?q=`, `?email=`, `?token=` and `#section` are all either
- * user input or a credential, and none of them are worth a pageview dimension.
- */
-function publicPath(route: RouteLocationNormalized): string {
-  return route.path;
-}
 
 export default defineNuxtPlugin(() => {
   const runtimeConfig = useRuntimeConfig();

@@ -225,7 +225,7 @@ const { desktopCollapsed, mobileOpen, toggleDesktop, toggleMobile, closeMobile }
 .admin-badge {
   padding: var(--space-1) var(--space-2);
   background: var(--accent);
-  color: var(--color-on-primary);
+  color: var(--color-on-accent);
   font-size: var(--text-xs);
   font-weight: var(--font-weight-bold);
   text-transform: uppercase;

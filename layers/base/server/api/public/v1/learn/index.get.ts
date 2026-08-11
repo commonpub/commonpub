@@ -1,4 +1,4 @@
-import { listPaths, toPublicLearningPath, type PublicLearningPathRow } from '@commonpub/server';
+import { listPaths, toPublicLearningPath, toPageMeta, type PublicLearningPathRow } from '@commonpub/server';
 import { z } from 'zod';
 
 const querySchema = z.object({
@@ -27,5 +27,5 @@ export default defineEventHandler(async (event) => {
   });
   const domain = config.instance.domain;
   const items = (result.items as unknown as PublicLearningPathRow[]).map((r) => toPublicLearningPath(r, domain));
-  return { items, total: result.total, limit: filters.limit, offset: filters.offset };
+  return { items, ...toPageMeta({ total: result.total, returned: result.items.length, limit: filters.limit, offset: filters.offset }), limit: filters.limit, offset: filters.offset };
 });

@@ -256,7 +256,7 @@ const requestingDomain = computed(() => {
 .cpub-oauth-consent__btn--approve {
   background: var(--accent);
   border-color: var(--accent);
-  color: var(--surface-1);
+  color: var(--color-on-accent);
 }
 
 .cpub-oauth-consent__btn--deny {

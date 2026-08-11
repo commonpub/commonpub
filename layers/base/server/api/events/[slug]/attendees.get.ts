@@ -1,4 +1,4 @@
-import { getEventBySlug, listEventAttendees, canReadHubById, toPageMeta } from '@commonpub/server';
+import { getEventBySlug, listEventAttendees, canReadHubById, toPageMeta, normalizePagination } from '@commonpub/server';
 import type { AttendeeStatus } from '@commonpub/server';
 
 /**
@@ -35,8 +35,11 @@ export default defineEventHandler(async (event) => {
   }
 
   const query = getQuery(event);
-  const limit = query.limit ? Number(query.limit) : 20;
-  const offset = query.offset ? Number(query.offset) : 0;
+  // Same helper as listEventAttendees, for the same reason as /api/events.
+  const { limit, offset } = normalizePagination({
+    limit: query.limit !== undefined ? Number(query.limit) : undefined,
+    offset: query.offset !== undefined ? Number(query.offset) : undefined,
+  });
   const result = await listEventAttendees(db, existing.id, {
     status: (query.status as AttendeeStatus) || undefined,
     limit,

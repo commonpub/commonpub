@@ -277,7 +277,7 @@ function getDifficultyClass(d: string | null): string {
 .cpub-enroll-btn { padding: 10px 22px; background: var(--accent); color: var(--color-on-accent); border: var(--border-width-default) solid var(--border); font-size: 13px; font-weight: 600; cursor: pointer; box-shadow: var(--shadow-md); display: inline-flex; align-items: center; gap: 6px; }
 .cpub-enroll-btn:hover { box-shadow: var(--shadow-sm); transform: translate(1px, 1px); }
 .cpub-enroll-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.cpub-continue-btn { padding: 10px 22px; background: var(--green); color: var(--color-text-inverse); border: var(--border-width-default) solid var(--border); font-size: 13px; font-weight: 600; text-decoration: none; box-shadow: var(--shadow-md); display: inline-flex; align-items: center; gap: 6px; }
+.cpub-continue-btn { padding: 10px 22px; background: var(--green); color: var(--color-on-green); border: var(--border-width-default) solid var(--border); font-size: 13px; font-weight: 600; text-decoration: none; box-shadow: var(--shadow-md); display: inline-flex; align-items: center; gap: 6px; }
 .cpub-continue-btn:hover { box-shadow: var(--shadow-sm); transform: translate(1px, 1px); }
 .cpub-unenroll-btn { padding: 6px 14px; background: var(--surface); border: var(--border-width-default) solid var(--border); color: var(--text-dim); font-size: 12px; cursor: pointer; }
 .cpub-unenroll-btn:hover { color: var(--red-text); border-color: var(--red); }

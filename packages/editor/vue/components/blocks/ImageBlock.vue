@@ -353,11 +353,11 @@ async function handleFileSelect(event: Event): Promise<void> {
 
 .cpub-image-size-btn-active {
   background: var(--accent);
-  color: var(--color-on-accent, var(--surface));
+  color: var(--color-on-accent);
 }
 
 .cpub-image-size-btn-active:hover {
   background: var(--accent);
-  color: var(--color-on-accent, var(--surface));
+  color: var(--color-on-accent);
 }
 </style>

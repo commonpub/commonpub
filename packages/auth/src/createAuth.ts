@@ -87,6 +87,35 @@ export function createAuth({ config, db, secret, baseURL, trustedOrigins, emailS
             await emailSender.sendVerificationEmail!(user.email, url, token);
           },
           sendOnSignUp: true,
+          // The recovery path the HARD gate (`auth.requireEmailVerification`)
+          // otherwise lacks entirely, and the reason that flag was a ship gate.
+          //
+          // With the hard gate on, better-auth's sign-up returns `token: null`
+          // and sets no session cookie (sign-up.mjs computes
+          // `shouldSkipAutoSignIn` straight from `requireEmailVerification`), so
+          // NO unverified user can ever hold a session. That makes the
+          // session-scoped `POST /api/user/resend-verification` unreachable for
+          // exactly the population that needs it. The stock session-less sender
+          // is deliberately 404'd (it took an arbitrary address with no session
+          // and was a mail-bomb relay), password reset never writes
+          // `emailVerified`, and no admin route does either. A user whose
+          // one-hour token expired had no way back in.
+          //
+          // `sendOnSignIn` closes that: a blocked sign-in mails a fresh link.
+          // It is safe to enable unconditionally because better-auth verifies
+          // the PASSWORD first (sign-in.mjs:228 throws
+          // INVALID_EMAIL_OR_PASSWORD before the verification branch at :235),
+          // and the address comes from the stored user record rather than the
+          // request body. So it cannot name a victim and is not a relay: the
+          // caller must already hold valid credentials for that account, and
+          // the only inbox reachable is that account's own.
+          //
+          // Inert until an operator sets `auth.requireEmailVerification`, since
+          // better-auth only consults this inside the requireEmailVerification
+          // branch. Do not enable that gate without a real mail transport: with
+          // a console sink, a blocked sign-in mails nothing and the user is
+          // stuck exactly as before.
+          sendOnSignIn: true,
         }
       : undefined,
     session: {

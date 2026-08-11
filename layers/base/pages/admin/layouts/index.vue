@@ -264,7 +264,7 @@ const sortedLayouts = computed<LayoutRecord[]>(() => {
   padding: var(--space-2) var(--space-4);
   background: var(--accent);
   border: var(--border-width-default) solid var(--accent);
-  color: var(--surface);
+  color: var(--color-on-accent);
   font-family: var(--font-mono);
   font-size: var(--text-xs);
   text-transform: uppercase;

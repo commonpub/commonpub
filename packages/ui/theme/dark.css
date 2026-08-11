@@ -32,6 +32,8 @@
   --color-text-inverse: #1a1a1a;
   /* Near-black on the #5b9cf6 fill: 6.24:1. White was 2.79:1. See base.css. */
   --color-on-accent: #1a1a1a;
+  --color-on-red: #1a1a1a;  /* 6.29:1 on this theme's --red */
+  --color-on-green: #1a1a1a;  /* 9.05:1 on this theme's --green */
   --color-on-primary: #1a1a1a;
   --color-primary-hover: #4a8be5;
 

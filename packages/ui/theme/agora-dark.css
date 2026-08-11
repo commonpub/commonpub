@@ -37,6 +37,8 @@
   /* White on the #4aa06e fill is 3.21:1. This matches --color-text-inverse
      above and lands at 5.58:1. See base.css. */
   --color-on-accent: #0d1a12;
+  --color-on-red: #0d1a12;  /* 4.82:1 on this theme's --red */
+  --color-on-green: #0d1a12;  /* 5.58:1 on this theme's --green */
   --color-on-primary: #0d1a12;
   --color-primary-hover: #4aa06e;
 

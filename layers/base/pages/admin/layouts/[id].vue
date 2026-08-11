@@ -890,7 +890,7 @@ async function onConflictForceSave(): Promise<void> {
 .cpub-admin-layouts-editor-thrash-btn--primary {
   background: var(--accent);
   border-color: var(--accent);
-  color: var(--surface);
+  color: var(--color-on-accent);
 }
 .cpub-admin-layouts-editor-thrash-btn--primary:hover { filter: brightness(1.1); background: var(--accent); }
 .cpub-admin-layouts-editor-thrash-btn--danger {
@@ -899,7 +899,7 @@ async function onConflictForceSave(): Promise<void> {
 }
 .cpub-admin-layouts-editor-thrash-btn--danger:hover {
   background: var(--red);
-  color: var(--surface);
+  color: var(--color-on-red);
 }
 
 @media (max-width: 1024px) {

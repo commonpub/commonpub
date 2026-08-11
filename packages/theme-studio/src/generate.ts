@@ -37,7 +37,7 @@
  *   shadowStyle                  → shadow-sm/md/lg/xl + shadow-accent + focus
  *   motion                       → transition-fast/default/slow
  */
-import { hexToHsl, hslToHex, rgba, adjL, rotate, ensureReadable, mixHex, blendOver } from './color.js';
+import { hexToHsl, hslToHex, rgba, adjL, rotate, ensureReadable, mixHex, blendOver, contrast } from './color.js';
 import { buildPalette, type SemanticPalette } from './palette.js';
 import { fontStack, googleHref } from './fonts.js';
 import {
@@ -192,6 +192,35 @@ export function recipeToTokens(recipe: ThemeRecipe): GeneratedTheme {
     t[`${name}-bg`] = rgba(hex, 0.08);
     t[`${name}-border`] = rgba(hex, 0.25);
   }
+
+  // ---- Text ON a semantic fill ----
+  //
+  // A generated theme has to carry these or it inherits base's values, which
+  // are tuned to BASE's red and green and can fail against its own. Session 254
+  // measured why reusing `on-accent` is not an option: on the agora palette
+  // `--color-on-accent` scores 3.99:1 against `--red` while
+  // `--color-text-inverse` scores 4.51:1, and on base the ranking inverts. No
+  // single existing token works for every palette, so each fill needs its own.
+  //
+  // Chosen by measurement, and the value MEASURED is the value EMITTED. The
+  // first version of this compared pure `#000000` but returned `#0a0a0a`: on a
+  // generated warm-light red (#cc4c3e) black scores 4.67:1 and the near-black
+  // actually shipped scores 4.40:1, so it emitted a failing token while its own
+  // check said it passed. Measuring a proxy for what you ship is the same class
+  // of mistake as testing a source string instead of a value.
+  //
+  // Candidates are tried in preference order (the palette's near-black first,
+  // pure black/white as the higher-contrast fallbacks) and the first to clear AA
+  // wins; if none does, the highest-scoring one is used, because at that point
+  // the FILL is too mid-tone for any text colour and no choice here can fix it.
+  const onFill = (fill: string): string => {
+    const candidates = ['#0a0a0a', '#ffffff', '#000000'];
+    const scored = candidates.map((c) => ({ c, r: contrast(c, fill) }));
+    return (scored.find((x) => x.r >= 4.5) ?? scored.reduce((a, b) => (b.r > a.r ? b : a))).c;
+  };
+  t['color-on-red'] = onFill(s.error);
+  t['color-on-green'] = onFill(s.success);
+  t['color-on-yellow'] = onFill(s.warning);
 
   // ---- Typography: families ----
   t['font-display'] = fontStack(recipe.fonts.display);

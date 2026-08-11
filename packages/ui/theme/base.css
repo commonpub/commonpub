@@ -68,6 +68,8 @@
   --color-accent-hover: #4a8be5;
   --color-accent-text: #1a1a1a;
   --color-on-accent: #1a1a1a;
+  --color-on-red: #1a1a1a;  /* 4.62:1 on this theme's --red */
+  --color-on-green: #1a1a1a;  /* 7.64:1 on this theme's --green */
   --color-accent-bg: var(--accent-bg);
   --color-accent-border: var(--accent-border);
 

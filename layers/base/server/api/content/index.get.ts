@@ -1,4 +1,4 @@
-import { listContent, toPageMeta } from '@commonpub/server';
+import { listContent, toPageMeta, normalizePagination } from '@commonpub/server';
 import type { PaginatedPage, ContentListItem } from '@commonpub/server';
 import { contentFiltersSchema } from '@commonpub/schema';
 
@@ -11,13 +11,6 @@ export default defineEventHandler(async (event): Promise<PaginatedPage<ContentLi
   // listContent skips COUNT(*) past page 1 whenever the federated merge is
   // bypassed, which any of authorId/featured/editorial/categoryId/difficulty/tag
   // does. Forwarding its sentinel put `total: -1` on this route.
-  return {
-    ...result,
-    ...toPageMeta({
-      total: result.total,
-      returned: result.items.length,
-      limit: filters.limit ?? 20,
-      offset: filters.offset ?? 0,
-    }),
-  };
+  const { limit, offset } = normalizePagination(filters);
+  return { ...result, ...toPageMeta({ total: result.total, returned: result.items.length, limit, offset }) };
 });
