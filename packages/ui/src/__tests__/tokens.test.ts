@@ -90,6 +90,28 @@ describe('chrome + treatment + new layout tokens (advanced-tokens plan)', () => 
     'cpub-footer-border', 'cpub-footer-link-hover', 'cpub-footer-heading',
   ];
 
+  // The NEW_KEYS allowlist only ever covered the tokens one plan added, so a
+  // token OUTSIDE it could drift from base.css unnoticed — which is exactly what
+  // happened in session 253: base.css moved the four on-accent tokens to
+  // near-black for WCAG AA while TOKEN_SPECS kept #ffffff, so Theme Studio's
+  // "reset to default" offered to restore the 2.79:1 failure. Check every
+  // registered token that base.css actually declares, so the allowlist can never
+  // be the thing that decides whether drift is caught.
+  it('EVERY registered token whose key is declared in base.css matches it verbatim', () => {
+    const drift: string[] = [];
+    for (const spec of TOKEN_SPECS) {
+      const css = cssDefault(spec.key);
+      if (css === undefined) continue; // not a base.css token (theme-only)
+      // base.css sometimes aliases (`--color-link: var(--accent)`) while the
+      // registry deliberately stores the RESOLVED literal, because a captured or
+      // forked theme has to carry a real value — a var() alias self-heals to the
+      // base blue instead. Comparing those two is a false positive.
+      if (css.startsWith('var(')) continue;
+      if (spec.default !== css) drift.push(`--${spec.key}: registry "${spec.default}" vs base.css "${css}"`);
+    }
+    expect(drift, `token registry drifted from base.css:\n${drift.join('\n')}`).toEqual([]);
+  });
+
   it('every new token is registered AND its default matches base.css verbatim', () => {
     for (const key of NEW_KEYS) {
       const spec = getTokenSpec(key);

@@ -353,6 +353,7 @@ export type { UserDataExport, UserSearchResult, ConsentKind, RecordConsentInput 
 export {
   buildCspDirectives,
   buildCspHeader,
+  appendCspSources,
   getSecurityHeaders,
   getStaticCacheHeaders,
   generateNonce,

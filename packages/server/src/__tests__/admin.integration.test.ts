@@ -136,6 +136,37 @@ describe('admin module', () => {
       expect(items.length).toBeGreaterThanOrEqual(1);
     });
 
+    // Soft email verification (session 253): the admin list is how an operator
+    // answers "who has confirmed their address", so the field has to be on the
+    // DTO and the filter has to distinguish false from absent.
+    it('returns emailVerified on every item', async () => {
+      const { items } = await listUsers(db);
+      expect(items.every((u) => typeof u.emailVerified === 'boolean')).toBe(true);
+    });
+
+    it('filters to confirmed addresses only', async () => {
+      const confirmed = await createTestUser(db, { emailVerified: true });
+      const { items } = await listUsers(db, { emailVerified: true });
+      expect(items.length).toBeGreaterThanOrEqual(1);
+      expect(items.every((u) => u.emailVerified === true)).toBe(true);
+      expect(items.some((u) => u.id === confirmed.id)).toBe(true);
+    });
+
+    it('filters to unconfirmed addresses only — `false` must not be read as "no filter"', async () => {
+      const unconfirmed = await createTestUser(db, { emailVerified: false });
+      const { items } = await listUsers(db, { emailVerified: false });
+      expect(items.every((u) => u.emailVerified === false)).toBe(true);
+      expect(items.some((u) => u.id === unconfirmed.id)).toBe(true);
+    });
+
+    it('omitting the filter returns both kinds', async () => {
+      await createTestUser(db, { emailVerified: true });
+      await createTestUser(db, { emailVerified: false });
+      const { items } = await listUsers(db, { limit: 100 });
+      expect(items.some((u) => u.emailVerified)).toBe(true);
+      expect(items.some((u) => !u.emailVerified)).toBe(true);
+    });
+
     it('searches by username', async () => {
       const { items } = await listUsers(db, { search: 'regular' });
       expect(items.some((u) => u.username === 'regularuser')).toBe(true);

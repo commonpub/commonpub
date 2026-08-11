@@ -515,7 +515,7 @@ const blockCount = computed(() => props.blockEditor.blocks.value.length);
   color: var(--text-dim); cursor: pointer; display: inline-flex; align-items: center; gap: 4px;
   font-family: var(--font-mono); box-shadow: var(--shadow-sm);
 }
-.cpub-pe-cover-btn.primary { background: var(--accent); color: var(--color-text-inverse); border-color: var(--accent); }
+.cpub-pe-cover-btn.primary { background: var(--accent); color: var(--color-on-accent); border-color: var(--accent); }
 .cpub-pe-cover-btn:hover { background: var(--surface2); }
 .cpub-pe-cover-btn.primary:hover { opacity: 0.9; background: var(--accent); }
 .cpub-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0; }

@@ -57,12 +57,17 @@
 
   --color-primary: var(--accent);
   --color-primary-hover: #4a8be5;
-  --color-primary-text: #ffffff;
-  --color-on-primary: #ffffff;
+  /* Label colour ON a filled accent surface. Near-black, not white: white on
+     --accent #5b9cf6 is 2.79:1, below even the 3:1 large-text floor, and it
+     shipped that way until session 253. #1a1a1a is 6.24:1. The accent hue is
+     fixed by the design system, so the label moves, not the fill.
+     Locked by packages/theme-studio/src/__tests__/theme-contrast.test.ts. */
+  --color-primary-text: #1a1a1a;
+  --color-on-primary: #1a1a1a;
   --color-accent: var(--accent);
   --color-accent-hover: #4a8be5;
-  --color-accent-text: #ffffff;
-  --color-on-accent: #ffffff;
+  --color-accent-text: #1a1a1a;
+  --color-on-accent: #1a1a1a;
   --color-accent-bg: var(--accent-bg);
   --color-accent-border: var(--accent-border);
 

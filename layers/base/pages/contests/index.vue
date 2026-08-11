@@ -36,7 +36,7 @@ const canCreateContest = computed(() => {
   <div class="cpub-contests-page">
     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;">
       <SectionHeader title="Contests" large />
-      <NuxtLink v-if="canCreateContest" to="/contests/create" class="cpub-btn cpub-btn-primary" style="font-size: 12px; padding: 6px 14px; background: var(--accent); color: var(--color-text-inverse); border: var(--border-width-default) solid var(--border); text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
+      <NuxtLink v-if="canCreateContest" to="/contests/create" class="cpub-btn cpub-btn-primary" style="font-size: 12px; padding: 6px 14px; background: var(--accent); color: var(--color-on-accent); border: var(--border-width-default) solid var(--border); text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
         <i class="fa-solid fa-plus"></i> Create Contest
       </NuxtLink>
     </div>
@@ -85,9 +85,13 @@ const canCreateContest = computed(() => {
                  stage's close (the open round), not the far-off final endDate. -->
             <CountdownTimer :target-date="contest.status === 'upcoming' ? contest.startDate : (contest.currentStageEndDate ?? contest.endDate)" compact />
           </div>
+          <!-- Registered (every registration row) is the headline figure while a
+               contest is open; entries only once submissions have closed, where
+               the number is final and not inflated by draft placeholders. Both
+               suppressed at zero. Rules live in utils/contestCounts.ts. -->
           <div class="cpub-contest-card-meta">
-            <span><i class="fa-solid fa-users"></i> {{ contest.entryCount }} entries</span>
-            <span v-if="(contest.followerCount ?? 0) > 0"><i class="fa-solid fa-bell"></i> {{ contest.followerCount }} following</span>
+            <span v-if="showsRegisteredCount(contest)"><i class="fa-solid fa-users"></i> {{ registeredCountLabel(contest) }}</span>
+            <span v-if="showsEntryCount(contest)"><i class="fa-solid fa-folder-open"></i> {{ entryCountLabel(contest) }}</span>
           </div>
         </div>
       </NuxtLink>

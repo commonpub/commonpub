@@ -30,8 +30,9 @@
   --color-text-secondary: var(--text-dim);
   --color-text-muted: var(--text-faint);
   --color-text-inverse: #1a1a1a;
-  --color-on-accent: #ffffff;
-  --color-on-primary: #ffffff;
+  /* Near-black on the #5b9cf6 fill: 6.24:1. White was 2.79:1. See base.css. */
+  --color-on-accent: #1a1a1a;
+  --color-on-primary: #1a1a1a;
   --color-primary-hover: #4a8be5;
 
   /* Borders */

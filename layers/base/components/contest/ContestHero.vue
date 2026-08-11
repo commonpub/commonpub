@@ -204,9 +204,16 @@ const dateRange = computed<string>(() => {
   return start || end;
 });
 
-const entryCount = computed<number>(() => c.value?.entryCount ?? 0);
-// Everyone following (all registrations) — social proof next to the entry count.
-const followerCount = computed<number>(() => c.value?.followerCount ?? 0);
+// Public counts. Both come from the SSR'd ContestDetail DTO (never from the
+// per-viewer registration fetch), so they are correct in the server-rendered
+// HTML and do not change on hydration. Display rules — registered is every
+// registration row and is the figure shown while a contest is open; entries
+// appear only once submissions close — live in utils/contestCounts.ts so the
+// hero, the /contests tile and the homepage widget cannot drift apart.
+const showRegistered = computed<boolean>(() => showsRegisteredCount(c.value ?? {}));
+const registeredLabel = computed<string>(() => registeredCountLabel(c.value ?? {}));
+const showEntries = computed<boolean>(() => showsEntryCount(c.value ?? {}));
+const entriesLabel = computed<string>(() => entryCountLabel(c.value ?? {}));
 
 // ── Primary CTA ── the hero carries the same registration call-to-action as the
 // signup card, so it's reachable from the top of the page (not only after scrolling
@@ -218,7 +225,11 @@ const followerCount = computed<number>(() => c.value?.followerCount ?? 0);
 const REGISTERABLE = ['upcoming', 'active'];
 const canRegister = computed(() => REGISTERABLE.includes(c.value?.status ?? ''));
 const isFullyRegistered = computed(() => props.registrationTier === 'full');
-const loginLink = computed(() => `/auth/login?redirect=/contests/${c.value?.slug ?? ''}`);
+// Anonymous register: log in and land IN the registration form, not back on the
+// contest page still unregistered. `/contests/:slug/register` carries
+// `middleware: 'auth'`, which round-trips `to.fullPath` for us, and it handles
+// every template shape (rich, short, or the bare optional default).
+const loginLink = computed(() => `/auth/login?redirect=/contests/${c.value?.slug ?? ''}/register`);
 const showRegisterCta = computed(() => canRegister.value && !isFullyRegistered.value);
 const showSubmitCta = computed(
   () =>
@@ -280,8 +291,8 @@ const showSubmitCta = computed(
         <div class="cpub-hero-foot">
           <div class="cpub-hero-meta">
             <span v-if="dateRange" class="cpub-hero-meta-item"><i class="fa fa-calendar"></i> {{ dateRange }}</span>
-            <span class="cpub-hero-meta-item"><i class="fa fa-folder-open"></i> {{ entryCount }} {{ entryCount === 1 ? 'entry' : 'entries' }}</span>
-            <span v-if="followerCount > 0" class="cpub-hero-meta-item"><i class="fa fa-bell"></i> {{ followerCount }} following</span>
+            <span v-if="showRegistered" class="cpub-hero-meta-item"><i class="fa fa-users"></i> {{ registeredLabel }}</span>
+            <span v-if="showEntries" class="cpub-hero-meta-item"><i class="fa fa-folder-open"></i> {{ entriesLabel }}</span>
           </div>
           <div class="cpub-hero-cta">
             <!-- Register: anonymous visitors go to sign-in and come back here. -->

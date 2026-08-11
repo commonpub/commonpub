@@ -1,3 +1,5 @@
+export type { AnalyticsConfig } from './analytics.js';
+import type { AnalyticsConfig } from './analytics.js';
 export interface FeatureFlags {
   /** Enable content system (CRUD, publishing, slugs) */
   content: boolean;
@@ -80,6 +82,10 @@ export interface FeatureFlags {
    * Default ON. No effect unless `contests` is also on.
    */
   contestEntryRequiresRegistration: boolean;
+  /** Persistent contest action bar at the bottom of narrow viewports, so the
+   *  register/submit action is reachable without scrolling the whole page.
+   *  Default ON; an operator running short contests may not want the 60px. */
+  contestActionBar: boolean;
   /** Enable events system (listing, RSVP, calendar) */
   events: boolean;
   /** Enable learning paths (enrollment, progress, certificates) */
@@ -105,6 +111,14 @@ export interface FeatureFlags {
   /** Deliver notification/reminder/broadcast email to unverified addresses too
    *  (verification then gates sign-in only). Default OFF. Deliverability caveat. */
   emailUnverified: boolean;
+  /** Soft email verification: mail a verification link on signup and show a nag
+   *  banner until confirmed, without ever gating sign-in. Default OFF.
+   *  Distinct from `auth.requireEmailVerification`, which is the hard sign-in
+   *  gate and locks out existing unverified accounts. */
+  emailVerification: boolean;
+  /** Consent-gated visitor analytics. Inert unless `analytics.provider` is also
+   *  configured. Default OFF: an instance opts IN to measuring its visitors. */
+  analytics: boolean;
   /** Enable admin broadcast emails to users (email Phase 3). */
   adminBroadcast: boolean;
   /** Require re-acceptance of the Terms when instance.termsVersion is bumped (GDPR Phase 2). */
@@ -355,6 +369,11 @@ export interface CommonPubConfig {
   federation?: FederationConfig;
   /** Docs module configuration */
   docs: DocsConfig;
+  /** Analytics provider + property id. Absent or `provider: 'none'` means this
+   *  instance measures nothing. Only used when `features.analytics` is on. The
+   *  provider's CSP origins and its cookie disclosures are derived from this in
+   *  analytics.ts, so a tag can never be live without the policy page listing it. */
+  analytics?: AnalyticsConfig;
   /** Referral-link operator policy (only used when features.referralLinks is on) */
   referral?: ReferralConfig;
   /**

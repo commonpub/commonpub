@@ -213,7 +213,7 @@ async function remove(): Promise<void> {
 
 /* Shared federation control styles (also defined on the page; repeated here for the modal's scope). */
 .cpub-fed-input { flex: 1; padding: 8px 12px; font-family: var(--font-mono); font-size: 0.8125rem; border: var(--border-width-default) solid var(--border); background: var(--surface); color: var(--text); }
-.cpub-fed-btn { padding: 8px 16px; font-family: var(--font-mono); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; cursor: pointer; background: var(--accent); color: var(--color-text-inverse); border: var(--border-width-default) solid var(--accent); box-shadow: var(--shadow-sm); }
+.cpub-fed-btn { padding: 8px 16px; font-family: var(--font-mono); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; cursor: pointer; background: var(--accent); color: var(--color-on-accent); border: var(--border-width-default) solid var(--accent); box-shadow: var(--shadow-sm); }
 .cpub-fed-btn:hover { box-shadow: none; transform: translate(2px, 2px); }
 .cpub-fed-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
 .cpub-fed-btn-sm { padding: 4px 10px; font-family: var(--font-mono); font-size: 10px; font-weight: 600; text-transform: uppercase; cursor: pointer; background: transparent; border: var(--border-width-default) solid var(--border); color: var(--text-dim); }

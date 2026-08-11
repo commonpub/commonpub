@@ -212,7 +212,7 @@ function formatDate(dateStr: string): string {
 .cpub-hero-actions { display: flex; align-items: center; gap: 10px; }
 
 /* TAGS (page-specific) */
-.cpub-tag-live { background: var(--red); border-color: var(--red); color: var(--color-text-inverse); font-family: var(--font-mono); animation: cpub-livepulse 2s infinite; }
+.cpub-tag-live { background: var(--red); border-color: var(--red); color: var(--color-on-accent); font-family: var(--font-mono); animation: cpub-livepulse 2s infinite; }
 @keyframes cpub-livepulse { 0%,100% { opacity: 1; } 50% { opacity: .75; } }
 
 /* FILTER BAR */

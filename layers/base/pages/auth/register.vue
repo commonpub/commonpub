@@ -28,6 +28,15 @@ onMounted(async () => {
   } catch { /* banner is optional */ }
 });
 
+// Carry the caller's intent across to Log in. Signup honours ?redirect below,
+// but this link used to drop it, so a visitor sent here from a contest who
+// already had an account lost the destination. Same-origin guard, as on submit.
+const loginLink = computed(() => {
+  const raw = (route.query.redirect as string) || '';
+  const safe = raw.startsWith('/') && !raw.startsWith('//') ? raw : '';
+  return safe ? `/auth/login?redirect=${encodeURIComponent(safe)}` : '/auth/login';
+});
+
 const username = ref('');
 const email = ref('');
 const password = ref('');
@@ -170,7 +179,7 @@ async function handleSubmit(): Promise<void> {
 
     <p class="register-footer">
       Already have an account?
-      <NuxtLink to="/auth/login">Log in</NuxtLink>
+      <NuxtLink :to="loginLink">Log in</NuxtLink>
     </p>
     </template>
   </div>

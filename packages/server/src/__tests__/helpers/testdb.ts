@@ -47,6 +47,7 @@ export async function createTestUser(
     displayName: string;
     avatarUrl: string;
     role: string;
+    emailVerified: boolean;
   }> = {},
 ) {
   const id = overrides.id ?? crypto.randomUUID();
@@ -59,6 +60,9 @@ export async function createTestUser(
       displayName: overrides.displayName ?? 'Test User',
       avatarUrl: overrides.avatarUrl ?? null,
       role: (overrides.role ?? 'member') as 'member' | 'pro' | 'verified' | 'staff' | 'admin',
+      // Column default is false; only set it when a test asks, so the default
+      // fixture keeps exercising the unconfirmed path.
+      ...(overrides.emailVerified === undefined ? {} : { emailVerified: overrides.emailVerified }),
     })
     .returning();
   return user!;

@@ -337,7 +337,7 @@ const activeDifficultyFilter = ref('');
 .cpub-sb-level-row { display: flex; flex-direction: column; gap: 6px; }
 .cpub-sb-level-item { display: flex; align-items: center; gap: 8px; cursor: pointer; }
 .cpub-sb-level-check { width: 14px; height: 14px; border-radius: 0; border: var(--border-width-default) solid var(--border); background: var(--surface); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 8px; }
-.cpub-checked { background: var(--accent); border-color: var(--border); color: var(--color-text-inverse); }
+.cpub-checked { background: var(--accent); border-color: var(--border); color: var(--color-on-accent); }
 .cpub-sb-level-name { font-size: 12px; color: var(--text-dim); }
 .cpub-sb-level-n { margin-left: auto; font-size: 10px; font-family: var(--font-mono); color: var(--text-faint); }
 .cpub-sb-tag-cloud { display: flex; flex-wrap: wrap; gap: 6px; }

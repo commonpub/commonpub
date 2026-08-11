@@ -67,10 +67,21 @@ export function createAuth({ config, db, secret, baseURL, trustedOrigins, emailS
           }
         : undefined,
     },
-    // Only send a verification email on signup when verification is actually
-    // required AND an email sender is wired. Otherwise a new user would get a
-    // verification email that is never sent (console adapter) and be stuck.
-    emailVerification: (emailSender?.sendVerificationEmail && config.auth.requireEmailVerification === true)
+    // Wired whenever a sender exists — NOT gated on the flag here.
+    //
+    // The auth instance is built once per process and memoized, so a condition
+    // evaluated at this moment freezes the answer for the process lifetime.
+    // `features.emailVerification` is a RUNTIME flag (the admin Feature Flags
+    // page writes an override and invalidates the config cache), so gating here
+    // meant flipping it on did nothing until a redeploy — while the UI happily
+    // reported "verification email sent".
+    //
+    // Policy therefore lives in the CALLER's `sendVerificationEmail` closure,
+    // which re-reads config on every call. `sendOnSignUp` is independent of
+    // `requireEmailVerification` in better-auth (sign-up.mjs reads
+    // `sendOnSignUp ?? requireEmailVerification`, so an explicit `true` wins),
+    // which is what lets us mail on signup without ever gating sign-in.
+    emailVerification: emailSender?.sendVerificationEmail
       ? {
           sendVerificationEmail: async ({ user, url, token }) => {
             await emailSender.sendVerificationEmail!(user.email, url, token);

@@ -58,12 +58,14 @@
 
   --color-primary: var(--accent);
   --color-primary-hover: #348050;
-  --color-primary-text: #ffffff;
-  --color-on-primary: #ffffff;
+  /* White on the #3d8b5e fill is 4.16:1, just under AA. Near-black is 4.76:1.
+     See base.css; locked by theme-studio's theme-contrast test. */
+  --color-primary-text: #0a0a0a;
+  --color-on-primary: #0a0a0a;
   --color-accent: var(--accent);
   --color-accent-hover: #348050;
-  --color-accent-text: #ffffff;
-  --color-on-accent: #ffffff;
+  --color-accent-text: #0a0a0a;
+  --color-on-accent: #0a0a0a;
   --color-accent-bg: var(--accent-bg);
   --color-accent-border: var(--accent-border);
 

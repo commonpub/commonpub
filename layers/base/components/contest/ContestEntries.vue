@@ -92,7 +92,10 @@ function entryLink(entry: Serialized<ContestEntryItem>): string {
   <div class="cpub-entries-section">
     <div class="cpub-sec-head">
       <h2><i class="fa fa-box-open" style="color: var(--teal-text);"></i> Submitted Entries</h2>
-      <span class="cpub-sec-sub">{{ entries.length }} entries</span>
+      <!-- Counts the entries actually rendered below, which is not the same
+           number as the contest's `entryCount` (that includes draft
+           placeholders). Pluralized: the live deveco contest read "1 entries". -->
+      <span v-if="entries.length" class="cpub-sec-sub">{{ entryCountLabel({ entryCount: entries.length }) }}</span>
     </div>
     <div v-if="entries.length" class="cpub-entry-grid">
       <div

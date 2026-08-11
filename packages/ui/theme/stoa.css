@@ -56,12 +56,15 @@
 
   --color-primary: var(--accent);
   --color-primary-hover: #2b6147;
-  --color-primary-text: #fdfbf3;
-  --color-on-primary: #fdfbf3;
+  /* Stoa's paper white #fdfbf3 on the #3c8262 fill is 4.44:1, a hair under AA.
+     Pure white clears it at 4.60:1. Only the label on a filled accent surface
+     changes; paper white stays everywhere else. See base.css. */
+  --color-primary-text: #ffffff;
+  --color-on-primary: #ffffff;
   --color-accent: var(--accent);
   --color-accent-hover: #2b6147;
-  --color-accent-text: #fdfbf3;
-  --color-on-accent: #fdfbf3;
+  --color-accent-text: #ffffff;
+  --color-on-accent: #ffffff;
   --color-accent-bg: var(--accent-bg);
   --color-accent-border: var(--accent-border);
 

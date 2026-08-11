@@ -109,18 +109,26 @@ export default defineNuxtConfig({
         contestStageSubmissions: true,
         contestProposals: false,
         contestPii: false,
+        contestPrivateFiles: false,
+        contestSignup: true,
+        contestEntryRequiresRegistration: true,
         contestReminders: false,
         contestEmailEditor: false,
+        contestActionBar: true,
         events: false,
         learning: true,
         explainers: true,
         editorial: true,
+        registrationBlock: true,
         federation: false,
         federateHubs: false,
         seamlessFederation: false,
         admin: false,
         themeStudio: true,
         emailNotifications: false,
+        emailUnverified: false,
+        emailVerification: false,
+        analytics: false,
         adminBroadcast: false,
         requireTermsAcceptance: false,
         publicApi: false,
@@ -148,6 +156,11 @@ export default defineNuxtConfig({
       contentTypes: 'project,blog,explainer',
       contestCreation: 'admin',
       instanceCookies: [] as Array<{ name: string; category: string; description: string; duration: string; provider?: string }>,
+      // Declared (not just spread by the thin app) for the same reason as the
+      // flags above: an undeclared key gets no NUXT_PUBLIC_* env override.
+      // `provider: 'none'` is the safe default — an instance opts IN to
+      // measuring its visitors.
+      analytics: { provider: 'none', measurementId: '' } as { provider: string; measurementId?: string },
       // Default OFF — the register page only shows the "check your email" screen
       // when this is on (operator opts in once email is wired). Mirrors
       // config.auth.requireEmailVerification on the server (createAuth).

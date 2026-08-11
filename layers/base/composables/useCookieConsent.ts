@@ -1,4 +1,6 @@
 import type { CookieDefinition } from '@commonpub/config';
+import { analyticsCookies } from '@commonpub/config/analytics';
+import type { AnalyticsConfig } from '@commonpub/config/analytics';
 
 /**
  * Built-in CommonPub cookies. Instance operators add theirs via
@@ -26,6 +28,16 @@ const BUILTIN_COOKIES: CookieDefinition[] = [
     category: 'essential',
     description: 'Remembers your light/dark mode preference. Set only when you use the theme toggle.',
     duration: '1 year',
+  },
+  {
+    name: 'cpub-verify-dismissed',
+    // Essential for the same reason as cpub-color-scheme: it records a choice
+    // the user explicitly made (dismissing the confirm-your-email reminder),
+    // stores no identifier and does no tracking. Consent-gating it would mean
+    // the reminder reappeared on every page for anyone on "Essential only".
+    category: 'essential',
+    description: 'Remembers that you dismissed the email confirmation reminder. Set only when you dismiss it.',
+    duration: 'Until you close your browser',
   },
 ];
 
@@ -64,14 +76,24 @@ export function useCookieConsent(): {
     sameSite: 'lax',
   });
 
+  // The LEVEL is shared app-wide via useState, not derived per-caller from the
+  // cookie ref. Every `useCookieConsent()` call used to build its own
+  // `useCookie` ref, so one caller writing consent did not synchronously notify
+  // another — cross-consumer propagation relied on Nuxt's incidental
+  // CookieStore/BroadcastChannel sync, which is async and browser-conditional.
+  // That was harmless while nothing read `allowsAnalytics`; with the analytics
+  // loader watching it, a grant or revoke has to land immediately and reliably.
+  // Seeded from the request cookie so SSR and the first client render agree.
+  const state = useState<ConsentLevel>('cpub:consent-level', () => {
+    const val = consentCookie.value;
+    return val === 'all' || val === 'essential' ? val : null;
+  });
+
   const consentLevel = computed<ConsentLevel>({
-    get: () => {
-      const val = consentCookie.value;
-      if (val === 'all' || val === 'essential') return val;
-      return null;
-    },
+    get: () => state.value,
     set: (v: ConsentLevel) => {
-      consentCookie.value = v;
+      state.value = v;
+      consentCookie.value = v; // write through so the choice survives a reload
     },
   });
 
@@ -86,8 +108,25 @@ export function useCookieConsent(): {
     return Array.isArray(raw) ? raw as CookieDefinition[] : [];
   });
 
+  // Cookies the configured analytics provider will set, DERIVED from the
+  // provider registry rather than hand-declared. An operator turning on GA4
+  // cannot forget to list `_ga` in the policy, and the two cannot drift.
+  // The flag comes from useFeatures, NOT runtimeConfig.public.features.
+  // Those are two different mirrors: the runtimeConfig one only reflects a
+  // NUXT_PUBLIC_FEATURES_* env var, while useFeatures is primed from the
+  // DB-merged instance config, which is what an operator actually toggles.
+  // Reading the wrong one meant the flag looked off with analytics enabled.
+  const { analytics: analyticsEnabled } = useFeatures();
+  const analyticsCookieDefs = computed<CookieDefinition[]>(() => {
+    if (!analyticsEnabled.value) return [];
+    return analyticsCookies(
+      (runtimeConfig.public as Record<string, unknown>).analytics as AnalyticsConfig | undefined,
+    );
+  });
+
   const cookies = computed<CookieDefinition[]>(() => [
     ...BUILTIN_COOKIES,
+    ...analyticsCookieDefs.value,
     ...customCookies.value,
   ]);
 
@@ -106,17 +145,17 @@ export function useCookieConsent(): {
   }
 
   function acceptAll(): void {
-    consentCookie.value = 'all';
+    consentLevel.value = 'all';
     recordCookieConsent();
   }
 
   function acceptEssential(): void {
-    consentCookie.value = 'essential';
+    consentLevel.value = 'essential';
     recordCookieConsent();
   }
 
   function resetConsent(): void {
-    consentCookie.value = null;
+    consentLevel.value = null;
   }
 
   return {

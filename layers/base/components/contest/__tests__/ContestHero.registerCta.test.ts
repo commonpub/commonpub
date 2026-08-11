@@ -20,6 +20,12 @@ import { defineComponent, h } from 'vue';
 import ContestHero from '../ContestHero.vue';
 import type { Serialized, ContestDetail } from '@commonpub/server';
 import { normalizeStages, currentStageId, currentStage, currentStageEnd, STAGE_KIND_ICON } from '../../../utils/contestStages';
+import {
+  showsEntryCount,
+  entryCountLabel,
+  showsRegisteredCount,
+  registeredCountLabel,
+} from '../../../utils/contestCounts';
 
 const NuxtLink = defineComponent({
   name: 'NuxtLink',
@@ -42,6 +48,10 @@ Object.assign(globalThis, {
   currentStage,
   currentStageEnd,
   STAGE_KIND_ICON,
+  showsEntryCount,
+  entryCountLabel,
+  showsRegisteredCount,
+  registeredCountLabel,
 });
 
 // Only the fields the hero reads; cast because the DTO carries ~30 more.
@@ -98,10 +108,14 @@ describe('ContestHero — register CTA at the top of the page', () => {
     expect(text).not.toContain('Submit Entry');
   });
 
-  it('sends an anonymous visitor to sign-in, returning to this contest', () => {
+  it('sends an anonymous visitor to sign-in, returning to the REGISTRATION FORM', () => {
+    // Session 253: this used to return them to `/contests/resilient` — the
+    // contest page, still unregistered, at the Overview tab, with the intent
+    // discarded, which was the single largest anonymous drop-off. The register
+    // route carries `middleware: 'auth'`, so login round-trips to it.
     const { container } = mount({ isAuthenticated: false });
     const link = container.querySelector('.cpub-hero-cta a') as HTMLAnchorElement;
-    expect(link.getAttribute('href')).toBe('/auth/login?redirect=/contests/resilient');
+    expect(link.getAttribute('href')).toBe('/auth/login?redirect=/contests/resilient/register');
     expect(link.textContent).toContain('Log in to register');
   });
 

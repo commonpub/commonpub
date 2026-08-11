@@ -7,6 +7,20 @@ const props = defineProps<{
 
 const timeLeft = ref({ days: 0, hours: 0, minutes: 0, seconds: 0 });
 
+// A countdown is clock-dependent, so it cannot be server-rendered: the server
+// computes the remaining time at RESPONSE time in the server's zone and the
+// client recomputes it at HYDRATION time in the viewer's, and the two disagree.
+// Until session 253 this component simply seeded every unit to 0 and only ran
+// `update()` in onMounted, so the SSR HTML said "00h 00m left" on every contest
+// tile and "00 days 00 hours" on the homepage — which is what crawlers indexed
+// and what every visitor saw for one frame.
+//
+// Fix follows the pattern ContestHero.vue:46,149 already uses: render nothing
+// live until mounted, keep a machine-readable <time datetime> in the SSR output
+// so the deadline is still in the markup, and reserve the row's height so the
+// card does not shift when the real value arrives.
+const mounted = ref(false);
+
 function update(): void {
   const diff = new Date(props.targetDate).getTime() - Date.now();
   if (diff <= 0) {
@@ -22,24 +36,28 @@ function update(): void {
 }
 
 let timer: ReturnType<typeof setInterval>;
-onMounted(() => { update(); timer = setInterval(update, 1000); });
+onMounted(() => { mounted.value = true; update(); timer = setInterval(update, 1000); });
 onUnmounted(() => clearInterval(timer));
 </script>
 
 <template>
   <div v-if="compact" class="cpub-countdown-compact">
-    <i class="fa-regular fa-clock"></i>
-    <span class="cpub-countdown-compact-time">
-      <template v-if="timeLeft.days > 0">{{ timeLeft.days }}d </template>{{ String(timeLeft.hours).padStart(2, '0') }}h {{ String(timeLeft.minutes).padStart(2, '0') }}m
-    </span>
-    <span class="cpub-countdown-compact-label">left</span>
+    <template v-if="mounted">
+      <i class="fa-regular fa-clock"></i>
+      <span class="cpub-countdown-compact-time">
+        <template v-if="timeLeft.days > 0">{{ timeLeft.days }}d </template>{{ String(timeLeft.hours).padStart(2, '0') }}h {{ String(timeLeft.minutes).padStart(2, '0') }}m
+      </span>
+      <span class="cpub-countdown-compact-label">left</span>
+    </template>
+    <time v-else :datetime="targetDate" class="cpub-countdown-ssr" />
   </div>
-  <div v-else class="cpub-countdown">
+  <div v-else-if="mounted" class="cpub-countdown">
     <div v-for="(val, key) in timeLeft" :key="key" class="cpub-countdown-unit">
       <span class="cpub-countdown-num">{{ String(val).padStart(2, '0') }}</span>
       <span class="cpub-countdown-label">{{ key }}</span>
     </div>
   </div>
+  <time v-else :datetime="targetDate" class="cpub-countdown cpub-countdown-ssr" />
 </template>
 
 <style scoped>
@@ -102,5 +120,19 @@ onUnmounted(() => clearInterval(timer));
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--text-faint);
+}
+
+/* Pre-mount placeholder: carries the deadline for machines, occupies the height
+   the live value will need so hydration does not shift the layout. Both numbers
+   are the MEASURED height of the real thing, not the sum of the declared
+   paddings — the label inherits body's --leading-normal (1.7), which the first
+   attempt's arithmetic ignored and under-reserved by ~13px. */
+.cpub-countdown-ssr {
+  display: block;
+  min-height: calc(1em * var(--leading-normal, 1.7));
+}
+.cpub-countdown.cpub-countdown-ssr {
+  /* 2 border + 10 pad + 22 num + 4 margin + 15.3 label (9px x 1.7) + 10 pad + 2 border */
+  min-height: 66px;
 }
 </style>

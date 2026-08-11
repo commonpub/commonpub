@@ -40,6 +40,8 @@ export interface FeatureFlags {
   /** Registration is a precondition for entering: entry + proposal submission
    *  require a completed `full` registration. Default ON. */
   contestEntryRequiresRegistration: boolean;
+  /** Persistent contest action bar on narrow viewports. Default ON. */
+  contestActionBar: boolean;
   events: boolean;
   learning: boolean;
   explainers: boolean;
@@ -54,6 +56,10 @@ export interface FeatureFlags {
   emailNotifications: boolean;
   /** Deliver email to unverified addresses (verification then gates sign-in only). Default OFF. */
   emailUnverified: boolean;
+  /** Soft email verification: verification mail on signup + nag banner, never a sign-in gate. */
+  emailVerification: boolean;
+  /** Consent-gated visitor analytics. Inert unless `analytics.provider` is set. */
+  analytics: boolean;
   publicApi: boolean;
   contentImport: boolean;
   /**
@@ -102,8 +108,9 @@ export const DEFAULT_FLAGS: FeatureFlags = {
   contests: false, contestStageSubmissions: true, contestProposals: false, contestPii: false, contestPrivateFiles: false,
   contestReminders: false, contestEmailEditor: false, contestSignup: true,
   contestEntryRequiresRegistration: true,
+  contestActionBar: true,
   events: false, learning: true, explainers: true,
-  editorial: true, registrationBlock: true, federation: false, admin: false, themeStudio: true, emailNotifications: false, emailUnverified: false,
+  editorial: true, registrationBlock: true, federation: false, admin: false, themeStudio: true, emailNotifications: false, emailUnverified: false, emailVerification: false, analytics: false,
   publicApi: false, contentImport: true,
   layoutEngine: false,
   rbac: false,
@@ -212,6 +219,7 @@ export function useFeatures() {
     contestEmailEditor: computed(() => flags.value.contestEmailEditor),
     contestSignup: computed(() => flags.value.contestSignup),
     contestEntryRequiresRegistration: computed(() => flags.value.contestEntryRequiresRegistration),
+    contestActionBar: computed(() => flags.value.contestActionBar),
     events: computed(() => flags.value.events),
     learning: computed(() => flags.value.learning),
     explainers: computed(() => flags.value.explainers),
@@ -220,6 +228,8 @@ export function useFeatures() {
     admin: computed(() => flags.value.admin),
     themeStudio: computed(() => flags.value.themeStudio),
     emailNotifications: computed(() => flags.value.emailNotifications),
+    emailVerification: computed(() => flags.value.emailVerification),
+    analytics: computed(() => flags.value.analytics),
     publicApi: computed(() => flags.value.publicApi),
     contentImport: computed(() => flags.value.contentImport),
     layoutEngine: computed(() => flags.value.layoutEngine),

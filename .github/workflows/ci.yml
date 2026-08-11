@@ -136,6 +136,9 @@ jobs:
       FEATURE_CONTEST_PROPOSALS: 'true'
       FEATURE_CONTEST_PII: 'true'
       FEATURE_CONTEST_PRIVATE_FILES: 'true'
+      # Exercises the consent gate in analytics-consent.spec.ts. The reference
+      # app declares a provider but leaves this OFF, so the spec skips without it.
+      FEATURE_ANALYTICS: 'true'
       FEATURE_EVENTS: 'true'
       FEATURE_EXPLAINERS: 'true'
       FEATURE_LEARNING: 'true'

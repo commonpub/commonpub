@@ -48,8 +48,10 @@ const visibleContests = computed(() => {
     <div v-for="c in visibleContests" :key="c.id" class="cpub-contest-item">
       <NuxtLink :to="`/contests/${c.slug}`" class="cpub-contest-name">{{ c.title }}</NuxtLink>
       <div class="cpub-contest-row">
-        <span class="cpub-contest-entries">{{ c.entryCount ?? 0 }} entries</span>
-        <span v-if="(c.followerCount ?? 0) > 0" class="cpub-contest-entries"><i class="fa-solid fa-bell"></i> {{ c.followerCount }} following</span>
+        <!-- This widget lists ACTIVE contests only, so an entry count would
+             always be the open-contest case that utils/contestCounts.ts
+             suppresses. Registered is the meaningful figure here. -->
+        <span v-if="showsRegisteredCount(c)" class="cpub-contest-entries"><i class="fa-solid fa-users"></i> {{ registeredCountLabel(c) }}</span>
         <!-- Days to the CURRENT stage's close (falls back to endDate for a
              classic contest), not the far-off final date on a multi-stage one.
              Client-only: see daysLeftLabel. -->

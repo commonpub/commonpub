@@ -10,6 +10,7 @@ import {
   getTierForPath,
   shouldSkipRateLimit,
   checkRateLimit,
+  appendCspSources,
 } from '../security.js';
 
 describe('buildCspDirectives', () => {
@@ -269,5 +270,37 @@ describe('DEFAULT_TIERS', () => {
 
   it('auth tier is most restrictive', () => {
     expect(DEFAULT_TIERS.auth!.limit).toBeLessThan(DEFAULT_TIERS.general!.limit);
+  });
+});
+
+describe('appendCspSources', () => {
+  it('unions without replacing, which is what keeps dev HMR alive', () => {
+    // The layer sets `connect-src 'self' ws: wss:` in dev. Analytics beacon
+    // origins are added on top of that; anything that ASSIGNED instead of
+    // appending would silently kill the dev websocket, and the symptom
+    // (HMR stops working) looks nothing like the cause.
+    const dirs: Record<string, string> = { 'connect-src': "'self' ws: wss:" };
+    appendCspSources(dirs, 'connect-src', ['https://www.google-analytics.com']);
+    expect(dirs['connect-src']).toBe("'self' ws: wss: https://www.google-analytics.com");
+  });
+
+  it('creates the directive when it is absent', () => {
+    const dirs: Record<string, string> = {};
+    appendCspSources(dirs, 'script-src', ['https://www.googletagmanager.com']);
+    expect(dirs['script-src']).toBe('https://www.googletagmanager.com');
+  });
+
+  it('de-dupes so repeated application cannot grow the header unboundedly', () => {
+    const dirs: Record<string, string> = { 'script-src': "'self' https://x.example" };
+    appendCspSources(dirs, 'script-src', ['https://x.example', 'https://y.example']);
+    appendCspSources(dirs, 'script-src', ['https://y.example']);
+    expect(dirs['script-src']).toBe("'self' https://x.example https://y.example");
+  });
+
+  it('is a no-op for an empty source list, so an unconfigured instance keeps the tight default', () => {
+    const dirs: Record<string, string> = { 'script-src': "'self'" };
+    appendCspSources(dirs, 'script-src', []);
+    expect(dirs['script-src']).toBe("'self'");
+    expect(Object.keys(dirs)).toEqual(['script-src']);
   });
 });

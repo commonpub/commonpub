@@ -465,7 +465,7 @@ async function submitScore(entryId: string): Promise<void> {
 }
 .cpub-judge-score-input:focus { border-color: var(--accent); }
 .cpub-judge-score-btn {
-  padding: 6px 12px; background: var(--accent); color: var(--color-text-inverse); border: var(--border-width-default) solid var(--accent);
+  padding: 6px 12px; background: var(--accent); color: var(--color-on-accent); border: var(--border-width-default) solid var(--accent);
   font-size: 11px; font-weight: 600; cursor: pointer; border-left: none;
 }
 .cpub-judge-score-btn:hover { opacity: 0.9; }

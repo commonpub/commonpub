@@ -18,17 +18,24 @@ const props = defineProps<{
   tier?: Tier | null;
   /** Viewer's saved signup info (prefills the optional form). */
   savedFields?: Record<string, string> | null;
-  /** Public count of registered participants. */
-  registrantCount?: number;
-  /** Public count of everyone following the contest (all registrations). */
-  followerCount?: number;
   /** In-flight register/unregister request (disables the toggle). */
   registering?: boolean;
 }>();
 
+// Public registration count, from the SSR'd contest DTO. The `registrantCount`
+// and `followerCount` props this card used to take came from the page's
+// per-viewer `server: false` fetch and were 0 in every server-rendered page.
+const hasRegistrations = computed(() => showsRegisteredCount(props.contest ?? {}));
+const registeredCount = computed(() => props.contest?.followerCount ?? 0);
+
 const emit = defineEmits<{
   (e: 'copy-link'): void;
-  (e: 'register', payload?: { tier: Tier; fields?: Record<string, string> }): void;
+  // Payload REQUIRED. It used to be optional, and this card's fallback emitted
+  // with none — the page then defaulted to `tier: 'full'`, so a button labelled
+  // "Follow this contest" created a FULL registration, bypassing the required
+  // fields and recorded agreements that contestEntryRequiresRegistration exists
+  // to enforce, and then reported "You're following this contest".
+  (e: 'register', payload: { tier: Tier; fields?: Record<string, string> }): void;
   (e: 'unregister'): void;
 }>();
 
@@ -40,7 +47,8 @@ const { contestSignup } = useFeatures();
 // server's REGISTERABLE_STATUSES). Past that, the card is informational only.
 const REGISTERABLE = ['upcoming', 'active'];
 const canRegister = computed(() => REGISTERABLE.includes(props.contest?.status ?? ''));
-const loginLink = computed(() => `/auth/login?redirect=/contests/${props.contest?.slug ?? ''}`);
+// Log in and land IN the registration form. See ContestHero.vue's loginLink.
+const loginLink = computed(() => `/auth/login?redirect=/contests/${props.contest?.slug ?? ''}/register`);
 
 type StepState = 'done' | 'current' | 'upcoming';
 interface TimelineStep { label: string; date: string | null; state: StepState; icon: string }
@@ -124,8 +132,10 @@ function statusClass(status: string): string {
           <strong>Status:</strong>
           <span class="cpub-sb-status" :class="statusClass(contest?.status ?? '')">{{ contest?.status ?? 'unknown' }}</span>
         </div>
-        <div class="cpub-sb-row"><strong>Entries:</strong> {{ contest?.entryCount ?? 0 }}</div>
-        <div v-if="(followerCount ?? 0) > 0" class="cpub-sb-row"><strong>Following:</strong> {{ followerCount }}</div>
+        <!-- The counts used to be repeated here, so one contest page showed the
+             same people three times under three labels (hero "10 following",
+             this card "Following: 10", the signup card "0 makers registered").
+             The hero owns the public counts now; this card is status + timeline. -->
       </div>
 
       <ol v-if="timeline.length" class="cpub-timeline">
@@ -152,18 +162,17 @@ function statusClass(status: string): string {
       :is-authenticated="isAuthenticated"
       :tier="tier"
       :saved-fields="savedFields"
-      :registrant-count="registrantCount"
-      :follower-count="followerCount"
       :registering="registering"
       @register="(payload) => emit('register', payload)"
       @unregister="emit('unregister')"
     />
-    <div v-else-if="canRegister || (registrantCount ?? 0) > 0" class="cpub-sb-card cpub-sb-register">
+    <div v-else-if="canRegister || hasRegistrations" class="cpub-sb-card cpub-sb-register">
       <div class="cpub-sb-title"><i class="fa-solid fa-user-plus"></i> Registration</div>
 
-      <p class="cpub-sb-regcount">
-        <strong>{{ registrantCount ?? 0 }}</strong>
-        {{ (registrantCount ?? 0) === 1 ? 'participant registered' : 'participants registered' }}
+      <!-- Same DTO-backed count as the hero and the signup card. Was the
+           client-only `registrantCount`, which rendered 0 during SSR. -->
+      <p v-if="hasRegistrations" class="cpub-sb-regcount">
+        <strong>{{ registeredCount }}</strong> registered
       </p>
 
       <template v-if="canRegister">
@@ -200,7 +209,7 @@ function statusClass(status: string): string {
           class="cpub-btn cpub-btn-primary cpub-sb-regbtn"
           :aria-pressed="false"
           :disabled="registering"
-          @click="emit('register')"
+          @click="emit('register', { tier: 'reminders' })"
         >
           <i class="fa-solid fa-bell"></i>
           {{ registering ? 'Saving...' : 'Follow this contest' }}

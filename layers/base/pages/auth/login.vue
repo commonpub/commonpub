@@ -45,6 +45,15 @@ const redirectTo = computed(() => {
   return '/';
 });
 
+// Carry the caller's intent across to Register. Both pages honour ?redirect on
+// submit, but this link used to drop it, so a visitor sent here from a contest
+// who realised they needed an account lost the destination and landed on the
+// dashboard. Reuses redirectTo's same-origin guard.
+const registerLink = computed(() => {
+  const target = redirectTo.value;
+  return target === '/' ? '/auth/register' : `/auth/register?redirect=${encodeURIComponent(target)}`;
+});
+
 async function handleSubmit(): Promise<void> {
   error.value = '';
   loading.value = true;
@@ -283,7 +292,7 @@ function handleMastodonLogin(): void {
 
     <p class="login-footer">
       Don't have an account?
-      <NuxtLink to="/auth/register">Register</NuxtLink>
+      <NuxtLink :to="registerLink">Register</NuxtLink>
     </p>
   </div>
 </template>

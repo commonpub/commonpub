@@ -714,7 +714,7 @@ async function refederate(): Promise<void> {
 .cpub-fed-btn {
   padding: 8px 16px; font-family: var(--font-mono); font-size: 11px; font-weight: 600;
   text-transform: uppercase; letter-spacing: 0.06em; cursor: pointer;
-  background: var(--accent); color: var(--color-text-inverse); border: var(--border-width-default) solid var(--accent);
+  background: var(--accent); color: var(--color-on-accent); border: var(--border-width-default) solid var(--accent);
   box-shadow: var(--shadow-sm); transition: box-shadow 0.15s, transform 0.15s;
 }
 .cpub-fed-btn:hover { box-shadow: none; transform: translate(2px, 2px); }

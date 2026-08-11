@@ -469,7 +469,7 @@ function fmtErrorRate(rate: number): string {
   cursor: pointer; font-family: inherit;
 }
 .cpub-btn:hover { box-shadow: var(--shadow-sm); }
-.cpub-btn-primary { background: var(--accent); color: var(--color-text-inverse); border-color: var(--accent); }
+.cpub-btn-primary { background: var(--accent); color: var(--color-on-accent); border-color: var(--accent); }
 .cpub-btn-link { background: none; border: none; color: var(--text-dim); cursor: pointer; padding: 4px 8px; font-size: 12px; }
 .cpub-btn-link:hover { color: var(--text); }
 .cpub-btn-danger { color: var(--red-text); }

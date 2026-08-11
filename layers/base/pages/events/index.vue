@@ -142,7 +142,7 @@ function setView(mode: 'grid' | 'calendar'): void {
 .cpub-events-page { max-width: 960px; margin: 0 auto; padding: 32px; }
 .cpub-events-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
 .cpub-btn-create {
-  font-size: 12px; padding: 6px 14px; background: var(--accent); color: var(--color-text-inverse);
+  font-size: 12px; padding: 6px 14px; background: var(--accent); color: var(--color-on-accent);
   border: var(--border-width-default) solid var(--border); text-decoration: none;
   display: inline-flex; align-items: center; gap: 6px; box-shadow: var(--shadow-sm);
   transition: all 0.15s;
@@ -165,7 +165,7 @@ function setView(mode: 'grid' | 'calendar'): void {
 }
 .cpub-filter-btn:hover { border-color: var(--border); color: var(--text); }
 .cpub-filter-btn.active {
-  background: var(--accent); color: var(--color-text-inverse);
+  background: var(--accent); color: var(--color-on-accent);
   border-color: var(--border); box-shadow: var(--shadow-sm);
 }
 .cpub-filter-btn i { font-size: 10px; }
@@ -177,7 +177,7 @@ function setView(mode: 'grid' | 'calendar'): void {
   color: var(--text-faint); cursor: pointer; font-size: 12px; transition: all 0.15s;
 }
 .cpub-view-btn:hover { border-color: var(--border); color: var(--text); }
-.cpub-view-btn.active { background: var(--accent); color: var(--color-text-inverse); border-color: var(--border); }
+.cpub-view-btn.active { background: var(--accent); color: var(--color-on-accent); border-color: var(--border); }
 
 .cpub-events-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
 

@@ -1,5 +1,6 @@
 // Security middleware — rate limiting + security headers + CSP
-import { checkRateLimit, createRateLimitStore, createRedisFailOpenLogger, shouldSkipRateLimit, getSecurityHeaders, buildCspHeader, buildCspDirectives, getClientIp } from '@commonpub/server';
+import { checkRateLimit, createRateLimitStore, createRedisFailOpenLogger, shouldSkipRateLimit, getSecurityHeaders, buildCspHeader, buildCspDirectives, appendCspSources, getClientIp } from '@commonpub/server';
+import { analyticsCspOrigins } from '@commonpub/config/analytics';
 
 // Structured JSON sink for fail-open events. Emits one JSON line per event
 // to stdout so Docker logs / Loki / Datadog / CloudWatch can parse without
@@ -96,6 +97,13 @@ export default defineEventHandler(async (event) => {
       cspDirectives['connect-src'] = "'self' ws: wss:";
       cspDirectives['worker-src'] = "'self' blob:";
     }
+    // Analytics origins are DERIVED from the configured provider, never
+    // hardcoded: this middleware ships to every instance, and an instance that
+    // measures nothing must keep the tight default. appendCspSources unions
+    // rather than assigns, so the dev ws:/wss: above survives.
+    const analytics = analyticsCspOrigins(useConfig().analytics);
+    appendCspSources(cspDirectives, 'script-src', analytics.script);
+    appendCspSources(cspDirectives, 'connect-src', analytics.connect);
     setResponseHeader(event, 'Content-Security-Policy', buildCspHeader(cspDirectives));
   }
 });

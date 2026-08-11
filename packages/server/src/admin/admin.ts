@@ -59,7 +59,16 @@ export interface AuditFilters {
 // --- Admin Types ---
 
 export interface PlatformStats {
-  users: { total: number; byRole: Record<string, number>; byStatus: Record<string, number> };
+  users: {
+    total: number;
+    byRole: Record<string, number>;
+    byStatus: Record<string, number>;
+    /** Accounts with a confirmed email address. Read alongside
+     *  `features.emailVerification`: on an instance that never turned
+     *  verification on, this is legitimately near zero and means "never asked",
+     *  not "broken". */
+    emailVerified: number;
+  };
   content: { total: number; byType: Record<string, number>; byStatus: Record<string, number> };
   hubs: { total: number };
   reports: { pending: number; total: number };
@@ -73,6 +82,9 @@ export interface UserListItem {
   avatarUrl: string | null;
   role: string;
   status: string;
+  /** Whether the address has been confirmed via a verification link. Distinct
+   *  from the `verified` USER ROLE, which is an editorial trust tier. */
+  emailVerified: boolean;
   createdAt: Date;
 }
 
@@ -80,6 +92,8 @@ export interface UserFilters {
   search?: string;
   role?: AdminUpdateRoleInput['role'];
   status?: AdminUpdateStatusInput['status'];
+  /** Confirmed-address filter. Undefined means "either". */
+  emailVerified?: boolean;
   limit?: number;
   offset?: number;
 }
@@ -178,6 +192,7 @@ export async function getPlatformStats(db: DB): Promise<PlatformStats> {
   const [
     usersByRole,
     usersByStatus,
+    verifiedCount,
     contentByType,
     contentByStatus,
     hubCount,
@@ -192,6 +207,9 @@ export async function getPlatformStats(db: DB): Promise<PlatformStats> {
       .select({ status: users.status, count: sql<number>`count(*)::int` })
       .from(users)
       .groupBy(users.status),
+    db
+      .select({ count: sql<number>`count(*) FILTER (WHERE ${users.emailVerified})::int` })
+      .from(users),
     db
       .select({ type: contentItems.type, count: sql<number>`count(*)::int` })
       .from(contentItems)
@@ -233,7 +251,7 @@ export async function getPlatformStats(db: DB): Promise<PlatformStats> {
   }
 
   return {
-    users: { total: totalUsers, byRole, byStatus },
+    users: { total: totalUsers, byRole, byStatus, emailVerified: verifiedCount[0]?.count ?? 0 },
     content: { total: totalContent, byType, byStatus: byContentStatus },
     hubs: { total: hubCount[0]?.count ?? 0 },
     reports: {
@@ -263,6 +281,12 @@ export async function listUsers(
   if (filters.status) {
     conditions.push(eq(users.status, filters.status));
   }
+  // Explicit undefined check: `false` is a meaningful filter value here, and a
+  // truthiness test would silently turn "show me unconfirmed accounts" into
+  // "show me everyone".
+  if (filters.emailVerified !== undefined) {
+    conditions.push(eq(users.emailVerified, filters.emailVerified));
+  }
 
   const where = conditions.length > 0 ? and(...conditions) : undefined;
   const { limit, offset } = normalizePagination(filters);
@@ -277,6 +301,7 @@ export async function listUsers(
         avatarUrl: users.avatarUrl,
         role: users.role,
         status: users.status,
+        emailVerified: users.emailVerified,
         createdAt: users.createdAt,
       })
       .from(users)

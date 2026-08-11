@@ -1,3 +1,4 @@
+import { ANALYTICS_PROVIDERS } from './analytics.js';
 import { z } from 'zod';
 import type { FeatureFlags } from './types.js';
 
@@ -73,6 +74,9 @@ export const featureFlagsSchema = z.object({
   // Off ⇒ the legacy behaviour (submitting an entry registers you). No effect
   // unless `contests` is also on.
   contestEntryRequiresRegistration: z.boolean().default(true),
+  // Persistent action bar on narrow viewports (<=768px), where the sidebar
+  // registration card lands at the very bottom of a very long page.
+  contestActionBar: z.boolean().default(true),
   events: z.boolean().default(false),
   learning: z.boolean().default(true),
   explainers: z.boolean().default(true),
@@ -95,6 +99,18 @@ export const featureFlagsSchema = z.object({
   // regardless of verified status. Deliverability caveat: sending to unconfirmed
   // addresses can hurt sender reputation — enable only for a trusted audience.
   emailUnverified: z.boolean().default(false),
+  // SOFT email verification: send a verification email on signup and nag the
+  // user with a banner until they confirm, but never gate sign-in. This is the
+  // switch to reach for; `auth.requireEmailVerification` is the HARD gate that
+  // blocks sign-in and would lock out every existing unverified account.
+  // Default OFF: turning it on starts sending mail from every instance that has
+  // a transport configured, which is not a change an upgrade should make for an
+  // operator silently.
+  emailVerification: z.boolean().default(false),
+  // Consent-gated visitor analytics. Inert unless `analytics.provider` is also
+  // configured; the flag is the operator off-switch, the config block is the
+  // "which provider, which property" answer.
+  analytics: z.boolean().default(false),
   // Admin broadcast emails to users (email Phase 3). Default OFF; no effect unless
   // email is actually configured + emailNotifications is on.
   adminBroadcast: z.boolean().default(false),
@@ -239,6 +255,19 @@ export const referralConfigSchema = z.object({
   defaultAttributionWindowDays: z.number().int().min(1).max(365).default(60),
 });
 
+/**
+ * Analytics provider + property. A GA4 measurement id is validated by shape so
+ * a typo fails at config load rather than silently measuring nothing, and
+ * `provider: 'none'` is the default so an instance opts IN to being measured.
+ */
+export const analyticsConfigSchema = z.object({
+  provider: z.enum(ANALYTICS_PROVIDERS).default('none'),
+  measurementId: z.string().regex(/^G-[A-Z0-9]{4,}$/, 'GA4 measurement id looks like G-XXXXXXXXXX').optional(),
+}).refine(
+  (a) => a.provider === 'none' || !!a.measurementId,
+  { message: 'analytics.measurementId is required when a provider is set', path: ['measurementId'] },
+);
+
 export const cookieDefinitionSchema = z.object({
   name: z.string().min(1),
   category: z.enum(['essential', 'functional', 'analytics']),
@@ -280,6 +309,7 @@ export const configSchema = z.object({
   federation: federationConfigSchema.default(() => federationConfigSchema.parse({})),
   docs: docsConfigSchema.default(() => docsConfigSchema.parse({})),
   referral: referralConfigSchema.default(() => referralConfigSchema.parse({})),
+  analytics: analyticsConfigSchema.optional(),
   cookies: z.array(cookieDefinitionSchema).optional(),
   themes: z.array(registeredThemeSchema).optional(),
   defaultTheme: z.string().max(64).optional(),

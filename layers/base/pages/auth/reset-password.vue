@@ -129,7 +129,7 @@ async function handleSubmit(): Promise<void> {
 .cpub-field-input { padding: 8px 12px; border: var(--border-width-default) solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--text); font-size: 13px; font-family: var(--font-sans); outline: none; width: 100%; transition: border-color 0.15s; }
 .cpub-field-input::placeholder { color: var(--text-faint); }
 .cpub-field-input:focus { border-color: var(--accent); }
-.cpub-submit-btn { padding: 7px 14px; background: var(--accent); color: var(--color-text-inverse); border: var(--border-width-default) solid var(--accent); border-radius: var(--radius); font-size: 13px; font-weight: 500; cursor: pointer; box-shadow: var(--shadow-sm); transition: all 0.15s; }
+.cpub-submit-btn { padding: 7px 14px; background: var(--accent); color: var(--color-on-accent); border: var(--border-width-default) solid var(--accent); border-radius: var(--radius); font-size: 13px; font-weight: 500; cursor: pointer; box-shadow: var(--shadow-sm); transition: all 0.15s; }
 .cpub-submit-btn:hover:not(:disabled) { box-shadow: var(--shadow-md); transform: translate(-1px, -1px); }
 .cpub-submit-btn:disabled { opacity: 0.7; cursor: not-allowed; }
 .cpub-reset-error-state { text-align: center; padding: var(--space-5) 0; }

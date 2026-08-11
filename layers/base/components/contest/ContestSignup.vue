@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import type { Serialized, ContestDetail } from '@commonpub/server';
-import { templateHasRequiredField } from '@commonpub/schema';
 import { effectiveRegistrationTemplate, isRichRegistrationForm } from '../../utils/contestRegistration';
 
 type Tier = 'full' | 'reminders';
@@ -13,13 +12,16 @@ const props = defineProps<{
   tier?: Tier | null;
   /** Viewer's saved signup answers (prefills the info form). */
   savedFields?: Record<string, string> | null;
-  /** Public count of `full` participants. */
-  registrantCount?: number;
-  /** Public count of everyone following the contest (all registrations). */
-  followerCount?: number;
   /** In-flight register/unregister request (disables controls). */
   registering?: boolean;
 }>();
+
+// Public registration count, read from the SSR'd contest DTO rather than taken
+// as a prop from the page's per-viewer `server: false` fetch. That fetch seeds
+// its refs to 0, which is why this card served "0 makers registered" in the
+// HTML of every contest page. See utils/contestCounts.ts.
+const hasRegistrations = computed(() => showsRegisteredCount(props.contest ?? {}));
+const registeredCount = computed(() => props.contest?.followerCount ?? 0);
 
 const emit = defineEmits<{
   (e: 'register', payload: { tier: Tier; fields?: Record<string, string> }): void;
@@ -35,7 +37,8 @@ const registrationTemplate = computed(() => effectiveRegistrationTemplate(props.
 const REGISTERABLE = ['upcoming', 'active'];
 const status = computed(() => props.contest?.status ?? '');
 const canRegister = computed(() => REGISTERABLE.includes(status.value));
-const loginLink = computed(() => `/auth/login?redirect=/contests/${props.contest?.slug ?? ''}`);
+// Log in and land IN the registration form. See ContestHero.vue's loginLink.
+const loginLink = computed(() => `/auth/login?redirect=/contests/${props.contest?.slug ?? ''}/register`);
 const registerLink = computed(() => `/contests/${props.contest?.slug ?? ''}/register`);
 
 const isFull = computed(() => props.tier === 'full');
@@ -120,14 +123,9 @@ const whatsNext = computed<string>(() => {
 
 const hasSavedInfo = computed(() => Object.keys(props.savedFields ?? {}).length > 0);
 
-// When the operator's form has any REQUIRED field or must-accept agreement, FULL
-// registration MUST go through the form (so the requirement is enforced + consent
-// recorded); an all-optional form (incl. the legacy default) keeps the one-click flow.
-const templateHasRequired = computed(() => templateHasRequiredField(registrationTemplate.value));
-
-// A "rich" form (sections / address / file / signature / many fields) is too big for
-// the sidebar → it opens on the dedicated /register page; a short-but-required form
-// opens in a modal; the bare optional default one-click registers with no form.
+// "Rich" = too big for the ~300px sidebar, so it opens on the dedicated page.
+// Only `onEditDetails` still needs this directly; the register decision itself
+// moved into resolveRegistrationAction.
 const isRich = computed(() => isRichRegistrationForm(registrationTemplate.value));
 
 // --- Modal (short forms only) ---
@@ -135,12 +133,19 @@ const modalOpen = ref(false);
 const modalRef = ref<HTMLElement | null>(null);
 useFocusTrap(modalRef, () => modalOpen.value, () => { modalOpen.value = false; });
 
-/** Primary register CTA: one-click when no fields are required; otherwise route to
- *  the page (rich) or open the modal (short). */
+/** Primary register CTA. The decision is shared with the page and the action bar
+ *  (utils/contestRegistration.ts); this card is the one caller that CAN host a
+ *  modal, so it is the only one passing allowModal. */
 function onRegisterCta(): void {
-  if (!templateHasRequired.value) { emit('register', { tier: 'full' }); return; }
-  if (isRich.value) { navigateTo(registerLink.value); return; }
-  modalOpen.value = true;
+  const action = resolveRegistrationAction({
+    slug: props.contest?.slug ?? '',
+    isAuthenticated: props.isAuthenticated === true,
+    template: registrationTemplate.value,
+    allowModal: true,
+  });
+  if (action.kind === 'login' || action.kind === 'page') { navigateTo(action.to); return; }
+  if (action.kind === 'modal') { modalOpen.value = true; return; }
+  emit('register', { tier: 'full' });
 }
 /** Edit/add optional details (a full participant): page when rich, else modal. */
 function onEditDetails(): void {
@@ -166,7 +171,7 @@ watch(isFull, (full) => { if (full) modalOpen.value = false; });
 </script>
 
 <template>
-  <div v-if="canRegister || isRegistered || (registrantCount ?? 0) > 0" class="cpub-sb-card cpub-signup">
+  <div v-if="canRegister || isRegistered || hasRegistrations" class="cpub-sb-card cpub-signup">
     <div class="cpub-sb-title"><i class="fa-solid fa-user-plus"></i> Registration</div>
 
     <!-- Milestone / status line -->
@@ -176,14 +181,14 @@ watch(isFull, (full) => { if (full) modalOpen.value = false; });
       <span v-if="milestone.hint" class="cpub-su-ms-hint">{{ milestone.hint }}</span>
     </p>
 
-    <p class="cpub-su-count">
-      <strong>{{ registrantCount ?? 0 }}</strong>
-      {{ (registrantCount ?? 0) === 1 ? 'maker registered' : 'makers registered' }}
-    </p>
-    <!-- Everyone following (all registrations) — only when it adds info beyond
-         the participant count (i.e. there are reminders-only followers). -->
-    <p v-if="(followerCount ?? 0) > (registrantCount ?? 0)" class="cpub-su-count cpub-su-following">
-      <i class="fa-solid fa-bell"></i> <strong>{{ followerCount }}</strong> following
+    <!-- One count, from the SSR'd contest DTO. This used to read
+         `registrantCount`, which is seeded to 0 and only filled by the page's
+         per-viewer `server: false` fetch — so every contest page shipped
+         "0 makers registered" in its HTML while the hero two screens above it
+         said "10 following". Same source as the hero now, so the two agree and
+         the number is right in the server-rendered markup. -->
+    <p v-if="hasRegistrations" class="cpub-su-count">
+      <strong>{{ registeredCount }}</strong> registered
     </p>
 
     <!-- ANONYMOUS: send to sign-in -->

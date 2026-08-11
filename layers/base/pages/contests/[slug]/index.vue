@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import type { Serialized, ContestEntryItem, ContestJudgeItem } from '@commonpub/server';
-import { templateHasRequiredField } from '@commonpub/schema';
 import { effectiveRegistrationTemplate } from '../../../utils/contestRegistration';
 
 const route = useRoute();
@@ -30,7 +29,19 @@ useSeoMeta({
   ogImage: () => contest.value?.bannerUrl || '/og-default.png',
 });
 
-const c = computed(() => contest.value);
+// The public registration count now comes from the SSR'd contest DTO (see
+// utils/contestCounts.ts) instead of the client-only fetch above, which is what
+// made every contest page ship "0 makers registered" in its HTML. The DTO is a
+// snapshot from page render, though, so after the viewer registers it would
+// exclude them. Overlay the authoritative count returned by the mutation.
+// Starts null on server and client alike, and only a post-mount user action
+// sets it, so this cannot mismatch on hydration.
+const liveFollowerCount = ref<number | null>(null);
+const c = computed(() => {
+  const base = contest.value;
+  if (!base || liveFollowerCount.value === null) return base;
+  return { ...base, followerCount: liveFollowerCount.value };
+});
 const entries = computed(() => apiEntriesData.value?.items ?? []);
 const judges = computed<ContestJudgeItem[]>(() => judgesData.value ?? []);
 const isOwner = computed(() => isAdmin.value || !!(user.value?.id && c.value?.createdById === user.value.id));
@@ -69,7 +80,12 @@ const tabs = computed<Tab[]>(() => {
   const t: Tab[] = [{ key: 'overview', label: 'Overview', icon: 'fa-circle-info' }];
   if (c.value?.rules || c.value?.rulesBlocks?.length) t.push({ key: 'rules', label: 'Rules', icon: 'fa-file-lines' });
   if (c.value?.showPrizes !== false && (c.value?.prizes?.length || c.value?.prizesDescription || c.value?.prizesBlocks?.length)) t.push({ key: 'prizes', label: 'Prizes', icon: 'fa-trophy' });
-  t.push({ key: 'entries', label: 'Entries', icon: 'fa-box-open', count: c.value?.entryCount ?? entries.value.length });
+  // Counts what the tab actually renders. `entryCount` is the denormalized
+  // column that maybeCreateCombinedEntry inflates with registration-time draft
+  // placeholders — the number utils/contestCounts.ts exists to keep off open
+  // contests — so putting it on the chip contradicted the panel below it.
+  // `|| undefined` suppresses a literal "0", matching the Judges tab.
+  t.push({ key: 'entries', label: 'Entries', icon: 'fa-box-open', count: entries.value.length || undefined });
   if (participants.value.length) t.push({ key: 'participants', label: 'Participants', icon: 'fa-users', count: participants.value.length });
   if (judges.value.length || isOwner.value) t.push({ key: 'judges', label: 'Judges', icon: 'fa-gavel', count: judges.value.length || undefined });
   return t;
@@ -244,6 +260,19 @@ function onHeroSubmitEntry(): void {
     }
     return;
   }
+  openSubmitDialog();
+}
+
+/**
+ * Open the attach-a-project picker.
+ *
+ * Split out of onHeroSubmitEntry so the Entries-tab button can share the LAST
+ * step without inheriting the earlier ones. It deliberately does NOT call
+ * onHeroSubmitEntry: on a proposal-mode contest that takes an early return which
+ * switches tabs and scrolls instead of opening anything, and the Entries button
+ * is the control the entrant reaches AFTER that routing has already happened.
+ */
+function openSubmitDialog(): void {
   showSubmitDialog.value = true;
 }
 
@@ -299,8 +328,6 @@ async function submitEntry(): Promise<void> {
 const registered = ref(false);
 const registrationTier = ref<'full' | 'reminders' | null>(null);
 const registrationFields = ref<Record<string, string> | null>(null);
-const registrantCount = ref(0);
-const followerCount = ref(0);
 const registering = ref(false);
 watch(
   registrationData,
@@ -309,8 +336,6 @@ watch(
       registered.value = d.registered;
       registrationTier.value = d.tier;
       registrationFields.value = d.fields;
-      registrantCount.value = d.count;
-      followerCount.value = d.followerCount;
     }
   },
   { immediate: true },
@@ -328,8 +353,7 @@ async function register(payload?: { tier: 'full' | 'reminders'; fields?: Record<
     );
     registered.value = res.registered;
     registrationTier.value = res.tier;
-    registrantCount.value = res.count;
-    followerCount.value = res.followerCount;
+    liveFollowerCount.value = res.followerCount;
     // Reflect the info the viewer just submitted so the form stays in sync.
     if (payload?.fields) registrationFields.value = payload.fields;
     // Tailor the confirmation to what actually happened.
@@ -351,27 +375,31 @@ async function register(payload?: { tier: 'full' | 'reminders'; fields?: Record<
 // a project, never bounced by a 403 afterwards. A `reminders`-tier follower has
 // accepted nothing, so following is not enough.
 const entryRequiresRegistration = computed(() => features.value.contestEntryRequiresRegistration !== false);
+// Narrow-viewport action bar. Flag-gated per rule #2 — it permanently occupies
+// ~60px of a mobile viewport, which an operator running short contests may not
+// want. A judge with an unaccepted invite is excluded: the invite banner is the
+// only action that matters to them and the bar would compete with it.
+const showActionBar = computed(() => features.value.contestActionBar !== false && !pendingInvite.value);
 const isFullyRegistered = computed(() => registrationTier.value === 'full');
 const mustRegisterFirst = computed(() => entryRequiresRegistration.value && !isFullyRegistered.value);
 
-// Which registration flow this contest needs — the same decision the signup card
-// makes: a template with any required field or must-accept agreement has to be
-// filled in (the dedicated page renders any form at full width), while an
-// all-optional template (including the legacy default) is a one-click register.
+// Which registration flow this contest needs. The decision itself lives in
+// utils/contestRegistration.ts so the page, the signup card and the action bar
+// cannot disagree — they used to, visibly: a short-but-required form opened a
+// modal from the sidebar and navigated to the full page from the hero.
 const registrationTemplate = computed(() => effectiveRegistrationTemplate(c.value?.registrationTemplate));
-const registrationNeedsForm = computed(() => templateHasRequiredField(registrationTemplate.value));
 
 /** Start (or complete) registration — from the hero CTA, or from any entry path
  *  taken by someone who isn't registered yet. */
 function startRegistration(): void {
-  if (!isAuthenticated.value) {
-    navigateTo(`/auth/login?redirect=/contests/${slug}`);
-    return;
-  }
-  if (registrationNeedsForm.value) {
-    navigateTo(`/contests/${slug}/register`);
-    return;
-  }
+  // allowModal is false: the page has nowhere to host one, so a short required
+  // form routes to the dedicated page. Only the sidebar card passes true.
+  const action = resolveRegistrationAction({
+    slug,
+    isAuthenticated: isAuthenticated.value,
+    template: registrationTemplate.value,
+  });
+  if (action.kind === 'login' || action.kind === 'page') { navigateTo(action.to); return; }
   register({ tier: 'full' });
 }
 
@@ -383,8 +411,7 @@ async function unregister(): Promise<void> {
     registered.value = res.registered;
     registrationTier.value = null;
     registrationFields.value = null;
-    registrantCount.value = res.count;
-    followerCount.value = res.followerCount;
+    liveFollowerCount.value = res.followerCount;
     toast.success('Registration cancelled');
   } catch (err: unknown) {
     toast.error(extractError(err));
@@ -417,6 +444,24 @@ async function withdrawEntry(entryId: string): Promise<void> {
       @submit-entry="onHeroSubmitEntry"
       @register="startRegistration"
       @transition="transitionStatus"
+      @copy-link="copyLink"
+    />
+
+    <!-- Persistent action bar, narrow viewports only. Above 768px the sidebar is
+         sticky and carries the real registration card instead. Sibling of the
+         tab band, never a child: that <nav> is role="tablist" and a non-tab
+         child would break the WAI-ARIA pattern its keyboard nav implements. -->
+    <ContestActionBar
+      v-if="showActionBar"
+      :contest="c"
+      :is-authenticated="isAuthenticated"
+      :registration-tier="registrationTier"
+      :registering="registering"
+      :can-manage="canManage"
+      :can-judge="canJudge"
+      @register="startRegistration"
+      @follow="register({ tier: 'reminders' })"
+      @submit-entry="onHeroSubmitEntry"
       @copy-link="copyLink"
     />
 
@@ -592,10 +637,12 @@ async function withdrawEntry(entryId: string): Promise<void> {
               <button v-if="isAuthenticated && mustRegisterFirst" class="cpub-btn cpub-btn-primary cpub-btn-lg" :disabled="registering" @click="startRegistration">
                 <i class="fa-solid fa-flag-checkered"></i> {{ registering ? 'Registering...' : 'Register for this contest' }}
               </button>
-              <button v-else-if="isAuthenticated" class="cpub-btn cpub-btn-primary cpub-btn-lg" @click="showSubmitDialog = true">
+              <button v-else-if="isAuthenticated" class="cpub-btn cpub-btn-primary cpub-btn-lg" @click="openSubmitDialog">
                 <i class="fa-solid fa-upload"></i> Submit Entry
               </button>
-              <NuxtLink v-else :to="`/auth/login?redirect=/contests/${slug}`" class="cpub-btn cpub-btn-primary cpub-btn-lg">
+              <!-- Anonymous entrants must register first anyway, so land them in
+                   the form rather than back on the page still unregistered. -->
+              <NuxtLink v-else :to="`/auth/login?redirect=/contests/${slug}/register`" class="cpub-btn cpub-btn-primary cpub-btn-lg">
                 <i class="fa-solid fa-right-to-bracket"></i> Log in to enter
               </NuxtLink>
             </div>
@@ -651,8 +698,6 @@ async function withdrawEntry(entryId: string): Promise<void> {
           :registered="registered"
           :tier="registrationTier"
           :saved-fields="registrationFields"
-          :registrant-count="registrantCount"
-          :follower-count="followerCount"
           :registering="registering"
           @copy-link="copyLink"
           @register="register"
@@ -662,6 +707,25 @@ async function withdrawEntry(entryId: string): Promise<void> {
     </div>
   </div>
 </template>
+
+<!-- Not scoped: the element that has to reserve the bar's height is <body>,
+     which owns the scroll and contains the layout footer, so it lies outside
+     this page's scoped subtree. :has() keeps the rule inert on every other
+     route, and on an engine without :has() the bar merely overlaps the last
+     60px of the footer, which is what happened before this existed. -->
+<style>
+@media (max-width: 768px) {
+  body:has(.cpub-contest-actions) {
+    /* The bar measures itself and publishes its height (its own padding already
+       includes the safe-area inset). The 60px fallback only applies for the one
+       frame before the ResizeObserver fires. */
+    padding-bottom: var(--cpub-contest-actions-h, 60px);
+  }
+}
+@media print {
+  body:has(.cpub-contest-actions) { padding-bottom: 0; }
+}
+</style>
 
 <style scoped>
 /* SUBMIT DIALOG */
@@ -686,7 +750,7 @@ async function withdrawEntry(entryId: string): Promise<void> {
 .cpub-submit-tile-thumb { position: relative; aspect-ratio: 4 / 3; background: var(--surface2); display: flex; align-items: center; justify-content: center; color: var(--text-faint); overflow: hidden; }
 .cpub-submit-tile-thumb img { width: 100%; height: 100%; object-fit: cover; }
 .cpub-submit-tile-badge { position: absolute; top: 4px; right: 4px; font-size: 9px; font-family: var(--font-mono); text-transform: uppercase; background: var(--surface); border: var(--border-width-default) solid var(--border); padding: 1px 5px; color: var(--text-dim); }
-.cpub-submit-tile-check { position: absolute; top: 4px; right: 4px; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; background: var(--accent); color: var(--color-text-inverse); font-size: 10px; }
+.cpub-submit-tile-check { position: absolute; top: 4px; right: 4px; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; background: var(--accent); color: var(--color-on-accent); font-size: 10px; }
 .cpub-submit-tile-title { font-size: 12px; font-weight: 600; padding: 6px 8px 2px; line-height: 1.3; }
 .cpub-submit-tile-type { font-size: 9px; font-family: var(--font-mono); text-transform: uppercase; color: var(--text-faint); padding: 0 8px 8px; }
 .cpub-submit-footer { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 16px; border-top: var(--border-width-default) solid var(--border); }
@@ -704,6 +768,25 @@ async function withdrawEntry(entryId: string): Promise<void> {
 .cpub-entries-cta-sub { font-size: 12px; color: var(--text-dim); margin: 2px 0 0; }
 .cpub-contest-layout { display: grid; grid-template-columns: 1fr 300px; gap: 28px; align-items: start; }
 .cpub-contest-body { min-width: 0; }
+/* The desktop half of the CTA-persistence fix (session 253). The sidebar holds
+   the Status card and the real registration card, and on a ~8,000px contest page
+   it used to scroll away after the first screen, leaving ~76% of the page with
+   no call to action on it. Sticking it keeps the actual card on screen, which is
+   a better affordance than a duplicate button strip — so above 768px there is no
+   action bar at all. Scoped to this page on purpose: a global `.cpub-sidebar`
+   rule would also reach /videos, whose geometry the responsive e2e asserts. */
+.cpub-contest-layout > .cpub-sidebar {
+  position: sticky;
+  top: calc(var(--cpub-topbar-height, 48px) + 16px);
+  /* A sticky element TALLER than the viewport cannot pin its top — it just
+     scrolls away, which is what the first attempt did (measured at top:-198px
+     after a 1400px scroll). Cap it to the viewport and let the rail scroll
+     internally, so the registration card stays reachable for the whole page. */
+  max-height: calc(100vh - var(--cpub-topbar-height, 48px) - 32px);
+  overflow-y: auto;
+  /* Keep the offset shadows on the cards from being clipped by that overflow. */
+  padding-right: 4px;
+}
 
 /* INVITE BANNER */
 .cpub-invite-banner { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 12px 16px; margin-bottom: 18px; background: var(--accent-bg); border: var(--border-width-default) solid var(--accent-border); }
@@ -761,6 +844,16 @@ async function withdrawEntry(entryId: string): Promise<void> {
 @media (max-width: 768px) {
   .cpub-contest-main { padding: 20px 16px; }
   .cpub-contest-layout { grid-template-columns: 1fr; }
+  /* Unwind the WHOLE desktop treatment, not just position. Resetting only
+     `position` left max-height + overflow-y in force, which turned the entire
+     sidebar — registration card included — into a nested ~764px scroll box at
+     exactly the viewport this session set out to fix. */
+  .cpub-contest-layout > .cpub-sidebar {
+    position: static;
+    max-height: none;
+    overflow-y: visible;
+    padding-right: 0;
+  }
 }
 @media (max-width: 480px) {
   .cpub-contest-main { padding: 16px 12px; }

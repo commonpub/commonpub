@@ -229,6 +229,11 @@ const userUsername = computed(() => user.value?.username ?? '');
 
     <!-- ═══ MAIN ═══ -->
     <main id="main-content">
+      <!-- Soft email verification nag. In flow at the top of the content, not a
+           fixed overlay: see the component docblock. Self-gating on the flag,
+           the session and the dismissal cookie, so this is safe to render
+           unconditionally here. -->
+      <EmailVerificationBanner />
       <slot />
     </main>
 
@@ -430,7 +435,7 @@ const userUsername = computed(() => user.value?.username ?? '');
 .cpub-icon-btn:hover { background: var(--surface2); border-color: var(--border); color: var(--text); }
 .cpub-notif-badge { position: absolute; top: 2px; right: 0; min-width: 14px; height: 14px; padding: 0 3px; border-radius: 7px; background: var(--accent); color: var(--color-text-inverse, #000); font-size: 9px; font-weight: 700; font-family: var(--font-mono); line-height: 14px; text-align: center; border: 1.5px solid var(--surface); }
 
-.cpub-btn-new { display: flex; align-items: center; gap: 6px; padding: 6px 14px; background: var(--accent); border: var(--border-width-default) solid var(--border); color: var(--color-text-inverse); font-size: 12px; font-weight: 600; transition: all 0.15s; box-shadow: var(--shadow-sm); text-decoration: none; cursor: pointer; }
+.cpub-btn-new { display: flex; align-items: center; gap: 6px; padding: 6px 14px; background: var(--accent); border: var(--border-width-default) solid var(--border); color: var(--color-on-accent); font-size: 12px; font-weight: 600; transition: all 0.15s; box-shadow: var(--shadow-sm); text-decoration: none; cursor: pointer; }
 .cpub-btn-new:hover { box-shadow: var(--shadow-md); transform: translate(-1px, -1px); }
 
 .cpub-avatar-btn { background: none; border: none; padding: 0; cursor: pointer; }
@@ -442,7 +447,7 @@ const userUsername = computed(() => user.value?.username ?? '');
 .cpub-dropdown-item:hover { background: var(--surface2); color: var(--text); }
 .cpub-dropdown-item i { width: 14px; text-align: center; font-size: 11px; }
 .cpub-dropdown-divider { height: 2px; background: var(--border2); margin: 4px 12px; }
-.cpub-dropdown-count { margin-left: auto; min-width: 18px; height: 16px; padding: 0 5px; border-radius: 8px; background: var(--accent); color: var(--color-text-inverse); font-size: 9px; font-weight: 700; font-family: var(--font-mono); line-height: 16px; text-align: center; }
+.cpub-dropdown-count { margin-left: auto; min-width: 18px; height: 16px; padding: 0 5px; border-radius: 8px; background: var(--accent); color: var(--color-on-accent); font-size: 9px; font-weight: 700; font-family: var(--font-mono); line-height: 16px; text-align: center; }
 /* Messages/Notifications in the avatar dropdown are mobile-only —
    desktop keeps the dedicated top-bar icons. */
 .cpub-dropdown-item--mobile { display: none; }
@@ -471,7 +476,7 @@ const userUsername = computed(() => user.value?.username ?? '');
 .cpub-footer-tagline { font-size: 12px; color: var(--cpub-footer-text, var(--text-dim)); }
 .cpub-footer-social { display: flex; gap: 8px; margin-top: 8px; }
 .cpub-footer-social-link { width: 28px; height: 28px; background: var(--surface2); border: var(--border-width-default) solid var(--border); display: flex; align-items: center; justify-content: center; color: var(--cpub-footer-text, var(--text-dim)); font-size: 12px; text-decoration: none; transition: all 0.12s; }
-.cpub-footer-social-link:hover { background: var(--accent); color: var(--color-text-inverse); border-color: var(--accent); }
+.cpub-footer-social-link:hover { background: var(--accent); color: var(--color-on-accent); border-color: var(--accent); }
 .cpub-footer-col { display: flex; flex-direction: column; gap: 6px; }
 .cpub-footer-col-title { font-family: var(--font-mono); font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: var(--cpub-footer-muted, var(--text-faint)); margin-bottom: 4px; }
 .cpub-footer-link { font-size: 12px; color: var(--cpub-footer-text, var(--text-dim)); text-decoration: none; transition: color 0.12s; }

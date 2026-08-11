@@ -353,6 +353,20 @@
   border-color: var(--accent);
 }
 
+/* ─── FIXED OVERLAY SURFACE ─── */
+/*
+ * An element docked over the page (a consent banner, a mobile action bar) must
+ * be OPAQUE. `--surface` alone is not enough: a theme may legitimately define
+ * it with alpha for in-flow cards (the deveco theme uses 0.88), and page
+ * content then shows through the bar and makes its text hard to read.
+ * Compositing the surface tint over an opaque `--bg` keeps the theme's colour
+ * while guaranteeing coverage, with no hardcoded value.
+ */
+.cpub-overlay-surface {
+  background-color: var(--bg);
+  background-image: linear-gradient(var(--surface), var(--surface));
+}
+
 /* ─── BUTTONS (shared) ─── */
 .cpub-btn {
   display: inline-flex;
@@ -369,6 +383,14 @@
   padding: var(--space-2) var(--space-4);
   background: var(--surface);
   color: var(--text);
+  /* Without these, a <button class="cpub-btn"> inherits the UA button font
+     shorthand's `line-height: normal` (~37px tall) while an <a class="cpub-btn">
+     inherits body's --leading-normal 1.7 (~44px). Side by side in one flex row
+     — which is every CTA row in the app — they visibly disagreed. 44px is the
+     height .cpub-btn-sm already declares, so this makes the base match the
+     house decision instead of contradicting it. */
+  min-height: 44px;
+  line-height: var(--leading-snug);
 }
 
 .cpub-btn:hover {
@@ -396,6 +418,18 @@
   padding: 4px 10px;
   font-size: var(--text-xs);
   min-height: 44px;
+}
+
+/* Dense row actions (admin tables, chip rows). Was declared only in page-scoped
+   CSS which set padding + font-size but no height, so when .cpub-btn gained a
+   44px floor these 10px-font buttons inflated into slabs — scoped specificity
+   beat the base for padding but there was nothing to override min-height.
+   28px is the honest size for this control; it is below the 44px touch target
+   and is therefore for pointer-dense admin surfaces only. */
+.cpub-btn-xs {
+  padding: 3px 8px;
+  font-size: 10px;
+  min-height: 28px;
 }
 
 .cpub-btn-lg {
