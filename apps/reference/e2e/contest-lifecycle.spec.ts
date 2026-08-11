@@ -172,8 +172,11 @@ test.describe('Contest lifecycle', () => {
     // rejects with net::ERR_ABORTED even though the redirect is working (it went
     // flaky in CI exactly this way). Swallow the abort; the URL is the real check,
     // and toHaveURL retries until the redirect settles.
-    await page.goto(`${contestUrl}/register`).catch(() => { /* client redirect */ });
-    await expect(page).toHaveURL(/\/auth\/login\?redirect=/, { timeout: 20_000 });
+    // Generous timeout: this is the first hit on the register route, which the dev
+    // server compiles on demand — on a loaded CI runner that alone can outlast a
+    // 20s budget before the gate even runs.
+    await page.goto(`${contestUrl}/register`, { waitUntil: 'domcontentloaded' }).catch(() => { /* client redirect aborts it */ });
+    await expect(page).toHaveURL(/\/auth\/login\?redirect=/, { timeout: 60_000 });
   });
 
   test('following a contest is not registering, and does not let you enter', async () => {

@@ -12,7 +12,12 @@ interface HeroCta {
 const props = defineProps<{ config: HomepageSectionConfig }>();
 
 const { contests: contestsEnabled } = useFeatures();
-const { data: contests } = await useFetch('/api/contests', { query: { limit: 3 }, lazy: true });
+// NOT lazy: this drives the hero callout AND publishes `cpub:hero-contest-id`,
+// which the sidebar widget dedupes against. With `lazy` the data may or may not
+// have landed by the time the server renders, so the server and the client could
+// disagree about which contests to show — a hydration mismatch that Vue does not
+// rectify for text in production.
+const { data: contests } = await useFetch('/api/contests', { query: { limit: 3 } });
 
 const activeContest = computed(() => {
   const items = (contests.value as { items?: Array<Record<string, unknown>> })?.items;

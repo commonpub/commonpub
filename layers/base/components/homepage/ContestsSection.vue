@@ -6,16 +6,33 @@ const props = defineProps<{ config: HomepageSectionConfig }>();
 const limit = computed(() => props.config.limit ?? 3);
 // Only surface contests that are open for entries — the card is titled
 // "Active Contests" and links to "Enter Contest".
+// NOT lazy — see HeroSection: a race on whether SSR had the data made the server
+// render a different set of contests than the client expected.
 const { data: contests } = await useFetch('/api/contests', {
   query: computed(() => ({ limit: limit.value, status: 'active' })),
-  lazy: true,
 });
+
+// "Nd left" is clock-dependent, so the server and the viewer can land either side
+// of a day boundary. Render it only after mount (the same guard ContestHero uses
+// for its countdown) so SSR and the first client render always agree.
+const mounted = ref(false);
+onMounted(() => { mounted.value = true; });
+function daysLeftLabel(c: { currentStageEndDate?: string | null; endDate?: string | null }): string | null {
+  const target = c.currentStageEndDate ?? c.endDate;
+  if (!target) return null;
+  const ms = new Date(target).getTime() - Date.now();
+  if (!Number.isFinite(ms)) return null;
+  return `${Math.max(0, Math.ceil(ms / 86_400_000))}d left`;
+}
 
 // Dedupe against the hero: if the hero is already showing an active contest as a
 // full callout, don't repeat it here. Other active contests still list.
 const heroContestId = useState<string | null>('cpub:hero-contest-id', () => null);
+interface ContestCard { id: string; slug: string; title: string; entryCount?: number; followerCount?: number; endDate?: string | null; currentStageEndDate?: string | null }
 const visibleContests = computed(() =>
-  (contests.value?.items ?? []).filter((c: { id: string }) => c.id !== heroContestId.value),
+  ((contests.value?.items ?? []) as ContestCard[])
+    .filter((c) => c.id !== heroContestId.value)
+    .map((c) => ({ ...c, daysLeft: mounted.value ? daysLeftLabel(c) : null })),
 );
 </script>
 
@@ -27,10 +44,11 @@ const visibleContests = computed(() =>
       <div class="cpub-contest-row">
         <span class="cpub-contest-entries">{{ c.entryCount ?? 0 }} entries</span>
         <span v-if="(c.followerCount ?? 0) > 0" class="cpub-contest-entries"><i class="fa-solid fa-bell"></i> {{ c.followerCount }} following</span>
-        <span v-if="c.endDate" class="cpub-contest-deadline">
-          <!-- Days to the CURRENT stage's close (falls back to endDate for a
-               classic contest), not the far-off final date on a multi-stage one. -->
-          <i class="fa-regular fa-clock"></i> {{ Math.max(0, Math.ceil((new Date(c.currentStageEndDate ?? c.endDate).getTime() - Date.now()) / 86400000)) }}d left
+        <!-- Days to the CURRENT stage's close (falls back to endDate for a
+             classic contest), not the far-off final date on a multi-stage one.
+             Client-only: see daysLeftLabel. -->
+        <span v-if="c.daysLeft" class="cpub-contest-deadline">
+          <i class="fa-regular fa-clock"></i> {{ c.daysLeft }}
         </span>
       </div>
       <NuxtLink :to="`/contests/${c.slug}`" class="cpub-btn-enter">Enter Contest</NuxtLink>
