@@ -15,14 +15,14 @@ All three instances **healthy** (`/api/health` ok), migration **0045**, **41 fla
 
 | Package | Live on npm | Package | Live on npm |
 |---|---|---|---|
-| `@commonpub/layer` | **0.130.0** | `@commonpub/ui` | **0.14.1** |
-| `@commonpub/server` | **2.128.0** | `@commonpub/config` | **0.37.0** |
-| `@commonpub/auth` | **0.12.0** | `@commonpub/test-utils` | **0.5.15** |
-| `@commonpub/schema` | 0.63.0 (unchanged) | `@commonpub/infra` | 0.19.0 (unchanged) |
+| `@commonpub/layer` | **0.131.0** | `@commonpub/ui` | **0.14.2** |
+| `@commonpub/server` | **2.129.0** | `@commonpub/config` | **0.38.0** |
+| `@commonpub/auth` | **0.12.0** | `@commonpub/test-utils` | **0.5.16** |
+| `@commonpub/infra` | **0.20.0** | `@commonpub/schema` | 0.63.0 (unchanged) |
 
-Two rolls: `ui@0.14.0`/`layer@0.129.0` (Roll A), then everything else at `layer@0.130.0` after a
-pre-publish audit. `layer@0.130.0` pins config 0.37.0 / auth 0.12.0 / server 2.128.0 / ui 0.14.1
-exactly, so a fork gets the whole set from the layer pin.
+Three rolls: `layer@0.129.0` (Roll A), `layer@0.130.0` after a pre-publish audit, and
+`layer@0.131.0` with analytics. The layer pins every sibling exactly, so a fork gets the whole set
+from the layer pin alone.
 
 - Branch **`session-253-roll-a`**, PR [commonpub#73](https://github.com/commonpub/commonpub/pull/73).
   Fork PRs open, **not merged**: deveco#14, heatsync#25. **Merging a fork PR deploys that instance** —
@@ -136,11 +136,7 @@ never wired up**. Tests passed because they tested the function directly.
 2. **Turn on `features.emailVerification` on deveco when ready.** It is published but OFF. deveco has a
    real Resend transport, so it will work; the flag is now runtime-flippable from the admin Feature
    Flags page without a redeploy.
-3. **Analytics is untouched** — plan section 5. Decision was GA4 done properly. Three hard prerequisites
-   before any tag loads: deveco's `nuxt.config.ts` never wires anything from its `commonpub.config.ts`
-   into `runtimeConfig.public`, so **its cookie banner is currently incapable of rendering at all**;
-   `allowsAnalytics` has **zero consumers**; and `pages/privacy.vue:90` states "We do not use any
-   analytics services" on a layer page that is not instance-conditional.
+3. **Analytics: shipped.** See the section below. All three prerequisites are resolved.
 4. **The contest-email question is unanswered.** The operator confirmed he meant a *contest* email, not
    account verification. Which one, and what was wrong with it, is still unknown — contest mail does go
    through `email_outbox`, so there is a durable row to inspect once it is identified.
@@ -170,3 +166,88 @@ never wired up**. Tests passed because they tested the function directly.
 - **The forks override real pages.** deveco forks `layouts/default.vue` and `pages/index.vue`; the
   contest pages are *not* forked, so contest work reaches it on a pin bump alone. Anything touching the
   topbar, footer, homepage or default layout must be mirrored by hand.
+
+
+---
+
+## Analytics (added after the audit, `layer@0.131.0`)
+
+deveco.io asked for Google Analytics. In a shared, self-hostable layer that means never hardcoding one
+operator's tag, and never letting the code and the privacy page drift apart.
+
+### How it is put together
+
+Everything derives from **one provider registry**, `packages/config/src/analytics.ts`: the CSP
+allowlist, the cookies the policy page discloses, and the processor named on the privacy page. An
+operator writes this and nothing else:
+
+```ts
+analytics: { provider: 'ga4', measurementId: 'G-XXXXXXXXXX' },
+```
+
+They cannot then forget to declare `_ga`, cannot have a live tag behind a CSP that blocks it, and
+cannot ship a policy page that contradicts either. `features.analytics` is a separate operator
+off-switch; both are required. The registry is a **zero-dependency subpath export**
+(`@commonpub/config/analytics`) so the client bundle does not pull zod in to read it, and both the
+Nitro CSP middleware and the browser loader import the same file.
+
+### The gate
+
+Nothing loads before the visitor accepts. Not the "default denied" Consent Mode posture, which still
+pings Google: no script at all. Verified in a browser rather than argued, at 390px, 320px and desktop:
+**zero** requests to the vendor before a choice, **zero** after choosing Essential only including
+across a navigation, one after accepting. That is now
+`apps/reference/e2e/analytics-consent.spec.ts`, because "no request was made" is not something a unit
+test can prove. Consent Mode v2 defaults are still emitted first, so a later grant is well formed.
+
+### Two defects found on the way
+
+- **Consent did not propagate.** Every `useCookieConsent()` call built its own `useCookie` ref, so one
+  consumer accepting did not notify another except through Nuxt's async cookie sync. Harmless while
+  nothing read `allowsAnalytics`; not harmless once a tag depends on it. The level is now a single
+  shared `useState` written through to the cookie, so a grant AND a withdrawal both propagate
+  synchronously.
+- **A fixed overlay must be opaque.** `--surface` can legitimately carry alpha for in-flow cards (the
+  reference theme uses 0.88), and page content was legible through both bottom bars. New
+  `.cpub-overlay-surface` composites it over an opaque `--bg`, staying themed without a hardcoded
+  value.
+
+### Transparency
+
+`pages/privacy.vue` previously asserted "We do not use any analytics services" and shipped that to every
+instance. It is now conditional on the configured provider. Where analytics is on, the page states what
+is collected (pages, referrer, city-level location from IP, device, a random id) and what is not
+(nothing from the account, no ads, no cross-site tracking, no selling), names Google LLC and the
+international transfer, gives consent as the legal basis, and **links to the two source files that
+implement it** so a visitor can check rather than trust. Section numbers are derived from the visible
+section list, replacing the chain of `federationEnabled ? '7' : '6'` ternaries that adding a conditional
+section would otherwise have extended.
+
+The banner now names what it is asking about, and both choices carry equal visual weight. A filled
+"Accept all" beside an outlined "Essential only" is the pattern regulators single out; consent is only
+freely given if refusing is as easy as accepting.
+
+### To turn it on for another instance
+
+1. Add the `analytics` block to `commonpub.config.ts`.
+2. Wire `analytics` (and `instanceCookies`) into `runtimeConfig.public` in the app's `nuxt.config.ts`.
+   deveco never wired ANYTHING from its config file, which is why its cookie banner had never once
+   rendered.
+3. Set `features.analytics: true`.
+
+### Test-suite note
+
+The consent banner is fixed to the bottom of the viewport and intercepts clicks under it, so every e2e
+spec now starts from a pre-answered `cpub-consent=essential` (`playwright.config.ts` `storageState`);
+`analytics-consent.spec.ts` overrides that back to empty to test the gate. Without this, enabling
+analytics on an instance would break its own e2e suite. Related: better-auth only enforces its CSRF
+origin check when the request carries a Cookie header, so the lifecycle spec's sign-up call now sends
+an `Origin` header, which is what a real browser does anyway.
+
+### Local test-environment note
+
+Four e2e failures on this machine are local DB state, not code, and were confirmed to fail with
+analytics switched off too: `instance_settings.theme.default` is a leftover
+`cpub-custom-glass-demo-dark` from earlier theme-studio work (three theme specs assume the stock
+default), and a seeded hub avatar points at a host that no longer resolves (`/hubs` console-error
+smoke). CI runs against a fresh database.
