@@ -30,6 +30,21 @@ function endsLabel(d: string | null | undefined, withYear = false): string | nul
     ? { month: 'short', day: 'numeric', year: 'numeric' }
     : { month: 'short', day: 'numeric' });
 }
+/**
+ * Contest banner meta line. Joins only the parts that have something to say, so
+ * a fresh contest never reads "0 entries" and a suppressed part never leaves a
+ * dangling separator. Count rules are shared with the tile and the contest page
+ * via utils/contestCounts.ts.
+ */
+function contestBannerMeta(c: ContestListItem): string {
+  const parts: string[] = [];
+  if (showsRegisteredCount(c)) parts.push(registeredCountLabel(c));
+  if (showsEntryCount(c)) parts.push(entryCountLabel(c));
+  const ends = endsLabel(c.endDate);
+  if (ends) parts.push(`Ends ${ends}`);
+  return parts.join(' · ');
+}
+
 function daysLeftLabel(c: { currentStageEndDate?: string | null; endDate?: string | null }): string | null {
   if (!clockReady.value) return null;
   const target = c.currentStageEndDate ?? c.endDate;
@@ -223,7 +238,7 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
           <template v-if="contestsEnabled && activeContest">
             <div class="cpub-hero-eyebrow">
               <span class="cpub-hero-badge cpub-hero-badge-live"><span class="cpub-live-dot" /> Live Contest</span>
-              <span class="cpub-hero-badge">{{ activeContest.entryCount ?? 0 }} entries</span>
+              <span v-if="showsRegisteredCount(activeContest)" class="cpub-hero-badge">{{ registeredCountLabel(activeContest) }}</span>
             </div>
             <h1 class="cpub-hero-title">{{ activeContest.title }}</h1>
             <p v-if="activeContest.description" class="cpub-hero-excerpt">{{ markdownToExcerpt(activeContest.description) }}</p>
@@ -232,8 +247,10 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
               <NuxtLink :to="`/contests/${activeContest.slug}`" class="cpub-btn"><i class="fa-solid fa-circle-info"></i> View Details</NuxtLink>
             </div>
             <div class="cpub-hero-meta">
-              <span class="cpub-hero-stat"><i class="fa-solid fa-users"></i> <strong>{{ activeContest.entryCount ?? 0 }}</strong> entries</span>
-              <span v-if="(activeContest.followerCount ?? 0) > 0" class="cpub-hero-stat"><i class="fa-solid fa-bell"></i> <strong>{{ activeContest.followerCount }}</strong> following</span>
+              <!-- "registered" is followerCount (every registration row); entries
+                   are suppressed while a contest is open. Showing both printed two
+                   numbers for the same people. See utils/contestCounts.ts. -->
+              <span v-if="showsRegisteredCount(activeContest)" class="cpub-hero-stat"><i class="fa-solid fa-users"></i> <strong>{{ activeContest.followerCount }}</strong> registered</span>
               <span v-if="endsLabel(activeContest.endDate, true)" class="cpub-hero-stat"><i class="fa-solid fa-calendar"></i> Ends <strong>{{ endsLabel(activeContest.endDate, true) }}</strong></span>
             </div>
           </template>
@@ -359,7 +376,7 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
         <NuxtLink v-if="contestsEnabled && activeContest" :to="`/contests/${activeContest.slug}`" class="cpub-contest-banner">
           <div class="cpub-contest-banner-info">
             <span class="cpub-contest-banner-label"><i class="fa-solid fa-trophy"></i> {{ activeContest.title }}</span>
-            <span class="cpub-contest-banner-meta">{{ activeContest.entryCount ?? 0 }} entries<template v-if="endsLabel(activeContest.endDate)"> &middot; Ends {{ endsLabel(activeContest.endDate) }}</template></span>
+            <span v-if="contestBannerMeta(activeContest)" class="cpub-contest-banner-meta">{{ contestBannerMeta(activeContest) }}</span>
           </div>
           <span class="cpub-contest-banner-btn">Enter Challenge <i class="fa-solid fa-arrow-right"></i></span>
         </NuxtLink>
@@ -429,8 +446,7 @@ async function handleHubJoin(hubSlug: string): Promise<void> {
           <div v-for="c in contests.items" :key="c.id" class="cpub-contest-item">
             <NuxtLink :to="`/contests/${c.slug}`" class="cpub-contest-name">{{ c.title }}</NuxtLink>
             <div class="cpub-contest-row">
-              <span class="cpub-contest-entries">{{ c.entryCount ?? 0 }} entries</span>
-              <span v-if="(c.followerCount ?? 0) > 0" class="cpub-contest-entries"><i class="fa-solid fa-bell"></i> {{ c.followerCount }} following</span>
+              <span v-if="showsRegisteredCount(c)" class="cpub-contest-entries"><i class="fa-solid fa-users"></i> {{ registeredCountLabel(c) }}</span>
               <!-- Gated on the LABEL, not on endDate: emitting the element with
                    empty text server-side and filling it in on the client is
                    itself a children mismatch. -->

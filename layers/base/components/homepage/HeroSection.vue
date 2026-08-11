@@ -113,8 +113,11 @@ watchEffect(() => {
         <template v-if="contestsEnabled && activeContest">
           <div class="cpub-hero-eyebrow">
             <span class="cpub-hero-badge cpub-hero-badge-live"><span class="cpub-live-dot" /> Live Contest</span>
-            <span class="cpub-hero-badge">{{ activeContest.entryCount ?? 0 }} entries</span>
-            <span v-if="Number(activeContest.followerCount ?? 0) > 0" class="cpub-hero-badge"><i class="fa-solid fa-bell"></i> {{ activeContest.followerCount }} following</span>
+            <!-- One public figure, "registered", suppressed at zero. This is the
+                 hero for an ACTIVE contest, so an entry count is the open-contest
+                 case utils/contestCounts.ts suppresses, and showing both entries
+                 and following printed two numbers for the same people. -->
+            <span v-if="showsRegisteredCount(activeContest)" class="cpub-hero-badge"><i class="fa-solid fa-users"></i> {{ registeredCountLabel(activeContest) }}</span>
           </div>
           <h1 class="cpub-hero-title">{{ activeContest.title }}</h1>
           <p v-if="activeContest.description" class="cpub-hero-excerpt">{{ markdownToExcerpt(String(activeContest.description)) }}</p>

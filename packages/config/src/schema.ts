@@ -95,6 +95,14 @@ export const featureFlagsSchema = z.object({
   // regardless of verified status. Deliverability caveat: sending to unconfirmed
   // addresses can hurt sender reputation — enable only for a trusted audience.
   emailUnverified: z.boolean().default(false),
+  // SOFT email verification: send a verification email on signup and nag the
+  // user with a banner until they confirm, but never gate sign-in. This is the
+  // switch to reach for; `auth.requireEmailVerification` is the HARD gate that
+  // blocks sign-in and would lock out every existing unverified account.
+  // Default OFF: turning it on starts sending mail from every instance that has
+  // a transport configured, which is not a change an upgrade should make for an
+  // operator silently.
+  emailVerification: z.boolean().default(false),
   // Admin broadcast emails to users (email Phase 3). Default OFF; no effect unless
   // email is actually configured + emailNotifications is on.
   adminBroadcast: z.boolean().default(false),

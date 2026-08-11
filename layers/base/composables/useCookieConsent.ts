@@ -27,6 +27,16 @@ const BUILTIN_COOKIES: CookieDefinition[] = [
     description: 'Remembers your light/dark mode preference. Set only when you use the theme toggle.',
     duration: '1 year',
   },
+  {
+    name: 'cpub-verify-dismissed',
+    // Essential for the same reason as cpub-color-scheme: it records a choice
+    // the user explicitly made (dismissing the confirm-your-email reminder),
+    // stores no identifier and does no tracking. Consent-gating it would mean
+    // the reminder reappeared on every page for anyone on "Essential only".
+    category: 'essential',
+    description: 'Remembers that you dismissed the email confirmation reminder. Set only when you dismiss it.',
+    duration: 'Until you close your browser',
+  },
 ];
 
 export type ConsentLevel = 'all' | 'essential' | null;

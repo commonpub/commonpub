@@ -38,6 +38,7 @@ export function createTestConfig(overrides?: Partial<CommonPubConfig>): CommonPu
       themeStudio: true,
       emailNotifications: false,
       emailUnverified: false,
+      emailVerification: false,
       adminBroadcast: false,
       requireTermsAcceptance: false,
       publicApi: false,

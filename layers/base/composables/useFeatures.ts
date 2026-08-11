@@ -54,6 +54,8 @@ export interface FeatureFlags {
   emailNotifications: boolean;
   /** Deliver email to unverified addresses (verification then gates sign-in only). Default OFF. */
   emailUnverified: boolean;
+  /** Soft email verification: verification mail on signup + nag banner, never a sign-in gate. */
+  emailVerification: boolean;
   publicApi: boolean;
   contentImport: boolean;
   /**
@@ -103,7 +105,7 @@ export const DEFAULT_FLAGS: FeatureFlags = {
   contestReminders: false, contestEmailEditor: false, contestSignup: true,
   contestEntryRequiresRegistration: true,
   events: false, learning: true, explainers: true,
-  editorial: true, registrationBlock: true, federation: false, admin: false, themeStudio: true, emailNotifications: false, emailUnverified: false,
+  editorial: true, registrationBlock: true, federation: false, admin: false, themeStudio: true, emailNotifications: false, emailUnverified: false, emailVerification: false,
   publicApi: false, contentImport: true,
   layoutEngine: false,
   rbac: false,
@@ -220,6 +222,7 @@ export function useFeatures() {
     admin: computed(() => flags.value.admin),
     themeStudio: computed(() => flags.value.themeStudio),
     emailNotifications: computed(() => flags.value.emailNotifications),
+    emailVerification: computed(() => flags.value.emailVerification),
     publicApi: computed(() => flags.value.publicApi),
     contentImport: computed(() => flags.value.contentImport),
     layoutEngine: computed(() => flags.value.layoutEngine),

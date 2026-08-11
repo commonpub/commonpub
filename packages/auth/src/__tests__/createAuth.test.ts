@@ -24,7 +24,10 @@ import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { createAuth } from '../createAuth';
 
-function createMockConfig(overrides: Record<string, unknown> = {}) {
+function createMockConfig(
+  overrides: Record<string, unknown> = {},
+  featureOverrides: Record<string, unknown> = {},
+) {
   return {
     instance: {
       domain: 'test.example.com',
@@ -39,6 +42,7 @@ function createMockConfig(overrides: Record<string, unknown> = {}) {
       learning: true,
       explainers: true,
       federation: false,
+      ...featureOverrides,
     },
     auth: {
       emailPassword: true,
@@ -240,6 +244,43 @@ describe('createAuth', () => {
 
     const call = (betterAuth as unknown as ReturnType<typeof vi.fn>).mock.calls.at(-1)![0];
     expect(call.emailAndPassword.requireEmailVerification).toBe(false);
+    expect(call.emailVerification).toBeUndefined();
+  });
+
+  // ── Soft verification (session 253) ──
+  // The point of the feature: mail the link and nag, but never gate sign-in.
+  // These two options are independent in better-auth (sign-up.mjs reads
+  // `sendOnSignUp ?? requireEmailVerification`, so an explicit true wins), and
+  // this pair of tests is what stops someone "simplifying" them back together
+  // and silently locking out every existing unverified account.
+  it('sends verification on signup WITHOUT gating sign-in when features.emailVerification is on', () => {
+    const sendVerificationEmail = vi.fn();
+    createAuth({
+      config: createMockConfig({}, { emailVerification: true }),
+      db: {} as any,
+      secret: 'test-secret',
+      emailSender: { sendVerificationEmail },
+    });
+
+    const call = (betterAuth as unknown as ReturnType<typeof vi.fn>).mock.calls.at(-1)![0];
+    expect(call.emailVerification).toEqual(
+      expect.objectContaining({ sendVerificationEmail: expect.any(Function), sendOnSignUp: true }),
+    );
+    // The whole point: sign-in stays open.
+    expect(call.emailAndPassword.requireEmailVerification).toBe(false);
+  });
+
+  it('does not wire verification with the flag on but no email sender', () => {
+    // Otherwise a new user on a transport-less instance is told to check an
+    // inbox nothing was ever sent to (useEmailAdapter falls back to a console
+    // sink, so "a sender exists" is not the same as "mail is delivered").
+    createAuth({
+      config: createMockConfig({}, { emailVerification: true }),
+      db: {} as any,
+      secret: 'test-secret',
+    });
+
+    const call = (betterAuth as unknown as ReturnType<typeof vi.fn>).mock.calls.at(-1)![0];
     expect(call.emailVerification).toBeUndefined();
   });
 

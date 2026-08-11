@@ -7,8 +7,15 @@ useSeoMeta({ title: `Users, Admin, ${useSiteName()}` });
 const search = ref('');
 const toast = useToast();
 
+// 'any' means no filter at all; the route rejects anything but the two
+// literals, because coercing 'false' to a boolean would invert the filter.
+const emailFilter = ref<'any' | 'true' | 'false'>('any');
+
 const { data: users, refresh } = await useFetch('/api/admin/users', {
-  query: computed(() => ({ search: search.value || undefined })),
+  query: computed(() => ({
+    search: search.value || undefined,
+    emailVerified: emailFilter.value === 'any' ? undefined : emailFilter.value,
+  })),
 });
 
 // Custom (non-system) roles — for per-user assignment. Requires `roles.manage`;
@@ -22,6 +29,9 @@ interface AdminUser {
   email: string;
   role: string;
   status: string;
+  /** Address confirmed via a verification link. NOT the `verified` user ROLE
+   *  in the Role column two cells over, which is an editorial trust tier. */
+  emailVerified: boolean;
   createdAt: string;
 }
 
@@ -119,7 +129,17 @@ async function deleteUser(userId: string, username: string): Promise<void> {
   <div class="admin-users">
     <h1 class="admin-page-title">Users</h1>
 
-    <input v-model="search" type="search" class="admin-search" placeholder="Search users..." aria-label="Search users" />
+    <div class="admin-users-toolbar">
+      <input v-model="search" type="search" class="admin-search" placeholder="Search users..." aria-label="Search users" />
+      <label class="admin-filter">
+        <span class="admin-filter-label">Email</span>
+        <select v-model="emailFilter" class="admin-role-select" aria-label="Filter by email confirmation">
+          <option value="any">Any</option>
+          <option value="true">Confirmed</option>
+          <option value="false">Not confirmed</option>
+        </select>
+      </label>
+    </div>
 
     <div class="admin-table-wrap" v-if="userList.length">
       <table class="admin-table">
@@ -127,6 +147,10 @@ async function deleteUser(userId: string, username: string): Promise<void> {
           <tr>
             <th>Username</th>
             <th>Email</th>
+            <!-- "Email confirmed", never a bare "Verified": the Role column
+                 immediately right of this can literally read 'verified', and
+                 that means an editorial tier, not a confirmed address. -->
+            <th>Email confirmed</th>
             <th>Role</th>
             <th v-if="customRoles.length">Custom roles</th>
             <th>Status</th>
@@ -141,6 +165,13 @@ async function deleteUser(userId: string, username: string): Promise<void> {
               <NuxtLink :to="`/u/${u.username}`" class="admin-link">@{{ u.username }}</NuxtLink>
             </td>
             <td class="admin-email">{{ u.email }}</td>
+            <td>
+              <!-- State is carried by the text, not by colour alone. -->
+              <span class="admin-verified" :class="u.emailVerified ? 'is-confirmed' : 'is-unconfirmed'">
+                <i :class="u.emailVerified ? 'fa-solid fa-circle-check' : 'fa-regular fa-circle'" aria-hidden="true"></i>
+                {{ u.emailVerified ? 'Confirmed' : 'Not confirmed' }}
+              </span>
+            </td>
             <td>
               <select
                 class="admin-role-select"
@@ -172,7 +203,7 @@ async function deleteUser(userId: string, username: string): Promise<void> {
             </td>
           </tr>
           <tr v-if="expandedUserId === u.id && customRoles.length" class="admin-roles-row">
-            <td :colspan="7">
+            <td :colspan="8">
               <div class="admin-roles-editor">
                 <span class="admin-roles-label">Custom roles for @{{ u.username }}:</span>
                 <label v-for="r in customRoles" :key="r.id" class="admin-roles-check">
@@ -195,8 +226,14 @@ async function deleteUser(userId: string, username: string): Promise<void> {
 
 <style scoped>
 .admin-page-title { font-size: var(--text-xl); font-weight: var(--font-weight-bold); margin-bottom: 16px; }
-.admin-search { width: 100%; max-width: 400px; padding: 6px 10px; border: var(--border-width-default) solid var(--border); background: var(--surface); color: var(--text); font-size: 13px; margin-bottom: 16px; }
+.admin-users-toolbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+.admin-search { width: 100%; max-width: 400px; padding: 6px 10px; border: var(--border-width-default) solid var(--border); background: var(--surface); color: var(--text); font-size: 13px; }
 .admin-search:focus { outline: none; border-color: var(--accent); }
+.admin-filter { display: flex; align-items: center; gap: 6px; }
+.admin-filter-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; font-family: var(--font-mono); color: var(--text-dim); }
+.admin-verified { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; white-space: nowrap; }
+.admin-verified.is-confirmed { color: var(--green-text); }
+.admin-verified.is-unconfirmed { color: var(--text-faint); }
 .admin-table-wrap { overflow-x: auto; }
 .admin-table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .admin-table th { text-align: left; padding: 8px 12px; border-bottom: var(--border-width-default) solid var(--border); font-weight: 600; color: var(--text-dim); font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; font-family: var(--font-mono); }

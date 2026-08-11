@@ -5,6 +5,13 @@ export interface AuthUser {
   id: string;
   username: string;
   role: string;
+  /** Present on every session user: Better Auth carries email/emailVerified on
+   *  the session and `enrichUser` in middleware/auth.ts adds our own columns.
+   *  They were simply never declared here, so routes that needed the address
+   *  had to cast or re-query. Widening only — nothing assigns an object literal
+   *  to this type, `requireAuth` casts the context user. */
+  email: string;
+  emailVerified: boolean;
 }
 
 export function requireAuth(event: H3Event): AuthUser {

@@ -105,6 +105,11 @@ export interface FeatureFlags {
   /** Deliver notification/reminder/broadcast email to unverified addresses too
    *  (verification then gates sign-in only). Default OFF. Deliverability caveat. */
   emailUnverified: boolean;
+  /** Soft email verification: mail a verification link on signup and show a nag
+   *  banner until confirmed, without ever gating sign-in. Default OFF.
+   *  Distinct from `auth.requireEmailVerification`, which is the hard sign-in
+   *  gate and locks out existing unverified accounts. */
+  emailVerification: boolean;
   /** Enable admin broadcast emails to users (email Phase 3). */
   adminBroadcast: boolean;
   /** Require re-acceptance of the Terms when instance.termsVersion is bumped (GDPR Phase 2). */

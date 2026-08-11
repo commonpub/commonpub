@@ -18,9 +18,13 @@ const { layoutEngine: layoutEngineEnabled } = useFeatures();
       <i class="fa-solid fa-circle-notch fa-spin"></i> Loading...
     </div>
     <template v-else>
+    <!-- "Email confirmed" should be read next to features.emailVerification:
+         on an instance that never enabled verification it is legitimately near
+         zero, which means "never asked", not "broken". -->
     <div class="cpub-stats-grid" v-if="stats">
       <div class="cpub-stat-card" v-for="stat in [
         { label: 'Users', value: stats.users?.total ?? 0, icon: 'fa-solid fa-users' },
+        { label: 'Email confirmed', value: stats.users?.emailVerified ?? 0, icon: 'fa-solid fa-envelope-circle-check' },
         { label: 'Content', value: stats.content?.total ?? 0, icon: 'fa-solid fa-file-lines' },
         { label: 'Communities', value: stats.hubs?.total ?? 0, icon: 'fa-solid fa-people-group' },
         { label: 'Reports', value: stats.reports?.pending ?? 0, icon: 'fa-solid fa-flag' },

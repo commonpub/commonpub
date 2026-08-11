@@ -67,10 +67,17 @@ export function createAuth({ config, db, secret, baseURL, trustedOrigins, emailS
           }
         : undefined,
     },
-    // Only send a verification email on signup when verification is actually
-    // required AND an email sender is wired. Otherwise a new user would get a
-    // verification email that is never sent (console adapter) and be stuck.
-    emailVerification: (emailSender?.sendVerificationEmail && config.auth.requireEmailVerification === true)
+    // Send a verification email on signup under EITHER posture:
+    //  - `features.emailVerification` (soft): mail the link and nag with a
+    //    banner, but `requireEmailVerification` above stays false so the user is
+    //    signed in immediately and nobody is ever locked out.
+    //  - `auth.requireEmailVerification` (hard): the legacy sign-in gate.
+    // These are independent options in better-auth: sign-up.mjs reads
+    // `sendOnSignUp ?? requireEmailVerification`, so an explicit `true` wins over
+    // the fallback. Still requires a real sender, or a new user on an instance
+    // with no transport would be told to check an inbox nothing was sent to.
+    emailVerification: (emailSender?.sendVerificationEmail
+      && (config.features.emailVerification === true || config.auth.requireEmailVerification === true))
       ? {
           sendVerificationEmail: async ({ user, url, token }) => {
             await emailSender.sendVerificationEmail!(user.email, url, token);

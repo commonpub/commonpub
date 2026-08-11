@@ -35,6 +35,7 @@ export const ENV_FLAG_MAP: Record<string, string> = {
   themeStudio: 'FEATURE_THEME_STUDIO',
   emailNotifications: 'FEATURE_EMAIL_NOTIFICATIONS',
   emailUnverified: 'FEATURE_EMAIL_UNVERIFIED',
+  emailVerification: 'FEATURE_EMAIL_VERIFICATION',
   adminBroadcast: 'FEATURE_ADMIN_BROADCAST',
   requireTermsAcceptance: 'FEATURE_REQUIRE_TERMS_ACCEPTANCE',
   publicApi: 'FEATURE_PUBLIC_API',

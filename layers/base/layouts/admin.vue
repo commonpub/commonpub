@@ -140,6 +140,9 @@ const { desktopCollapsed, mobileOpen, toggleDesktop, toggleMobile, closeMobile }
 
       <main class="admin-main">
         <div v-if="isAdmin">
+          <!-- Admins are users too, and an unverified operator address is
+               exactly the one worth confirming. Self-gating; see the component. -->
+          <EmailVerificationBanner />
           <slot />
         </div>
         <div v-else class="admin-denied">

@@ -121,6 +121,7 @@ export default defineNuxtConfig({
         admin: false,
         themeStudio: true,
         emailNotifications: false,
+        emailVerification: false,
         adminBroadcast: false,
         requireTermsAcceptance: false,
         publicApi: false,

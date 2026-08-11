@@ -4,6 +4,23 @@ import { createAuth } from '@commonpub/auth';
 import { emailTemplates, emitHook, recordConsent, getEmailBranding, getEffectiveTermsVersion } from '@commonpub/server';
 
 let authMiddleware: ReturnType<typeof createAuthMiddleware> | null = null;
+let authInstance: ReturnType<typeof createAuth> | null = null;
+
+/**
+ * The configured Better Auth instance, for the few server routes that need to
+ * call its server-side API directly (`auth.api.*`) rather than proxy an HTTP
+ * request through it.
+ *
+ * Exists because a verification token is a Better Auth HS256 JWT carrying
+ * `{ email, updateTo }`; hand-rolling one in a route would duplicate the token
+ * format and drift from it. Self-initializing, so a route may call this without
+ * depending on the middleware having run first (in practice it always has, since
+ * Nitro runs server/middleware before route handlers).
+ */
+export function getAuthInstance(): ReturnType<typeof createAuth> {
+  if (!authInstance) getAuthMiddleware();
+  return authInstance!;
+}
 
 function getAuthMiddleware(): ReturnType<typeof createAuthMiddleware> {
   if (authMiddleware) return authMiddleware;
@@ -69,6 +86,7 @@ function getAuthMiddleware(): ReturnType<typeof createAuthMiddleware> {
     },
   });
 
+  authInstance = auth;
   authMiddleware = createAuthMiddleware({ auth });
   return authMiddleware;
 }
@@ -172,6 +190,23 @@ export default defineEventHandler(async (event) => {
     || pathname === '/api/auth/delete-user'
     || pathname === '/api/auth/export-data';
   const isBetterAuthRoute = pathname.startsWith('/api/auth') && !isCustomAuthRoute;
+
+  // Better Auth's stock POST /api/auth/send-verification-email takes an arbitrary
+  // address in the body and requires NO session, so it will mail any registered
+  // unverified address on demand. It was inert while verification was never
+  // wired; turning on `features.emailVerification` would arm it as a mail-bomb
+  // relay against our own users. Worse, everything under /api/auth is dispatched
+  // here via sendWebResponse, which ends the response — so the CSRF and
+  // rate-limit middleware that run after this one never execute for it, and
+  // Better Auth's own 3/60s cap is per-process, per-IP, and disabled outside
+  // production. Close it and route callers to /api/user/resend-verification,
+  // which is session-scoped, per-user rate limited, and cannot name a victim.
+  if (pathname === '/api/auth/send-verification-email') {
+    throw createError({
+      statusCode: 404,
+      statusMessage: 'Not Found',
+    });
+  }
 
   if (isBetterAuthRoute) {
     try {
