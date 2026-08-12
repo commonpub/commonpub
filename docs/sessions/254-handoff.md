@@ -10,7 +10,7 @@ Detail: `docs/sessions/254-deep-audit-and-fixes.md`. Session 253's context: `253
 
 | Package | This roll | Package | This roll |
 |---|---|---|---|
-| `@commonpub/layer` | **0.132.1** | `@commonpub/ui` | **0.15.0** |
+| `@commonpub/layer` | **0.133.0** | `@commonpub/ui` | **0.15.0** |
 | `@commonpub/server` | **2.130.0** | `@commonpub/auth` | **0.13.0** |
 | `@commonpub/infra` | **0.21.0** | `@commonpub/theme-studio` | **0.7.0** |
 | `@commonpub/editor` | **0.17.1** | `@commonpub/explainer` | **0.8.1** |
@@ -20,7 +20,32 @@ No migration. Still **42 flags**. **All three instances deployed and verified li
 (commonpub.io, deveco.io, heatsynclabs.io healthy; stale-consent path closed, `total: null` not `-1`,
 link previews carry the instance brand).
 
-### Roll order matters, and this session got it wrong
+### SEO follow-up (layer 0.133.0), shipped and verified live
+
+- **Self-referential canonical on every page**, derived once in `seo-brand.ts` from the instance's
+  `siteUrl`. No local page had one; only mirror pages did. On a platform that mirrors content between
+  instances, this is what stops copies competing with the original.
+- **Query string dropped** from the canonical, which is its entire purpose.
+- **`og:url`** globally, from the same value so it cannot drift (was 0 of 89 pages).
+- **Contest pages** describe themselves via `markdownToExcerpt` (the helper the contest list already
+  uses) and are `og:type: article`. An absent description emits NO tag rather than an empty one.
+
+Left out deliberately: the `titleTemplate` refactor. Titles are already correct, so it is a cleanup
+with no user-visible benefit and it would touch every page title.
+
+### Roll order: got it wrong once, then right
+
+The second half of this session used the correct sequence and it worked:
+
+1. Land the monorepo PR (CI green).
+2. Publish a **prerelease under a non-default tag** — `pnpm publish --tag next` — so `latest` does not
+   move. Verified with `npm view @commonpub/layer dist-tags`.
+3. Open a **draft PR on a fork** pinned to that prerelease. Its CI compiles the real published
+   artifact, which is the only thing that typechecks the packaged layer against consumer code. Note
+   the fork CI triggers on `pull_request`, not on a branch push, so a PR is required.
+4. Only then publish the real version, repoint the forks, merge to deploy.
+
+### The mistake that made this necessary
 
 `layer@0.132.0` was published before any consumer had compiled against it. deveco's CI then failed on
 `search.vue: Property 'hasMore' does not exist on type 'PaginatedResponse<any>'`, and because npm is
@@ -124,15 +149,7 @@ own check reported 4.67:1.
 
 ## Open — ranked
 
-1. **SEO, from a wider audit after the roll.** Content pages (project/article/explainer) are well
-   covered — JSON-LD via `useJsonLd`, `og:description`, meta description. The gaps:
-   - **No `<link rel="canonical">` on any local page.** Only mirror/federated pages set one, pointing
-     at the origin. For a federating platform whose content is mirrored across instances, local
-     self-canonicalisation is what stops instances competing with each other in search. Highest value.
-   - **No `og:url` anywhere** (0 of 89 pages); `ogDescription` on 2 of 89; `description` on 50 of 89.
-   - **Contest pages** have no meta description, no `og:description`, no JSON-LD, and `og:type:
-     website` when they are events. They are the highest-value shareable pages on deveco.
-2. **Adopt a `titleTemplate`** so pages set only their own title and the head appends the brand. That
+1. **Adopt a `titleTemplate`** so pages set only their own title and the head appends the brand. That
    removes 27 call sites where the site name is appended by hand and makes the "never resolve the site
    name in a getter" rule unnecessary instead of merely enforced by a lint-style test. Also worth
    normalising the separator while doing it: `/hubs` used ` -- ` where everything else uses `, `.
