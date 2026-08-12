@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Serialized, ContentListItem, PaginatedResponse } from '@commonpub/server';
+import type { Serialized, ContentListItem, PaginatedPage } from '@commonpub/server';
 import type { ContentType } from '../../composables/useContentTypes';
 
 const route = useRoute();
@@ -23,7 +23,7 @@ useSeoMeta({
 const sortBy = ref('recent');
 const sortOptions = ['recent', 'popular'] as const;
 
-const { data, pending, error, refresh } = await useFetch<PaginatedResponse<Serialized<ContentListItem>>>('/api/content', {
+const { data, pending, error, refresh } = await useFetch<PaginatedPage<Serialized<ContentListItem>>>('/api/content', {
   query: computed(() => ({
     status: 'published',
     type: contentType.value,

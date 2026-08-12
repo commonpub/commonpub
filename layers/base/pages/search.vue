@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { PaginatedResponse } from '@commonpub/server';
+import type { PaginatedPage } from '@commonpub/server';
 
 useSeoMeta({
   title: `Search, ${useSiteName()}`,
@@ -68,7 +68,7 @@ const searchQuery = computed(() => ({
 }));
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const { data: results, status } = await useFetch<PaginatedResponse<any>>('/api/search', {
+const { data: results, status } = await useFetch<PaginatedPage<any>>('/api/search', {
   query: searchQuery,
   watch: [searchQuery],
   lazy: true,
