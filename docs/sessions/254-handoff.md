@@ -10,13 +10,28 @@ Detail: `docs/sessions/254-deep-audit-and-fixes.md`. Session 253's context: `253
 
 | Package | This roll | Package | This roll |
 |---|---|---|---|
-| `@commonpub/layer` | **0.132.0** | `@commonpub/ui` | **0.15.0** |
+| `@commonpub/layer` | **0.132.1** | `@commonpub/ui` | **0.15.0** |
 | `@commonpub/server` | **2.130.0** | `@commonpub/auth` | **0.13.0** |
 | `@commonpub/infra` | **0.21.0** | `@commonpub/theme-studio` | **0.7.0** |
 | `@commonpub/editor` | **0.17.1** | `@commonpub/explainer` | **0.8.1** |
 | `@commonpub/config` | 0.38.0 (unchanged) | `@commonpub/schema` | 0.63.0 (unchanged) |
 
-No migration. Still **42 flags**. 6013 unit tests, typecheck clean, lint 0 errors.
+No migration. Still **42 flags**. **All three instances deployed and verified live**
+(commonpub.io, deveco.io, heatsynclabs.io healthy; stale-consent path closed, `total: null` not `-1`,
+link previews carry the instance brand).
+
+### Roll order matters, and this session got it wrong
+
+`layer@0.132.0` was published before any consumer had compiled against it. deveco's CI then failed on
+`search.vue: Property 'hasMore' does not exist on type 'PaginatedResponse<any>'`, and because npm is
+irreversible the only fix was `0.132.1` plus a second pass over both forks' pins and all four
+lockfiles.
+
+The fork CI is the **only** thing that typechecks the published layer against real consumer code; the
+monorepo compiles layer sources in workspace context and does not see the same surface. So: land the
+monorepo PR, open the fork PRs against the upcoming version and let their CI run, publish only then.
+Do not attempt a local tarball shortcut — `npm pack` does not rewrite `workspace:*` and installing the
+result with pnpm into an npm-managed fork relocates half its `node_modules`.
 
 ## What shipped
 
@@ -109,24 +124,44 @@ own check reported 4.67:1.
 
 ## Open — ranked
 
-1. **Adopt a `titleTemplate`** so pages set only their own title and the head appends the brand. That
+1. **SEO, from a wider audit after the roll.** Content pages (project/article/explainer) are well
+   covered — JSON-LD via `useJsonLd`, `og:description`, meta description. The gaps:
+   - **No `<link rel="canonical">` on any local page.** Only mirror/federated pages set one, pointing
+     at the origin. For a federating platform whose content is mirrored across instances, local
+     self-canonicalisation is what stops instances competing with each other in search. Highest value.
+   - **No `og:url` anywhere** (0 of 89 pages); `ogDescription` on 2 of 89; `description` on 50 of 89.
+   - **Contest pages** have no meta description, no `og:description`, no JSON-LD, and `og:type:
+     website` when they are events. They are the highest-value shareable pages on deveco.
+2. **Adopt a `titleTemplate`** so pages set only their own title and the head appends the brand. That
    removes 27 call sites where the site name is appended by hand and makes the "never resolve the site
    name in a getter" rule unnecessary instead of merely enforced by a lint-style test. Also worth
    normalising the separator while doing it: `/hubs` used ` -- ` where everything else uses `, `.
-2. **The openapi document has no test coverage at all**, and this session changed its pagination
+3. **The openapi document has no test coverage at all**, and this session changed its pagination
    contract (`total` nullable, `hasMore` required). The fix is to extract the document builder into a
    pure function the way `buildPageCsp` was, which was too large to bundle into this roll. Until then a
    route added without `toPageMeta` will violate the published schema silently.
-3. **The resend rate limiter fails open on a Redis blip** and is the only guard on a metered side
+4. **The resend rate limiter fails open on a Redis blip** and is the only guard on a metered side
    effect. Fail-open is a documented codebase-wide invariant, so overriding it for the mail path is an
    operator policy call, not a bug fix.
-4. **Flag mirrors**: one flag is declared in seven places, four unguarded and drifted. Nothing is wrong
+5. **Flag mirrors**: one flag is declared in seven places, four unguarded and drifted. Nothing is wrong
    live. Same root cause as the `create-commonpub` drift.
-5. **`create-commonpub` must not publish another release** until its four confirmed defects are fixed;
+6. **`create-commonpub` must not publish another release** until its four confirmed defects are fixed;
    it hand-mirrors `apps/reference` config as Rust string literals and the mirrors have rotted.
-6. **`/api/notifications` and the hub product routes** are converted but not covered by the class e2e,
+7. **`/api/notifications` and the hub product routes** are converted but not covered by the class e2e,
    which probes only unauthenticated endpoints.
-7. Still deferred from 249/250: themed-email redesign, nonce CSP, legacy-URL scrub migration 0046.
+8. Still deferred from 249/250: themed-email redesign, nonce CSP, legacy-URL scrub migration 0046.
+
+## Verified sound in the wider audit (not findings, but worth not re-checking)
+
+- **Federation SSRF is consolidated properly.** `delivery.ts` uses `safeFetchSigned`, `actorResolver`
+  uses `isPrivateUrl`, and there are zero raw `fetch(` calls in federation code bypassing the guard.
+  Inbox HTTP-signature verification is genuinely wired at `inbox.ts:178`, not merely defined.
+- **Authorization**: nine protected endpoints probed unauthenticated on the live instance, all
+  401/404, no 200s.
+- **Security headers**: HSTS with preload, `X-Frame-Options: DENY`, nosniff, referrer-policy and
+  permissions-policy all present.
+- **SSR payload**: no email, password hash, IP, secret, API key or connection string in served HTML.
+- `robots.txt`, `sitemap.xml` and `feed.xml` all serve correctly.
 
 ## Notes for whoever picks this up
 
