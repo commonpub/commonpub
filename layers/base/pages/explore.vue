@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Serialized, ContentListItem, PaginatedResponse } from '@commonpub/server';
+import type { Serialized, ContentListItem, PaginatedPage } from '@commonpub/server';
 
 useSeoMeta({
   title: `Explore, ${useSiteName()}`,
@@ -23,7 +23,7 @@ const contentQuery = computed(() => ({
   limit: CONTENT_PAGE_SIZE,
 }));
 
-const { data: content, pending: contentPending, error: contentError, refresh: refreshContent } = await useFetch<PaginatedResponse<Serialized<ContentListItem>>>('/api/content', {
+const { data: content, pending: contentPending, error: contentError, refresh: refreshContent } = await useFetch<PaginatedPage<Serialized<ContentListItem>>>('/api/content', {
   query: contentQuery,
   watch: [contentQuery],
 });
@@ -37,7 +37,7 @@ async function loadMoreContent(): Promise<void> {
   if (!content.value?.items) return;
   contentLoadingMore.value = true;
   try {
-    const more = await $fetch<PaginatedResponse<Serialized<ContentListItem>>>('/api/content', {
+    const more = await $fetch<PaginatedPage<Serialized<ContentListItem>>>('/api/content', {
       query: { ...contentQuery.value, offset: content.value.items.length },
     });
     if (more?.items?.length) {

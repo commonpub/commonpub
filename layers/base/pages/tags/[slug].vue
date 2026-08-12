@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Serialized, ContentListItem, PaginatedResponse } from '@commonpub/server';
+import type { Serialized, ContentListItem, PaginatedPage } from '@commonpub/server';
 
 const route = useRoute();
 const tagSlug = computed(() => route.params.slug as string);
@@ -17,7 +17,7 @@ const PAGE_SIZE = 20;
 const loadingMore = ref(false);
 const allLoaded = ref(false);
 
-const { data: results, pending } = await useFetch<PaginatedResponse<Serialized<ContentListItem>>>('/api/content', {
+const { data: results, pending } = await useFetch<PaginatedPage<Serialized<ContentListItem>>>('/api/content', {
   query: computed(() => ({
     tag: tagSlug.value,
     status: 'published',
@@ -27,8 +27,18 @@ const { data: results, pending } = await useFetch<PaginatedResponse<Serialized<C
 });
 
 const items = computed(() => results.value?.items ?? []);
-const total = computed(() => results.value?.total ?? 0);
-const hasMore = computed(() => !allLoaded.value && items.value.length < total.value);
+// `/api/content` reports `total: null` when it skipped COUNT(*), so this must
+// not coerce that to 0: `items.length < 0` is false, which would hide the Load
+// more button and strand the visitor. Safe today only because the first fetch
+// is at offset 0 and is always counted; not a property worth depending on.
+const total = computed<number | null>(() => {
+  const t = results.value?.total;
+  return typeof t === 'number' && t >= 0 ? t : null;
+});
+const hasMore = computed(() =>
+  !allLoaded.value
+  && (total.value === null ? results.value?.hasMore === true : items.value.length < total.value),
+);
 
 // Reset when tag changes
 watch(tagSlug, () => { allLoaded.value = false; });
@@ -38,7 +48,7 @@ async function loadMore(): Promise<void> {
   loadingMore.value = true;
   try {
     const nextOffset = results.value.items.length;
-    const more = await $fetch<PaginatedResponse<Serialized<ContentListItem>>>('/api/content', {
+    const more = await $fetch<PaginatedPage<Serialized<ContentListItem>>>('/api/content', {
       query: { tag: tagSlug.value, status: 'published', limit: PAGE_SIZE, offset: nextOffset },
     });
     if (more?.items?.length) {
@@ -61,7 +71,7 @@ async function loadMore(): Promise<void> {
       <div class="cpub-tag-badge"><i class="fa-solid fa-hashtag"></i></div>
       <div>
         <h1 class="cpub-tag-title">{{ tagSlug }}</h1>
-        <p class="cpub-tag-count">{{ total }} {{ total === 1 ? 'post' : 'posts' }}</p>
+        <p v-if="total !== null" class="cpub-tag-count">{{ total }} {{ total === 1 ? 'post' : 'posts' }}</p>
       </div>
     </div>
 
