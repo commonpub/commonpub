@@ -1,4 +1,4 @@
-import { listContent, toPublicContentSummary, type PublicContentRow } from '@commonpub/server';
+import { listContent, toPublicContentSummary, toPageMeta, type PublicContentRow } from '@commonpub/server';
 import { z } from 'zod';
 
 const querySchema = z.object({
@@ -49,9 +49,15 @@ export default defineEventHandler(async (event) => {
   const domain = config.instance.domain;
   const items = result.items.map((row) => toPublicContentSummary(row as unknown as PublicContentRow, domain));
 
+  const page = toPageMeta({
+    total: result.total,
+    returned: result.items.length,
+    limit: filters.limit,
+    offset: filters.offset,
+  });
   return {
     items,
-    total: result.total,
+    ...page,
     limit: filters.limit,
     offset: filters.offset,
   };

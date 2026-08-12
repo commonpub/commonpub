@@ -744,7 +744,7 @@ function onHandlePointerDown(e: PointerEvent): void {
 }
 .cpub-layout-section--selected::after {
   background: var(--accent);
-  color: var(--surface);
+  color: var(--color-on-accent);
   border-color: var(--accent);
   opacity: 1;
 }
@@ -902,7 +902,7 @@ function onHandlePointerDown(e: PointerEvent): void {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: var(--surface);
+  color: var(--color-on-accent);
   font-size: 10px;
 }
 .cpub-layout-section-resize-handle i {
@@ -987,7 +987,7 @@ function onHandlePointerDown(e: PointerEvent): void {
 .cpub-layout-section-span-pill--active {
   background: var(--accent);
   border-color: var(--accent);
-  color: var(--surface);
+  color: var(--color-on-accent);
   /* Subtle scale to draw the eye during the active resize. Skipped
      under prefers-reduced-motion. */
   transform: scale(1.05);
@@ -1016,7 +1016,7 @@ function onHandlePointerDown(e: PointerEvent): void {
   right: 2px;
   padding: 2px var(--space-2);
   background: var(--red, var(--accent));
-  color: var(--surface);
+  color: var(--color-on-accent);
   font-family: var(--font-mono);
   font-size: var(--text-xs);
   text-transform: uppercase;

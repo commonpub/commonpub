@@ -185,7 +185,7 @@ function onDragEnd(): void {
 
 .cpub-section-num-active {
   background: var(--accent);
-  color: var(--color-text-inverse);
+  color: var(--color-on-accent);
 }
 
 .cpub-section-info {

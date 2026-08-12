@@ -1,4 +1,4 @@
-import { searchContent, toPublicContentSummary, type PublicContentRow } from '@commonpub/server';
+import { searchContent, toPublicContentSummary, toPageMeta, type PublicContentRow } from '@commonpub/server';
 import { z } from 'zod';
 
 const querySchema = z.object({
@@ -22,5 +22,13 @@ export default defineEventHandler(async (event) => {
   const items = (result.items as unknown as PublicContentRow[])
     .filter((r) => r.status === 'published' && !r.deletedAt)
     .map((r) => toPublicContentSummary(r, domain));
-  return { items, total: result.total, limit, offset, query: q };
+  // searchContent skips COUNT(*) past the first page, so this route was
+  // returning total: -1 through the versioned contract.
+  return {
+    items,
+    ...toPageMeta({ total: result.total, returned: result.items.length, limit, offset }),
+    limit,
+    offset,
+    query: q,
+  };
 });

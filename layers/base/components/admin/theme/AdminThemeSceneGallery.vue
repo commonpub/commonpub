@@ -229,7 +229,7 @@ export function digestFor(body: string): string {
 .scene-btn:disabled { opacity: 0.55; cursor: not-allowed; box-shadow: none; transform: none; }
 .scene-btn-primary { background: var(--accent); color: var(--color-on-accent); border-color: var(--border); }
 .scene-btn-ghost { background: transparent; box-shadow: none; }
-.scene-btn-danger { background: var(--red); color: var(--color-on-accent); border-color: var(--border); }
+.scene-btn-danger { background: var(--red); color: var(--color-on-red); border-color: var(--border); }
 
 /* Badges */
 .scene-badge {

@@ -241,12 +241,12 @@ function onDragEnd(event: DragEvent): void {
 
 .cpub-block-ctrl--danger:hover {
   background: var(--red);
-  color: var(--surface);
+  color: var(--color-on-red);
 }
 
 .cpub-block-ctrl--armed {
   background: var(--red);
-  color: var(--surface);
+  color: var(--color-on-red);
   animation: cpub-pulse 0.6s ease-in-out infinite alternate;
 }
 

@@ -1,5 +1,5 @@
-import { listNotifications } from '@commonpub/server';
-import type { PaginatedResponse, NotificationItem, NotificationType } from '@commonpub/server';
+import { listNotifications, toPageMeta, normalizePagination } from '@commonpub/server';
+import type { PaginatedPage, NotificationItem, NotificationType } from '@commonpub/server';
 import { z } from 'zod';
 
 const notificationsQuerySchema = z.object({
@@ -9,16 +9,18 @@ const notificationsQuerySchema = z.object({
   offset: z.coerce.number().int().min(0).optional(),
 });
 
-export default defineEventHandler(async (event): Promise<PaginatedResponse<NotificationItem>> => {
+export default defineEventHandler(async (event): Promise<PaginatedPage<NotificationItem>> => {
   const user = requireAuth(event);
   const db = useDB();
   const query = parseQueryParams(event, notificationsQuerySchema);
 
-  return listNotifications(db, {
+  const { limit, offset } = normalizePagination(query);
+  const result = await listNotifications(db, {
     userId: user.id,
     type: query.type as NotificationType | undefined,
     read: query.read !== undefined ? query.read === 'true' : undefined,
-    limit: query.limit,
-    offset: query.offset,
+    limit,
+    offset,
   });
+  return { ...result, ...toPageMeta({ total: result.total, returned: result.items.length, limit, offset }) };
 });

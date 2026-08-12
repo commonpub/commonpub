@@ -180,6 +180,67 @@ export async function countRows(
   return result[0]?.count ?? 0;
 }
 
+/**
+ * The `total` a list helper reports when it deliberately skipped `COUNT(*)`.
+ *
+ * Counting every matching row is the expensive half of an offset-paginated
+ * query, so the list helpers only count on the first page and report this
+ * sentinel afterwards. It is an INTERNAL protocol between a list helper and its
+ * caller, and it has to be translated before it reaches a client: `-1` is not a
+ * number of results, and the usual `?? 0` guard does not catch it, because
+ * nullish coalescing fires only on `null` and `undefined`.
+ *
+ * Session 254 found it reaching real users. `/api/search` on deveco.io returned
+ * `{total: -1, items: 11}`, which rendered as "-1 results" and, worse, collapsed
+ * `Math.ceil(total / pageSize)` to a single page so the `v-if` around the pager
+ * went false: a visitor who clicked to page 2 lost both navigation buttons and
+ * had no way back, because the page number is not in the URL.
+ *
+ * Never forward a raw total to a client. Use {@link toPageMeta}.
+ */
+export const COUNT_NOT_COMPUTED = -1;
+
+/** Whether a reported total is a real count rather than {@link COUNT_NOT_COMPUTED}. */
+export function isCountComputed(total: number | null | undefined): total is number {
+  return typeof total === 'number' && total >= 0;
+}
+
+/** The pagination facts a client can rely on, with "unknown" made explicit. */
+export interface PageMeta {
+  /** Matching rows, or `null` when the count was skipped for this page. */
+  total: number | null;
+  /** Whether a further page exists. Answerable even when `total` is null. */
+  hasMore: boolean;
+}
+
+/**
+ * Translate an internal list result into the pagination facts a client needs.
+ *
+ * `total` becomes `null` rather than `0` or `-1` when it was not computed, so a
+ * consumer cannot mistake "not counted" for "none" in either direction. The
+ * distinction matters: `0` hides a pager that should be shown, and `-1` renders
+ * as a number no user should ever see.
+ *
+ * `hasMore` is the field a pager should actually bind to, because it is correct
+ * whether or not a count was taken.
+ */
+export function toPageMeta(args: {
+  total: number;
+  returned: number;
+  limit: number;
+  offset: number;
+}): PageMeta {
+  const { total, returned, limit, offset } = args;
+  if (isCountComputed(total)) {
+    return { total, hasMore: offset + returned < total };
+  }
+  // With no count, a full page is the only evidence that more rows exist. A
+  // final page that exactly fills `limit` therefore advertises one page too
+  // many, and the next request comes back empty. That is the right direction to
+  // be wrong in: the alternative hides rows the visitor asked for.
+  return { total: null, hasMore: returned === limit };
+}
+
 // ---- Keyset (cursor) pagination ----
 
 /**

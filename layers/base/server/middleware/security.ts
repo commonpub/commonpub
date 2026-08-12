@@ -1,5 +1,5 @@
 // Security middleware — rate limiting + security headers + CSP
-import { checkRateLimit, createRateLimitStore, createRedisFailOpenLogger, shouldSkipRateLimit, getSecurityHeaders, buildCspHeader, buildCspDirectives, appendCspSources, getClientIp } from '@commonpub/server';
+import { checkRateLimit, createRateLimitStore, createRedisFailOpenLogger, shouldSkipRateLimit, getSecurityHeaders, buildCspHeader, buildPageCsp, getClientIp } from '@commonpub/server';
 import { analyticsCspOrigins } from '@commonpub/config/analytics';
 
 // Structured JSON sink for fail-open events. Emits one JSON line per event
@@ -88,32 +88,19 @@ export default defineEventHandler(async (event) => {
 
   // Content Security Policy — skip for API responses (JSON doesn't need CSP)
   if (!pathname.startsWith('/api/')) {
-    const cspDirectives = buildCspDirectives();
-    // Nuxt SSR emits inline scripts for payload hydration — unsafe-inline is required
-    cspDirectives['script-src'] = "'self' 'unsafe-inline'" + (isDev ? " 'unsafe-eval' blob:" : '');
-    cspDirectives['style-src'] = "'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com";
-    cspDirectives['font-src'] = "'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com";
-    if (isDev) {
-      cspDirectives['connect-src'] = "'self' ws: wss:";
-      cspDirectives['worker-src'] = "'self' blob:";
-    }
-    // Analytics origins are DERIVED from the configured provider, never
-    // hardcoded: this middleware ships to every instance, and an instance that
-    // measures nothing must keep the tight default. appendCspSources unions
-    // rather than assigns, so the dev ws:/wss: above survives.
+    // The whole decision lives in `buildPageCsp`, a pure function, so it can be
+    // asserted on by value. The previous inline version could only be tested by
+    // regex-matching this file's source, and that test stayed green while the
+    // flag ternary was inverted — the exact defect it existed to prevent.
     //
-    // Gated on the FLAG as well as the config block. Declaring a provider is
-    // not the same as switching it on: the reference app declares one so its
-    // e2e can exercise the consent gate, and without this check commonpub.io
-    // shipped a CSP allowing googletagmanager while its own privacy page
-    // correctly said it uses no analytics. Those two disagreeing is precisely
-    // what deriving everything from one registry is supposed to prevent.
+    // Origins are DERIVED from the configured provider and gated on the FLAG as
+    // well as the config block: declaring a provider is not switching it on.
     const cfg = useConfig();
-    const analytics = cfg.features.analytics === true
-      ? analyticsCspOrigins(cfg.analytics)
-      : { script: [], connect: [] };
-    appendCspSources(cspDirectives, 'script-src', analytics.script);
-    appendCspSources(cspDirectives, 'connect-src', analytics.connect);
+    const cspDirectives = buildPageCsp({
+      isDev,
+      analyticsEnabled: cfg.features.analytics === true,
+      analyticsOrigins: analyticsCspOrigins(cfg.analytics),
+    });
     setResponseHeader(event, 'Content-Security-Policy', buildCspHeader(cspDirectives));
   }
 });

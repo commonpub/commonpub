@@ -269,6 +269,56 @@ describe('createAuth', () => {
     expect(call.emailAndPassword.requireEmailVerification).toBe(false);
   });
 
+  // ── The hard gate's recovery path (session 254) ──
+  // `auth.requireEmailVerification` was a ship gate because turning it on left
+  // unverified accounts with NO way back in: better-auth issues no session to an
+  // unverified user under the hard gate (sign-up.mjs computes
+  // shouldSkipAutoSignIn from requireEmailVerification), so the session-scoped
+  // resend route is unreachable for exactly that population; the stock
+  // session-less sender is 404'd as a mail-bomb relay; password reset never
+  // writes emailVerified; no admin route does either.
+  it('arms sendOnSignIn, so a blocked sign-in mails a fresh link', () => {
+    const sendVerificationEmail = vi.fn();
+    createAuth({
+      config: createMockConfig({}, { emailVerification: true }),
+      db: {} as any,
+      secret: 'test-secret',
+      emailSender: { sendVerificationEmail },
+    });
+
+    const call = (betterAuth as unknown as ReturnType<typeof vi.fn>).mock.calls.at(-1)![0];
+    expect(
+      call.emailVerification.sendOnSignIn,
+      'without this the hard gate locks out anyone whose one-hour token expired',
+    ).toBe(true);
+  });
+
+  it('still arms sendOnSignIn when a sender exists but the soft flag is off', () => {
+    // It must be armed BEFORE the hard gate is enabled, not as part of enabling
+    // it, or the first operator to flip that flag discovers the gap in
+    // production. better-auth only consults it inside the
+    // requireEmailVerification branch, so this is inert until then.
+    const sendVerificationEmail = vi.fn();
+    createAuth({
+      config: createMockConfig(),
+      db: {} as any,
+      secret: 'test-secret',
+      emailSender: { sendVerificationEmail },
+    });
+
+    const call = (betterAuth as unknown as ReturnType<typeof vi.fn>).mock.calls.at(-1)![0];
+    expect(call.emailVerification.sendOnSignIn).toBe(true);
+    expect(call.emailAndPassword.requireEmailVerification).toBe(false);
+  });
+
+  it('configures no verification wiring at all when there is no sender', () => {
+    // A console sink is not a transport. Arming sendOnSignIn without one would
+    // promise a link that is never delivered.
+    createAuth({ config: createMockConfig(), db: {} as any, secret: 'test-secret' });
+    const call = (betterAuth as unknown as ReturnType<typeof vi.fn>).mock.calls.at(-1)![0];
+    expect(call.emailVerification).toBeUndefined();
+  });
+
   it('does not depend on the FLAG at construction — the caller\'s closure owns policy', () => {
     // The auth instance is memoized for the process lifetime, so a flag read
     // here would freeze. features.emailVerification is a RUNTIME flag an admin

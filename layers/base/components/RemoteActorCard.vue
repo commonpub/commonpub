@@ -164,12 +164,12 @@ async function toggleFollow() {
 
 .cpub-remote-actor-card__follow-btn:hover:not(:disabled) {
   background: var(--accent);
-  color: var(--surface-1);
+  color: var(--color-on-accent);
 }
 
 .cpub-remote-actor-card__follow-btn--following {
   background: var(--accent);
-  color: var(--surface-1);
+  color: var(--color-on-accent);
 }
 
 .cpub-remote-actor-card__follow-btn--pending {

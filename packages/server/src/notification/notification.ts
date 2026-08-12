@@ -1,7 +1,7 @@
 import { eq, and, desc, sql } from 'drizzle-orm';
 import { notifications, users } from '@commonpub/schema';
 import type { DB } from '../types.js';
-import { normalizePagination, countRows } from '../query.js';
+import { normalizePagination, countRows, COUNT_NOT_COMPUTED } from '../query.js';
 import { publishSseEvent } from '../realtime/index.js';
 
 export interface NotificationItem {
@@ -78,7 +78,7 @@ export async function listNotifications(
       .offset(offset),
     // COUNT(*) only on the first page: the notifications UI detects "has more" via
     // items.length and never reads `total` on deep pages. `-1` = "not computed".
-    offset === 0 ? countRows(db, notifications, where) : Promise.resolve(-1),
+    offset === 0 ? countRows(db, notifications, where) : Promise.resolve(COUNT_NOT_COMPUTED),
   ]);
 
   const items: NotificationItem[] = rows.map((row) => ({

@@ -46,7 +46,11 @@ watch(selectedVersion, () => {
   refreshPages();
 });
 
-useSeoMeta({ title: () => `Edit ${site.value?.name ?? 'Docs'}, ${useSiteName()}` });
+// Resolved HERE, in setup scope. Inside a useSeoMeta getter the head
+// resolver runs outside the component context, so useSiteName()'s
+// useState() throws and it silently falls back to 'CommonPub'.
+const siteName = useSiteName();
+useSeoMeta({ title: () => `Edit ${site.value?.name ?? 'Docs'}, ${siteName}` });
 
 interface DocsPage {
   id: string;
@@ -980,7 +984,7 @@ watch(site, (s) => {
   padding: 3px 10px;
   background: var(--accent);
   border: var(--border-width-default) solid var(--accent);
-  color: var(--color-text-inverse, #fff);
+  color: var(--color-on-accent);
   font-family: var(--font-mono);
   font-size: 9px;
   font-weight: 700;
@@ -1284,6 +1288,6 @@ watch(site, (s) => {
 
 .cpub-btn-danger:hover {
   background: var(--red, #e04030);
-  color: var(--color-text-inverse, #fff);
+  color: var(--color-on-red);
 }
 </style>

@@ -40,8 +40,12 @@ async function handleDelete(): Promise<void> {
   }
 }
 
+// Resolved HERE, in setup scope. Inside a useSeoMeta getter the head
+// resolver runs outside the component context, so useSiteName()'s
+// useState() throws and it silently falls back to 'CommonPub'.
+const siteName = useSiteName();
 useSeoMeta({
-  title: () => product.value ? `${product.value.name}, ${useSiteName()}` : `Product, ${useSiteName()}`,
+  title: () => product.value ? `${product.value.name}, ${siteName}` : `Product, ${siteName}`,
   description: () => product.value?.description ?? '',
 });
 </script>

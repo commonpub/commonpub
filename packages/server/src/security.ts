@@ -2,6 +2,7 @@
 export {
   buildCspDirectives,
   buildCspHeader,
+  buildPageCsp,
   appendCspSources,
   getSecurityHeaders,
   getStaticCacheHeaders,
@@ -14,4 +15,4 @@ export {
   checkRateLimit,
   getClientIp,
 } from '@commonpub/infra/security';
-export type { RateLimitTier, RateLimitResult, GetClientIpOptions } from '@commonpub/infra/security';
+export type { RateLimitTier, RateLimitResult, GetClientIpOptions, PageCspInput } from '@commonpub/infra/security';

@@ -179,10 +179,32 @@ describe('ContestActionBar — behaviour and a11y', () => {
 
   it('does not reuse a class the e2e suite asserts in strict mode', () => {
     // The first namespace attempt (cpub-cbar) collided with CpubCriteriaBar.
+    //
+    // This compares CLASS TOKENS, not raw HTML substrings. The previous version
+    // searched for the string `cpub-cbar"` with a trailing quote, which could
+    // never match: the root carries two classes, so a reused namespace renders
+    // as `class="cpub-cbar cpub-overlay-surface"` and the quote lands after the
+    // second one. That entry was structurally unfirable, and the guard it was
+    // supposed to provide did not exist.
     const { container } = mount({ isAuthenticated: false });
-    const html = container.innerHTML;
-    for (const taken of ['cpub-hero-cta', 'cpub-stage-chip', 'cpub-tl-now', 'cpub-signup', 'cpub-entries-cta', 'cpub-cbar"']) {
-      expect(html, `must not reuse ${taken}`).not.toContain(taken);
+    const rendered = new Set<string>();
+    for (const el of Array.from(container.querySelectorAll('[class]'))) {
+      for (const token of el.className.toString().split(/\s+/)) {
+        if (token) rendered.add(token);
+      }
     }
+    for (const taken of ['cpub-hero-cta', 'cpub-stage-chip', 'cpub-tl-now', 'cpub-signup', 'cpub-entries-cta', 'cpub-cbar']) {
+      expect(
+        Array.from(rendered),
+        `${taken} is asserted in strict mode by another spec and must not be reused here`,
+      ).not.toContain(taken);
+    }
+  });
+
+  it('renders classes at all, so the reuse check above is not vacuous', () => {
+    // Without this, an empty render would satisfy every "must not contain"
+    // assertion above and report a clean result.
+    const { container } = mount({ isAuthenticated: false });
+    expect(container.querySelectorAll('[class]').length).toBeGreaterThan(0);
   });
 });

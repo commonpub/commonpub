@@ -5,8 +5,12 @@ const videoId = computed(() => route.params.id as string);
 // Video API may return enriched data beyond the base VideoDetail type
 const { data: video } = useLazyFetch<any>(() => `/api/videos/${videoId.value}`);
 
+// Resolved HERE, in setup scope. Inside a useSeoMeta getter the head
+// resolver runs outside the component context, so useSiteName()'s
+// useState() throws and it silently falls back to 'CommonPub'.
+const siteName = useSiteName();
 useSeoMeta({
-  title: () => video.value?.title ? `${video.value.title}, ${useSiteName()}` : `Video, ${useSiteName()}`,
+  title: () => video.value?.title ? `${video.value.title}, ${siteName}` : `Video, ${siteName}`,
   description: () => video.value?.description ?? '',
 });
 

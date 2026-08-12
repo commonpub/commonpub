@@ -2,7 +2,11 @@
 import type { RoleWithPermissions } from '@commonpub/server';
 
 definePageMeta({ layout: 'admin', middleware: 'auth' });
-useSeoMeta({ title: () => `Roles, ${useSiteName()}` });
+// Resolved HERE, in setup scope. Inside a useSeoMeta getter the head
+// resolver runs outside the component context, so useSiteName()'s
+// useState() throws and it silently falls back to 'CommonPub'.
+const siteName = useSiteName();
+useSeoMeta({ title: () => `Roles, ${siteName}` });
 
 const toast = useToast();
 const { extract: extractError } = useApiError();

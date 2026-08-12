@@ -386,7 +386,7 @@ useSeoMeta({
 .cpub-btn-primary:hover:not(:disabled) { opacity: 0.9; }
 .cpub-btn-primary:disabled { opacity: 0.5; cursor: default; }
 .cpub-btn-danger { color: var(--red-text); border-color: var(--red); }
-.cpub-btn-danger:hover { background: var(--red); color: var(--color-on-accent); }
+.cpub-btn-danger:hover { background: var(--red); color: var(--color-on-red); }
 
 /* Reply form */
 .cpub-reply-form { margin-bottom: 16px; }

@@ -335,7 +335,7 @@ async function startConversation(): Promise<void> {
   height: 18px;
   padding: 0 5px;
   background: var(--accent);
-  color: var(--color-text-inverse);
+  color: var(--color-on-accent);
   font-family: var(--font-mono);
   font-size: 10px;
   font-weight: 700;

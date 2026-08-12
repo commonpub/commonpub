@@ -6,7 +6,9 @@
  * `entryCount` was rendered ungated at all 9 of its sites (so an open contest
  * read "0 entries"), and it was unpluralized at two of them (the live deveco
  * contest read "1 entries"). The third cause, the SSR-zero countdown, is fixed
- * in CountdownTimer.vue and covered by its own test.
+ * in CountdownTimer.vue and covered by CountdownTimer.test.ts, which renders
+ * the component through the SSR path where the bug actually appeared. That
+ * claim was previously false: no test rendered the component at all.
  */
 import { describe, it, expect } from 'vitest';
 import {

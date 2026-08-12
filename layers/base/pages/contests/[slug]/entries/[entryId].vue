@@ -14,8 +14,12 @@ const entryId = route.params.entryId as string;
 const { data: contest } = useLazyFetch<Serialized<ContestDetail>>(`/api/contests/${slug}`);
 const { data: entry, error } = useLazyFetch<Serialized<ContestEntryItem>>(`/api/contests/${slug}/entries/${entryId}`);
 
+// Resolved HERE, in setup scope. Inside a useSeoMeta getter the head
+// resolver runs outside the component context, so useSiteName()'s
+// useState() throws and it silently falls back to 'CommonPub'.
+const siteName = useSiteName();
 useSeoMeta({
-  title: () => `${entry.value?.contentTitle || 'Entry'}, ${contest.value?.title || 'Contest'}, ${useSiteName()}`,
+  title: () => `${entry.value?.contentTitle || 'Entry'}, ${contest.value?.title || 'Contest'}, ${siteName}`,
 });
 
 const stages = computed<ContestStage[]>(() => {

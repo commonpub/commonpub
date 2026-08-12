@@ -1,4 +1,4 @@
-import { toPublicTag, type PublicTagRow } from '@commonpub/server';
+import { toPublicTag, toPageMeta, type PublicTagRow } from '@commonpub/server';
 import { tags, contentTags } from '@commonpub/schema';
 import { desc, sql } from 'drizzle-orm';
 import { z } from 'zod';
@@ -35,5 +35,5 @@ export default defineEventHandler(async (event) => {
   const [{ total }] = await db.select({ total: sql<number>`count(*)::int` }).from(tags);
   const domain = config.instance.domain;
   const items = (rows as unknown as PublicTagRow[]).map((r) => toPublicTag(r, domain));
-  return { items, total: total ?? 0, limit, offset };
+  return { items, ...toPageMeta({ total: total ?? 0, returned: rows.length, limit, offset }), limit, offset };
 });

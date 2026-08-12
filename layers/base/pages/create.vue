@@ -157,7 +157,7 @@ const types = computed(() => allTypes.filter(t => isTypeEnabled(t.type as Conten
   text-transform: uppercase;
   padding: 2px 6px;
   background: var(--accent);
-  color: var(--color-text-inverse);
+  color: var(--color-on-accent);
   border: var(--border-width-default) solid var(--border);
 }
 
@@ -194,7 +194,7 @@ const types = computed(() => allTypes.filter(t => isTypeEnabled(t.type as Conten
 
 .cpub-create-card:hover .cpub-create-card-arrow {
   background: var(--accent);
-  color: var(--color-text-inverse);
+  color: var(--color-on-accent);
   border-color: var(--border);
 }
 

@@ -9,7 +9,7 @@ import {
 } from '@commonpub/schema';
 import type { DB, UserRef } from '../types.js';
 import { generateSlug } from '../utils.js';
-import { ensureUniqueSlugFor, USER_REF_SELECT, normalizePagination, countRows, escapeLike } from '../query.js';
+import { ensureUniqueSlugFor, USER_REF_SELECT, normalizePagination, countRows, escapeLike, COUNT_NOT_COMPUTED } from '../query.js';
 import { visibleContentWhere } from '../content/visibility.js';
 
 // --- Types ---
@@ -286,7 +286,7 @@ export async function listHubProducts(
       .limit(limit)
       .offset(offset),
     // COUNT(*) only on the first page; deep load-more pages skip it (`-1` = "not computed").
-    offset === 0 ? countRows(db, products, where) : Promise.resolve(-1),
+    offset === 0 ? countRows(db, products, where) : Promise.resolve(COUNT_NOT_COMPUTED),
   ]);
 
   const items: ProductListItem[] = rows.map((p) => ({
@@ -363,7 +363,7 @@ export async function searchProducts(
       .limit(limit)
       .offset(offset),
     // COUNT(*) only on the first page; deep load-more pages skip it (`-1` = "not computed").
-    offset === 0 ? countRows(db, products, where) : Promise.resolve(-1),
+    offset === 0 ? countRows(db, products, where) : Promise.resolve(COUNT_NOT_COMPUTED),
   ]);
 
   const items: ProductListItem[] = rows.map((p) => ({
@@ -599,7 +599,7 @@ export async function listProductContent(
           .from(contentProducts)
           .innerJoin(contentItems, eq(contentProducts.contentId, contentItems.id))
           .where(where)
-      : Promise.resolve([{ count: -1 }]),
+      : Promise.resolve([{ count: COUNT_NOT_COMPUTED }]),
   ]);
 
   return {
@@ -676,7 +676,7 @@ export async function listHubGallery(
             .from(contentProducts)
             .innerJoin(contentItems, eq(contentProducts.contentId, contentItems.id))
             .where(where)
-        : Promise.resolve([{ count: -1 }]),
+        : Promise.resolve([{ count: COUNT_NOT_COMPUTED }]),
     ]);
 
     return {
@@ -739,7 +739,7 @@ export async function listHubGallery(
             .from(contentProducts)
             .innerJoin(contentItems, eq(contentProducts.contentId, contentItems.id))
             .where(where)
-        : Promise.resolve([{ count: -1 }]),
+        : Promise.resolve([{ count: COUNT_NOT_COMPUTED }]),
     ]);
 
     return {
@@ -784,7 +784,7 @@ export async function listHubGallery(
           .from(hubShares)
           .innerJoin(contentItems, eq(hubShares.contentId, contentItems.id))
           .where(where)
-      : Promise.resolve([{ count: -1 }]),
+      : Promise.resolve([{ count: COUNT_NOT_COMPUTED }]),
   ]);
 
   return {

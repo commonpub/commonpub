@@ -3,7 +3,7 @@ export { onHook, emitHook, clearHooks, hookCount } from './hooks.js';
 export type { HookPayloads, HookEvent, HookHandler } from './hooks.js';
 
 // Types
-export type { DB, Serialized, PaginatedResponse } from './types.js';
+export type { DB, Serialized, PaginatedResponse, PaginatedPage } from './types.js';
 export type {
   UserRef,
   UserProfile,
@@ -93,8 +93,11 @@ export {
   buildContentUrl,
   buildContentEditPath,
   buildContentNewPath,
+  COUNT_NOT_COMPUTED,
+  isCountComputed,
+  toPageMeta,
 } from './query.js';
-export type { PaginationOpts } from './query.js';
+export type { PaginationOpts, PageMeta } from './query.js';
 
 // Content
 export {
@@ -353,6 +356,7 @@ export type { UserDataExport, UserSearchResult, ConsentKind, RecordConsentInput 
 export {
   buildCspDirectives,
   buildCspHeader,
+  buildPageCsp,
   appendCspSources,
   getSecurityHeaders,
   getStaticCacheHeaders,

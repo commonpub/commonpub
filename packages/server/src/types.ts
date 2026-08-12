@@ -32,9 +32,31 @@ export type Serialized<T> = {
 };
 
 /** Paginated response wrapper */
+/**
+ * What a list HELPER returns internally.
+ *
+ * `total` may be `COUNT_NOT_COMPUTED` (-1), because the helpers only count on
+ * the first page. Do NOT return this shape straight to a client: that is the
+ * conflation that let "-1 results" reach production in session 253. Translate
+ * it with `toPageMeta` and return {@link PaginatedPage} instead.
+ */
 export interface PaginatedResponse<T> {
   items: T[];
   total: number;
+}
+
+/**
+ * What a list ROUTE returns to a client, with the sentinel already translated.
+ *
+ * `total` is `null` rather than `-1` or `0` when the count was skipped, so a
+ * consumer can tell "not counted" from "none" and render neither a wrong number
+ * nor an empty state. `hasMore` is what a pager should bind to, because it is
+ * correct either way.
+ */
+export interface PaginatedPage<T> {
+  items: T[];
+  total: number | null;
+  hasMore: boolean;
 }
 
 // --- Re-export literal union types from schema ---

@@ -89,6 +89,14 @@ export const TOKEN_SPECS: TokenSpec[] = [
   { key: 'accent-border', group: 'accent', kind: 'color', default: 'rgba(91, 156, 246, 0.25)' },
   { key: 'color-primary-hover', group: 'accent', kind: 'color', default: '#4a8be5', description: 'Accent hover state' },
   { key: 'color-on-accent', group: 'accent', kind: 'color', default: '#1a1a1a', description: 'Text on accent fills' },
+  // Semantic fills need their own on-colour, not a shared one. Session 254
+  // measured that no existing token works everywhere: on agora,
+  // color-on-accent scores 3.99:1 against --red while color-text-inverse
+  // scores 4.51:1, and on base the ranking inverts, so one theme failed AA
+  // whichever was reused.
+  { key: 'color-on-red', group: 'accent', kind: 'color', default: '#1a1a1a', description: 'Text on red/danger fills' },
+  { key: 'color-on-green', group: 'accent', kind: 'color', default: '#1a1a1a', description: 'Text on green/success fills' },
+  { key: 'color-on-yellow', group: 'accent', kind: 'color', default: '#1a1a1a', description: 'Text on yellow/warning fills' },
   { key: 'color-link', group: 'accent', kind: 'color', default: '#5b9cf6' },
   { key: 'color-link-hover', group: 'accent', kind: 'color', default: '#4a8be5' },
   // Accent tints + states — literal values a theme must override (var() aliases

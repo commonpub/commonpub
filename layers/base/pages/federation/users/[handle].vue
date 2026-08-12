@@ -230,11 +230,11 @@ function stripHtml(html: string): string {
 }
 .cpub-remote-profile__follow-btn:hover:not(:disabled) {
   background: var(--accent);
-  color: var(--surface-1, var(--surface));
+  color: var(--color-on-accent);
 }
 .cpub-remote-profile__follow-btn--following {
   background: var(--accent);
-  color: var(--surface-1, var(--surface));
+  color: var(--color-on-accent);
 }
 .cpub-remote-profile__follow-btn--pending {
   border-color: var(--text-2);
@@ -304,7 +304,7 @@ function stripHtml(html: string): string {
   padding: var(--space-1) var(--space-3);
   border: var(--border-width-default) solid var(--accent);
   background: var(--accent);
-  color: var(--surface-1, var(--surface));
+  color: var(--color-on-accent);
   font-family: var(--font-mono);
   font-size: var(--font-size-sm);
   cursor: pointer;

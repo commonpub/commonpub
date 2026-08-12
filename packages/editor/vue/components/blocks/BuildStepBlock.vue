@@ -287,7 +287,7 @@ onUnmounted(() => document.removeEventListener('click', onClickOutsideMenu));
 
 .cpub-step-num {
   width: 32px; height: 32px;
-  background: var(--accent); color: var(--color-text-inverse);
+  background: var(--accent); color: var(--color-on-accent);
   font-family: var(--font-mono); font-size: 14px; font-weight: 700;
   border-radius: 50%;
   display: flex; align-items: center; justify-content: center;

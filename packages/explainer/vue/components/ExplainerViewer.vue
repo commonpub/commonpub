@@ -320,7 +320,7 @@ function onCheckpointReached(): void {
 .cpub-dot.done { background: var(--green); }
 .cpub-dot.active { background: var(--accent); transform: scale(1.3); }
 .cpub-dot:hover { transform: scale(1.4); }
-.cpub-next-btn { display: flex; align-items: center; gap: 8px; padding: 10px 18px; background: var(--accent); border: var(--border-width-default, 2px) solid var(--border); color: var(--color-text-inverse); font-size: 13px; font-weight: 600; cursor: pointer; box-shadow: var(--shadow-sm); transition: box-shadow 0.1s, transform 0.1s; }
+.cpub-next-btn { display: flex; align-items: center; gap: 8px; padding: 10px 18px; background: var(--accent); border: var(--border-width-default, 2px) solid var(--border); color: var(--color-on-accent); font-size: 13px; font-weight: 600; cursor: pointer; box-shadow: var(--shadow-sm); transition: box-shadow 0.1s, transform 0.1s; }
 .cpub-next-btn:hover { box-shadow: var(--shadow-sm); transform: translate(1px, 1px); }
 .cpub-prev-btn { display: flex; align-items: center; gap: 8px; padding: 10px 18px; background: var(--surface); border: var(--border-width-default, 2px) solid var(--border); color: var(--text); font-size: 13px; font-weight: 500; cursor: pointer; transition: box-shadow 0.1s; }
 .cpub-prev-btn:hover { box-shadow: var(--shadow-sm); }

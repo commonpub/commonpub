@@ -1,4 +1,4 @@
-import { isPublicUser, toPublicUser, type PublicUserRow } from '@commonpub/server';
+import { isPublicUser, toPublicUser, toPageMeta, type PublicUserRow } from '@commonpub/server';
 import { users } from '@commonpub/schema';
 import { and, desc, eq, ilike, isNull, or, sql } from 'drizzle-orm';
 import { z } from 'zod';
@@ -56,5 +56,5 @@ export default defineEventHandler(async (event) => {
     .map((r) => toPublicUser(r as PublicUserRow));
   const total = totalRow[0]?.count ?? 0;
 
-  return { items, total, limit, offset };
+  return { items, ...toPageMeta({ total, returned: rows.length, limit, offset }), limit, offset };
 });

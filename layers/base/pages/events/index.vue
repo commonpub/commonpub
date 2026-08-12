@@ -30,11 +30,26 @@ const queryParams = computed(() => {
   return q;
 });
 
-const { data, refresh, error } = await useFetch<{ items: EventListItem[]; total: number }>('/api/events', {
+const { data, refresh, error } = await useFetch<{ items: EventListItem[]; total: number | null; hasMore: boolean }>('/api/events', {
   query: queryParams,
 });
 
-const totalPages = computed(() => Math.max(1, Math.ceil((data.value?.total ?? 0) / LIMIT)));
+/** Null when the server skipped the count, or an old one sent the sentinel. */
+const knownTotal = computed<number | null>(() => {
+  const t = data.value?.total;
+  return typeof t === 'number' && t >= 0 ? t : null;
+});
+const totalPages = computed<number | null>(() =>
+  knownTotal.value === null ? null : Math.max(1, Math.ceil(knownTotal.value / LIMIT)),
+);
+// `setPage` uses router.replace, so losing the pager on page 2 could not even be
+// undone with Back. It stays as long as there is anywhere to go.
+const showPager = computed(() =>
+  totalPages.value !== null ? totalPages.value > 1 : page.value > 1 || data.value?.hasMore === true,
+);
+const canGoNext = computed(() =>
+  totalPages.value !== null ? page.value < totalPages.value : data.value?.hasMore === true,
+);
 
 function setFilter(filter: string): void {
   activeFilter.value = filter;
@@ -125,12 +140,15 @@ function setView(mode: 'grid' | 'calendar'): void {
         </p>
       </div>
 
-      <nav v-if="totalPages > 1" class="cpub-events-pagination" aria-label="Events pagination">
+      <nav v-if="showPager" class="cpub-events-pagination" aria-label="Events pagination">
         <button class="cpub-page-btn" :disabled="page <= 1" aria-label="Previous page" @click="setPage(page - 1)">
           <i class="fa-solid fa-chevron-left"></i>
         </button>
-        <span class="cpub-page-info">{{ page }} / {{ totalPages }}</span>
-        <button class="cpub-page-btn" :disabled="page >= totalPages" aria-label="Next page" @click="setPage(page + 1)">
+        <span class="cpub-page-info">
+          <template v-if="totalPages !== null">{{ page }} / {{ totalPages }}</template>
+          <template v-else>Page {{ page }}</template>
+        </span>
+        <button class="cpub-page-btn" :disabled="!canGoNext" aria-label="Next page" @click="setPage(page + 1)">
           <i class="fa-solid fa-chevron-right"></i>
         </button>
       </nav>

@@ -1,4 +1,4 @@
-import { listDocsSites, toPublicDocSite, isPublicDocSite, type PublicDocSiteRow } from '@commonpub/server';
+import { listDocsSites, toPublicDocSite, isPublicDocSite, toPageMeta, type PublicDocSiteRow } from '@commonpub/server';
 import { z } from 'zod';
 
 const querySchema = z.object({
@@ -21,5 +21,5 @@ export default defineEventHandler(async (event) => {
   const items = (result.items as unknown as PublicDocSiteRow[])
     .filter(isPublicDocSite)
     .map((r) => toPublicDocSite(r, domain));
-  return { items, total: result.total, limit, offset };
+  return { items, ...toPageMeta({ total: result.total, returned: result.items.length, limit, offset }), limit, offset };
 });

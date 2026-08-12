@@ -169,7 +169,7 @@ async function handleDeleteAccount(): Promise<void> {
 
 .cpub-btn-danger:hover:not(:disabled) {
   background: var(--red);
-  color: var(--color-text-inverse);
+  color: var(--color-on-red);
 }
 
 .cpub-btn-danger:disabled {

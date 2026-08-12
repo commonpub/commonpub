@@ -1,4 +1,4 @@
-import { listHubs, toPublicHub, type PublicHubRow } from '@commonpub/server';
+import { listHubs, toPublicHub, toPageMeta, type PublicHubRow } from '@commonpub/server';
 import { z } from 'zod';
 
 const querySchema = z.object({
@@ -38,7 +38,15 @@ export default defineEventHandler(async (event) => {
 
   return {
     items,
-    total: result.total,
+    // `returned` is the UNFILTERED row count. This route over-fetches and
+    // filters by hubType in memory, so the filtered length would understate
+    // whether the underlying query has another page.
+    ...toPageMeta({
+      total: result.total,
+      returned: result.items.length,
+      limit: filters.limit,
+      offset: filters.offset,
+    }),
     limit: filters.limit,
     offset: filters.offset,
   };

@@ -250,17 +250,17 @@ onBeforeUnmount(() => {
 .cpub-admin-layouts-conflict-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .cpub-admin-layouts-conflict-btn--primary {
   background: var(--accent);
-  color: var(--surface);
+  color: var(--color-on-accent);
   border-color: var(--accent);
 }
 .cpub-admin-layouts-conflict-btn--primary:hover {
   background: var(--accent);
   filter: brightness(1.1);
-  color: var(--surface);
+  color: var(--color-on-accent);
 }
 .cpub-admin-layouts-conflict-btn--danger {
   color: var(--red-text);
   border-color: var(--red);
 }
-.cpub-admin-layouts-conflict-btn--danger:hover { background: var(--red); color: var(--surface); }
+.cpub-admin-layouts-conflict-btn--danger:hover { background: var(--red); color: var(--color-on-red); }
 </style>

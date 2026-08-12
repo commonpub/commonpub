@@ -37,8 +37,12 @@ const { data: resources, refresh: refreshResources } = useLazyFetch<{ items: Arr
   { default: () => ({ items: [], total: 0 }) },
 );
 
+// Resolved HERE, in setup scope. Inside a useSeoMeta getter the head
+// resolver runs outside the component context, so useSiteName()'s
+// useState() throws and it silently falls back to 'CommonPub'.
+const siteName = useSiteName();
 useSeoMeta({
-  title: () => hub.value ? `${hub.value.name} -- ${useSiteName()}` : `Hub -- ${useSiteName()}`,
+  title: () => hub.value ? `${hub.value.name} -- ${siteName}` : `Hub -- ${siteName}`,
   description: () => hub.value?.description || '',
   ogImage: '/og-default.png',
 });

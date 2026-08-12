@@ -121,7 +121,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 .cpub-btn--danger {
   background-color: var(--red);
-  color: var(--color-text-inverse);
+  color: var(--color-on-red);
   border-color: var(--border);
 }
 

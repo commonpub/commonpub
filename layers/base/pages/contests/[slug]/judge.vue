@@ -69,7 +69,11 @@ function critMax(i: number): number {
   return typeof w === 'number' && w > 0 ? w : 100;
 }
 
-useSeoMeta({ title: () => `Judge: ${contest.value?.title || 'Contest'}, ${useSiteName()}` });
+// Resolved HERE, in setup scope. Inside a useSeoMeta getter the head
+// resolver runs outside the component context, so useSiteName()'s
+// useState() throws and it silently falls back to 'CommonPub'.
+const siteName = useSiteName();
+useSeoMeta({ title: () => `Judge: ${contest.value?.title || 'Contest'}, ${siteName}` });
 
 // Judge authorization derives from the contest_judges table.
 const myJudge = computed(() => (judgesData.value ?? []).find((j) => j.userId === user.value?.id) ?? null);

@@ -103,7 +103,7 @@ const { data, pending, error, refresh } = await useFetch<PaginatedResponse<Seria
 .cpub-listing-create {
   padding: var(--space-2) var(--space-3);
   background: var(--accent);
-  color: var(--color-text-inverse);
+  color: var(--color-on-accent);
   border: var(--border-width-default) solid var(--border);
   font-size: var(--text-xs);
   text-decoration: none;

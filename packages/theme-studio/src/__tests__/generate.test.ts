@@ -327,3 +327,41 @@ describe('treatment: glass + page gradient (advanced-tokens plan)', () => {
     expect(light.tokens['bg-image']).not.toBe(dark.tokens['bg-image']);
   });
 });
+
+/**
+ * A generated theme must carry its OWN on-colour for every semantic fill.
+ *
+ * Without these it inherits base.css's values, which are tuned to base's red
+ * and green. Session 254 measured that no single existing token works for every
+ * palette: on agora `color-on-accent` scores 3.99:1 against `--red` while
+ * `color-text-inverse` scores 4.51:1, and on base the ranking inverts. So a
+ * theme whose red lands on the other side of that line inherits a value that
+ * fails AA on its own palette, silently.
+ */
+describe('semantic fills carry a readable on-colour', () => {
+  const base = defaultRecipe();
+  const RECIPES: Array<{ name: string; recipe: ThemeRecipe }> = [
+    { name: 'light default', recipe: { ...base, mode: 'light' } },
+    { name: 'dark default', recipe: { ...base, mode: 'dark' } },
+    { name: 'warm light', recipe: { ...base, mode: 'light', accent: '#c4443a' } },
+    { name: 'cool dark', recipe: { ...base, mode: 'dark', accent: '#3d8b5e' } },
+  ];
+
+  for (const { name, recipe } of RECIPES) {
+    it(`${name}: every semantic fill clears AA against its on-colour`, () => {
+      const { tokens } = recipeToTokens(recipe);
+      for (const [fill, onColour] of [
+        ['red', 'color-on-red'],
+        ['green', 'color-on-green'],
+        ['yellow', 'color-on-yellow'],
+      ] as const) {
+        const bg = tokens[fill];
+        const fg = tokens[onColour];
+        expect(bg, `${fill} must be emitted`).toBeTruthy();
+        expect(fg, `${onColour} must be emitted, or the theme inherits base's value`).toBeTruthy();
+        const ratio = contrast(fg!, bg!);
+        expect(ratio, `${onColour} on ${fill} = ${ratio.toFixed(2)}:1`).toBeGreaterThanOrEqual(4.5);
+      }
+    });
+  }
+});

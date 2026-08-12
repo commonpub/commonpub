@@ -1,5 +1,5 @@
-import { getHubBySlug, listHubProducts } from '@commonpub/server';
-import type { PaginatedResponse, ProductListItem } from '@commonpub/server';
+import { getHubBySlug, listHubProducts, toPageMeta, normalizePagination } from '@commonpub/server';
+import type { PaginatedPage, ProductListItem } from '@commonpub/server';
 import { z } from 'zod';
 import { productStatusSchema, productCategorySchema } from '@commonpub/schema';
 
@@ -11,7 +11,7 @@ const productQuerySchema = z.object({
   offset: z.coerce.number().int().min(0).optional(),
 });
 
-export default defineEventHandler(async (event): Promise<PaginatedResponse<ProductListItem>> => {
+export default defineEventHandler(async (event): Promise<PaginatedPage<ProductListItem>> => {
   const db = useDB();
   const user = getOptionalUser(event);
   const { slug } = parseParams(event, { slug: 'string' });
@@ -25,5 +25,7 @@ export default defineEventHandler(async (event): Promise<PaginatedResponse<Produ
   }
   requireHubReadAccess(event, hub);
 
-  return listHubProducts(db, hub.id, filters);
+  const result = await listHubProducts(db, hub.id, filters);
+  const { limit, offset } = normalizePagination(filters);
+  return { ...result, ...toPageMeta({ total: result.total, returned: result.items.length, limit, offset }) };
 });

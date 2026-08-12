@@ -84,7 +84,7 @@ async function onUnfollow(actorUri: string) {
   padding: var(--space-2) var(--space-4);
   border: var(--border-width-default) solid var(--accent);
   background: var(--accent);
-  color: var(--surface-1);
+  color: var(--color-on-accent);
   font-family: var(--font-mono);
   font-size: var(--font-size-sm);
   text-transform: uppercase;

@@ -4,8 +4,12 @@ const code = route.params.code as string;
 
 const { data: certData, pending } = useLazyFetch(`/api/cert/${code}`);
 
+// Resolved HERE, in setup scope. Inside a useSeoMeta getter the head
+// resolver runs outside the component context, so useSiteName()'s
+// useState() throws and it silently falls back to 'CommonPub'.
+const siteName = useSiteName();
 useSeoMeta({
-  title: () => certData.value ? `Certificate, ${certData.value.path.title}, ${useSiteName()}` : `Certificate, ${useSiteName()}`,
+  title: () => certData.value ? `Certificate, ${certData.value.path.title}, ${siteName}` : `Certificate, ${siteName}`,
   description: () => certData.value ? `Certificate of completion for ${certData.value.path.title}` : '',
 });
 </script>
