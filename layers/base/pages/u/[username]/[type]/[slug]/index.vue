@@ -36,6 +36,9 @@ useSeoMeta({
   ogImage: () => content.value?.coverImageUrl || '/og-default.png',
   ogTitle: () => content.value?.title || siteName,
   ogDescription: () => content.value?.seoDescription || content.value?.description || '',
+  // A project, blog or explainer is an article, not a `website`. The global
+  // default in seo-brand.ts is right for listings and wrong for content.
+  ogType: 'article',
 });
 
 const { user } = useAuth();

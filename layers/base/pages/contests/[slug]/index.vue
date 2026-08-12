@@ -27,10 +27,31 @@ const { data: registrationData } = useLazyFetch<{ registered: boolean; tier: 'fu
 // resolver runs outside the component context, so useSiteName()'s
 // useState() throws and it silently falls back to 'CommonPub'.
 const siteName = useSiteName();
+// `description` is authored Markdown and can open with an HTML comment, so it
+// cannot go into a meta tag raw. `markdownToExcerpt` is the same helper the
+// contest LIST already uses to build its card blurb, which keeps the excerpt a
+// visitor sees in search identical to the one on the listing.
+// `undefined`, never `''`. An empty string still renders
+// `<meta name="description" content>`, which positively declares "this page has
+// no description" to a crawler; omitting the tag lets it fall back to the page
+// content instead. A contest with neither a subheading nor a body should be
+// silent here, not emphatically blank.
+const contestBlurb = computed<string | undefined>(() => {
+  const blurb = contest.value?.subheading?.trim() || markdownToExcerpt(contest.value?.description);
+  return blurb && blurb.length > 0 ? blurb : undefined;
+});
+
 useSeoMeta({
   title: () => `${contest.value?.title || 'Contest'}, ${siteName}`,
   ogTitle: () => `${contest.value?.title || 'Contest'}, ${siteName}`,
   ogImage: () => contest.value?.bannerUrl || '/og-default.png',
+  // A contest page had NO description and no og:description at all, so an
+  // unfurl showed a title and a banner with no idea what the contest was, and
+  // a search result had nothing but the title to rank or display.
+  description: () => contestBlurb.value,
+  ogDescription: () => contestBlurb.value,
+  // Not a `website`. The global default is right for listings and wrong here.
+  ogType: 'article',
 });
 
 // The public registration count now comes from the SSR'd contest DTO (see
