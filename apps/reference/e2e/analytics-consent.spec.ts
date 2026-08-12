@@ -49,7 +49,11 @@ test.describe('analytics consent gate', () => {
     page.on('request', (r) => { if (isTagRequest(r.url())) hits.push(r.url()); });
 
     await page.goto(BASE);
-    await expect(page.getByRole('dialog', { name: /cookie consent/i })).toBeVisible();
+    // The banner is mounted by a client-only plugin, so it appears after
+    // hydration rather than in the SSR markup. On a loaded CI runner that can
+    // exceed the default 5s expect timeout, which made this spec flaky without
+    // anything being wrong.
+    await expect(page.getByRole('dialog', { name: /cookie consent/i })).toBeVisible({ timeout: 15_000 });
     expect(hits, 'nothing may load before a choice is made').toEqual([]);
 
     // Refusing must be as easy as accepting, and must actually mean no.
@@ -125,6 +129,37 @@ test.describe('analytics consent gate', () => {
       page.getByRole('dialog', { name: /cookie consent/i }),
       'the visitor has to be asked about the thing that is actually new',
     ).toBeVisible();
+  });
+
+  /**
+   * Provider cookies may exist only while consent is granted.
+   *
+   * This is the invariant, not just the withdrawal behaviour, and it is what
+   * CI caught: the first version cleared cookies host-only, so anything the
+   * provider had set with an explicit domain survived a withdrawal. Four
+   * `_ga*` cookies remained for two names, each alive at both scopings. It
+   * passed locally and failed in CI, which is the whole argument for the
+   * invariant being enforced on every load rather than at one moment.
+   *
+   * It also covers two cases withdrawal never reaches: a device carrying
+   * cookies from before any of this shipped, and a consent scope that changed
+   * so an older grant no longer counts.
+   */
+  test('provider cookies present without consent are cleared on load', async ({ page, context }) => {
+    await context.addCookies([
+      { name: '_ga', value: 'GA1.1.seeded', domain: 'localhost', path: '/' },
+      { name: '_ga_REFERENCE0', value: 'GS1.1.seeded', domain: 'localhost', path: '/' },
+    ]);
+    expect((await context.cookies()).filter((c) => c.name.startsWith('_ga')).length).toBeGreaterThan(0);
+
+    await page.goto(BASE);
+    await page.waitForTimeout(2500);
+
+    const left = (await context.cookies()).filter((c) => c.name.startsWith('_ga'));
+    expect(
+      left.map((c) => `${c.name}@${c.domain}`),
+      'a device holding provider cookies without a current consent must be cleaned up',
+    ).toEqual([]);
   });
 
   test('a stale REFUSAL is honoured rather than re-asked', async ({ page, context }) => {
@@ -249,7 +284,14 @@ test.describe('analytics consent gate', () => {
     await page.waitForTimeout(2500);
 
     const remaining = (await context.cookies()).filter((c) => c.name.startsWith('_ga'));
-    expect(remaining.map((c) => c.name), 'withdrawal must delete what it set').toEqual([]);
+    // Report name AND domain: the first CI failure here showed only a count of
+    // four for two cookie names, which hid the actual cause (each surviving
+    // twice, host-only and domain-scoped, because a host-only delete cannot
+    // remove a cookie set with an explicit domain).
+    expect(
+      remaining.map((c) => `${c.name}@${c.domain}`),
+      'withdrawal must delete what it set, at every domain scope it was set on',
+    ).toEqual([]);
   });
 });
 

@@ -36,8 +36,8 @@ import { isPrivateRoute, publicPath } from '../utils/analyticsRoutes';
  *     parameter of a `view_search_results` hit);
  *   - routes that declare the `auth` middleware send nothing at all (their
  *     titles carry real data: `/messages/:id` renders "Message, <person>");
- *   - withdrawing purges the provider's cookies and reloads, because a tag
- *     already on the page cannot otherwise be unloaded.
+ *   - withdrawing denies storage, stops feeding the tag navigations and
+ *     deletes its cookies, re-enforced on every subsequent load.
  */
 declare global {
   interface Window {
@@ -167,9 +167,22 @@ export default defineNuxtPlugin(() => {
   function purgeProviderCookies(): void {
     const names = analyticsCookies(config).map((c) => c.name);
     const labels = window.location.hostname.split('.');
+
+    // A cookie can only be deleted by a write matching its domain AND path, so
+    // every scoping the provider might have used has to be attempted.
+    //
+    // The first version derived scopes as `.parent` domains only, which skipped
+    // the host itself and produced NO domain candidates at all for a
+    // single-label host like `localhost`. CI then kept four `_ga*` cookies after
+    // a withdrawal that passed locally: two names, each surviving as a
+    // host-only and a domain-scoped copy. Host-only deletion cannot remove a
+    // cookie that was set with an explicit domain.
     const scopes = [''];
-    for (let i = 0; i < labels.length - 1; i += 1) {
-      scopes.push(`; domain=.${labels.slice(i).join('.')}`);
+    for (let i = 0; i < labels.length; i += 1) {
+      const domain = labels.slice(i).join('.');
+      // A single trailing label ('com') is not a scope anything can set.
+      if (i > 0 && labels.length - i < 2) break;
+      scopes.push(`; domain=${domain}`, `; domain=.${domain}`);
     }
     for (const name of names) {
       for (const scope of scopes) {
@@ -192,19 +205,50 @@ export default defineNuxtPlugin(() => {
         load();
         return;
       }
-      if (!loaded) return;
-      // WITHDRAWAL. Telling the tag to stop is not enough and the privacy page
-      // promises more than that: measured live in session 254, a withdrawn
-      // visitor kept both `_ga` cookies and still emitted two more beacons on
-      // the next navigation, because gtag.js remains resident and its automatic
-      // events do not consult our router. A loaded tag cannot be unloaded, so
-      // the only honest implementation is to clear its cookies and reload the
-      // document without it. `loaded` is false on a fresh load, so this cannot
-      // loop.
+      if (!loaded) {
+        // NOT loaded and not allowed: enforce the invariant anyway. Provider
+        // cookies must exist only while consent is granted, and they can outlive
+        // it in several ways — a consent scope that changed so an old grant no
+        // longer counts, and a device carrying cookies from before any of this
+        // shipped. No reload is needed here, because there is no tag to unload.
+        purgeProviderCookies();
+        // Once more after the previous document is definitely gone. GA persists
+        // its session cookie from a `pagehide` handler, which runs AFTER the
+        // replacement document has started executing, so a withdrawal that
+        // reloads would otherwise clear the cookies and have the outgoing page
+        // write them straight back. Measured: withdrawal left `_ga` and
+        // `_ga_<id>` behind indefinitely, while any later plain navigation
+        // cleared them, which is exactly the signature of that ordering.
+        // One bounded follow-up, not a loop.
+        window.setTimeout(() => {
+          // Re-check: the visitor may have accepted in the meantime, and this
+          // must not delete a cookie consent has since authorised.
+          if (!allowsAnalytics.value) purgeProviderCookies();
+        }, 1200);
+        return;
+      }
+      // WITHDRAWAL. Telling the tag to stop is not enough: measured live in
+      // session 254, a withdrawn visitor kept both `_ga` cookies and still
+      // emitted beacons, because gtag.js stays resident and its automatic
+      // events do not consult our router. So: deny storage via Consent Mode
+      // (above), stop feeding it navigations, and delete what it stored.
+      //
+      // NO RELOAD. An earlier version reloaded the document to drop the tag,
+      // which read well and did not work. The reload's SSR pass re-seeds the
+      // consent state from a request cookie the browser has not finished
+      // deleting, so the reloaded page came back briefly consenting, loaded the
+      // tag again, then withdrew again: four navigations from one click, with
+      // the cookies alive at the end of it. A withdrawal that loops is worse
+      // than one that leaves a dormant script in memory.
       stopPageViews?.();
       stopPageViews = null;
       purgeProviderCookies();
-      window.location.reload();
+      // Again once GA has finished its own writes. It persists session state
+      // from timers and a `pagehide` handler, so a single synchronous delete can
+      // be undone a moment later. Guarded and bounded, never a loop.
+      window.setTimeout(() => {
+        if (!allowsAnalytics.value) purgeProviderCookies();
+      }, 1200);
     },
     { immediate: true },
   );

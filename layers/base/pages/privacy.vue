@@ -136,7 +136,7 @@ const essentialCookies = computed(() => cookies.value.filter((c) => c.category =
         </ul>
 
         <h3>Who processes it, and where</h3>
-        <p>{{ analytics.processor }} acts as our processor and may process this data outside your country, including in the United States. Their handling is governed by the <a :href="analytics.policyUrl" target="_blank" rel="noopener">{{ analytics.processor }} privacy policy</a>. Our legal basis is your consent (Art. 6(1)(a)), which you can withdraw at any time from the <NuxtLink to="/cookies">Cookie Policy</NuxtLink> page. Withdrawing deletes the analytics cookies from this device and reloads the page without the analytics code, so collection stops there and then.</p>
+        <p>{{ analytics.processor }} acts as our processor and may process this data outside your country, including in the United States. Their handling is governed by the <a :href="analytics.policyUrl" target="_blank" rel="noopener">{{ analytics.processor }} privacy policy</a>. Our legal basis is your consent (Art. 6(1)(a)), which you can withdraw at any time from the <NuxtLink to="/cookies">Cookie Policy</NuxtLink> page. Withdrawing deletes the analytics cookies from this device and stops the analytics code storing anything or reporting your visits, so collection stops there and then. If any of those cookies are still present the next time a page loads, they are deleted again.</p>
         <p>If we later change what analytics is used for, or who processes it, your previous answer no longer applies and you will be asked again rather than carried over.</p>
 
         <h3>Checking this for yourself</h3>

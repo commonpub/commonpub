@@ -125,7 +125,7 @@ const analyticsCookies = computed(() => cookies.value.filter((c) => c.category =
       <section class="cpub-legal-section">
         <h2>Managing cookies</h2>
         <p>You can change your cookie preferences at any time using the buttons above or by clearing your browser cookies. Most browsers also allow you to control cookies through their settings.</p>
-        <p v-if="analyticsCookies.length > 0">Withdrawing consent deletes the analytics cookies listed above from this device and reloads the page without the analytics code, so nothing further is collected. Code already loaded into a page cannot be removed any other way, which is why the page reloads.</p>
+        <p v-if="analyticsCookies.length > 0">Withdrawing consent deletes the analytics cookies listed above from this device and tells the analytics code to stop storing anything and stop reporting your visits. Nothing further is collected, and no analytics cookie is set again unless you accept.</p>
         <p>For more information about how we handle your data, see our <NuxtLink to="/privacy">Privacy Policy</NuxtLink>.</p>
       </section>
     </div>
