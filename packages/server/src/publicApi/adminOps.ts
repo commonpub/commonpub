@@ -29,6 +29,12 @@ export async function createApiKey(
       expiresAt: input.expiresAt ?? null,
       rateLimitPerMinute: input.rateLimitPerMinute ?? 60,
       allowedOrigins: input.allowedOrigins ?? null,
+      // The recipient binding (member visibility directory, plan section 3).
+      // Nullable, so a key that holds no `read:members` scope is unaffected.
+      // The directory route resolves this id against the effective recipient
+      // list on every request and 403s when it no longer resolves, so deleting
+      // a recipient stops its key without needing the key revoked.
+      recipientId: input.recipientId ?? null,
     })
     .returning();
   if (!row) throw new Error('Failed to create API key');
