@@ -139,6 +139,18 @@ async function deleteItem(id: string, title: string): Promise<void> {
 
 <template>
   <div class="cpub-dash">
+    <!--
+      The persona invitation (plan 8.4): in flow on the dashboard, NOT a signup
+      step and NOT a global overlay. It fetches its own status, self-suppresses
+      when the feature is off, when the viewer has answered anything, and after
+      two dismissals, so it takes no props and needs no flag check here.
+
+      The auto-import name is `PersonaInvitationBanner`, not `InvitationBanner`:
+      Nuxt's pathPrefix dedupes the `persona/` directory against the `Persona`
+      filename prefix, and a bare-name tag renders empty with no error.
+    -->
+    <PersonaInvitationBanner />
+
     <div class="cpub-dash-header">
       <h1 class="cpub-dash-title">Dashboard</h1>
       <NuxtLink to="/create" class="cpub-dash-create-btn">

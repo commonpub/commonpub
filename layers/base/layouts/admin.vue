@@ -1,6 +1,6 @@
 <script setup lang="ts">
 const { isAdmin } = useAuth();
-const { admin: adminEnabled, layoutEngine, publicApi } = useFeatures();
+const { admin: adminEnabled, layoutEngine, publicApi, persona, personaAnalytics } = useFeatures();
 const runtimeConfig = useRuntimeConfig();
 const siteName = computed(() => (runtimeConfig.public.siteName as string) || 'CommonPub');
 
@@ -122,6 +122,31 @@ const { desktopCollapsed, mobileOpen, toggleDesktop, toggleMobile, closeMobile }
           </NuxtLink>
           <NuxtLink v-if="canNavigation" to="/admin/navigation" class="admin-nav-link" :title="desktopCollapsed ? 'Navigation' : undefined" @click="closeMobile">
             <i class="fa-solid fa-bars"></i><span class="admin-nav-label">Navigation</span>
+          </NuxtLink>
+          <!-- Persona schema editor — gated on the persona feature flag
+               (CLAUDE.md rule #2) AND settings.manage, the same permission the
+               server routes enforce. Invisible until the operator flips the
+               flag, exactly like Layouts above. -->
+          <NuxtLink v-if="persona && canSettings" to="/admin/persona" class="admin-nav-link" :title="desktopCollapsed ? 'Persona' : undefined" @click="closeMobile">
+            <i class="fa-solid fa-id-card"></i><span class="admin-nav-label">Persona</span>
+          </NuxtLink>
+          <!-- Data sharing — who receives members' data, and what they pulled.
+               Gated on the persona flag and settings.manage, exactly what
+               /api/admin/data-sharing/* enforces. Deliberately NOT gated on
+               dataSharingConsents or memberDirectory: a recipient has to be
+               declared and papered BEFORE either flag can honestly be turned
+               on, so hiding this screen until they are on would hide the screen
+               that makes turning them on legitimate. -->
+          <NuxtLink v-if="persona && canSettings" to="/admin/data-sharing" class="admin-nav-link" :title="desktopCollapsed ? 'Data Sharing' : undefined" @click="closeMobile">
+            <i class="fa-solid fa-handshake"></i><span class="admin-nav-label">Data Sharing</span>
+          </NuxtLink>
+          <!-- Audience dashboard — gated on BOTH persona flags, and on
+               canAudit rather than canSettings: /api/admin/persona-metrics
+               enforces requirePermission('audit.read'), not settings.manage.
+               Copying the line above would show this link to an operator who
+               then 403s on the only route it consumes. -->
+          <NuxtLink v-if="persona && personaAnalytics && canAudit" to="/admin/persona-metrics" class="admin-nav-link" :title="desktopCollapsed ? 'Audience' : undefined" @click="closeMobile">
+            <i class="fa-solid fa-chart-pie"></i><span class="admin-nav-label">Audience</span>
           </NuxtLink>
           <NuxtLink v-if="canSettings" to="/admin/features" class="admin-nav-link" :title="desktopCollapsed ? 'Features' : undefined" @click="closeMobile">
             <i class="fa-solid fa-toggle-on"></i><span class="admin-nav-label">Features</span>

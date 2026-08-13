@@ -39,7 +39,17 @@ function nextRowId(): string { return `row-${rowIdCounter++}`; }
 const skills = ref<string[]>([]);
 // Parallel id list kept in lockstep with `skills` for stable v-for keys.
 const skillIds = ref<string[]>([]);
-const socialLinks = ref({
+/**
+ * The seven built-in platforms have their own inputs; any OPERATOR-DECLARED
+ * platform is carried through untouched.
+ *
+ * This form PUTs the whole `socialLinks` object, so a ref seeded with only the
+ * seven named keys silently deleted an eighth platform a member had filled in at
+ * `/settings/persona`. `socialLinksSchema` now has a `catchall` so the value
+ * survives validation; this seeding is the other half, so the PUT echoes back
+ * what it was given.
+ */
+const socialLinks = ref<Record<string, string>>({
   github: '',
   twitter: '',
   linkedin: '',
@@ -65,7 +75,7 @@ const emailNotifications = ref<{
   mentions: false,
 });
 
-const { emailNotifications: emailNotificationsEnabled } = useFeatures();
+const { emailNotifications: emailNotificationsEnabled, persona } = useFeatures();
 
 const avatarInput = ref<HTMLInputElement | null>(null);
 const bannerInput = ref<HTMLInputElement | null>(null);
@@ -93,13 +103,11 @@ if (profile.value) {
   pronouns.value = p.pronouns || '';
   if (p.socialLinks) {
     const sl = p.socialLinks as Record<string, string | undefined>;
-    socialLinks.value.github = sl.github || '';
-    socialLinks.value.twitter = sl.twitter || '';
-    socialLinks.value.linkedin = sl.linkedin || '';
-    socialLinks.value.youtube = sl.youtube || '';
-    socialLinks.value.instagram = sl.instagram || '';
-    socialLinks.value.mastodon = sl.mastodon || '';
-    socialLinks.value.discord = sl.discord || '';
+    // Every stored key, not the seven named ones. An operator-declared platform
+    // has no input on this page and must still survive the round trip.
+    for (const [key, value] of Object.entries(sl)) {
+      if (typeof value === 'string') socialLinks.value[key] = value;
+    }
   }
   const profileRecord = p as Record<string, unknown>;
   if (Array.isArray(profileRecord.experience)) {
@@ -207,6 +215,13 @@ async function handleSave(): Promise<void> {
 <template>
   <div class="cpub-settings">
     <h1 class="cpub-page-title">Edit Profile</h1>
+
+    <!-- See the reciprocal note on /settings/persona: both pages write the same
+         `users` columns and neither used to mention the other. -->
+    <p v-if="persona" class="cpub-profile-crosslink">
+      Interests, tech stack and the rest are on the
+      <NuxtLink to="/settings/persona">Profile Details</NuxtLink> tab.
+    </p>
 
     <form class="cpub-settings-form" @submit.prevent="handleSave">
       <!-- Avatar & Banner -->
@@ -629,6 +644,18 @@ async function handleSave(): Promise<void> {
 </template>
 
 <style scoped>
+.cpub-profile-crosslink {
+  font-size: var(--text-sm);
+  color: var(--text-dim);
+  margin-bottom: var(--space-4);
+}
+
+.cpub-profile-crosslink a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 .cpub-settings {
   max-width: 640px;
   padding: var(--space-6);

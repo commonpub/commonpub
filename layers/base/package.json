@@ -39,6 +39,7 @@
     "@commonpub/editor": "workspace:*",
     "@commonpub/explainer": "workspace:*",
     "@commonpub/learning": "workspace:*",
+    "@commonpub/persona": "workspace:*",
     "@commonpub/protocol": "workspace:*",
     "@commonpub/schema": "workspace:*",
     "@commonpub/server": "workspace:*",

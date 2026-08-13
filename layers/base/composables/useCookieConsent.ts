@@ -39,6 +39,23 @@ const BUILTIN_COOKIES: CookieDefinition[] = [
     description: 'Remembers that you dismissed the email confirmation reminder. Set only when you dismiss it.',
     duration: 'Until you close your browser',
   },
+  {
+    name: 'cpub-persona-invite-dismissed',
+    // Essential for the same reason as cpub-verify-dismissed: it records a
+    // choice the user explicitly made (dismissing the invitation to fill in
+    // their profile details), stores no identifier and does no tracking. It
+    // holds a small decimal count, because two dismissals are terminal and a
+    // consent-gated or session-scoped version would re-ask forever, which is
+    // the nag this feature is designed not to be.
+    //
+    // Declaring it here is what makes it disclosed on /cookies. It is the ONLY
+    // change the persona feature makes to this file, and it is provably safe:
+    // `currentScope` below digests non-essential cookies only, so an essential
+    // entry cannot move the consent scope digest and cannot re-prompt anyone.
+    category: 'essential',
+    description: 'Remembers that you dismissed the invitation to fill in your profile details. Set only when you dismiss it.',
+    duration: '1 year',
+  },
 ];
 
 export type ConsentLevel = 'all' | 'essential' | null;

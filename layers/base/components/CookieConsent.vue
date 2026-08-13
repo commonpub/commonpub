@@ -12,6 +12,14 @@ const asksAboutAnalytics = computed(() =>
   cookies.value.some((c) => c.category === 'analytics'),
 );
 
+// A POINTER, not a fourth choice. Sharing what you tell us about yourself is a
+// separate decision from cookies and lives on its own page; a visitor who
+// declines analytics here would otherwise never learn it exists. Deliberately
+// not a button and deliberately not folded into the consent level:
+// `currentScope` digests cookies only, so a purpose reaching that digest would
+// re-prompt every visitor on the instance.
+const { dataSharingConsents } = useFeatures();
+
 // Publish this bar's height so anything else docked to the bottom edge can
 // clear it. The contest action bar is fixed to the same edge at a lower
 // z-index, and this banner is shown to exactly the anonymous first-time visitor
@@ -32,6 +40,7 @@ usePublishedHeight(root, '--cpub-consent-height');
             This site uses cookies for essential functionality and to remember your preferences.
           </template>
           <NuxtLink to="/cookies" class="cpub-consent-link">What we collect</NuxtLink>
+          <NuxtLink v-if="dataSharingConsents" to="/settings/privacy" class="cpub-consent-link">Sharing choices</NuxtLink>
         </p>
         <!-- Both choices carry the SAME visual weight. Consent is only freely
              given if refusing is as easy as accepting, and a filled primary

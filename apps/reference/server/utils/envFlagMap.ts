@@ -50,4 +50,8 @@ export const ENV_FLAG_MAP: Record<string, string> = {
   referralLinks: 'FEATURE_REFERRAL_LINKS',
   featuredHub: 'FEATURE_FEATURED_HUB',
   hubGovernance: 'FEATURE_HUB_GOVERNANCE',
+  persona: 'FEATURE_PERSONA',
+  dataSharingConsents: 'FEATURE_DATA_SHARING_CONSENTS',
+  personaAnalytics: 'FEATURE_PERSONA_ANALYTICS',
+  memberDirectory: 'FEATURE_MEMBER_DIRECTORY',
 };

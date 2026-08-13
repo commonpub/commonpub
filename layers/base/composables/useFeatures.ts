@@ -50,6 +50,10 @@ export interface FeatureFlags {
    *  gates only the palette — already-authored blocks always render. */
   registrationBlock: boolean;
   federation: boolean;
+  /** Display mirrored federated content alongside local content in browse/search/feed. */
+  seamlessFederation: boolean;
+  /** Hub/community federation via AP Group actors. Default OFF. */
+  federateHubs: boolean;
   admin: boolean;
   /** Guided theme generator (theme-studio) in the admin theme builder. Default ON. */
   themeStudio: boolean;
@@ -60,6 +64,10 @@ export interface FeatureFlags {
   emailVerification: boolean;
   /** Consent-gated visitor analytics. Inert unless `analytics.provider` is set. */
   analytics: boolean;
+  /** Admin broadcast emails to users. Default OFF; inert unless email is configured. */
+  adminBroadcast: boolean;
+  /** Require re-acceptance of the Terms when instance.termsVersion is bumped. Default OFF. */
+  requireTermsAcceptance: boolean;
   publicApi: boolean;
   contentImport: boolean;
   /**
@@ -88,6 +96,17 @@ export interface FeatureFlags {
   featuredHub: boolean;
   /** Hub governance: transfer ownership, Steward role + flag queue, self-unlink. Default OFF. */
   hubGovernance: boolean;
+  /** Persona editor + persona rendering on the profile + the admin schema editor. Default OFF. */
+  persona: boolean;
+  /** Purpose toggles, /settings/privacy and /api/consent/purposes. Default OFF. */
+  dataSharingConsents: boolean;
+  /** Aggregate audience endpoints, the rollup pass and the admin audience dashboard.
+   *  Default OFF; inert unless `persona` is also on. */
+  personaAnalytics: boolean;
+  /** Lets a named recipient LIST the members who opted in to recruiter or sponsor
+   *  visibility (no email, no contact channel beyond on-site DMs). Default OFF;
+   *  inert until a recipient covering the purpose is declared. */
+  memberDirectory: boolean;
   /**
    * Cross-instance delegated authorization. All sub-flags default false.
    * Mirrors `@commonpub/config`'s `IdentityFeatures`. Phase 1b+ — see
@@ -110,7 +129,9 @@ export const DEFAULT_FLAGS: FeatureFlags = {
   contestEntryRequiresRegistration: true,
   contestActionBar: true,
   events: false, learning: true, explainers: true,
-  editorial: true, registrationBlock: true, federation: false, admin: false, themeStudio: true, emailNotifications: false, emailUnverified: false, emailVerification: false, analytics: false,
+  editorial: true, registrationBlock: true, federation: false, seamlessFederation: false, federateHubs: false,
+  admin: false, themeStudio: true, emailNotifications: false, emailUnverified: false, emailVerification: false, analytics: false,
+  adminBroadcast: false, requireTermsAcceptance: false,
   publicApi: false, contentImport: true,
   layoutEngine: false,
   rbac: false,
@@ -120,6 +141,10 @@ export const DEFAULT_FLAGS: FeatureFlags = {
   referralLinks: false,
   featuredHub: false,
   hubGovernance: false,
+  persona: false,
+  dataSharingConsents: false,
+  personaAnalytics: false,
+  memberDirectory: false,
   identity: {
     linkRemoteAccounts: false,
     signInWithRemote: false,
@@ -225,11 +250,15 @@ export function useFeatures() {
     explainers: computed(() => flags.value.explainers),
     editorial: computed(() => flags.value.editorial),
     federation: computed(() => flags.value.federation),
+    seamlessFederation: computed(() => flags.value.seamlessFederation),
+    federateHubs: computed(() => flags.value.federateHubs),
     admin: computed(() => flags.value.admin),
     themeStudio: computed(() => flags.value.themeStudio),
     emailNotifications: computed(() => flags.value.emailNotifications),
     emailVerification: computed(() => flags.value.emailVerification),
     analytics: computed(() => flags.value.analytics),
+    adminBroadcast: computed(() => flags.value.adminBroadcast),
+    requireTermsAcceptance: computed(() => flags.value.requireTermsAcceptance),
     publicApi: computed(() => flags.value.publicApi),
     contentImport: computed(() => flags.value.contentImport),
     layoutEngine: computed(() => flags.value.layoutEngine),
@@ -237,6 +266,10 @@ export function useFeatures() {
     referralLinks: computed(() => flags.value.referralLinks),
     featuredHub: computed(() => flags.value.featuredHub),
     hubGovernance: computed(() => flags.value.hubGovernance),
+    persona: computed(() => flags.value.persona),
+    dataSharingConsents: computed(() => flags.value.dataSharingConsents),
+    personaAnalytics: computed(() => flags.value.personaAnalytics),
+    memberDirectory: computed(() => flags.value.memberDirectory),
     identity: computed(() => flags.value.identity),
   };
 }

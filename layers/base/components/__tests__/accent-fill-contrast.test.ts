@@ -135,13 +135,19 @@ function themeToken(theme: string, name: string): string | null {
 }
 
 describe('coloured fills use their own on-colour token', () => {
+  // 30s, not the 5s default. MEASURED: this sweep walks four component
+  // directories and takes ~1.3s alone, but it runs in a worker competing with
+  // every other file in the suite, and it has tipped past 5s each time the
+  // layer gained test files. A filesystem sweep is inherently slow; a timeout
+  // sized for an idle machine turns "someone added a test" into a red build
+  // with no defect behind it.
   it('finds no block pairing a fill with the wrong text token', () => {
     const offenders = findMismatchedFills();
     const detail = offenders
       .map((o) => `  ${o.file}:${o.line}  ${o.selector}  fills with var(${o.fill}) but does not use var(${o.expected})`)
       .join('\n');
     expect(offenders, offenders.length ? `\n${detail}\n` : '').toEqual([]);
-  });
+  }, 30_000);
 
   it('every on-colour token clears AA against its fill, in every theme', () => {
     // The tokens are only worth having if the values are right. This is what

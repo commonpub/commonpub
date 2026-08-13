@@ -94,6 +94,39 @@ export default defineEventHandler((event) => {
             createdAt: { type: 'string', format: 'date-time' },
           },
         },
+        // A listed member: every PublicUser field plus their publishable
+        // persona answers. It composes PublicUser rather than restating it, so
+        // the ONE serializer with no email field stays the one definition of
+        // what a public user is. Free text appears only where the operator
+        // marked the field public, and `sensitive` fields never appear.
+        OpenMember: {
+          allOf: [
+            { $ref: '#/components/schemas/PublicUser' },
+            {
+              type: 'object',
+              required: ['persona'],
+              properties: {
+                persona: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    required: ['fieldKey', 'label', 'display', 'values'],
+                    properties: {
+                      fieldKey: { type: 'string' },
+                      label: { type: 'string' },
+                      display: { type: 'string', enum: ['chips', 'text'] },
+                      values: {
+                        type: 'array',
+                        items: { type: 'string' },
+                        description: 'Resolved option LABELS, or the single stored string for free text. Never a raw option value.',
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          ],
+        },
         UserRef: {
           type: 'object',
           required: ['id', 'username'],
@@ -396,6 +429,77 @@ export default defineEventHandler((event) => {
       },
       '/metrics/federation': {
         get: { summary: 'Federation reach (opt-in; read:federation)', security: [{ bearer: ['read:federation'] }], parameters: [{ name: 'limit', in: 'query', schema: { type: 'integer' } }], responses: { '200': { description: 'OK', content: { 'application/json': { schema: { type: 'object' } } } }, '404': { description: 'Federation reach metrics not enabled', content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } } } } },
+      },
+      // Audience metrics (persona). STATIC entries, deliberately: the fields an
+      // instance counts are per-instance and live at /metrics/persona/fields,
+      // while the published contract must read the same everywhere. Generating
+      // these from the effective schema would make the spec differ per install.
+      // `read:audience` is wildcard protected: a `read:*` key is refused here.
+      '/metrics/persona/fields': {
+        get: { summary: 'Countable persona fields on this instance (read:audience; not covered by read:*)', security: [{ bearer: ['read:audience'] }], parameters: [{ name: 'limit', in: 'query', schema: { type: 'integer' } }], responses: { '200': { description: 'OK', content: { 'application/json': { schema: { type: 'object' } } } }, '404': { description: 'Persona analytics not enabled', content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } } } } },
+      },
+      '/metrics/persona/distribution': {
+        get: { summary: 'One persona field distribution, consent-joined, floored to the k-anonymity quantum (read:audience; not covered by read:*)', security: [{ bearer: ['read:audience'] }], parameters: [{ name: 'field', in: 'query', required: true, schema: { type: 'string' } }, { name: 'limit', in: 'query', schema: { type: 'integer' } }], responses: { '200': { description: 'OK', content: { 'application/json': { schema: { type: 'object' } } } }, '400': { description: 'Unknown or non-countable field', content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } } }, '404': { description: 'Persona analytics not enabled', content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } } } } },
+      },
+      '/metrics/persona/links': {
+        get: { summary: 'Link platform presence counts (read:audience; not covered by read:*)', security: [{ bearer: ['read:audience'] }], responses: { '200': { description: 'OK', content: { 'application/json': { schema: { type: 'object' } } } }, '404': { description: 'Persona analytics not enabled', content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } } } } },
+      },
+      '/metrics/persona/audience': {
+        get: { summary: 'Counts of members granting each sharing purpose (read:audience; not covered by read:*)', security: [{ bearer: ['read:audience'] }], responses: { '200': { description: 'OK', content: { 'application/json': { schema: { type: 'object' } } } }, '404': { description: 'Persona analytics or data sharing consents not enabled', content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } } } } },
+      },
+      // The opt-in member visibility directory. STATIC, like the persona
+      // entries above and for a stronger reason: the filterable fields and the
+      // link platforms are per-instance, but a published contract must read the
+      // same everywhere or a consumer cannot tell a capability it lacks from an
+      // instance that spells it differently. `read:members` is wildcard
+      // protected AND requires the key to be bound to a named recipient, so a
+      // 403 here means one of two different things and the description says so.
+      '/members/open-to/{audience}': {
+        get: {
+          summary: 'Members who opted in to being found by this audience (read:members; not covered by read:*)',
+          description:
+            'Consenting, identified members who asked to be findable. Never an email and no contact '
+            + 'channel: recipients reach a member through the direct messages any two accounts on the '
+            + 'instance already have. Every member returned is written to the instance disclosure log '
+            + 'and is visible to that member. The key must carry a recipient binding whose declared '
+            + 'purposes cover the audience, otherwise 403.',
+          security: [{ bearer: ['read:members'] }],
+          parameters: [
+            { name: 'audience', in: 'path', required: true, schema: { type: 'string', enum: ['recruiters', 'sponsors'] }, description: 'In this release only "recruiters" can return members. The sponsor purpose copy tells members their interests, tech stack and profile links are shared, and never that their name is, so "sponsors" answers 404 until that copy is widened and every member who agreed is re-asked.' },
+            { name: 'interests', in: 'query', schema: { type: 'string' }, description: 'Repeatable or comma-joined option values. Unknown value is a 400.' },
+            { name: 'techStack', in: 'query', schema: { type: 'string' }, description: 'Repeatable or comma-joined option values.' },
+            { name: 'industry', in: 'query', schema: { type: 'string' }, description: 'Repeatable or comma-joined option values.' },
+            { name: 'hasLink', in: 'query', schema: { type: 'string' }, description: 'Link platform keys. ANDed: a member must have all of them.' },
+            { name: 'location', in: 'query', schema: { type: 'string' } },
+            { name: 'q', in: 'query', schema: { type: 'string' }, description: 'Username or display name search, identical to /users.' },
+            { name: 'limit', in: 'query', schema: { type: 'integer', minimum: 1, maximum: 50 }, description: 'Capped at 50, lower than the metrics family: these are people.' },
+            { name: 'offset', in: 'query', schema: { type: 'integer', minimum: 0 } },
+          ],
+          responses: {
+            '200': {
+              description: 'OK. Every item is also a logged disclosure.',
+              content: {
+                'application/json': {
+                  schema: {
+                    allOf: [
+                      paginated('#/components/schemas/OpenMember'),
+                      {
+                        type: 'object',
+                        required: ['disclosed'],
+                        properties: {
+                          disclosed: { type: 'integer', description: 'Disclosure rows written for this response. Always equals items.length.' },
+                        },
+                      },
+                    ],
+                  },
+                },
+              },
+            },
+            '400': { description: 'Unknown filter field, unknown option value, or a malformed parameter', content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } } },
+            '403': { description: 'Missing read:members, or the key is not bound to a recipient declared for this audience', content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } } },
+            '404': { description: 'Unknown audience, the directory is not enabled, or the audience purpose does not cover disclosing identity', content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } } },
+          },
+        },
       },
       '/openapi.json': {
         get: { summary: 'This OpenAPI spec', responses: { '200': { description: 'OK' } } },

@@ -10,7 +10,7 @@ useSeoMeta({
   twitterCard: 'summary',
 });
 
-const { explainers: explainersEnabled, learning: learningEnabled, federation: federationEnabled } = useFeatures();
+const { explainers: explainersEnabled, learning: learningEnabled, federation: federationEnabled, persona: personaEnabled } = useFeatures();
 const runtimeConfig = useRuntimeConfig();
 const instanceDomain = computed(() => {
   const siteUrl = runtimeConfig.public?.siteUrl as string | undefined;
@@ -26,6 +26,49 @@ const { data: profile, pending: profilePending, error: profileError, refresh: re
 const { data: content } = useLazyFetch<PaginatedResponse<Serialized<ContentListItem>>>(`/api/users/${username}/content`);
 const { data: learningData } = useLazyFetch(`/api/users/${username}/learning`, {
   immediate: learningEnabled.value,
+});
+
+/**
+ * The member's persona answers, from their own route rather than from
+ * `UserProfile`: that DTO is shared with the public API serializer and the
+ * federation actor document, so widening it would disclose persona to both.
+ *
+ * Structurally mirrors `PublicPersonaResponse` in
+ * `server/api/users/[username]/persona.get.ts`. Declared locally for the same
+ * reason `pages/settings/persona.vue` declares its own: importing the route
+ * module would drag `@commonpub/server` into the client's type graph.
+ *
+ * SSR-fetched, like every sibling fetch on this page, so the answers are in the
+ * first paint and in what a crawler reads. Nothing here is seeded to a
+ * placeholder: `data` is null until the route answers, and the component is
+ * mounted behind `v-if`, so no invented value is ever rendered. A 404 (feature
+ * off, profile not visible to this viewer, no such user) leaves `persona` null
+ * and the rest of the profile untouched.
+ */
+interface PublicPersonaFieldDto {
+  key: string;
+  label: string;
+  /**
+   * No `'link'`: the route excludes `link` fields because they live in
+   * `users.social_links`, which the hero's `.cpub-profile-social` icon row below
+   * already renders. Rendering them here too would print GitHub, X, LinkedIn,
+   * YouTube and Mastodon twice on this page for every member who ever filled in
+   * `/settings/profile` — with no action of their own, the moment the flag goes on.
+   */
+  display: 'chips' | 'text';
+  values: string[];
+}
+interface PublicPersonaSectionDto {
+  key: string;
+  label: string;
+  fields: PublicPersonaFieldDto[];
+}
+interface PublicPersonaResponseDto {
+  sections: PublicPersonaSectionDto[];
+  isOwner: boolean;
+}
+const { data: persona } = useLazyFetch<PublicPersonaResponseDto>(`/api/users/${username}/persona`, {
+  immediate: personaEnabled.value,
 });
 
 const activeTab = ref('overview');
@@ -492,6 +535,15 @@ async function handleReport(): Promise<void> {
                 <div class="cpub-about-detail"><i class="fa-solid fa-calendar"></i> Joined {{ new Date(p.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) }}</div>
               </div>
             </div>
+
+            <!-- Persona: the operator-defined profile questions this member
+                 chose to answer. Renders nothing at all when there is nothing
+                 to show, so no empty scaffolding appears for a visitor. -->
+            <PersonaPublicDisplay
+              v-if="personaEnabled && persona"
+              :sections="persona.sections"
+              :is-owner="persona.isOwner"
+            />
 
             <!-- Skills -->
             <div class="cpub-skills-section">

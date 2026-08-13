@@ -44,6 +44,10 @@ const flagMeta: Record<string, { label: string; description: string; icon: strin
   requireTermsAcceptance: { label: 'Require Terms Re-acceptance', description: 'Make users re-accept the Terms after you bump the terms version', icon: 'fa-solid fa-file-signature' },
   featuredHub: { label: 'Featured Hub', description: 'Show one hub as a full-width hero atop the Hubs page (pick it in Settings)', icon: 'fa-solid fa-star' },
   hubGovernance: { label: 'Hub Governance', description: 'Transfer ownership, the Steward role + flag queue, and self-unlink of shared projects', icon: 'fa-solid fa-people-roof' },
+  persona: { label: 'Persona', description: 'Optional profile questions people answer about themselves. Answers show on their public profile unless you turn a question off. Sections are defined in commonpub.config.ts or at /admin/persona', icon: 'fa-solid fa-id-card' },
+  dataSharingConsents: { label: 'Data Sharing Consents', description: 'Per-purpose sharing toggles on /settings/privacy, with a consent history a person can read back', icon: 'fa-solid fa-handshake' },
+  personaAnalytics: { label: 'Audience Analytics', description: 'Group totals over persona answers, counted only where consent is current and never below the k-anonymity floor. Read them at /admin/persona-metrics', icon: 'fa-solid fa-chart-pie' },
+  memberDirectory: { label: 'Member Directory', description: 'Let a named recipient list the individual members who opted in to recruiter or sponsor visibility. Never an email, and no contact channel beyond the messages any two accounts already have. Name the recipient at /admin/data-sharing first, or this does nothing', icon: 'fa-solid fa-address-book' },
 };
 
 const flagKeys = computed(() => data.value ? Object.keys(data.value.flags) : []);

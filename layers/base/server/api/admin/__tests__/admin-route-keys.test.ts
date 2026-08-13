@@ -97,6 +97,21 @@ const ROUTE_KEYS: Record<string, string> = {
   'layouts/index.post.ts': 'layout.manage',
   'layouts/migrate-homepage.post.ts': 'layout.manage',
   'layouts/seed-homepage.post.ts': 'layout.manage',
+  // persona schema editor + audience metrics (the schema is an instance
+  // setting; the metrics read is an observability surface, not a settings one)
+  'persona/schema.get.ts': 'settings.manage',
+  'persona/schema.put.ts': 'settings.manage',
+  'persona/schema.delete.ts': 'settings.manage',
+  'persona/drift/[fieldKey].post.ts': 'settings.manage',
+  'persona-metrics.get.ts': 'audit.read',
+  // data sharing: who receives members' data, and what they pulled. ONE key for
+  // ONE page. The disclosure panel is observability and would read as
+  // 'audit.read' on its own, but it sits on /admin/data-sharing beside the
+  // recipient editor: the operator who can name a recipient is the one who has
+  // to see what that recipient pulled, and two keys would render half a screen.
+  'data-sharing/recipients.get.ts': 'settings.manage',
+  'data-sharing/recipients.put.ts': 'settings.manage',
+  'data-sharing/disclosures.get.ts': 'settings.manage',
   // navigation
   'navigation/items.get.ts': 'navigation.manage',
   'navigation/items.put.ts': 'navigation.manage',
