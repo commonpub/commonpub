@@ -349,8 +349,8 @@ export type {
 } from './admin/index.js';
 
 // Profile
-export { getUserByUsername, getUserContent, updateUserProfile, exportUserData, searchUsers, recordConsent, needsTermsReacceptance, getEffectiveTermsVersion, TERMS_VERSION_SETTING_KEY } from './profile/index.js';
-export type { UserDataExport, UserSearchResult, ConsentKind, RecordConsentInput } from './profile/index.js';
+export { getUserByUsername, getUserContent, updateUserProfile, getProfilePrivacySettings, exportUserData, searchUsers, recordConsent, needsTermsReacceptance, getEffectiveTermsVersion, TERMS_VERSION_SETTING_KEY } from './profile/index.js';
+export type { UserDataExport, UserSearchResult, ProfilePrivacySettings, ConsentKind, RecordConsentInput } from './profile/index.js';
 
 // Security
 export {
@@ -877,6 +877,20 @@ export type { EmailAdapter, EmailMessage, EmailSendResult, EmailBranding } from 
 export { renderEmailBlocks } from './emailBlocks.js';
 export type { RenderedEmailBody, RenderEmailBlocksOptions } from './emailBlocks.js';
 export { defaultContestEmailBlocks } from './contest/emailDefaults.js';
+
+// Persona — schema resolution, answer storage, purpose consent, audience metrics.
+// Gated by the `persona`, `dataSharingConsents` and `personaAnalytics` flags at
+// the route layer; the functions themselves are flag-agnostic like every other
+// domain here.
+export * from './persona/index.js';
+// `METRICS_MIN_BUCKET` is exported by BOTH star exports below (`publicApi` still
+// declares its own literal 5; persona re-exports the constant from
+// `@commonpub/persona`). Ambiguous star exports would drop the name entirely, so
+// the authority is named explicitly here: Appendix B5 puts both k-anonymity
+// floors in `@commonpub/persona` as the single source. When
+// `publicApi/metrics.ts` re-exports that constant instead of declaring its own,
+// this line can go.
+export { METRICS_MIN_BUCKET } from '@commonpub/persona';
 
 // Public API (admin-scoped Bearer keys for external consumers)
 export * from './publicApi/index.js';

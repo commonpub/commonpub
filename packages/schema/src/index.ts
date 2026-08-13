@@ -65,6 +65,9 @@ export * from './publicApi.js';
 // Analytics rollups (daily time-series)
 export * from './metrics.js';
 
+// Persona (answers, free text, purpose consent, persona-owned rollup — migration 0046)
+export * from './persona.js';
+
 // Validators
 export * from './validators.js';
 

@@ -124,6 +124,7 @@
     "@commonpub/editor": "workspace:*",
     "@commonpub/infra": "workspace:*",
     "@commonpub/learning": "workspace:*",
+    "@commonpub/persona": "workspace:*",
     "@commonpub/protocol": "workspace:*",
     "@commonpub/schema": "workspace:*",
     "@mozilla/readability": "^0.6.0",

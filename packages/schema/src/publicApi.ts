@@ -18,6 +18,19 @@ export const apiKeys = pgTable('api_keys', {
   scopes: jsonb('scopes').$type<string[]>().notNull().default([]),
   description: text('description'),
   allowedOrigins: jsonb('allowed_origins').$type<string[]>(),
+  /**
+   * Binds this key to one named recipient from `dataSharing.recipients`, so a
+   * disclosure made with it is attributable to a real party (`disclosure_events.
+   * recipient_id`). The recipient record already carries `purposes`, so one join
+   * answers "may this key see this audience" — which is why this supersedes the
+   * `api_keys.purposes` array that Appendix B2 of the persona plan killed: no
+   * field there carried a data class to intersect against.
+   *
+   * NULLABLE on purpose. Every key already in the field keeps working unchanged
+   * and reads nothing new; only the surfaces that require a recipient binding
+   * (currently `read:members`) refuse a key without one.
+   */
+  recipientId: varchar('recipient_id', { length: 40 }),
   rateLimitPerMinute: integer('rate_limit_per_minute').notNull().default(60),
   createdBy: uuid('created_by')
     .notNull()

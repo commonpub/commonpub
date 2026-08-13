@@ -53,6 +53,10 @@ export function createTestConfig(overrides?: Partial<CommonPubConfig>): CommonPu
       referralLinks: false,
       featuredHub: false,
       hubGovernance: false,
+      persona: false,
+      dataSharingConsents: false,
+      personaAnalytics: false,
+      memberDirectory: false,
       // Spread overrides BEFORE the explicit `identity:` block so a
       // partial-identity override (e.g., `{ remoteInteract: true }`)
       // safely merges over the all-false defaults rather than replacing

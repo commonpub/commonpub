@@ -200,6 +200,55 @@ export interface FeatureFlags {
    * no destructive powers), and self-unlink of shared projects. Default OFF.
    */
   hubGovernance: boolean;
+  /**
+   * Persona: operator-defined profile sections a user fills in about themselves.
+   * Gates the persona editor, `/api/persona/*`, the dashboard invitation, the
+   * admin schema editor at `/admin/persona`, AND the render on the member's
+   * PUBLIC profile (`GET /api/users/:username/persona`, in the About tab of
+   * `/u/:username`).
+   *
+   * That last one is why this is more than a collection switch: turning it on
+   * both starts collecting personal data that was not collected before and
+   * starts DISPLAYING it, subject to each field's `publicOnProfile` and the
+   * member's own `profileVisibility`. Hence default OFF. The section definitions
+   * live in `config.persona`, which this package accepts opaquely and never
+   * interprets.
+   */
+  persona: boolean;
+  /**
+   * Purpose-scoped data-sharing consents. Gates the purpose toggles,
+   * `/settings/privacy` and `/api/consent/purposes`. Default OFF. This is the
+   * DISCLOSING surface, a separate risk from collecting, so it is opted into
+   * separately from `persona`.
+   */
+  dataSharingConsents: boolean;
+  /**
+   * Aggregate persona audience metrics. Gates the aggregate endpoint family, the
+   * daily rollup pass, `GET /api/admin/persona-metrics` and the admin audience
+   * dashboard that reads it at `/admin/persona-metrics` (whose nav entry needs
+   * `audit.read`, not `settings.manage`). Default OFF, and
+   * inert unless `persona` is also on. The public endpoints additionally require
+   * `publicApi`, a key holding `read:audience`, AND `dataSharingConsents`:
+   * everything they count is a purpose grant, so the counting cannot outlive the
+   * surface where a member withdraws one.
+   */
+  personaAnalytics: boolean;
+  /**
+   * Member visibility directory. Turning this on lets a NAMED RECIPIENT, holding
+   * a key bound to that recipient, LIST the individual members who opted in to
+   * `recruiter_visibility` or `sponsor_sharing`: username, public profile fields
+   * and public persona answers, filterable. Never an email address, and no
+   * contact channel beyond the on-site DMs any two accounts already have.
+   *
+   * The only persona flag that discloses IDENTIFIED people rather than
+   * k-anonymous counts, hence its own switch and default OFF. It is INERT until
+   * a recipient covering the purpose is declared in
+   * `config.dataSharing.recipients`: with no recipient there is no key binding
+   * to grant, the member is never offered the consent, and the endpoint has
+   * nobody to answer. Also inert without `persona`, `dataSharingConsents`,
+   * `publicApi` and a `read:members` key.
+   */
+  memberDirectory: boolean;
 }
 
 export interface IdentityFeatures {
@@ -397,4 +446,21 @@ export interface CommonPubConfig {
    * when present, always wins.
    */
   defaultTheme?: string;
+  /**
+   * Persona section definitions. Deliberately `unknown` here: `@commonpub/config`
+   * does not know what a persona section is, and `@commonpub/persona` validates
+   * this block at registry-resolution time. Typing it would require config to
+   * import a feature package, inverting the dependency direction. Only used when
+   * `features.persona` is on.
+   */
+  persona?: unknown;
+  /**
+   * Data-sharing recipients, policy version, k-anonymity floors and the
+   * disclosure retention window. `unknown` for the same reason as `persona`
+   * above; `@commonpub/persona` validates it. Used when
+   * `features.dataSharingConsents` is on, and read again by
+   * `features.memberDirectory`, which stays inert until a recipient here covers
+   * the purpose being listed.
+   */
+  dataSharing?: unknown;
 }

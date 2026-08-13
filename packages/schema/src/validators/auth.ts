@@ -18,6 +18,24 @@ export const displayNameSchema = z.string().min(1).max(128);
 
 export const bioSchema = z.string().max(2000).optional();
 
+/**
+ * The seven built-in profile link platforms, plus a `catchall` for any platform
+ * an operator declares.
+ *
+ * The catchall is load bearing, not permissiveness. `PUT /api/profile` sends the
+ * WHOLE `socialLinks` object, and a plain `z.object` strips unknown keys by
+ * default, so a member who filled in an operator-declared eighth platform at
+ * `/settings/persona` and later edited anything at all on `/settings/profile`
+ * lost that value with no error and no warning. The link-presence cohort for
+ * that platform then decayed toward zero, which an operator reads as "nobody
+ * uses it".
+ *
+ * The catchall runs the SAME `optionalUrl` predicate as every named key, so an
+ * unknown platform buys no laxer validation: a `javascript:` value is refused
+ * here exactly as it is above. Key NAMES are bounded by
+ * `personaLinkPlatformSchema` (`^[a-z0-9_]{1,32}$`) at the point an operator
+ * declares a platform.
+ */
 export const socialLinksSchema = z
   .object({
     github: optionalUrl(),
@@ -28,6 +46,7 @@ export const socialLinksSchema = z
     mastodon: optionalUrl(),
     discord: optionalUrl(),
   })
+  .catchall(optionalUrl())
   .optional();
 
 export const createUserSchema = z.object({
@@ -56,6 +75,11 @@ export const updateProfileSchema = z.object({
   })).max(20).optional(),
   pronouns: z.preprocess((v) => typeof v === 'string' && v.trim() === '' ? undefined : v, z.string().trim().max(32).optional()),
   timezone: z.string().max(64).optional(),
+  // Settable for the first time from /settings/privacy. The column has always
+  // existed and defaulted to 'public'; this schema is a plain object, so before
+  // this line a submitted value was silently STRIPPED, which on a privacy
+  // control is worse than a rejection.
+  profileVisibility: z.enum(['public', 'members', 'private']).optional(),
   emailNotifications: z
     .object({
       digest: z.enum(['daily', 'weekly', 'none']).optional(),
