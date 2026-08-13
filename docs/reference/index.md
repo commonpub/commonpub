@@ -25,3 +25,4 @@ Fresh, focused reference pages that cover one specific subject well:
 - [`guides/theme-editor.md`](guides/theme-editor.md) — admin theme editor: custom + code-registered themes, scene preview system, import/export, capture-from-:root flow
 - [`guides/url-structure.md`](guides/url-structure.md) — URL canonical form (session 108 restructure)
 - [`guides/contests.md`](guides/contests.md) — contest lifecycle, judge panel + accept flow, score visibility, prizes/criteria, community voting
+- [`guides/persona-schema.md`](guides/persona-schema.md) — persona sections in `commonpub.config.ts` vs `/admin/persona`: precedence, key/option rules and caps, field properties, what can be counted, drift (Purge vs Retain), the k-anonymity floors
