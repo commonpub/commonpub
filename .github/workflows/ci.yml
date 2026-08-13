@@ -143,6 +143,17 @@ jobs:
       FEATURE_EXPLAINERS: 'true'
       FEATURE_LEARNING: 'true'
       FEATURE_VIDEO: 'true'
+      # Session 255. Same reason as FEATURE_ANALYTICS above: the reference app
+      # ships these OFF, because turning them on starts collecting personal
+      # data, and `commonpub.config.ts` builds the production image. Every
+      # persona and directory spec derives its own skip from live
+      # `/api/features`, so without these the specs are shipped and never run.
+      FEATURE_PERSONA: 'true'
+      FEATURE_DATA_SHARING_CONSENTS: 'true'
+      FEATURE_PERSONA_ANALYTICS: 'true'
+      FEATURE_MEMBER_DIRECTORY: 'true'
+      # The directory lives under /api/public/v1, so its specs need the family.
+      FEATURE_PUBLIC_API: 'true'
 
     steps:
       - uses: actions/checkout@v4
