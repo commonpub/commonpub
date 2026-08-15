@@ -29,9 +29,16 @@ import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 
 const here = dirname(fileURLToPath(import.meta.url));
-const pagesDir = resolve(here, '..');
+const pagesDir = resolve(here, '../..');
 
-const PAGES = ['profile/questions.vue', 'privacy.vue'] as const;
+const PAGES = [
+  'settings/profile/questions.vue',
+  'settings/privacy.vue',
+  // The operator screen carried the identical defect: 53 gaps rendering at 26px
+  // instead of 8px. Found by re-scanning for the CLASS after fixing the two
+  // member-facing pages, rather than by assuming those were all of it.
+  'admin/persona.vue',
+] as const;
 
 interface Page { name: string; raw: string; style: string }
 
@@ -51,7 +58,7 @@ const pages: Page[] = PAGES.map((name) => {
 
 describe('persona surface style lint — the guard on the guard', () => {
   it('read both pages, and both are substantial', () => {
-    expect(pages).toHaveLength(2);
+    expect(pages).toHaveLength(3);
     for (const p of pages) expect(p.raw.length, p.name).toBeGreaterThan(2000);
   });
 
@@ -134,14 +141,18 @@ describe('persona surface style lint — spacing is the gap, not stray margins',
   it('the questions page groups its lede, so a heading is nearer its text than the next block', () => {
     // Equal spacing everywhere removes the only signal that a heading owns the
     // lines under it. Two steps, not one.
-    const page = pages.find((p) => p.name === 'profile/questions.vue')!;
+    const page = pages.find((p) => p.name === 'settings/profile/questions.vue')!;
     expect(page.raw).toContain('cpub-questions-lede');
     expect(page.style).toMatch(/\.cpub-questions-lede\s*\{[^}]*gap:\s*var\(--space-2\)/);
   });
 });
 
+/** The two member-facing pages carry long reading copy; the admin screen is a
+ *  dense operator table and is deliberately not measure-capped. */
+const PROSE_PAGES = PAGES.filter((n) => n !== 'admin/persona.vue');
+
 describe('persona surface style lint — measure', () => {
-  it.each(PAGES)('%s caps the reading measure in ch, so it holds at any scale', (name) => {
+  it.each(PROSE_PAGES)('%s caps the reading measure in ch, so it holds at any scale', (name) => {
     const page = pages.find((p) => p.name === name)!;
     // 720px of 13px text ran to ~96 characters a line against a 45-75 target.
     // The bound is 55, not the customary 65. `1ch` is the width of "0", wider
