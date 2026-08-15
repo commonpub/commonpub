@@ -35,8 +35,8 @@ export interface PersonaSchemaBlocker {
    * pure read that writes nothing, so an un-floored figure here is a differencing
    * oracle: PUT the identical document with one option removed, read the count,
    * repeat per option, and the whole distribution falls out. It also counts
-   * answers from members who explicitly REVOKED `profile_analytics`, for whom
-   * there is no lawful basis to process at all.
+   * answers from members who have objected to being counted at all, whose rows
+   * every published aggregate excludes.
    */
   affectedRows: number;
   /** True when the real count fell below the floor and `affectedRows` is 0. */

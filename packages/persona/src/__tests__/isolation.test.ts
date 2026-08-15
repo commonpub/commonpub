@@ -195,6 +195,7 @@ describe('14.7 (1) — @commonpub/persona imports nothing but zod', () => {
       'persona.ts',
       'purposes.ts',
       'schemas.ts',
+      'statistics.ts',
       'digest.ts',
       'thresholds.ts',
       'url.ts',
@@ -411,7 +412,14 @@ describe('14.7 (5) — useCookieConsent.ts is unchanged by this feature', () => 
     // the two consent regimes stay separate records with separate lifecycles.
     expect(source, 'the cookie composable must not import the persona package')
       .not.toMatch(/@commonpub\/persona/);
-    for (const token of ['purposeConsent', 'user_purpose_consents', 'profile_analytics', 'dataSharing']) {
+    for (const token of [
+      'purposeConsent',
+      'user_purpose_consents',
+      'recruiter_visibility',
+      'sponsor_sharing',
+      'user_statistics_objections',
+      'dataSharing',
+    ]) {
       expect(source, `${token} must not appear in the cookie consent composable`)
         .not.toContain(token);
     }

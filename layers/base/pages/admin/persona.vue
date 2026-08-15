@@ -223,7 +223,7 @@ function cloneField(f: PersonaField): PersonaField {
   if (f.pointsPerSelection !== undefined) out.pointsPerSelection = f.pointsPerSelection;
   if (f.analytics !== undefined) out.analytics = f.analytics;
   if (f.sensitive !== undefined) out.sensitive = f.sensitive;
-  if (f.publicOnProfile !== undefined) out.publicOnProfile = f.publicOnProfile;
+  if (f.showOnProfile !== undefined) out.showOnProfile = f.showOnProfile;
   if (f.column !== undefined) out.column = f.column;
   return out;
 }
@@ -415,7 +415,7 @@ function changeType(df: DraftField, type: PersonaFieldType): void {
   const next: PersonaField = { key: prev.key, label: prev.label, type };
   if (prev.help !== undefined) next.help = prev.help;
   if (prev.sensitive !== undefined) next.sensitive = prev.sensitive;
-  if (prev.publicOnProfile !== undefined) next.publicOnProfile = prev.publicOnProfile;
+  if (prev.showOnProfile !== undefined) next.showOnProfile = prev.showOnProfile;
   if (prev.column !== undefined) next.column = prev.column;
   if (prev.points !== undefined) next.points = prev.points;
   if (spec.supportsMaxLength && prev.maxLength !== undefined) next.maxLength = prev.maxLength;
@@ -1539,16 +1539,23 @@ async function copyExport(): Promise<void> {
                     :aria-label="`${df.field.label || 'Question'} can be counted`"
                     @change="patchField(df, { analytics: ($event.target as HTMLInputElement).checked ? undefined : false })"
                   />
-                  <span>Can be counted in group statistics, if the person turns sharing on.</span>
+                  <span>Can be counted in group statistics. Nobody is named, and a member can ask to be left out.</span>
                 </label>
+                <!--
+                  An opt IN, and the polarity is the point. Answers are private
+                  unless this box is ticked, so an unticked box is the default
+                  state of every question and ticking one is a decision to
+                  publish that answer on `/u/:username`. `sensitive` overrides
+                  it: a sensitive answer is never published whatever this says.
+                -->
                 <label class="cpub-persona-check">
                   <input
                     type="checkbox"
-                    :checked="df.field.publicOnProfile !== false"
-                    :aria-label="`${df.field.label || 'Question'} shows on the public profile`"
-                    @change="patchField(df, { publicOnProfile: ($event.target as HTMLInputElement).checked ? undefined : false })"
+                    :checked="df.field.showOnProfile === true"
+                    :aria-label="`${df.field.label || 'Question'} is published on the public profile`"
+                    @change="patchField(df, { showOnProfile: ($event.target as HTMLInputElement).checked ? true : undefined })"
                   />
-                  <span>Show on the public profile.</span>
+                  <span>Publish this answer on the member's public profile. Off by default: answers are private.</span>
                 </label>
                 <span v-if="df.field.column" class="cpub-persona-badge cpub-persona-badge--file">
                   Bound to the profile field {{ df.field.column }}

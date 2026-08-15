@@ -1,30 +1,64 @@
 <script setup lang="ts">
 /**
- * /settings/privacy — purpose consent, profile visibility and the subject-rights
- * links (plan sections 6.8, 6.9 and 8.7).
+ * /settings/privacy — the statistics objection, the third-party sharing consents,
+ * profile visibility and the subject-rights links.
  *
- * Every sentence of consent copy on this page comes from the server, which reads
- * it from the purpose registry in `@commonpub/persona`. Nothing here paraphrases
- * a purpose: a wording that can drift from the behaviour it describes is the
- * defect the registry exists to prevent, and this layer does not depend on that
- * package precisely so the copy cannot be forked into a component.
+ * THE THREE THINGS ON THIS PAGE ARE THREE DIFFERENT LEGAL ACTS, and the layout
+ * says so rather than flattening them into one row of identical switches:
  *
- * Four rules on this page are load bearing and are covered by tests, not by
- * convention:
+ *  1. COMMUNITY STATISTICS run on legitimate interest (Art. 6(1)(f)). The
+ *     instance counts answers into anonymous group totals over its own members
+ *     whether or not anybody agrees, so there is no consent to ask for. What the
+ *     member gets is the instrument that belongs to that basis, an OBJECTION
+ *     (Art. 21), and it is the one control here whose default is ON. It is
+ *     framed as leaving, never as agreeing.
+ *  2. THIRD-PARTY SHARING is consent (Art. 6(1)(a)), default OFF, one card per
+ *     offerable purpose. Something about the member leaves this instance and
+ *     reaches a party the operator has named.
+ *  3. PROFILE VISIBILITY is not a consent question at all. It is a setting.
  *
- *  1. Every switch is OFF unless the server says the grant is currently
+ * The previous version of this page had a "count my answers in community
+ * statistics" CONSENT card. That was a dark pattern with good intentions: the
+ * instance holds those totals regardless, so a refusal it would not honour was
+ * being presented as a choice. It is deleted, not deprecated.
+ *
+ * Five rules are load bearing and are covered by tests, not by convention:
+ *
+ *  1. Every consent switch is OFF unless the server says the grant is currently
  *     authorised. Absence is never consent, and a stale grant authorises
  *     nothing.
  *  2. `offSummary` is rendered ABOVE `onSummary` on every card, always. What is
- *     true right now is read before what would change.
+ *     true right now is read before what would change. The statistics block
+ *     obeys the same rule with its own status line, which is why the current
+ *     standing is the first sentence in it.
  *  3. Revoking is one click on the same control that granted, with no
  *     confirmation dialog and no second step. Refusing is never harder than
- *     agreeing.
+ *     agreeing, and objecting is never harder than being counted.
  *  4. A stale grant renders a passive card. No modal, no email, no nag.
+ *  5. NO SHARING LANGUAGE APPEARS WHEN THE SHARING FLAGS ARE OFF. An instance
+ *     may run `persona` for purely operational questions (a makerspace asking
+ *     which tools you are trained on) with no recruitment, sponsors or analytics
+ *     ambitions. On that instance this page shows profile visibility and the
+ *     subject-rights links and says nothing about recruiters, sponsors, totals
+ *     or sharing, including the old "sharing choices are not enabled here"
+ *     notice, which was itself sharing language.
+ *
+ * Every sentence of disclosure copy comes from the server, which reads it from
+ * `@commonpub/persona`: the consent registry for the cards, `statistics.ts` for
+ * the objection. Nothing here paraphrases either. The only strings written in
+ * this file describe what the PAGE is doing (loading, saved, could not load) or
+ * state a fact about this member's own settings.
  *
  * ---------------------------------------------------------------------------
  * ROUTES CONSUMED
  * ---------------------------------------------------------------------------
+ * GET /api/consent/objection         -> StatisticsObjectionPayload. Behind
+ *   `persona`; fetched only when this instance actually computes statistics
+ *   (`persona` AND `personaAnalytics`), because a screen describing group totals
+ *   on an instance that computes none describes something that does not happen.
+ * PUT /api/consent/objection         -> `{ objected }`, `.strict()`. No scope
+ *   digest and no snapshot: an objection is a current state, and a refusal must
+ *   survive exactly the changes that lapse a grant.
  * GET /api/consent/purposes          -> ConsentPurposesPayload. Offerable
  *   purposes only; the server owns that decision exactly as `/api/consent/status`
  *   owns the terms decision.
@@ -43,17 +77,33 @@
  *
  * `profileVisibility` is sent through the existing `PUT /api/profile`, and the
  * control WORKS: `updateProfileSchema` and `updateUserProfile` both learned the
- * column (plan 14.8), and `GET /api/profile` returns it owner-only. What remains
- * deferred is ENFORCEMENT of that setting on the app's own read paths and on the
- * federation actor routes, which is Phase 0 and ships unflagged on its own. The
- * aggregation query already honours it, which is what B3's disclosure is about.
+ * column (plan 14.8), and `GET /api/profile` returns it owner-only. It is
+ * fetched and rendered unconditionally now, because who can see your profile is
+ * a question every instance answers, not one that appears because sharing does.
  */
 definePageMeta({ middleware: 'auth' });
 useSeoMeta({ title: `Privacy, ${useSiteName()}` });
 
-const { dataSharingConsents: consentsEnabled, memberDirectory: directoryEnabled } = useFeatures();
+const {
+  persona: personaEnabled,
+  personaAnalytics: analyticsEnabled,
+  dataSharingConsents: consentsEnabled,
+  memberDirectory: directoryEnabled,
+} = useFeatures();
 const { show: toast } = useToast();
 const { extract } = useApiError();
+
+/**
+ * Statistics exist only where BOTH flags are on: the rollup plugin and every
+ * aggregate route gate on `persona` AND `personaAnalytics`, so on an instance
+ * with the second one off no total is ever computed and there is nothing to
+ * object to. Describing an objection to processing that does not happen would be
+ * the same failure as asking consent for processing that happens regardless,
+ * pointed the other way.
+ */
+const statisticsEnabled = computed<boolean>(
+  () => personaEnabled.value && analyticsEnabled.value,
+);
 
 type PurposeState = 'granted' | 'revoked' | 'absent';
 type ProfileVisibility = 'public' | 'members' | 'private';
@@ -79,6 +129,29 @@ interface PurposeDto {
   /** True only for a STALE grant. A refusal is never re-asked. */
   needsReconfirmation: boolean;
   actedAt: string | null;
+}
+
+/**
+ * Mirrors `StatisticsObjectionPayload` in `server/api/consent/objection.get.ts`.
+ *
+ * It carries BOTH directions' copy, not only the one currently available, so the
+ * page never has to hold a sentence about what objecting does. `state` is the
+ * whole record: `'counted'` is the state with no row on file.
+ */
+interface StatisticsObjectionDto {
+  state: 'counted' | 'objected';
+  objected: boolean;
+  objectedAt: string | null;
+  label: string;
+  legalBasis: string;
+  /** Rendered server-side against THIS instance's k-anonymity floors. */
+  description: string;
+  basisNote: string;
+  statusSummary: string;
+  objectLabel: string;
+  objectEffect: string;
+  withdrawObjectionLabel: string;
+  withdrawObjectionEffect: string;
 }
 
 interface ConsentHistoryRowDto {
@@ -175,6 +248,19 @@ const {
   immediate: consentsEnabled.value && directoryEnabled.value,
 });
 
+/**
+ * The statistics objection. Fetched on its own edge rather than folded into the
+ * consent payload, because it is a different legal act against a different table
+ * and it exists on instances that offer no sharing at all.
+ */
+const {
+  data: objectionData,
+  error: objectionError,
+  refresh: refreshObjection,
+} = await useFetch<StatisticsObjectionDto>('/api/consent/objection', {
+  immediate: statisticsEnabled.value,
+});
+
 const purposes = computed<PurposeDto[]>(() => data.value?.purposes ?? []);
 /**
  * Registered purposes this instance is NOT offering, named so the deferral is
@@ -209,6 +295,43 @@ const disclosuresUnavailable = computed<boolean>(
   () => directoryEnabled.value && consentsEnabled.value && disclosureError.value != null,
 );
 const scopeDigest = computed<string>(() => data.value?.scopeDigest ?? '');
+
+/**
+ * The statistics objection.
+ *
+ * `objection.value` is null only while the fetch is in flight or after it failed.
+ * The block renders NOTHING in the failure case rather than falling back to a
+ * default-shaped card: this control's default is ON, so a card assembled from
+ * client-side defaults would tell a member who has objected that they are being
+ * counted. "Could not load" is a different fact from "you are counted", and only
+ * one of them is a claim about processing.
+ */
+const objection = computed<StatisticsObjectionDto | null>(() => objectionData.value ?? null);
+const objectionUnavailable = computed<boolean>(
+  () => statisticsEnabled.value && objectionError.value != null,
+);
+const objectionBusy = ref(false);
+
+/**
+ * One click, in both directions, on the same control, with no confirmation step.
+ *
+ * The button is a BUTTON and not a `role="switch"`, deliberately. Every switch on
+ * this page reads "off means nothing is happening"; this control is the opposite,
+ * and a switch whose off state means "you are counted" would be read backwards by
+ * everyone who had learned the rest of the page. The label states the act.
+ */
+async function setObjection(objected: boolean): Promise<void> {
+  objectionBusy.value = true;
+  try {
+    await $fetch('/api/consent/objection', { method: 'PUT', body: { objected } });
+    await refreshObjection();
+    toast(objected ? 'You are left out of statistics' : 'You are counted again', 'success');
+  } catch (err: unknown) {
+    toast(extract(err), 'error');
+  } finally {
+    objectionBusy.value = false;
+  }
+}
 
 /**
  * What the user has clicked but not yet been able to record, keyed by purpose.
@@ -343,9 +466,10 @@ interface ProfileDto {
   profileVisibility?: ProfileVisibility;
 }
 
-const { data: profile, refresh: refreshProfile } = await useFetch<ProfileDto>('/api/profile', {
-  immediate: consentsEnabled.value,
-});
+// Unconditional: who can see your profile is a question every instance answers.
+// It used to be fetched only when `dataSharingConsents` was on, which meant an
+// instance with sharing off had a Privacy page with no privacy setting on it.
+const { data: profile, refresh: refreshProfile } = await useFetch<ProfileDto>('/api/profile');
 const visibility = ref<ProfileVisibility>('public');
 const visibilitySaving = ref(false);
 const visibilityError = ref<string | null>(null);
@@ -362,17 +486,23 @@ const visibilityHints: Record<ProfileVisibility, string> = {
 };
 
 /**
- * Appendix B3's inline note, ON THE TOGGLE and independent of grant state.
+ * Appendix B3's inline note, ON THE CONTROL and independent of grant state.
  *
  * It used to live below the purpose cards, inside "Who can see your profile",
  * and to appear only once a grant already existed. Both halves were wrong: the
  * person who most needs it is the one whose profile is ALREADY private and who
- * is deciding whether to turn counting on, and B3 asks for the note where the
- * decision is taken. It is also wired into the switch's `aria-describedby`, so a
- * screen-reader user on the control hears it rather than finding it two
- * sections later.
+ * is deciding, and B3 asks for the note where the decision is taken. It is wired
+ * into the control's `aria-describedby`, so a screen-reader user on the control
+ * hears it rather than finding it two sections later.
+ *
+ * It now says two DIFFERENT things in the two places, because a non-public
+ * profile does two different things. `listableUserWhere` in the directory drops
+ * a non-public member from every recruiter and sponsor result, and
+ * `countedUserWhere` in the aggregates drops them from every total. One flag,
+ * two consequences, and a single sentence covering both would have to be vague
+ * about which is which.
  */
-const visibilityBlocksCounting = computed<boolean>(() => visibility.value !== 'public');
+const profileNotPublic = computed<boolean>(() => visibility.value !== 'public');
 
 async function saveVisibility(): Promise<void> {
   visibilitySaving.value = true;
@@ -473,10 +603,20 @@ function legalBasisLabel(basis: string): string {
     : `Legal basis: ${basis}.`;
 }
 
-/** What happens to the ANSWERS after a withdrawal, as opposed to the processing. */
+/**
+ * What happens to the ANSWERS after a withdrawal, as opposed to the processing.
+ *
+ * The token is `kept_in_your_account` and NOT `kept_on_your_profile`. Answers to
+ * the operator's questions are private unless the operator has opted a field on
+ * to the profile with `showOnProfile: true`, and no built-in field does, so a
+ * reassurance naming the profile would describe a place most members' answers
+ * are not. There is no branch for the old token: it was renamed rather than
+ * deprecated, and a fallback here would let a server sending the dead value
+ * render an empty sentence instead of failing visibly.
+ */
 function answersLabel(effect: string): string {
-  return effect === 'kept_on_your_profile'
-    ? 'Your answers stay on your profile either way.'
+  return effect === 'kept_in_your_account'
+    ? 'Your answers stay in your account either way.'
     : '';
 }
 
@@ -493,11 +633,68 @@ function historyLabel(row: ConsentHistoryRowDto): string {
   <div class="cpub-privacy-settings">
     <h2 class="cpub-section-title-lg">Privacy</h2>
 
-    <p v-if="!consentsEnabled" class="cpub-privacy-note">
-      Sharing choices are not enabled on this site.
-    </p>
+    <!--
+      COMMUNITY STATISTICS, and the objection.
 
-    <template v-else>
+      Rendered only where this instance actually computes totals, and rendered
+      FIRST, because it is the one thing on this page that is already happening.
+      The register is the same as a consent card's, with the current truth read
+      before the change: status line, what the site does, why this is not a
+      consent question, then the act.
+
+      There is no `role="switch"` in this block. See `setObjection`.
+    -->
+    <section
+      v-if="statisticsEnabled && (objection || objectionUnavailable)"
+      class="cpub-privacy-block"
+      aria-labelledby="cpub-statistics-heading"
+    >
+      <h3 id="cpub-statistics-heading" class="cpub-privacy-subhead">
+        {{ objection ? objection.label : 'Community statistics' }}
+      </h3>
+
+      <p v-if="objectionUnavailable" class="cpub-privacy-note" role="alert">
+        Where you stand on community statistics could not be loaded. Nothing has changed, and you can
+        still use Download my data to see the full record.
+      </p>
+
+      <article v-else-if="objection" class="cpub-statistics-card">
+        <!-- What is true right now, first. -->
+        <p id="cpub-statistics-status" class="cpub-statistics-status" role="status">
+          {{ objection.statusSummary }}
+        </p>
+        <!-- Rendered by the server against this instance's own floors, so the
+             number in it is this site's and not a plausible default. -->
+        <p class="cpub-statistics-detail">{{ objection.description }}</p>
+        <p class="cpub-statistics-detail">{{ objection.basisNote }}</p>
+
+        <p v-if="profileNotPublic" id="cpub-statistics-visibility" class="cpub-purpose-visibility">
+          Your profile is not public right now, so your answers are not counted at the moment
+          whichever way you leave this. You can change that below.
+        </p>
+
+        <!-- The effect of the act available from here, read before the act. -->
+        <p class="cpub-statistics-detail">
+          {{ objection.objected ? objection.withdrawObjectionEffect : objection.objectEffect }}
+        </p>
+
+        <div class="cpub-purpose-actions">
+          <button
+            type="button"
+            class="cpub-btn cpub-btn-sm cpub-statistics-action"
+            :aria-describedby="profileNotPublic
+              ? 'cpub-statistics-status cpub-statistics-visibility'
+              : 'cpub-statistics-status'"
+            :disabled="objectionBusy"
+            @click="setObjection(!objection.objected)"
+          >
+            {{ objection.objected ? objection.withdrawObjectionLabel : objection.objectLabel }}
+          </button>
+        </div>
+      </article>
+    </section>
+
+    <template v-if="consentsEnabled">
       <section class="cpub-privacy-block" aria-labelledby="cpub-sharing-heading">
         <h3 id="cpub-sharing-heading" class="cpub-privacy-subhead">Sharing choices</h3>
         <p class="cpub-privacy-note">
@@ -582,17 +779,20 @@ function historyLabel(row: ConsentHistoryRowDto): string {
               </p>
 
               <!--
-                B3: the aggregation query filters on a public profile, so a
-                member whose profile is private is not counted even with this
-                on. Shown at the moment of the decision, not after it.
+                B3: `listableUserWhere` in the directory requires a public
+                profile, so a member whose profile is private is never returned
+                to a recipient even with the grant on. Shown at the moment of the
+                decision, not after it. It says "found", not "counted": counting
+                is the statistics block above and is a different query with a
+                different basis.
               -->
               <p
-                v-if="visibilityBlocksCounting"
+                v-if="profileNotPublic"
                 :id="`cpub-purpose-visibility-${purpose.id}`"
                 class="cpub-purpose-visibility"
               >
-                Your profile is not public right now, so your answers are not counted even with this
-                turned on. You can change that below.
+                Your profile is not public right now, so nobody can find you through this even with
+                it turned on. You can change that below.
               </p>
 
               <div class="cpub-purpose-actions">
@@ -602,7 +802,7 @@ function historyLabel(row: ConsentHistoryRowDto): string {
                   class="cpub-purpose-switch"
                   :aria-checked="isOn(purpose) ? 'true' : 'false'"
                   :aria-labelledby="`cpub-purpose-${purpose.id}`"
-                  :aria-describedby="visibilityBlocksCounting
+                  :aria-describedby="profileNotPublic
                     ? `cpub-purpose-state-${purpose.id} cpub-purpose-visibility-${purpose.id}`
                     : `cpub-purpose-state-${purpose.id}`"
                   :disabled="busyPurpose === purpose.id"
@@ -663,103 +863,127 @@ function historyLabel(row: ConsentHistoryRowDto): string {
           </p>
         </template>
       </section>
-
-      <section class="cpub-privacy-block" aria-labelledby="cpub-visibility-heading">
-        <h3 id="cpub-visibility-heading" class="cpub-privacy-subhead">Who can see your profile</h3>
-        <div class="cpub-field">
-          <label for="cpub-profile-visibility" class="cpub-form-label">Profile visibility</label>
-          <select
-            id="cpub-profile-visibility"
-            v-model="visibility"
-            class="cpub-input cpub-visibility-select"
-            aria-describedby="cpub-visibility-hint"
-          >
-            <option value="public">Public</option>
-            <option value="members">Members only</option>
-            <option value="private">Only me</option>
-          </select>
-          <p id="cpub-visibility-hint" class="cpub-privacy-note">{{ visibilityHints[visibility] }}</p>
-          <p v-if="visibilityBlocksCounting" class="cpub-privacy-note">
-            While your profile is not public, your answers are not counted, even with sharing turned
-            on.
-          </p>
-          <p v-if="visibilityError" class="cpub-field-error" role="alert">{{ visibilityError }}</p>
-          <button
-            type="button"
-            class="cpub-btn cpub-btn-sm"
-            :disabled="visibilitySaving"
-            @click="saveVisibility"
-          >
-            {{ visibilitySaving ? 'Saving...' : 'Save visibility' }}
-          </button>
-        </div>
-      </section>
-
-      <section class="cpub-privacy-block" aria-labelledby="cpub-rights-heading">
-        <h3 id="cpub-rights-heading" class="cpub-privacy-subhead">Your data</h3>
-        <p class="cpub-privacy-note">
-          You can take a copy of everything this site holds about you, or close your account.
-        </p>
-        <div class="cpub-rights-actions">
-          <a href="/api/auth/export-data" download class="cpub-btn cpub-btn-sm">
-            <i class="fa-solid fa-download" aria-hidden="true"></i> Download my data
-          </a>
-          <NuxtLink to="/settings/account" class="cpub-btn cpub-btn-sm">
-            Delete my account
-          </NuxtLink>
-        </div>
-      </section>
-
-      <section class="cpub-privacy-block" aria-labelledby="cpub-history-heading">
-        <h3 id="cpub-history-heading" class="cpub-privacy-subhead">What you have chosen</h3>
-        <!-- "Could not load" and "you have chosen nothing" are different facts,
-             and printing the reassuring one for both is how a record of consent
-             quietly becomes a claim nobody checked. -->
-        <p v-if="historyUnavailable" class="cpub-privacy-note" role="alert">
-          Your record of past choices could not be loaded. Nothing has changed, and you can still use
-          Download my data to see the full record.
-        </p>
-        <p v-else-if="!history.length" class="cpub-privacy-note">
-          You have not made any sharing choices yet.
-        </p>
-        <div v-else class="cpub-history-scroll">
-          <table class="cpub-history-table">
-            <caption class="cpub-history-caption">
-              Every sharing choice you have made, newest first, with what was shown to you at the
-              time.
-            </caption>
-            <thead>
-              <tr>
-                <th scope="col">Date</th>
-                <th scope="col">Choice</th>
-                <th scope="col">What was shown</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="row in history" :key="row.id">
-                <td>
-                  <time :datetime="isoOf(row.actedAt)">{{ humanDate(row.actedAt) }}</time>
-                </td>
-                <td>{{ historyChoice(row) }} {{ historyLabel(row) }}</td>
-                <td>
-                  <details v-if="row.scopeSnapshot" class="cpub-history-details">
-                    <summary>What you were shown</summary>
-                    <p>{{ row.scopeSnapshot.offSummary }}</p>
-                    <p>{{ row.scopeSnapshot.onSummary }}</p>
-                    <p v-if="row.scopeSnapshot.recipients.length">
-                      Shared with:
-                      {{ row.scopeSnapshot.recipients.map((r) => r.name).join(', ') }}
-                    </p>
-                    <p>Privacy policy version {{ row.scopeSnapshot.policyVersion }}</p>
-                  </details>
-                  <span v-else>Privacy policy version {{ row.policyVersion }}</span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
     </template>
+
+    <!--
+      Profile visibility and the subject rights are NOT inside the sharing gate.
+      They used to be, so an instance running persona for operational questions
+      with no sharing at all had a Privacy page consisting of one sentence about
+      sharing not being enabled. Who can see your profile, and how to take a copy
+      of your data or close your account, are questions every instance answers.
+    -->
+    <section class="cpub-privacy-block" aria-labelledby="cpub-visibility-heading">
+      <h3 id="cpub-visibility-heading" class="cpub-privacy-subhead">Who can see your profile</h3>
+      <div class="cpub-field">
+        <label for="cpub-profile-visibility" class="cpub-form-label">Profile visibility</label>
+        <select
+          id="cpub-profile-visibility"
+          v-model="visibility"
+          class="cpub-input cpub-visibility-select"
+          aria-describedby="cpub-visibility-hint"
+        >
+          <option value="public">Public</option>
+          <option value="members">Members only</option>
+          <option value="private">Only me</option>
+        </select>
+        <p id="cpub-visibility-hint" class="cpub-privacy-note">{{ visibilityHints[visibility] }}</p>
+        <!--
+          One flag, two consequences, two sentences, each behind the gate of the
+          thing it describes. A single sentence covering both would say
+          "sharing" on an instance that does none.
+        -->
+        <p v-if="profileNotPublic && statisticsEnabled" class="cpub-privacy-note">
+          While your profile is not public, your answers are not counted in community statistics.
+        </p>
+        <p v-if="profileNotPublic && consentsEnabled" class="cpub-privacy-note">
+          While your profile is not public, nobody can find you through the choices above, even with
+          one of them turned on.
+        </p>
+        <p v-if="visibilityError" class="cpub-field-error" role="alert">{{ visibilityError }}</p>
+        <button
+          type="button"
+          class="cpub-btn cpub-btn-sm"
+          :disabled="visibilitySaving"
+          @click="saveVisibility"
+        >
+          {{ visibilitySaving ? 'Saving...' : 'Save visibility' }}
+        </button>
+      </div>
+    </section>
+
+    <section class="cpub-privacy-block" aria-labelledby="cpub-rights-heading">
+      <h3 id="cpub-rights-heading" class="cpub-privacy-subhead">Your data</h3>
+      <p class="cpub-privacy-note">
+        You can take a copy of everything this site holds about you, or close your account.
+      </p>
+      <div class="cpub-rights-actions">
+        <a href="/api/auth/export-data" download class="cpub-btn cpub-btn-sm">
+          <i class="fa-solid fa-download" aria-hidden="true"></i> Download my data
+        </a>
+        <NuxtLink to="/settings/account" class="cpub-btn cpub-btn-sm">
+          Delete my account
+        </NuxtLink>
+      </div>
+    </section>
+
+    <!--
+      The consent history. Sharing-gated, because it is the Art. 7(1) record of
+      sharing choices and nothing else is written to it: the objection above
+      keeps no history at all, by design.
+    -->
+    <section
+      v-if="consentsEnabled"
+      class="cpub-privacy-block"
+      aria-labelledby="cpub-history-heading"
+    >
+      <h3 id="cpub-history-heading" class="cpub-privacy-subhead">What you have chosen</h3>
+      <!-- "Could not load" and "you have chosen nothing" are different facts,
+           and printing the reassuring one for both is how a record of consent
+           quietly becomes a claim nobody checked. -->
+      <p v-if="historyUnavailable" class="cpub-privacy-note" role="alert">
+        Your record of past choices could not be loaded. Nothing has changed, and you can still use
+        Download my data to see the full record.
+      </p>
+      <p v-else-if="!history.length" class="cpub-privacy-note">
+        You have not made any sharing choices yet.
+      </p>
+      <div v-else class="cpub-history-scroll">
+        <table class="cpub-history-table">
+          <caption class="cpub-history-caption">
+            Every sharing choice you have made, newest first, with what was shown to you at the
+            time.
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col">Date</th>
+              <th scope="col">Choice</th>
+              <th scope="col">What was shown</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="row in history" :key="row.id">
+              <td>
+                <time :datetime="isoOf(row.actedAt)">{{ humanDate(row.actedAt) }}</time>
+              </td>
+              <td>{{ historyChoice(row) }} {{ historyLabel(row) }}</td>
+              <td>
+                <details v-if="row.scopeSnapshot" class="cpub-history-details">
+                  <summary>What you were shown</summary>
+                  <p>{{ row.scopeSnapshot.offSummary }}</p>
+                  <p>{{ row.scopeSnapshot.onSummary }}</p>
+                  <p v-if="row.scopeSnapshot.recipients.length">
+                    Shared with:
+                    {{ row.scopeSnapshot.recipients.map((r) => r.name).join(', ') }}
+                  </p>
+                  <p>Privacy policy version {{ row.scopeSnapshot.policyVersion }}</p>
+                </details>
+                <span v-else>Privacy policy version {{ row.policyVersion }}</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
   </div>
 </template>
 
@@ -812,7 +1036,12 @@ function historyLabel(row: ConsentHistoryRowDto): string {
   line-height: 1.7;
 }
 
-.cpub-purpose-card {
+/* The statistics card carries the same chrome as a consent card on purpose: it
+   is a disclosure of the same weight. What separates them is the copy and the
+   control, not a colour, because a lighter treatment would read as a lesser
+   thing and this is the one that is already happening. */
+.cpub-purpose-card,
+.cpub-statistics-card {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
@@ -820,6 +1049,32 @@ function historyLabel(row: ConsentHistoryRowDto): string {
   border: var(--border-width-default) solid var(--border);
   background: var(--surface);
   box-shadow: var(--shadow-sm);
+}
+
+/* The current standing, at full contrast, exactly like `offSummary` on a
+   consent card: what is true right now is the sentence that gets read. */
+.cpub-statistics-status {
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--text);
+  font-weight: 600;
+}
+
+.cpub-statistics-detail {
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--text-dim);
+}
+
+/* AA target size, on the same 44px floor as the consent switch. Objecting is
+   never the smaller control. */
+.cpub-statistics-action {
+  min-height: 44px;
+}
+
+.cpub-statistics-action:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .cpub-purpose-title {

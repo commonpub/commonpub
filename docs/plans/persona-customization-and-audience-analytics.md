@@ -2,6 +2,15 @@
 
 **Status:** PROPOSED (design only). Author context: session 255. Revision 2, incorporating a full adversarial review; every disposition of that review is recorded in Appendix A.
 
+> **SUPERSEDED IN PART (session 256).** `docs/plans/profile-persona-information-architecture.md`
+> revisions 2 and 3 are authoritative wherever they disagree with this document. Two of this plan's
+> assumptions were corrected in shipped code: persona answers are **private by default**
+> (`showOnProfile: true` opts one field in; there is no `publicOnProfile`), and being counted in
+> instance statistics is **not a consent purpose** (`profile_analytics` was removed; statistics run
+> on legitimate interest with an objection recorded in `user_statistics_objections`). Read the
+> machinery here, take the model from there.
+
+
 ---
 
 ## 0. TL;DR, the shape of the answer
@@ -363,7 +372,7 @@ export interface PersonaField {
   /** Art 9 escape hatch. Forces the field out of the aggregatable partition,
    *  out of the public serializer, and into the never-counted text sink. */
   sensitive?: boolean;
-  publicOnProfile?: boolean;     // default true
+  showOnProfile?: boolean;       // CORRECTED: was `publicOnProfile`, default true. Now opt IN, absent means private.
   /** Binds this field to an EXISTING users column so the current profile is
    *  section one of the persona schema rather than a parallel system. */
   column?: UserBridgeColumn;
@@ -477,7 +486,7 @@ export const personaFieldSchema = z.object({
   pointsPerSelection: z.number().int().min(0).max(100).optional(),
   analytics: z.boolean().optional(),
   sensitive: z.boolean().optional(),
-  publicOnProfile: z.boolean().optional(),
+  showOnProfile: z.boolean().optional(), // CORRECTED: was `publicOnProfile`. `.strict()` now REJECTS the old key.
   column: z.enum(USER_BRIDGE_COLUMNS).optional(),
 }).strict()
   .refine((f) => !['select', 'radio', 'multiselect'].includes(f.type) || (f.options?.length ?? 0) > 0,
@@ -1497,7 +1506,7 @@ Ships before collection so there is never a window where persona data exists wit
 - `packages/server/src/persona/`: `registry.ts` (`effectivePersonaSchema`, the cache, the drift reconciler), `values.ts` (read and write with the template-scoped delete and the removal semantics), `completeness.ts`. Barrel exports through `packages/server/src/index.ts`.
 - `GET` and `PUT /api/persona`, `GET /api/persona/status`, `DELETE /api/persona/retired/:fieldKey`.
 - `/settings/persona` editor, chip grids, per-section save, live region, retired-data block, axe pass.
-- Public rendering on `/u/:username` through the Phase 0 viewer projection, honouring `publicOnProfile` and `sensitive`.
+- Public rendering on `/u/:username` through the Phase 0 viewer projection, honouring `showOnProfile` (opt IN, so a default instance renders nothing) and `sensitive`.
 - Completeness meter bound to the SSR'd DTO.
 - `PersonaInvitationBanner` on `/dashboard`, with persistent two-strike dismissal and `server: false` status fetching.
 - AP Person key-set pin and the persona-free source sweep on the actor route.

@@ -126,11 +126,13 @@ vi.mock('@commonpub/server', async (importOriginal) => {
     },
     getAudienceCounts: async (_db: unknown, input: unknown) => {
       record('getAudienceCounts', input);
+      // Two slots, matching `PERSONA_AUDIENCE_PAYLOAD_KEYS`. The third counted
+      // `profile_analytics` grants and went with that purpose: being counted is
+      // not a consent question, so there is no grant to count.
       return {
-        sharingAnalytics: { available: true as const, count: 40 },
         openToRecruiters: { available: false as const, reason: 'purpose_not_offered' as const },
         openToSponsorSharing: { available: false as const, reason: 'purpose_not_offered' as const },
-        quantum: 5,
+        quantum: 1,
         available: true,
         asOf: null,
       };
@@ -650,20 +652,68 @@ describe('GET /api/admin/persona-metrics', () => {
     expect(asError(await callOrError('metrics', metricsEvent())).statusCode).toBe(404);
   });
 
-  it('reads live, and gets NO exemption from the consent join or the floors', async () => {
+  /**
+   * THE CORRECTION (plan R3.4 phase 4). This route used to pass the operator's
+   * configured k-anonymity floors, so an answer chosen by three people was
+   * withheld from the operator who holds the rows and can read the same answer
+   * one profile at a time. It now passes floors that hide nothing.
+   *
+   * Asserted on the ARGUMENTS rather than on a rendered number, because the
+   * floors are applied inside `@commonpub/server` (in SQL, in `HAVING`), which
+   * is doubled here. The integration suite in `packages/server` owns the proof
+   * that these thresholds produce exact counts; this owns the proof that the
+   * route asks for them.
+   */
+  it('reads live and applies no floor, so nothing is withheld from the operator', async () => {
     await (await load('metrics'))(metricsEvent({ field: 'interests' }));
     const calls = mock.calls.filter((c) => c.fn !== 'x');
     expect(calls.map((c) => c.fn)).toContain('getPersonaFieldDistribution');
+
+    let checked = 0;
     for (const call of calls) {
       const input = call.args as { source?: string; scopeDigest?: string; thresholds?: unknown };
       if (input.source === undefined) continue;
+      checked += 1;
       // Live, because an operator tuning a schema needs to see the effect before
-      // tomorrow. Same digest, same thresholds, same functions as the public API.
+      // tomorrow.
       expect(input.source).toBe('live');
-      expect(typeof input.scopeDigest).toBe('string');
-      expect(input.scopeDigest).not.toBe('');
-      expect(input.thresholds).toMatchObject({ minBucket: expect.any(Number) });
+      // `minBucket: 1` keeps every bucket and makes the quantisation the
+      // identity; `minPopulation: 1` leaves exactly one refusal, for an instance
+      // with nobody counted at all.
+      expect(input.thresholds).toEqual({ minBucket: 1, minPopulation: 1 });
+      // `PersonaReadInput` no longer carries a scope digest: the distributions
+      // and the link presence do not join consent at all any more. The audience
+      // counts still do, and their digests travel inside `offeredPurposes`.
+      expect(input.scopeDigest).toBeUndefined();
     }
+    // The guard on the guard: a loop that inspected nothing would pass green.
+    expect(checked).toBeGreaterThanOrEqual(3);
+  });
+
+  it('still hands the audience counts a digest, because those really are consent counts', async () => {
+    await (await load('metrics'))(metricsEvent());
+    const audience = mock.calls.find((c) => c.fn === 'getAudienceCounts');
+    expect(audience).toBeDefined();
+    const offered = (audience?.args as { offeredPurposes?: Array<{ scopeDigest?: string }> })
+      .offeredPurposes;
+    expect(Array.isArray(offered)).toBe(true);
+    for (const entry of offered ?? []) {
+      expect(typeof entry.scopeDigest).toBe('string');
+      expect(entry.scopeDigest).not.toBe('');
+    }
+  });
+
+  it('reports what the PUBLIC API would apply, separately from what it applied', async () => {
+    // The page states the difference in the operator's own configured numbers,
+    // so the payload has to carry them, and under a name that cannot be read as
+    // "the floors used here".
+    const body = (await (await load('metrics'))(metricsEvent())) as {
+      publicThresholds: { minBucket: number; minPopulation: number };
+      quantum: number;
+    };
+    expect(body.publicThresholds.minBucket).toBeGreaterThanOrEqual(1);
+    expect(body.quantum).toBe(1);
+    expect(Object.keys(body)).not.toContain('thresholds');
   });
 
   it('refuses an unknown field with a 400 and issues no query', async () => {

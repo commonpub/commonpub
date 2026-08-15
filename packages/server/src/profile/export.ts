@@ -38,6 +38,8 @@ import {
   userPersonaText,
   userPurposeConsents,
   disclosureEvents,
+  userStatisticsObjections,
+  userSharedLinks,
 } from '@commonpub/schema';
 import type { PersonaSection } from '@commonpub/persona';
 import { eq, sql } from 'drizzle-orm';
@@ -113,6 +115,23 @@ export interface UserDataExport {
    * removed still has to appear, and the id is the durable fact.
    */
   disclosureEvents: Array<Record<string, unknown>>;
+  /**
+   * The subject's standing objection to being counted in instance statistics
+   * (GDPR Art. 21), or an empty array when they have not objected.
+   *
+   * Row-present-means-objected, so the array is at most one row long and its
+   * emptiness is itself the answer. It is exported because the record of a
+   * subject exercising a right over their own data is personal data about
+   * them: an Art. 15 copy that omitted it would not show that the instance
+   * holds, and acts on, that decision.
+   */
+  statisticsObjections: Array<Record<string, unknown>>;
+  /**
+   * Which link platforms the subject has agreed may be sent to named
+   * recipients, one row per platform. Row-present-means-shared, so an empty
+   * array is a complete answer and means nothing is shared.
+   */
+  sharedLinks: Array<Record<string, unknown>>;
 }
 
 export interface UserDataExportOptions {
@@ -554,13 +573,20 @@ export async function exportUserData(
     }).from(contentVersions).where(eq(contentVersions.createdById, userId)),
   ]);
 
-  // Persona batch (session 255). All three tables are the subject's own rows and
-  // name no third party. `purposeConsents` is the reason this feature writes no
+  // Persona batch (session 255). Every table here holds the subject's own rows
+  // and names no third party. `purposeConsents` is the reason this feature writes no
   // `sharing:*` row into `user_consents` (plan section 14.4): this section is
   // strictly more informative than that audit row would have been, because it
   // carries the state, the scope digest and the snapshot of the exact copy the
   // user was shown, and it needs no ALTER on a live GDPR table.
-  const [personaAnswerRows, personaTextRows, purposeConsentRows, disclosureEventRows] = await Promise.all([
+  const [
+    personaAnswerRows,
+    personaTextRows,
+    purposeConsentRows,
+    disclosureEventRows,
+    statisticsObjectionRows,
+    sharedLinkRows,
+  ] = await Promise.all([
     db.select({
       sectionKey: userPersonaAnswers.sectionKey,
       fieldKey: userPersonaAnswers.fieldKey,
@@ -602,6 +628,21 @@ export async function exportUserData(
       scopeDigest: disclosureEvents.scopeDigest,
       disclosedAt: disclosureEvents.disclosedAt,
     }).from(disclosureEvents).where(eq(disclosureEvents.userId, userId)),
+
+    // The Art. 21 objection. At most one row, and its ABSENCE is the answer
+    // "you are counted", which is why the section is always present even when
+    // it is empty: a missing key would read as "we hold nothing about this",
+    // and what the instance actually holds is a decision the subject made.
+    db.select({
+      objectedAt: userStatisticsObjections.objectedAt,
+    }).from(userStatisticsObjections).where(eq(userStatisticsObjections.userId, userId)),
+
+    // Per-platform link sharing. One row per platform the subject turned on,
+    // with the date they turned it on rather than the date of the last save.
+    db.select({
+      platform: userSharedLinks.platform,
+      createdAt: userSharedLinks.createdAt,
+    }).from(userSharedLinks).where(eq(userSharedLinks.userId, userId)),
   ]);
 
   // Label resolution. The raw keys are ALWAYS emitted and the label is `null`
@@ -670,5 +711,7 @@ export async function exportUserData(
     personaText: personaTextRowsLabelled as Record<string, unknown>[],
     purposeConsents: purposeConsentRows as Record<string, unknown>[],
     disclosureEvents: disclosureEventRows as Record<string, unknown>[],
+    statisticsObjections: statisticsObjectionRows as Record<string, unknown>[],
+    sharedLinks: sharedLinkRows as Record<string, unknown>[],
   };
 }

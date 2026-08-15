@@ -29,7 +29,7 @@
 export const METRICS_MIN_BUCKET = 5;
 
 /**
- * The whole audience surface stays dark below this many consenting users.
+ * The whole audience surface stays dark below this many counted members.
  * Repeated single-field marginals across 18 interests and 16 stack entries
  * narrow membership by intersection even when every individual bucket clears the
  * bucket floor, so a population floor is a separate defence, not a duplicate of

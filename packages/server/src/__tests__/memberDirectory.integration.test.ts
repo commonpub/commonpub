@@ -8,6 +8,8 @@ import {
   userPersonaAnswers,
   userPersonaText,
   userPurposeConsents,
+  userSharedLinks,
+  userStatisticsObjections,
   users,
 } from '@commonpub/schema';
 import type { PurposeScopeSnapshot } from '@commonpub/schema';
@@ -64,10 +66,15 @@ const SECTIONS: PersonaSection[] = [
       { key: 'industry', label: 'Industry', type: 'select', options: INDUSTRY_OPTIONS },
       // Free text, public: projected, because it is already on the public profile.
       { key: 'about_me', label: 'About you', type: 'textarea', maxLength: 500 },
-      // Art. 9 escape hatch. Never published, whatever its sink.
+      // Art. 9 escape hatch. Never published, whatever its sink, by any consent.
       { key: 'health', label: 'Health', type: 'select', options: INDUSTRY_OPTIONS, sensitive: true },
-      // The operator's own "collect but do not show" control.
-      { key: 'private_note', label: 'Private note', type: 'textarea', publicOnProfile: false },
+      // NOT on the public profile: `showOnProfile` is absent, which after the
+      // inversion is the default and means `/api/users/:username/persona` never
+      // returns it. It IS disclosed here, and that is the decision rather than a
+      // leak: `recruiter_visibility`'s copy names the member's answers directly
+      // instead of pointing at their profile, so the grant is what authorises
+      // this and the profile flag has nothing to say about it.
+      { key: 'off_profile_note', label: 'Working style', type: 'textarea' },
       // Its storage IS users.social_links, which toPublicUser already carries.
       { key: 'link_github', label: 'GitHub', type: 'link', platform: 'github' },
     ],
@@ -102,13 +109,6 @@ const STALE_DIGEST = purposeScopeDigest({
   policyVersion: '1',
   dataClasses: ['persona_selections', 'public_identity', 'profile_links', 'location_coarse'],
   recipientIds: [],
-  aggregatableFieldKeys: AGGREGATABLE_KEYS,
-});
-
-const ANALYTICS_DIGEST = purposeScopeDigest({
-  policyVersion: '1',
-  dataClasses: ['persona_selections', 'profile_links'],
-  recipientIds: ['acme'],
   aggregatableFieldKeys: AGGREGATABLE_KEYS,
 });
 
@@ -197,6 +197,11 @@ async function text(userId: string, fieldKey: string, value: string): Promise<vo
   await db.insert(userPersonaText).values({ userId, sectionKey: 'basics', fieldKey, value });
 }
 
+/** Row present means the member shares that platform. Absent means they do not. */
+async function share(userId: string, platform: string): Promise<void> {
+  await db.insert(userSharedLinks).values({ userId, platform });
+}
+
 function input(overrides: Partial<ListOpenMembersInput> = {}): ListOpenMembersInput {
   return {
     audience: 'recruiters',
@@ -242,15 +247,27 @@ const excluded: Excluded[] = [];
 beforeAll(async () => {
   db = await createTestDB();
 
-  listedId = await seedUser({ displayName: 'Ada Listed', location: 'Lisbon', createdOffsetMs: 10_000 });
+  listedId = await seedUser({
+    displayName: 'Ada Listed',
+    location: 'Lisbon',
+    // Two platforms listed, ONE of them shared. The unshared one is the sharp
+    // edge for every link assertion in this file.
+    socialLinks: {
+      github: 'https://github.com/example',
+      instagram: 'https://instagram.com/private_account',
+    },
+    createdOffsetMs: 10_000,
+  });
   await grant(listedId, 'recruiter_visibility', RECRUITER_DIGEST);
+  await share(listedId, 'github');
   await answer(listedId, 'industry', ['software']);
   await answer(listedId, 'interests', ['rust', 'pcb_design']);
   await answer(listedId, 'tech_stack', ['vue']);
   await text(listedId, 'about_me', 'I build small robots.');
-  // Never published, on two different rules.
-  await text(listedId, 'health', 'aerospace');
-  await text(listedId, 'private_note', 'Do not show this to anybody.');
+  // Never published, whatever anybody consents to.
+  await text(listedId, 'health', 'a detail nobody outside gets to read');
+  // Not on the public profile, and disclosed here on the strength of the grant.
+  await text(listedId, 'off_profile_note', 'Mornings, headphones on.');
 
   listedTwoId = await seedUser({
     displayName: 'Grace Listed',
@@ -259,6 +276,11 @@ beforeAll(async () => {
     createdOffsetMs: 20_000,
   });
   await grant(listedTwoId, 'recruiter_visibility', RECRUITER_DIGEST);
+  await share(listedTwoId, 'linkedin');
+  // An objection to STATISTICS. It must not touch this surface: objecting to
+  // being counted is not withdrawing consent to be named, and treating one as
+  // the other would silently revoke a grant the member still holds.
+  await db.insert(userStatisticsObjections).values({ userId: listedTwoId });
   await answer(listedTwoId, 'industry', ['aerospace']);
   await answer(listedTwoId, 'interests', ['rust']);
   await answer(listedTwoId, 'tech_stack', ['postgres']);
@@ -281,12 +303,6 @@ beforeAll(async () => {
     ],
     // A current grant carrying a digest the live scope has moved past.
     ['stale_digest', {}, async (id) => grant(id, 'recruiter_visibility', STALE_DIGEST)],
-    // D2 in the other direction: analytics consent is not directory consent.
-    [
-      'analytics_only',
-      {},
-      async (id) => grant(id, 'profile_analytics', ANALYTICS_DIGEST),
-    ],
     // Granted the OTHER audience's purpose only.
     [
       'sponsor_only',
@@ -335,15 +351,15 @@ describe('listOpenMembers — the consent join', () => {
     const page = await listOpenMembers(db, input({ limit: DIRECTORY_LIMIT_MAX }));
     expect(page.items.map((i) => i.id).sort()).toEqual([listedId, listedTwoId].sort());
     expect(page.total).toBe(2);
-    // Nine other members are seeded, each one listable but for a single fact.
+    // Eight other members are seeded, each one listable but for a single fact.
     expect(usernames(page)).toHaveLength(2);
+    expect(excluded).toHaveLength(8);
   });
 
   it.each([
     'no_grant',
     'revoked',
     'stale_digest',
-    'analytics_only',
     'sponsor_only',
     'private_profile',
     'members_only_profile',
@@ -356,18 +372,21 @@ describe('listOpenMembers — the consent join', () => {
     expect(page.items.map((i) => i.id)).not.toContain(cohort!.id);
   });
 
-  it('a member holding ONLY profile_analytics is absent (D2)', async () => {
-    // Stated as its own test as well as a row above, because it is the case a
-    // later reader is most likely to "fix" by adding an analytics join.
-    const cohort = excluded.find((e) => e.name === 'analytics_only')!;
-    const grants = await db
-      .select({ purpose: userPurposeConsents.purpose })
-      .from(userPurposeConsents)
-      .where(eq(userPurposeConsents.userId, cohort.id));
-    expect(grants.map((g) => g.purpose)).toEqual(['profile_analytics']);
+  it('a member who objected to statistics is still listed (D2)', async () => {
+    // The case a later reader is most likely to "fix" in one direction or the
+    // other. An objection is a refusal of processing the instance does on its
+    // own records; a grant is permission to be named to a third party. Treating
+    // the objection as a withdrawal would revoke a consent the member still
+    // holds, quietly, and they would never be told the toggle they pressed did
+    // something else as well.
+    const [objection] = await db
+      .select({ userId: userStatisticsObjections.userId })
+      .from(userStatisticsObjections)
+      .where(eq(userStatisticsObjections.userId, listedTwoId));
+    expect(objection?.userId, 'test setup: the objection was not seeded').toBe(listedTwoId);
 
     const page = await listOpenMembers(db, input({ limit: DIRECTORY_LIMIT_MAX }));
-    expect(page.items.map((i) => i.id)).not.toContain(cohort.id);
+    expect(page.items.map((i) => i.id)).toContain(listedTwoId);
   });
 
   it('a digest that matches nobody returns an empty page and discloses nobody', async () => {
@@ -401,10 +420,41 @@ describe('listOpenMembers — projection', () => {
     expect(member.headline).toBe('Builder of things');
     expect(member.location).toBe('Lisbon');
     expect(member.website).toBe('https://example.test/me');
-    expect(member.socialLinks).toEqual({ github: 'https://github.com/example' });
     // `recruiter_visibility` covers public_identity, location_coarse and
     // profile_links, so none of the per-class gates fire on this audience.
     expect(member.username).toMatch(/^directory_/);
+  });
+
+  it('sends only the link platforms the member chose to share', async () => {
+    const page = await listOpenMembers(db, input());
+    const member = page.items.find((i) => i.id === listedId)!;
+    // GitHub is shared. Instagram is on the profile and is not.
+    expect(member.socialLinks).toEqual({ github: 'https://github.com/example' });
+    expect(JSON.stringify(page)).not.toContain('private_account');
+  });
+
+  it('sends no links at all for a member who shares none', async () => {
+    // Seeded and torn down inside the test so the counts every other block
+    // asserts on stay readable.
+    const id = await seedUser({ displayName: 'Quiet Listed', createdOffsetMs: 30_000 });
+    await grant(id, 'recruiter_visibility', RECRUITER_DIGEST);
+    try {
+      const page = await listOpenMembers(db, input({ limit: DIRECTORY_LIMIT_MAX }));
+      const member = page.items.find((i) => i.id === id)!;
+      expect(member, 'test setup: the member should be listed').toBeDefined();
+      // `null` rather than `{}`: a recipient cannot tell "shares nothing" from
+      // "has nothing", which is the correct amount to say.
+      expect(member.socialLinks).toBeNull();
+      // The row IS in the profile, so this is the sharing gate and not an empty
+      // profile.
+      const [row] = await db
+        .select({ socialLinks: users.socialLinks })
+        .from(users)
+        .where(eq(users.id, id));
+      expect(row?.socialLinks).toEqual({ github: 'https://github.com/example' });
+    } finally {
+      await db.delete(users).where(eq(users.id, id));
+    }
   });
 
   it('resolves persona answers to LABELS, never raw option values', async () => {
@@ -424,14 +474,27 @@ describe('listOpenMembers — projection', () => {
     expect(about.values).toEqual(['I build small robots.']);
   });
 
-  it('never publishes a sensitive field or a publicOnProfile:false field', async () => {
+  it('never publishes a sensitive field, whatever the member consented to', async () => {
     const page = await listOpenMembers(db, input());
     const member = page.items.find((i) => i.id === listedId)!;
     const keys = member.persona.map((p) => p.fieldKey);
     expect(keys).not.toContain('health');
-    expect(keys).not.toContain('private_note');
     const json = JSON.stringify(page);
-    expect(json).not.toContain('Do not show this to anybody.');
+    expect(json).not.toContain('a detail nobody outside gets to read');
+  });
+
+  it('publishes an answer that is not on the public profile', async () => {
+    // The visibility inversion does NOT narrow this endpoint, and the reasoning
+    // is on `directoryProjectableFields`: the grant's copy names the answers
+    // themselves rather than pointing at the profile, so a profile flag cannot
+    // be what decides this. Carrying it across would list consenting members
+    // with no answers at all on a default instance, and would leave the answer
+    // FILTERS matching on fields the payload never prints.
+    const page = await listOpenMembers(db, input());
+    const member = page.items.find((i) => i.id === listedId)!;
+    const note = member.persona.find((p) => p.fieldKey === 'off_profile_note')!;
+    expect(note.display).toBe('text');
+    expect(note.values).toEqual(['Mornings, headphones on.']);
   });
 
   it('never repeats a column-bound or link field as a persona answer', async () => {
@@ -451,9 +514,13 @@ describe('listOpenMembers — projection', () => {
 });
 
 describe('directoryProjectableFields', () => {
-  it('is the same allow-list the public profile route applies', () => {
+  it('publishes every non-sensitive answer field, in schema order', () => {
     const fields = directoryProjectableFields(SECTIONS).map((f) => f.fieldKey);
-    expect(fields).toEqual(['industry', 'about_me', 'interests', 'tech_stack']);
+    expect(fields).toEqual(['industry', 'about_me', 'off_profile_note', 'interests', 'tech_stack']);
+    // Column-bound, sensitive and link fields are the three structural skips.
+    expect(fields).not.toContain('display_name');
+    expect(fields).not.toContain('health');
+    expect(fields).not.toContain('link_github');
   });
 
   it('drops a drifted key', () => {
@@ -507,6 +574,31 @@ describe('listOpenMembers — filters', () => {
     expect(linkedin.items.map((i) => i.id)).toEqual([listedTwoId]);
 
     const both = await listOpenMembers(db, input({ filters: { hasLink: ['github', 'linkedin'] } }));
+    expect(both.items).toEqual([]);
+  });
+
+  it('does not match a link the member listed but did not share', async () => {
+    // A filter is a disclosure with one bit of resolution. Ada has an Instagram
+    // address on her profile and did not share it; a recruiter who searches for
+    // it and gets her back has learned the fact she withheld, even though the
+    // payload would not have printed the address.
+    const [row] = await db
+      .select({ socialLinks: users.socialLinks })
+      .from(users)
+      .where(eq(users.id, listedId));
+    expect(
+      (row?.socialLinks as Record<string, string> | null)?.instagram,
+      'test setup: the unshared link is missing',
+    ).toContain('instagram.com');
+
+    const instagram = await listOpenMembers(db, input({ filters: { hasLink: ['instagram'] } }));
+    expect(instagram.items).toEqual([]);
+    expect(instagram.total).toBe(0);
+
+    // AND across platforms: the shared one alone is not enough either.
+    const both = await listOpenMembers(db, input({
+      filters: { hasLink: ['github', 'instagram'] },
+    }));
     expect(both.items).toEqual([]);
   });
 

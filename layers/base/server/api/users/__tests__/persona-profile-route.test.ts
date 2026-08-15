@@ -159,24 +159,27 @@ function template(): PersonaSection[] {
       label: 'Basics',
       fields: [
         // Column-bound: rendered by the profile hero already.
-        { key: 'headline', label: 'Job title', type: 'text', column: 'headline' },
-        { key: 'industry', label: 'Industry', type: 'select', options: [
+        // Opted in, so the COLUMN rule below is the only thing that can exclude it.
+        { key: 'headline', label: 'Job title', type: 'text', column: 'headline', showOnProfile: true },
+        { key: 'industry', label: 'Industry', type: 'select', showOnProfile: true, options: [
           { value: 'hardware', label: 'Hardware' },
           { value: 'software', label: 'Software' },
         ] },
-        // Art. 9 escape hatch: never leaves the process.
-        { key: 'health', label: 'Health interests', type: 'text', sensitive: true },
-        // Operator said no.
-        { key: 'salary', label: 'Salary band', type: 'text', publicOnProfile: false },
-        // Free text that IS public.
-        { key: 'motto', label: 'Motto', type: 'text' },
+        // Art. 9 escape hatch: never leaves the process. Opted in by an operator
+        // who did not think it through, so `sensitive` has to win on its own.
+        { key: 'health', label: 'Health interests', type: 'text', sensitive: true, showOnProfile: true },
+        // The DEFAULT after the inversion: the operator expressed no opinion, so
+        // this answer is private. No `showOnProfile` key at all, deliberately.
+        { key: 'salary', label: 'Salary band', type: 'text' },
+        // Free text the operator opted in.
+        { key: 'motto', label: 'Motto', type: 'text', showOnProfile: true },
       ],
     },
     {
       key: 'interests',
       label: 'Interests',
       fields: [
-        { key: 'interests', label: 'What are you into?', type: 'multiselect', options: [
+        { key: 'interests', label: 'What are you into?', type: 'multiselect', showOnProfile: true, options: [
           { value: 'robotics', label: 'Robotics' },
           { value: 'pcb', label: 'PCB design' },
         ] },
@@ -185,13 +188,15 @@ function template(): PersonaSection[] {
     {
       key: 'links',
       label: 'Links',
-      fields: [{ key: 'link_github', label: 'GitHub', type: 'link', platform: 'github' }],
+      // Opted in, so the LINK SINK rule is the only thing that can exclude it.
+      fields: [{ key: 'link_github', label: 'GitHub', type: 'link', platform: 'github', showOnProfile: true }],
     },
-    // A section whose only field is never filled: must not print an empty heading.
+    // A section whose only field is never filled: must not print an empty
+    // heading. Opted in, so emptiness is the only reason it is absent.
     {
       key: 'extra',
       label: 'Extra',
-      fields: [{ key: 'extra_note', label: 'Anything else', type: 'textarea' }],
+      fields: [{ key: 'extra_note', label: 'Anything else', type: 'textarea', showOnProfile: true }],
     },
   ];
 }
@@ -331,10 +336,46 @@ describe('field eligibility', () => {
     expect(JSON.stringify(body)).not.toContain('special-category');
   });
 
-  it('never returns a field the operator marked publicOnProfile: false', async () => {
+  /**
+   * THE INVERSION (plan R3.1 D1). `salary` carries no `showOnProfile` key at
+   * all, which under the shipped model meant "public" and now means "private".
+   * Under the old rule this field and its value were both in the payload, so
+   * this assertion fails against the code as it shipped.
+   */
+  it('never returns a field the operator has not opted in, and absent is not opted in', async () => {
     const body = await personaProfile(event());
     expect(fieldKeys(body)).not.toContain('salary');
     expect(JSON.stringify(body)).not.toContain('100k');
+  });
+
+  it('returns a field the operator opted in with showOnProfile: true', async () => {
+    const body = await personaProfile(event());
+    expect(fieldKeys(body)).toContain('industry');
+  });
+
+  /**
+   * The load-bearing consequence of D2: with no built-in setting
+   * `showOnProfile`, an operator who turns the flag on and changes nothing
+   * publishes nothing. A template of eligible, filled, unopted fields must come
+   * back completely empty rather than mostly empty.
+   */
+  it('publishes nothing at all when the operator has opted no field in', async () => {
+    for (const section of sections) {
+      for (const field of section.fields) delete field.showOnProfile;
+    }
+    const body = await personaProfile(event());
+    expect(body.sections).toEqual([]);
+    // Every value in the fixture, none of which may travel.
+    for (const secret of ['Hardware', 'measure twice', 'Robotics', '100k']) {
+      expect(JSON.stringify(body), secret).not.toContain(secret);
+    }
+  });
+
+  it('still refuses a sensitive field the operator opted in by mistake', async () => {
+    // `sensitive` is checked independently of `showOnProfile`, so the Art. 9
+    // escape hatch cannot be undone by ticking a visibility box.
+    const body = await personaProfile(event());
+    expect(fieldKeys(body)).not.toContain('health');
   });
 
   it('never repeats a column-bound field the profile already renders', async () => {
@@ -501,11 +542,31 @@ describe('source contract: consent gates aggregation, never display', () => {
       'user_purpose_consents',
       'currentPurposeScope',
       'purposeScopeDigest',
-      'profile_analytics',
       'scopeDigest',
+      // The statistics objection is not a gate here either: it refuses
+      // aggregation over the instance's own records, not publication of a field
+      // the operator chose to publish.
+      'userStatisticsObjections',
+      'getStatisticsObjection',
     ]) {
       expect(code, forbidden).not.toContain(forbidden);
     }
+  });
+
+  /**
+   * The deleted concepts, pinned in the SOURCE rather than only in behaviour.
+   * `publicOnProfile` is gone from `@commonpub/persona` entirely, so a leftover
+   * `field.publicOnProfile === false` line would be a typecheck failure today,
+   * but this file is also the route's own prose and a paragraph still describing
+   * the old default would outlive the code (R3.5: no orphan copy).
+   */
+  it('names neither deleted identifier anywhere, code or prose', () => {
+    for (const dead of ['publicOnProfile', 'profile_analytics']) {
+      expect(source, dead).not.toContain(dead);
+    }
+    // Positive control: the replacement really is in there, so the assertion
+    // above is not passing against a file that says nothing about visibility.
+    expect(code).toContain('showOnProfile !== true');
   });
 
   it('does not widen the shared UserProfile DTO', () => {

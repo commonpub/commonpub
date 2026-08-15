@@ -1,7 +1,11 @@
 <script setup lang="ts">
 import { analyticsSpec } from '@commonpub/config/analytics';
 import type { AnalyticsConfig } from '@commonpub/config/analytics';
-import { PROCESSING_PURPOSES, PROCESSING_PURPOSE_SPECS } from '@commonpub/persona';
+import {
+  PERSONA_STATISTICS,
+  PROCESSING_PURPOSES,
+  PROCESSING_PURPOSE_SPECS,
+} from '@commonpub/persona';
 import type { ProcessingPurposeId } from '@commonpub/persona';
 useSeoMeta({
   title: `Privacy Policy, ${useSiteName()}`,
@@ -12,6 +16,8 @@ const siteName = useSiteName();
 const {
   federation: federationEnabled,
   analytics: analyticsEnabled,
+  persona: personaEnabled,
+  personaAnalytics: personaAnalyticsEnabled,
   dataSharingConsents: sharingEnabled,
 } = useFeatures();
 
@@ -25,27 +31,46 @@ const analytics = computed(() =>
 );
 
 /*
- * The sharing choices, RENDERED FROM THE PURPOSE REGISTRY rather than restated.
+ * THREE LAYERS, THREE LEGAL BASES, and this page has to keep them apart.
  *
- * This closes an audit finding: the cookie banner and `/cookies` both link
- * across to Privacy settings, and `/settings/privacy` renders every sentence of
- * consent copy from `@commonpub/persona`, but this page (the one a person reads
- * BEFORE signing up, and the one Art. 13 is actually about) never described the
- * purposes at all. Paraphrasing them here would have created a second copy that
- * drifts from the one members act on, which is precisely what the registry
- * exists to prevent, so nothing below is written in this file.
+ *   PROFILE            public by intent. You published it. No basis is needed
+ *                      for showing you what you asked to be shown.
+ *   QUESTIONS          the operator's questions and your answers. PRIVATE by
+ *                      default: `showOnProfile` is absent on every built-in
+ *                      field, so a default instance publishes no answers at all
+ *                      and only an operator's explicit opt-in puts one on a
+ *                      profile.
+ *   COMMUNITY STATISTICS   legitimate interest (Art. 6(1)(f)), with an
+ *                      objection (Art. 21). Anonymous group totals the instance
+ *                      computes over its own members, so there is no consent to
+ *                      ask for and asking would be a dark pattern.
+ *   NAMED THIRD PARTIES    consent (Art. 6(1)(a)), default off. The one real
+ *                      decision, and the only thing on this page that is one.
  *
- * WHAT IS DELIBERATELY NOT RENDERED HERE, and why. `onSummaryTemplate` is a
- * TEMPLATE, not a sentence: `profile_analytics` names the operator's
- * k-anonymity floor, and only the server can resolve it (it lives in
- * `dataSharing.minBucket`, which is not in the public runtime config). A page
- * that substituted a plausible default would state "at least five people" on an
- * instance whose SQL floor is 25, understating a member's own protection by
- * five times, which is the exact defect `renderPurposeOnSummary` was introduced
- * to prevent. So a template carrying a token is not rendered as prose at all;
- * the resolved sentence is shown beside the switch on `/settings/privacy`,
- * where the server renders it, and this page says so. A test asserts no
- * `{token}` ever reaches the DOM.
+ * A previous version described counting as a consent choice. It is deleted, not
+ * deprecated: `profile_analytics` no longer exists in the registry, and if an
+ * older document names it that document is stale.
+ *
+ * EVERY SENTENCE ABOUT EITHER COMES FROM `@commonpub/persona`, the same source
+ * `/settings/privacy` renders: the purpose registry for the consents,
+ * `PERSONA_STATISTICS` for the objection. Paraphrasing here would create a
+ * second copy that drifts from the one members act on, which is precisely what
+ * the registry exists to prevent, so almost nothing below is written in this
+ * file.
+ *
+ * WHAT IS DELIBERATELY NOT RENDERED HERE, and why. Some registry copy is a
+ * TEMPLATE rather than a sentence, because it names the operator's k-anonymity
+ * floor and only the server can resolve it (it lives in `dataSharing.minBucket`,
+ * which is not in the public runtime config). A page that substituted a
+ * plausible default would state "at least five people" on an instance whose SQL
+ * floor is 25, understating a member's own protection by five times, which is
+ * the exact defect `renderPurposeOnSummary` and `renderStatisticsSummary` exist
+ * to prevent. `PERSONA_STATISTICS.summaryTemplate` is one such template, so the
+ * statistics section below points at the resolved sentence instead of guessing
+ * at it. Neither surviving purpose names a floor today, so both `onSummary`
+ * sentences render in full; the token guard stays anyway, because it is this
+ * surface's half of the invariant and a purpose added later must not be able to
+ * bypass it. A test asserts no `{token}` ever reaches the DOM.
  *
  * Likewise this page names no RECIPIENTS. Which parties are declared, and which
  * of these choices are therefore offered at all, is instance state resolved
@@ -53,8 +78,28 @@ const analytics = computed(() =>
  * no unauthenticated payload carrying it. Naming a party this instance has not
  * declared would be worse than pointing at the surface that lists them, which is
  * what the lead paragraph does.
+ *
+ * AND NOTHING ABOUT SHARING OR TOTALS APPEARS WHEN THE FLAGS ARE OFF. An
+ * instance may run `persona` for purely operational questions, a makerspace
+ * asking which tools you are trained on, with no recruitment, sponsor or
+ * analytics ambitions at all. Every section below is gated on the flag for the
+ * processing it describes, so that policy describes that instance correctly by
+ * saying nothing.
  */
 const FLOOR_TOKEN = /\{[a-zA-Z]+\}/;
+
+/**
+ * Community statistics, gated on the two flags that decide whether this instance
+ * computes any.
+ *
+ * `personaAnalytics` alone is not enough and `persona` alone is not either: the
+ * admin metrics route and the rollup both require the pair, so with either off
+ * no total is ever computed and a section describing group totals would describe
+ * something that does not happen here.
+ */
+const statistics = computed(() =>
+  personaEnabled.value && personaAnalyticsEnabled.value ? PERSONA_STATISTICS : null,
+);
 
 interface PolicyPurpose {
   id: ProcessingPurposeId;
@@ -85,8 +130,15 @@ const sharingPurposes = computed<PolicyPurpose[]>(() =>
 // ternaries that every later heading had to repeat: adding one more conditional
 // section would have meant editing all of them and getting it right by hand.
 const sectionKeys = computed(() => [
-  'who', 'data', 'use', 'basis', 'cookies',
+  'who', 'data',
+  // Only where the operator asks questions at all. Without `persona` there are
+  // no answers to be private about, and the profile half is already covered by
+  // "What Data We Collect" and "How We Use Your Data" above; a section restating
+  // it would be filler on most instances.
+  ...(personaEnabled.value ? ['questions'] : []),
+  'use', 'basis', 'cookies',
   ...(analytics.value ? ['analytics'] : []),
+  ...(statistics.value ? ['statistics'] : []),
   ...(sharingPurposes.value.length ? ['sharing'] : []),
   ...(federationEnabled.value ? ['federation'] : []),
   'third-party', 'retention', 'rights', 'contact',
@@ -144,6 +196,22 @@ const essentialCookies = computed(() => cookies.value.filter((c) => c.category =
         </ul>
       </section>
 
+      <!--
+        The layer the old policy never named. Persona answers were public by
+        default when this feature shipped, which made every question about
+        sharing them theatre: the honest answer was "you already are". That
+        default is inverted, and this section is where the corrected model is
+        stated to somebody who has not signed up yet.
+      -->
+      <section v-if="personaEnabled" class="cpub-legal-section">
+        <h2>{{ n('questions') }}. Your Profile, and the Questions We Ask</h2>
+        <p>Your profile is public because that is what a profile is. Your name, your photo, your bio, the links you add and the rest of it are shown to other people because you put them there for that reason.</p>
+        <p>The questions this site asks you are a different thing. Your answers are kept for you and for the administrators of this site, and they are <strong>not shown on your profile</strong> unless the operator of this site has marked that particular question as one that appears there. Nothing you answer is published by default, and a question can be asked for purely practical reasons with the answer never leaving your account.</p>
+        <p>Administrators of this site can see your answers, in the same way they can already see your account. We say so here rather than implying otherwise.</p>
+        <p v-if="statistics">Your answers are counted into group totals, described in section {{ n('statistics') }}, and you can object to that.</p>
+        <p v-if="sharingPurposes.length">Nothing you answer reaches anyone outside this site unless you turn on one of the choices in section {{ n('sharing') }}. Each one is off until you do.</p>
+      </section>
+
       <section class="cpub-legal-section">
         <h2>{{ n('use') }}. How We Use Your Data</h2>
         <ul>
@@ -160,6 +228,8 @@ const essentialCookies = computed(() => cookies.value.filter((c) => c.category =
         <ul>
           <li><strong>Contract performance (Art. 6(1)(b)):</strong> processing necessary to provide you with the service you signed up for</li>
           <li><strong>Legitimate interest (Art. 6(1)(f)):</strong> session security, rate limiting, and preventing abuse</li>
+          <li v-if="statistics"><strong>Legitimate interest (Art. 6(1)(f)):</strong> community statistics over this site's own members, described in section {{ n('statistics') }}, which you can object to at any time</li>
+          <li v-if="sharingPurposes.length"><strong>Consent (Art. 6(1)(a)):</strong> the choices in section {{ n('sharing') }} about parties outside this site, each of them off unless you turn it on</li>
         </ul>
       </section>
 
@@ -211,14 +281,29 @@ const essentialCookies = computed(() => cookies.value.filter((c) => c.category =
       </section>
 
       <!--
+        NOT A CONSENT SECTION, and its placement before the sharing one is the
+        point: it describes the thing that is already happening. Every sentence
+        comes from `PERSONA_STATISTICS`, the same source the objection control
+        renders from, except the pointer paragraph, which is about where the
+        resolved number lives rather than about the processing.
+      -->
+      <section v-if="statistics" class="cpub-legal-section">
+        <h2>{{ n('statistics') }}. Community statistics</h2>
+        <p>{{ statistics.basisNote }}</p>
+        <p>Our legal basis is legitimate interest (Art. 6(1)(f)), not your consent, and the right that comes with it is the right to object (Art. 21). The way to exercise it is one control in your <NuxtLink to="/settings/privacy">Privacy settings</NuxtLink>, labelled "{{ statistics.objectLabel }}". You are counted until you use it.</p>
+        <p>{{ statistics.objectEffect }}</p>
+        <p>What exactly is counted, and the smallest number of people a total needs before it is shown at all, are stated in full beside that control. That number is chosen by the operator of this site, so a general one stated here could understate the protection you actually have.</p>
+      </section>
+
+      <!--
         Every sentence in this section comes from the purpose registry in
         `@commonpub/persona`, the same source `/settings/privacy` renders. It is
         not a summary of those choices, because a summary is a second copy and a
         second copy drifts from the behaviour it describes.
       -->
       <section v-if="sharingPurposes.length" class="cpub-legal-section">
-        <h2>{{ n('sharing') }}. Choices you make about your own profile</h2>
-        <p>These are separate from cookies. Each one is off unless you turn it on, turning one off is one click on the same control that turned it on, and our legal basis for every one of them is your consent (Art. 6(1)(a)). Which of these this site offers, the parties each one names, and the exact wording that applies here are all shown beside the switch in your <NuxtLink to="/settings/privacy">Privacy settings</NuxtLink>.</p>
+        <h2>{{ n('sharing') }}. Choices about people outside this site</h2>
+        <p>These are separate from cookies, and they are the only decisions on this page that are yours to make. Each one sends something about you to a party we have named, each is off unless you turn it on, turning one off is one click on the same control that turned it on, and our legal basis for every one of them is your consent (Art. 6(1)(a)). Which of these this site offers, the parties each one names, and the exact wording that applies here are all shown beside the switch in your <NuxtLink to="/settings/privacy">Privacy settings</NuxtLink>.</p>
 
         <div v-for="purpose in sharingPurposes" :key="purpose.id">
           <h3>{{ purpose.label }}</h3>
@@ -270,7 +355,8 @@ const essentialCookies = computed(() => cookies.value.filter((c) => c.category =
           <li><strong>Rectification:</strong> update or correct your data (via your profile settings)</li>
           <li><strong>Erasure:</strong> delete your account and all associated data (via account settings)</li>
           <li><strong>Portability:</strong> download your data in a machine-readable format (via account settings)</li>
-          <li><strong>Restriction and objection:</strong> contact the instance administrator</li>
+          <li v-if="statistics"><strong>Objection (Art. 21):</strong> the community statistics in section {{ n('statistics') }} run on legitimate interest, and the control that stops them counting you is in your <NuxtLink to="/settings/privacy">Privacy settings</NuxtLink>. For anything else, contact the instance administrator.</li>
+          <li v-else><strong>Restriction and objection:</strong> contact the instance administrator</li>
         </ul>
         <p>To exercise these rights, visit your <NuxtLink to="/settings/account">account settings</NuxtLink> or contact the instance administrator.</p>
       </section>

@@ -165,12 +165,13 @@ export const featureFlagsSchema = z.object({
   // /api/persona/*, the dashboard invitation, the admin schema editor at
   // /admin/persona, AND the render on the member's PUBLIC profile
   // (GET /api/users/:username/persona, shown in the About tab of /u/:username).
-  // That last one is why this flag is more than a collection switch: turning it
-  // on both starts collecting personal data that was not collected before and
-  // starts DISPLAYING it, subject to each field's `publicOnProfile` and the
-  // member's own `profileVisibility`. Neither is a change an upgrade should make
-  // for an operator silently, hence default OFF. The section definitions live in
-  // `config.persona`, which this package accepts opaquely (see configSchema below).
+  // Turning it on starts collecting personal data that was not collected before,
+  // which is not a change an upgrade should make for an operator silently, hence
+  // default OFF. It does NOT publish anything on its own: an answer reaches the
+  // public profile only where the operator set `showOnProfile: true` on that
+  // field, and no built-in field does. The member's own `profileVisibility`
+  // still applies on top. The section definitions live in `config.persona`,
+  // which this package accepts opaquely (see configSchema below).
   persona: z.boolean().default(false),
   // Purpose-scoped data-sharing consents. Gates the purpose toggles,
   // /settings/privacy and /api/consent/purposes. Default OFF: this is the

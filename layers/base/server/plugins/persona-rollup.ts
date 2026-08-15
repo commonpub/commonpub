@@ -62,16 +62,19 @@ export default defineNitroPlugin((nitro) => {
     // publicApi: the endpoints that consume the snapshot live under /api/public.
     // persona + personaAnalytics: the feature and its analytics half are separate
     // flags because collecting answers and aggregating them are different risks.
-    // dataSharingConsents: the pass counts nothing BUT purpose grants, and that
-    // flag governs the surface where a member gives and withdraws them. Without
-    // this line an operator could switch off the disclosing surface and leave
-    // the counting running on grants nobody could then manage, which is the
-    // shape Art. 7(3) exists to prevent. Counting dies with its consent surface.
+    // There is deliberately NO `dataSharingConsents` term. There was one while
+    // the pass counted nothing but purpose grants: counting had to die with the
+    // surface that managed them. It no longer counts grants. Distributions and
+    // link presence run on legitimate interest and exclude anyone who has
+    // objected, and the objection switch lives on `/settings/privacy` behind
+    // `persona` + `personaAnalytics`, which is exactly this pair. The one part
+    // of the snapshot that IS a consent count, the audience slots, is written
+    // from `scope.offerablePurposes`, which is empty on an instance that has
+    // declared no recipient, so it reports itself unoffered rather than zero.
     return (
       config.features.publicApi === true &&
       config.features.persona === true &&
-      config.features.personaAnalytics === true &&
-      config.features.dataSharingConsents === true
+      config.features.personaAnalytics === true
     );
   }
 

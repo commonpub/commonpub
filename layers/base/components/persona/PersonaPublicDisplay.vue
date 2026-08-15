@@ -1,7 +1,15 @@
 <script setup lang="ts">
 /**
- * `<PersonaPublicDisplay>` — one member's persona answers, as a visitor sees
- * them on `/u/:username` (plan section 8.5).
+ * `<PersonaPublicDisplay>` — the few persona answers the OPERATOR has opted into
+ * the public profile, as a visitor sees them on `/u/:username` (plan section
+ * 8.5, corrected by plan R3.1 D1).
+ *
+ * ON A DEFAULT INSTANCE THIS RENDERS NOTHING, and that is correct rather than
+ * broken. `GET /api/users/:username/persona` returns a field only when the
+ * schema says `showOnProfile === true`, and no built-in section sets it, so
+ * `sections` arrives empty until an operator opts a question in. Answers are
+ * private until somebody decides otherwise; a component that showed them by
+ * default is what this correction removed.
  *
  * NAMING: this file is `components/persona/PersonaPublicDisplay.vue`, so Nuxt's
  * pathPrefix registers it as `<PersonaPublicDisplay>` (the `persona` directory
@@ -15,12 +23,22 @@
  * `<PersonaChipGrid>` is the interactive one and stays that way.
  *
  * RENDERS NOTHING WHEN THERE IS NOTHING. A visitor looking at a profile with no
- * persona answers sees no heading, no empty box and no "this person has not
+ * published answers sees no heading, no empty box and no "this person has not
  * filled anything in": an empty state on someone else's profile is pressure
- * applied to the wrong person, by a stranger. The owner is the one exception and
- * gets a single quiet line pointing at their own editor.
+ * applied to the wrong person, by a stranger.
  *
- * THERE IS NO `:href` IN THIS COMPONENT, AND THAT IS THE POINT. Persona `link`
+ * The owner is the one exception, and the line they get changed with the model.
+ * It used to read "You have not filled in your profile details yet" over a link
+ * to the editor. That sentence is now BOTH a nag and a falsehood: on a default
+ * instance nothing is published however much the member writes, so it would sit
+ * on every profile forever telling people to fix something that is not broken.
+ * It says instead that answers are private, which is the fact a member is
+ * missing at exactly the moment they wonder where their answers went. It is not
+ * an invitation to fill anything in: `<PersonaInvitationBanner>` owns that job,
+ * on the dashboard, with a dismissal cookie and an offer-twice-then-stop rule
+ * that a second nag here would quietly defeat.
+ *
+ * THERE IS NO ANCHOR IN THIS COMPONENT AT ALL, AND THAT IS THE POINT. Persona `link`
  * fields live in `users.social_links` and the profile hero already renders them
  * as its icon row, so `GET /api/users/:username/persona` excludes them and no
  * URL from that column ever reaches this template. That is strictly stronger
@@ -69,8 +87,8 @@ const visibleSections = computed<PublicPersonaSectionItem[]>(() =>
 
 const hasAnswers = computed(() => visibleSections.value.length > 0);
 
-/** The owner, and only the owner, is told where to go when there is nothing here. */
-const showOwnerPrompt = computed(() => !hasAnswers.value && props.isOwner);
+/** The owner, and only the owner, is told why their own answers are not here. */
+const showOwnerNote = computed(() => !hasAnswers.value && props.isOwner);
 
 function sectionTitleId(key: string): string {
   return `${props.idPrefix}-${key}`;
@@ -111,11 +129,12 @@ function sectionTitleId(key: string): string {
     </section>
   </div>
 
-  <!-- The one owner-only line. No count, no meter, no percentage: this is a
-       pointer, not a scoreboard. -->
-  <p v-else-if="showOwnerPrompt" class="cpub-persona-public-owner-note">
-    You have not filled in your profile details yet.
-    <NuxtLink to="/settings/persona">Add your interests and tech stack</NuxtLink>.
+  <!-- The one owner-only line. No count, no meter, no percentage, and no link:
+       this states a fact about who can see what, and it says nothing at all
+       about what this person has or has not written. -->
+  <p v-else-if="showOwnerNote" class="cpub-persona-public-owner-note">
+    Your answers to this site's questions are private. Only the ones this site publishes
+    appear on your profile.
   </p>
 </template>
 

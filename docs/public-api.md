@@ -391,16 +391,33 @@ total alongside suppressed buckets lets a caller subtract, which recovers the
 withheld count exactly.
 
 When the surface cannot be served, `available` is `false` and `reason` says
-which rule refused. There are five values, and a consumer switching on `reason`
-should handle all of them:
+which rule refused. `distribution`, `links` and `fields` use one set of values
+and `audience` uses another, because they no longer answer the same kind of
+question: the first three count answers the instance holds, and `audience`
+counts consent grants.
+
+**`distribution`, `links`, `fields`** — four values, and a consumer switching on
+`reason` should handle all of them:
 
 | `reason` | Meaning | What a consumer should do |
 |---|---|---|
 | `no_snapshot_yet` | This instance has not finished a UTC day yet, or its most recent finalised day is more than a week old. **The first value every new instance returns.** | Retry tomorrow. |
-| `scope_changed` | The operator changed what sharing covers (a recipient, the policy version, or the set of counted fields), so every existing grant now authorises nothing until members confirm again. | Retry after the next finalisation. |
-| `insufficient_population` | Fewer consenting, eligible members than the instance's minimum. | Nothing; this is a small instance. |
+| `insufficient_population` | Fewer counted, eligible members than the instance's minimum. | Nothing; this is a small instance. |
 | `insufficient_bucket_diversity` | A single-answer field with any withheld bucket, where the remaining buckets would identify the withheld one by elimination. | Nothing; the field is structurally unpublishable at this size. |
-| `purpose_not_offered` | This instance does not offer the purpose the surface counts. | Stop asking for it. |
+| `statistics_not_covered` | The surface asks for a data class this instance's statistics disclosure does not declare. | Stop asking for it. |
+
+`scope_changed` and `purpose_not_offered` are **not** in that list and cannot
+appear on these three. Both were statements about a consent scope, and nothing a
+member consents to decides whether the instance counts its own answers.
+
+**`audience`** — four values:
+
+| `reason` | Meaning | What a consumer should do |
+|---|---|---|
+| `no_snapshot_yet` | As above. | Retry tomorrow. |
+| `scope_changed` | The operator changed what sharing covers (a recipient, the policy version, or the set of counted fields), so every existing grant now authorises nothing until members confirm again. | Retry after the next finalisation. |
+| `insufficient_population` | Fewer grant holders than the instance's minimum. | Nothing; this is a small instance. |
+| `purpose_not_offered` | This instance does not offer that purpose, so nobody could have granted it. | Stop asking for it. |
 
 `asOf` names the finalised UTC day served, or is `null` for a live read and when
 no snapshot exists.
@@ -415,17 +432,23 @@ independently verifiable, not anything about the member.
 
 ### `GET /api/public/v1/metrics/persona/audience`
 
-Counts of members who have granted a sharing purpose. Requires
-`features.dataSharingConsents` in addition to the two persona flags.
+Counts of members who have granted a sharing purpose. This is the ONE endpoint
+in the family that requires `features.dataSharingConsents` in addition to the
+two persona flags, because it is the only one whose numbers are consent counts.
 
 The payload carries a top-level `available`, `reason`, `quantum` and `asOf`
 alongside one slot per registered purpose:
 
 | Slot | Purpose |
 |---|---|
-| `sharingAnalytics` | `profile_analytics` |
 | `openToRecruiters` | `recruiter_visibility` |
 | `openToSponsorSharing` | `sponsor_sharing` |
+
+There was a third slot, `sharingAnalytics`, counting grants of a
+`profile_analytics` purpose. Both are gone. Being counted in instance statistics
+is not something a member consents to: it runs on legitimate interest, disclosed
+on `/privacy`, with an objection a member can exercise at any time. There is no
+endpoint reporting how many members have objected, and there will not be one.
 
 Each slot is a discriminated union: `{ "available": true, "count": 25 }` or
 `{ "available": false, "reason": "..." }`. Purposes this release does not offer
@@ -434,10 +457,24 @@ than as `0`. A hard zero that means "not implemented" reads as "nobody opted in"
 and an operator would act on it. Counts are floored to `quantum` exactly as
 distribution counts are.
 
-**All four persona endpoints require `features.dataSharingConsents`** in addition
-to `persona` and `personaAnalytics`. Everything they count is a purpose grant,
-and that flag governs the surface where a member gives and withdraws one, so the
-counting cannot outlive the ability to manage it.
+**Only `audience` requires `features.dataSharingConsents`.** `fields`,
+`distribution` and `links` require `persona` and `personaAnalytics` alone.
+
+All four used to carry the sharing flag, on the reasoning that everything they
+counted was a purpose grant and the counting must not outlive the surface where
+a member gives and withdraws one. That is still true of `audience`, and it is no
+longer true of the other three: they count answers the instance holds about its
+own members, under legitimate interest, minus anyone who has objected. Requiring
+the sharing flag there would have forced an operator who wants public aggregates
+to also switch on third-party sharing they do not do.
+
+Two consequences worth stating for a consumer:
+
+- `links` counts a platform only when the member both lists it and has agreed to
+  share it, so these numbers are a lower bound on how many members list a
+  platform, and they moved when per-platform sharing shipped.
+- A member who has objected is in none of these numbers, and there is no way to
+  tell from the API how many people that is.
 
 ## Member visibility directory
 

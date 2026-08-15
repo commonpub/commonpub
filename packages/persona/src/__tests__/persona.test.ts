@@ -235,6 +235,36 @@ describe('BUILTIN_PERSONA_SECTIONS', () => {
     const keys = BUILTIN_PERSONA_SECTIONS.flatMap((s) => s.fields).map((f) => f.key);
     expect(new Set(keys).size).toBe(keys.length);
   });
+
+  it('publishes nothing on a profile by default', () => {
+    // Every field, not a sample. Which answers belong on a public page is a
+    // decision about a particular community, and a default here would make it
+    // for every operator at once: the makerspace asking which tools you are
+    // checked out on would publish the answer without ever choosing to.
+    const fields = BUILTIN_PERSONA_SECTIONS.flatMap((s) => s.fields);
+    expect(fields.length).toBeGreaterThanOrEqual(9);
+    for (const f of fields) {
+      expect(f.showOnProfile, f.key).toBeUndefined();
+    }
+  });
+
+  it('says nothing about statistics or sharing in any built-in string', () => {
+    // An instance can run persona with every sharing flag off and ask purely
+    // operational questions. Copy baked in here would describe, on that
+    // instance, something that never happens.
+    const strings = BUILTIN_PERSONA_SECTIONS.flatMap((s) => [
+      s.label,
+      s.help ?? '',
+      ...s.fields.flatMap((f) => [f.label, f.help ?? '']),
+    ]);
+    expect(strings.length).toBeGreaterThanOrEqual(20);
+    for (const s of strings) {
+      const lower = s.toLowerCase();
+      for (const banned of ['statistic', 'counted', 'recruiter', 'sponsor', 'shared with']) {
+        expect(lower, `${banned} in "${s}"`).not.toContain(banned);
+      }
+    }
+  });
 });
 
 describe('personaCompleteness', () => {

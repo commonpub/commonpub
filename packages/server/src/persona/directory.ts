@@ -6,6 +6,7 @@ import {
   userPersonaAnswers,
   userPersonaText,
   userPurposeConsents,
+  userSharedLinks,
   users,
 } from '@commonpub/schema';
 import {
@@ -49,15 +50,21 @@ import type { PublicUser, PublicUserRow } from '../publicApi/serializers.js';
  *   who did not opt in.
  *
  * D2, the second rule a later reader will want to "fix". The grant required here
- * is the SPECIFIC purpose (`recruiter_visibility` / `sponsor_sharing`) and NOT
- * `profile_analytics`. The aggregate audience count next door needs a DOUBLE
- * join because only the analytics copy says "your answers are counted in group
- * totals", so counting somebody into a statistic on the strength of a recruiter
- * grant would be counting them into something nobody described to them. The
- * directory is the opposite case: `recruiter_visibility`'s copy describes
- * exactly this disclosure and nothing else does, so requiring analytics as well
- * would exclude the people who consented to precisely the thing being done.
- * Making this a double join is a defect, not a hardening.
+ * is the SPECIFIC purpose (`recruiter_visibility` / `sponsor_sharing`) and
+ * nothing else. It briefly looked as though the aggregate side's second join
+ * belonged here too; it never did, and that join is gone from `metrics.ts`
+ * anyway now that statistics run on legitimate interest rather than consent.
+ * `recruiter_visibility`'s copy describes exactly this disclosure and no other
+ * record does, so requiring a second grant would exclude the people who agreed
+ * to precisely the thing being done. Adding one is a defect, not a hardening.
+ *
+ * D2b, THE ONE THING THAT IS NOT DECIDED BY THE GRANT ALONE. Profile link
+ * platforms pass a per-member, per-platform gate as well
+ * (`user_shared_links`, plan R3.1 D6): row present means shared, absent means
+ * not. It applies to the projection AND to the `hasLink` filter, because a
+ * filter that matches on a withheld link discloses that the link exists. The
+ * statistics link aggregate next door intersects the same table, so one control
+ * means one thing everywhere a member could be asked to hold it in their head.
  *
  * D3, why the write is not a fire-and-forget log. `recordDisclosures` runs in
  * the SAME transaction as the read, before the payload is serialised. A failed
@@ -171,7 +178,7 @@ export interface OpenMemberFilters {
   techStack?: readonly string[];
   industry?: readonly string[];
   /**
-   * Link platform keys the member must ALL have on their profile.
+   * Link platform keys the member must ALL have on their profile AND share.
    *
    * AND, not OR, and deliberately different from the answer filters. "Has a
    * GitHub link" is a capability requirement rather than a taste, and a caller
@@ -278,7 +285,12 @@ const DIRECTORY_IDENTITY_CLASS: PersonaDataClass = 'public_identity';
 interface DirectoryDisclosureScope {
   /** `location_coarse`. When absent the town is dropped from the payload. */
   location: boolean;
-  /** `profile_links`. When absent `socialLinks` and `website` are dropped. */
+  /**
+   * `profile_links`. When absent `socialLinks` and `website` are dropped
+   * outright. When present, `socialLinks` is still narrowed to the platforms
+   * the member shares; this gate says what the PURPOSE may disclose, not what
+   * this member agreed to.
+   */
   links: boolean;
   /** `persona_selections`. When absent the persona answers are dropped. */
   answers: boolean;
@@ -511,9 +523,23 @@ function filterConditions(
     // Parenthesised as one term. A raw fragment carrying its own `AND` is
     // spliced into whatever combinator holds it, so the parens are what keep it
     // a single predicate if this list ever ends up inside an `or()`.
+    //
+    // THE `user_shared_links` LEG IS NOT OPTIONAL EITHER, and it is the half a
+    // reader is most likely to think belongs only in the projection. Filtering
+    // on a link the payload then withholds still answers the question: a
+    // recruiter who searches `hasLink=github` and gets a member back has learned
+    // that member has a GitHub, which is precisely the fact the member declined
+    // to share. A filter is a disclosure with one bit of resolution. So the
+    // filter and the projection read the same table, and a platform a member
+    // does not share can neither be seen nor be searched for.
     conds.push(
       sql`(jsonb_typeof(${users.socialLinks}) = 'object'
-        AND coalesce(${users.socialLinks} ->> ${platform}::text, '') <> '')`,
+        AND coalesce(${users.socialLinks} ->> ${platform}::text, '') <> ''
+        AND EXISTS (
+          SELECT 1 FROM ${userSharedLinks}
+          WHERE ${userSharedLinks.userId} = ${users.id}
+            AND ${userSharedLinks.platform} = ${platform}::text
+        ))`,
     );
   }
 
@@ -561,24 +587,37 @@ interface ProjectableField {
 /**
  * Which persona fields this response may carry, in schema order.
  *
- * The rules are the ones `/api/users/:username/persona` already applies to the
- * member's own public profile, and they are the same rules for the same reason:
- * this endpoint discloses "what is already on your public profile", so anything
- * that surface refuses to print, this one refuses to send.
- *
  * - `sensitive` fields are never published, whatever their sink. Derived from
  *   the FLAG and never from the sink, because `personaFieldSink` also routes an
  *   `analytics: false` field to `text` and an operator who turned counting off
  *   did not thereby mark the field special.
- * - `publicOnProfile === false` fields are never published. This is the second
- *   reader that makes that operator control mean something.
  * - `column:`-bound fields are skipped: display name, headline, location,
  *   pronouns and bio are already on the `toPublicUser` payload, and repeating
  *   them would send each one twice.
  * - `link` fields are skipped for the same reason: their storage IS
- *   `users.social_links`, which `toPublicUser` already carries.
+ *   `users.social_links`, which `toPublicUser` already carries, per platform and
+ *   per the member's sharing choice.
  * - Drifted keys are skipped, so no value is printed under a question that has
  *   since changed meaning.
+ *
+ * THERE IS NO `showOnProfile` GATE HERE, and its absence is the decision rather
+ * than an omission. The rule used to be "anything the public profile refuses to
+ * print, this refuses to send", which made sense while the copy read "what is
+ * already on your public profile" and while answers were public by default.
+ * Both halves of that changed at once. Answers are private unless an operator
+ * opts a field in, and `recruiter_visibility`'s copy no longer points at the
+ * profile: it says the member's "answers about interests and tech stack are
+ * shown to the people named below". Carrying the profile gate across would make
+ * this endpoint list consenting members with no answers at all on a default
+ * instance, which turns `persona_selections` in that purpose's `covers` into a
+ * claim about nothing, and it would leave the ANSWER FILTERS matching on fields
+ * the payload never prints, which is the worse half: matching on hidden data
+ * while claiming not to publish it. Publication on a profile and disclosure to a
+ * named recipient are different questions with different instruments, and this
+ * one is answered by the grant.
+ *
+ * `sensitive` is the line that does not move. It is never published anywhere,
+ * by any consent, which is why it is a separate flag from visibility.
  */
 export function directoryProjectableFields(
   sections: readonly PersonaSection[],
@@ -591,7 +630,6 @@ export function directoryProjectableFields(
     for (const field of section.fields) {
       if (field.column !== undefined) continue;
       if (field.sensitive === true) continue;
-      if (field.publicOnProfile === false) continue;
       if (drifted.has(field.key)) continue;
 
       const sink = personaFieldSink(field);
@@ -720,6 +758,70 @@ async function loadPersonaAnswers(
   return out;
 }
 
+// --- Per-platform link sharing ------------------------------------------------------
+
+/**
+ * Which link platforms each member on this page has chosen to share.
+ *
+ * ROW PRESENT MEANS SHARED (plan R3.1 D6). A member who has never opened the
+ * control has no rows and therefore shares nothing, so the default is off by
+ * construction rather than by a default value a later migration could flip. A
+ * member with a GitHub row and no Instagram row shares one and not the other,
+ * which is the whole point: "share my links" as a single switch forces a person
+ * to hand over a personal account to hand over a portfolio.
+ *
+ * One query for the page, keyed by user, for the same reason
+ * {@link loadPersonaAnswers} is: a per-row lookup inside the projection is N+1
+ * queries inside the transaction that is already holding the disclosure write.
+ */
+async function loadSharedLinkPlatforms(
+  tx: DB,
+  userIds: readonly string[],
+): Promise<Map<string, Set<string>>> {
+  const out = new Map<string, Set<string>>();
+  // `inArray` with an empty list is `IN ()`, which is not valid SQL.
+  if (userIds.length === 0) return out;
+
+  const rows = await tx
+    .select({ userId: userSharedLinks.userId, platform: userSharedLinks.platform })
+    .from(userSharedLinks)
+    .where(inArray(userSharedLinks.userId, [...userIds]));
+
+  for (const row of rows) {
+    const set = out.get(row.userId) ?? new Set<string>();
+    set.add(row.platform);
+    out.set(row.userId, set);
+  }
+  return out;
+}
+
+/**
+ * Keep only the platforms this member shares.
+ *
+ * An ALLOW-LIST built from the member's own rows, not a filter that removes the
+ * ones they refused: a platform absent from `user_shared_links` is absent from
+ * the payload whether or not anybody remembered it exists, so an operator adding
+ * a platform tomorrow does not silently disclose it for every member who
+ * consented today.
+ *
+ * Returns `null` rather than `{}` when nothing is shared, matching what
+ * `toPublicUser` produces for a member with no links at all: a recipient cannot
+ * tell "shares nothing" from "has nothing", which is the correct amount to say.
+ */
+function sharedSocialLinks(
+  socialLinks: Record<string, string | undefined> | null,
+  shared: ReadonlySet<string> | undefined,
+): Record<string, string | undefined> | null {
+  if (socialLinks === null || shared === undefined || shared.size === 0) return null;
+  const out: Record<string, string> = {};
+  for (const [platform, url] of Object.entries(socialLinks)) {
+    if (!shared.has(platform)) continue;
+    if (typeof url !== 'string' || url === '') continue;
+    out[platform] = url;
+  }
+  return Object.keys(out).length === 0 ? null : out;
+}
+
 // --- The disclosure audit ---------------------------------------------------------
 
 export interface RecordDisclosuresInput {
@@ -844,7 +946,13 @@ export async function listOpenMembers(
       .where(and(...conds));
 
     const userIds = rows.map((r) => r.id);
-    const personaByUser = await loadPersonaAnswers(tx, userIds, projectable);
+    const [personaByUser, sharedByUser] = await Promise.all([
+      loadPersonaAnswers(tx, userIds, projectable),
+      // Loaded even when `scope.links` is false, and thrown away in that case:
+      // one query on a page of at most 50 rows is not worth a branch that a
+      // later edit could invert. The gate below is what decides.
+      loadSharedLinkPlatforms(tx, userIds),
+    ]);
 
     // BEFORE the payload is built, in this transaction. A throw here rolls the
     // read back and the recipient is told the request failed (D3).
@@ -862,11 +970,22 @@ export async function listOpenMembers(
         ...publicUser,
         // Per-class gates, derived from the purpose's own `covers`, so a payload
         // cannot outrun the sentence the member read. Every class is covered by
-        // `recruiter_visibility` today, so nothing is dropped; the gates exist so
-        // narrowing the copy narrows the payload in the same commit.
+        // `recruiter_visibility` today, so no class is dropped; the gates exist
+        // so narrowing the copy narrows the payload in the same commit. The
+        // link class then passes through a SECOND, per-member gate, because
+        // `covers` says what the purpose may disclose and `user_shared_links`
+        // says what this member agreed to hand over one platform at a time.
         location: scope.location ? publicUser.location : null,
+        // `website` is a `users` column and not a link PLATFORM, so it has no
+        // row in `user_shared_links` to consult and stays on the class gate
+        // alone. Flagged rather than quietly decided: a member who withholds
+        // every platform still hands over their website here, and if that is
+        // wrong the fix is a platform key for it, not a special case in this
+        // expression.
         website: scope.links ? publicUser.website : null,
-        socialLinks: scope.links ? publicUser.socialLinks : null,
+        socialLinks: scope.links
+          ? sharedSocialLinks(publicUser.socialLinks, sharedByUser.get(row.id))
+          : null,
         persona: personaByUser.get(row.id) ?? [],
       };
     });

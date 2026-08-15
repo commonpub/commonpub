@@ -141,7 +141,7 @@ describe('migration 0046, executed', () => {
     const insert = (superseded: boolean) => sql`
       INSERT INTO user_purpose_consents
         (user_id, purpose, state, scope_digest, scope_snapshot, policy_version, source, superseded_at)
-      VALUES (${user!.id}, 'profile_analytics', 'granted', 'd', '{}'::jsonb, '1', 'settings',
+      VALUES (${user!.id}, 'sponsor_sharing', 'granted', 'd', '{}'::jsonb, '1', 'settings',
               ${superseded ? sql`now()` : sql`NULL`})`;
 
     await db.execute(insert(true));
@@ -181,7 +181,7 @@ describe('migration 0046, executed', () => {
     await db.execute(sql`
       INSERT INTO user_purpose_consents
         (user_id, purpose, state, scope_digest, scope_snapshot, policy_version, source)
-      VALUES (${user!.id}, 'profile_analytics', 'granted', 'd', '{}'::jsonb, '1', 'settings')`);
+      VALUES (${user!.id}, 'sponsor_sharing', 'granted', 'd', '{}'::jsonb, '1', 'settings')`);
 
     await db.execute(sql`DELETE FROM users WHERE id = ${user!.id}`);
 

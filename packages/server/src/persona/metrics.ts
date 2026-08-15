@@ -1,11 +1,18 @@
-import { users, userPersonaAnswers, userPurposeConsents, personaMetricsDaily } from '@commonpub/schema';
+import {
+  personaMetricsDaily,
+  userPersonaAnswers,
+  userPurposeConsents,
+  userSharedLinks,
+  userStatisticsObjections,
+  users,
+} from '@commonpub/schema';
 import {
   METRICS_MIN_BUCKET,
   MIN_AUDIENCE_POPULATION,
   PROCESSING_PURPOSES,
   isPersonaFieldAggregatable,
   personaFieldSpec,
-  purposeCovers,
+  statisticsCovers,
 } from '@commonpub/persona';
 import type {
   PersonaDataClass,
@@ -14,23 +21,44 @@ import type {
   ProcessingPurposeId,
 } from '@commonpub/persona';
 import { and, asc, desc, eq, isNull, sql } from 'drizzle-orm';
+import type { SQL } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import type { PgColumn } from 'drizzle-orm/pg-core';
 import type { DB } from '../types.js';
 import { rowsOf } from '../query.js';
 
 /**
- * Persona audience analytics: the consent-joined, k-anonymous aggregation layer.
+ * Persona statistics: the k-anonymous aggregation layer, and the audience counts
+ * that sit beside it.
+ *
+ * THE CORRECTION THIS FILE CARRIES (plan `profile-persona-information-
+ * architecture.md`, R2.5 and R3.3). Counting answers into group totals used to
+ * be gated on a consent purpose called `profile_analytics`. That purpose is
+ * gone, and not renamed: the instance holds those anonymous totals over its own
+ * members regardless, computed from records it already controls, so asking
+ * permission for processing that happens either way was a dark pattern with good
+ * intentions. Statistics now run on legitimate interest (Art. 6(1)(f)) and the
+ * member holds the right that belongs to that basis, an OBJECTION (Art. 21).
+ * The consent INNER JOIN became an objection ANTI-JOIN, which is the same shape
+ * inverted. `@commonpub/persona`'s `statistics.ts` owns the words; this file
+ * owns the query.
+ *
+ * WHAT STILL RUNS ON CONSENT: the audience counts, and only those. "How many
+ * members are open to recruiters" is a count of people who granted a purpose
+ * that names a third party, so it keeps the digest-bound INNER JOIN it always
+ * had, one join now instead of two.
  *
  * FOUR STRUCTURAL GUARANTEES, in order of importance (plan section 7.2). Each is
  * a property of the code's shape, not a rule someone has to remember:
  *
- * 1. **Consent is an INNER JOIN, never a post-filter and never a WHERE helper.**
- *    A non-consenting user has no row to join to. There is no version of any
- *    query in this file without the join, so no code path can forget it. The
- *    scope digest is bound IN THE JOIN CONDITION, so adding a recipient, bumping
- *    the policy version or adding an aggregatable field drops every stale grant
- *    out of every aggregate at once, with no migration and no backfill.
+ * 1. **The objection is ONE term inside {@link countedUserWhere}, which every
+ *    query in this file already calls.** Written the textbook way, as a
+ *    `LEFT JOIN ... WHERE o.user_id IS NULL`, the exclusion is split across two
+ *    clauses and a query that keeps the join and drops the predicate silently
+ *    counts the people who refused. As a `NOT EXISTS` inside the one eligibility
+ *    helper it plans as the same anti-join and cannot be half-applied: a query
+ *    that omits it also omits the soft-delete, status and visibility filters,
+ *    which is not a subtle failure. There is no second definition of "counted".
  *
  * 2. **`HAVING count(*) >= minBucket` runs in the database.** A suppressed count
  *    never enters the Node process, so no log line, no serialiser and no stack
@@ -45,6 +73,15 @@ import { rowsOf } from '../query.js';
  *    quantised buckets plus a total is a differencing oracle: with one suppressed
  *    bucket the hidden count is recoverable to within a quantum. The population
  *    appears only on the audience payload, quantised.
+ *
+ * K-ANONYMITY IS UNCHANGED AND ITS JOB HAS MOVED (R2.7). The floors, the
+ * downward flooring and the whole-field suppression are byte for byte what they
+ * were. What they protect is different: they are no longer what keeps a member
+ * from being counted, because the objection does that and does it by name. They
+ * are what makes the PUBLISHED output genuinely anonymous, which is the thing
+ * that keeps an aggregate over records the instance holds anyway from becoming a
+ * statement about one identifiable person. That is a better fit for what
+ * suppression actually does, and it is why none of it is relaxed here.
  *
  * Feature gating (`persona`, `personaAnalytics`, `dataSharingConsents`) happens at
  * the route boundary with `requireFeature`, which throws 404. This package is
@@ -63,7 +100,7 @@ export { METRICS_MIN_BUCKET, MIN_AUDIENCE_POPULATION };
 export interface PersonaMetricsThresholds {
   /** Minimum people in a published bucket. Never below `METRICS_MIN_BUCKET`. */
   minBucket: number;
-  /** Minimum consenting population for the whole surface. Never below `MIN_AUDIENCE_POPULATION`. */
+  /** Minimum COUNTED population for the whole surface. Never below `MIN_AUDIENCE_POPULATION`. */
   minPopulation: number;
 }
 
@@ -111,7 +148,7 @@ export function quantisePersonaCount(count: number, quantum: number): number {
  * existed, PUTting the identical schema document with one option removed
  * answered with the exact count for that option and wrote nothing, so eighteen
  * requests reconstructed the exact distribution of an eighteen-option field
- * over every member INCLUDING those who had explicitly revoked consent, gated on
+ * over every member INCLUDING those every published aggregate excludes, gated on
  * `settings.manage` rather than on `audit.read`.
  *
  * Below the floor the count is reported as a band ("fewer than k") and the
@@ -193,12 +230,23 @@ export function personaMetricsFields(
 
 // --- Payload shapes -------------------------------------------------------------
 
+/**
+ * Why a distribution or a link-presence payload is dark.
+ *
+ * TWO MEMBERS LEFT WITH THE ANALYTICS PURPOSE. `scope_changed` and
+ * `purpose_not_offered` were both statements about a CONSENT scope, and neither
+ * can describe a field distribution any more: nothing a member consents to
+ * decides whether the instance counts its own answers, so a moved digest cannot
+ * darken this surface and there is no purpose here to be unoffered. They are
+ * deleted rather than kept as reasons that can never fire.
+ * {@link PersonaAudienceUnavailableReason} keeps both, because the audience
+ * counts really are consent counts.
+ */
 export type PersonaUnavailableReason =
   | 'insufficient_population'
   | 'insufficient_bucket_diversity'
   | 'no_snapshot_yet'
-  | 'scope_changed'
-  | 'purpose_not_offered';
+  | 'statistics_not_covered';
 
 export interface PersonaDistributionItem {
   value: string;
@@ -266,16 +314,15 @@ export type PersonaAudienceCount =
  * The wire names predate the registry and do not match the ids, so the mapping
  * has to exist somewhere; the question is whether it exists once as data or four
  * times by hand. It was four (the unavailable builder, the rollup branch, the
- * live branch and the OpenAPI description), which meant adding the fourth
- * purpose the handoff explicitly anticipates was four silent edits the compiler
- * could not point at, because the interface simply would not have the key.
+ * live branch and the OpenAPI description), which meant adding the third purpose
+ * R3.6 describes how to add would be four silent edits the compiler could not
+ * point at, because the interface simply would not have the key.
  *
  * `satisfies` makes a missing purpose a typecheck failure, and
  * {@link PersonaAudienceCounts} is derived from it, so a new purpose breaks
  * every construction site until it is handled.
  */
 export const PERSONA_AUDIENCE_PAYLOAD_KEYS = {
-  profile_analytics: 'sharingAnalytics',
   recruiter_visibility: 'openToRecruiters',
   sponsor_sharing: 'openToSponsorSharing',
 } as const satisfies Record<ProcessingPurposeId, string>;
@@ -290,7 +337,13 @@ type PersonaAudienceSlots = {
 export interface PersonaAudienceCounts extends PersonaAudienceSlots {
   quantum: number;
   available: boolean;
-  reason?: PersonaUnavailableReason;
+  /**
+   * The AUDIENCE union, not the distribution one. It was the distribution union
+   * while the two overlapped; they no longer do, and a payload whose whole-
+   * surface reason cannot be one its own slots can carry would be a type that
+   * describes a state this code cannot produce.
+   */
+  reason?: PersonaAudienceUnavailableReason;
   asOf: string | null;
 }
 
@@ -325,34 +378,24 @@ export const PERSONA_LINK_METRIC = 'persona.link.presence';
 export const PERSONA_AUDIENCE_DIMENSION = 'count';
 
 /**
- * Prefix of the meta dimension carrying the CONSENT SCOPE DIGEST a day was
- * computed under.
+ * Prefix of the meta dimension carrying the CONSENT SCOPE DIGEST a day's
+ * AUDIENCE counts were computed under.
  *
- * Guarantee 1 (the digest bound in the join) is a property of the LIVE queries
- * only. `persona_metrics_daily` stores counts, so a finalised day carries no
- * memory of which grants produced it: an operator adding a recipient at 09:00
- * invalidates every stored grant, and without this row the public endpoints
- * would keep serving yesterday's buckets, built from grants that now authorise
- * nothing, until the next finalisation up to ~30 hours later. Storing the digest
- * makes the stale day refusable on read.
+ * NARROWED BY THE CORRECTION, and worth being exact about what it now covers.
+ * The field distributions and the link presence on a stored day are not consent
+ * counts any more, so no digest can invalidate them and none is checked when
+ * they are read. The audience counts still are: an operator adding a recipient
+ * at 09:00 invalidates every stored grant, and without this row the public
+ * endpoints would keep publishing "40 members are open to recruiters" from
+ * grants that now authorise nothing, until the next finalisation up to ~30 hours
+ * later. Storing the digest makes exactly that figure refusable on read, and
+ * leaves the rest of the day servable, which is the honest split.
  *
  * `:` cannot appear in a persona option value or platform key (both
  * `^[a-z0-9_]+$`), so this prefix cannot collide with a real dimension, the same
  * argument {@link PERSONA_SUPPRESSED_DIMENSION} makes.
  */
 export const PERSONA_META_SCOPE_PREFIX = 'scope:';
-
-/**
- * Meta dimension recording that a day was written because NO purpose authorised
- * counting, as opposed to because the population was too thin.
- *
- * The two used to write the identical suppressed population row, so both
- * surfaced as `insufficient_population` and an operator who had removed their
- * last papered recipient went hunting for missing members instead.
- * `latestFinalisedSnapshot`'s own docblock already argues that `no_snapshot_yet`
- * and `insufficient_population` are different answers; so are these.
- */
-export const PERSONA_META_PURPOSE_NOT_OFFERED = 'purpose_not_offered';
 
 /**
  * A finalised day older than this is not served at all.
@@ -389,22 +432,46 @@ export function personaAudienceMetric(purpose: ProcessingPurposeId): string {
 // --- Shared query fragments -----------------------------------------------------
 
 /**
- * The only definition of "a user whose answers may be counted".
+ * The Art. 21 objection, as ONE predicate.
  *
- * `profile_visibility = 'public'` is disclosed in the `profile_analytics` consent
- * copy (audit B3): a user who grants the purpose and later makes their profile
- * private is not counted, and they were told so.
+ * Row present in `user_statistics_objections` means the member objected; absent
+ * means they did not. There is no state column and no default value to drift,
+ * so "has not objected" is exactly "has no row", which is what makes this a
+ * plain anti-join.
+ *
+ * Written as `NOT EXISTS` rather than the `LEFT JOIN ... IS NULL` the plan
+ * sketches, for the reason given in guarantee 1 at the top of the file: the two
+ * plan identically in Postgres, and only one of them is a single term that a
+ * query cannot keep half of. It also composes into the raw link-presence CTE
+ * unchanged, so both spellings of the eligibility rule stay one definition.
  */
-function eligibleUserWhere() {
+function notObjected(): SQL {
+  return sql`NOT EXISTS (
+    SELECT 1 FROM ${userStatisticsObjections}
+    WHERE ${userStatisticsObjections.userId} = ${users.id}
+  )`;
+}
+
+/**
+ * The only definition of "a user whose answers are counted".
+ *
+ * `profile_visibility = 'public'` is stated in the statistics copy for the same
+ * reason it was stated on the old consent card (audit B3): a member who goes
+ * private stops being counted, and they were told so before it happened.
+ *
+ * `and()` returns undefined only when it is given no conditions; there are four.
+ */
+function countedUserWhere(): SQL {
   return and(
     isNull(users.deletedAt),
     eq(users.status, 'active'),
     eq(users.profileVisibility, 'public'),
-  );
+    notObjected(),
+  )!;
 }
 
 /**
- * THE consent join condition. Every aggregate in this file joins through it.
+ * THE consent join condition, now used by the audience counts alone.
  *
  * `uq_purpose_current` (a partial unique index on `superseded_at IS NULL`)
  * guarantees at most one current row per (user, purpose), so the join can never
@@ -437,14 +504,19 @@ function currentGrant(
   );
 }
 
-/** How many users currently authorise being counted at all. Never published raw. */
-async function eligiblePopulation(db: DB, scopeDigest: string): Promise<number> {
-  const consents = alias(userPurposeConsents, 'cpop');
+/**
+ * How many users this instance counts at all. Never published raw.
+ *
+ * No consent join and no digest: this is a count of the instance's own members,
+ * minus the ones who objected. The population floor it feeds is unchanged and
+ * still the first thing every surface checks, because a total drawn from a
+ * handful of people is not anonymous however it is bucketed.
+ */
+async function countedPopulation(db: DB): Promise<number> {
   const [row] = await db
     .select({ n: sql<number>`count(*)::int` })
     .from(users)
-    .innerJoin(consents, currentGrant(consents, 'profile_analytics', scopeDigest))
-    .where(eligibleUserWhere());
+    .where(countedUserWhere());
   return row?.n ?? 0;
 }
 
@@ -459,17 +531,14 @@ interface RawBucket {
 async function liveFieldBuckets(
   db: DB,
   field: PersonaMetricsField,
-  scopeDigest: string,
   minBucket: number,
   limit: number,
 ): Promise<RawBucket[]> {
-  const consents = alias(userPurposeConsents, 'cdist');
   const rows = await db
     .select({ value: userPersonaAnswers.value, count: sql<number>`count(*)::int` })
     .from(userPersonaAnswers)
     .innerJoin(users, eq(users.id, userPersonaAnswers.userId))
-    .innerJoin(consents, currentGrant(consents, 'profile_analytics', scopeDigest))
-    .where(and(eq(userPersonaAnswers.fieldKey, field.fieldKey), eligibleUserWhere()))
+    .where(and(eq(userPersonaAnswers.fieldKey, field.fieldKey), countedUserWhere()))
     .groupBy(userPersonaAnswers.value)
     .having(sql`count(*) >= ${minBucket}`)
     .orderBy(desc(sql`count(*)`), asc(userPersonaAnswers.value))
@@ -487,16 +556,13 @@ async function liveFieldBuckets(
 async function liveFieldSuppressedBuckets(
   db: DB,
   field: PersonaMetricsField,
-  scopeDigest: string,
   minBucket: number,
 ): Promise<number> {
-  const consents = alias(userPurposeConsents, 'csup');
   const withheld = db
     .select({ marker: sql<number>`1`.as('marker') })
     .from(userPersonaAnswers)
     .innerJoin(users, eq(users.id, userPersonaAnswers.userId))
-    .innerJoin(consents, currentGrant(consents, 'profile_analytics', scopeDigest))
-    .where(and(eq(userPersonaAnswers.fieldKey, field.fieldKey), eligibleUserWhere()))
+    .where(and(eq(userPersonaAnswers.fieldKey, field.fieldKey), countedUserWhere()))
     .groupBy(userPersonaAnswers.value)
     .having(sql`count(*) < ${minBucket}`)
     .as('withheld');
@@ -585,10 +651,18 @@ export function assemblePersonaDistribution(input: {
   };
 }
 
+/**
+ * What every read on this surface needs, and nothing more.
+ *
+ * THERE IS NO `scopeDigest` HERE and it was removed rather than left unused
+ * (R3.3). A consent digest on the input of a query that no longer joins consent
+ * would be a parameter every caller has to supply, every reader has to reason
+ * about, and nothing reads. The audience path is the one place a digest still
+ * decides anything, and it takes its digests from `offeredPurposes`, where each
+ * one sits beside the purpose it binds.
+ */
 export interface PersonaReadInput {
   thresholds: PersonaMetricsThresholds;
-  /** The CURRENT `profile_analytics` scope digest. Stale grants join to nothing. */
-  scopeDigest: string;
   /**
    * `'rollup'` serves a finalised UTC day and is what every public endpoint uses:
    * polling a live count lets a caller observe the exact moment a bucket crosses
@@ -608,12 +682,7 @@ export async function getPersonaFieldDistribution(
   if (input.source === 'rollup') {
     const snapshot = await latestFinalisedSnapshot(db);
     if (!snapshot) return unavailableDistribution(input.field, 'no_snapshot_yet', null, minBucket);
-    const refused = snapshotUnavailableReason(
-      snapshot,
-      input.scopeDigest,
-      minPopulation,
-      utcDayKey(),
-    );
+    const refused = snapshotUnavailableReason(snapshot, minPopulation, utcDayKey());
     if (refused !== null) {
       return unavailableDistribution(input.field, refused, snapshot.day, minBucket);
     }
@@ -628,14 +697,14 @@ export async function getPersonaFieldDistribution(
     });
   }
 
-  const population = await eligiblePopulation(db, input.scopeDigest);
+  const population = await countedPopulation(db);
   if (population < minPopulation) {
     return unavailableDistribution(input.field, 'insufficient_population', null, minBucket);
   }
 
   const [buckets, suppressedBuckets] = await Promise.all([
-    liveFieldBuckets(db, input.field, input.scopeDigest, minBucket, limit),
-    liveFieldSuppressedBuckets(db, input.field, input.scopeDigest, minBucket),
+    liveFieldBuckets(db, input.field, minBucket, limit),
+    liveFieldSuppressedBuckets(db, input.field, minBucket),
   ]);
 
   return assemblePersonaDistribution({
@@ -665,11 +734,18 @@ export async function getPersonaFieldDistribution(
  * errors on a non-object jsonb value, and one bad legacy row would fail the whole
  * pass. Guarding inside the function argument rather than in WHERE means the
  * guard cannot be reordered past the expansion by the planner.
+ *
+ * INTERSECTED WITH `user_shared_links` (plan phase 3, D6). A platform counts for
+ * a member only when they have a row saying they share that platform, so the
+ * count is of people who both list it and chose to share it, never of everyone
+ * who happens to have typed a URL in. The row-present-means-shared table has no
+ * default to flip, so a member who has never touched the control contributes to
+ * nothing here. This is the same intersection the directory applies to the link
+ * PROJECTION, and it is deliberate that the aggregate and the disclosure agree:
+ * one control, honoured in both places, is the only version a member can hold in
+ * their head.
  */
-function linkPresenceCte(
-  scopeDigest: string,
-  platformKeys: readonly string[],
-) {
+function linkPresenceCte(platformKeys: readonly string[]) {
   const keyList = sql.join(
     platformKeys.map((k) => sql`${k}`),
     sql`, `,
@@ -678,52 +754,49 @@ function linkPresenceCte(
     WITH presence AS (
       SELECT e.k AS platform, count(*)::int AS n
       FROM ${users}
-      JOIN ${userPurposeConsents} c
-        ON c.user_id = ${users.id}
-       AND c.purpose = 'profile_analytics'
-       AND c.state = 'granted'
-       AND c.superseded_at IS NULL
-       AND c.scope_digest = ${scopeDigest}
       CROSS JOIN LATERAL jsonb_each_text(
         CASE WHEN jsonb_typeof(${users.socialLinks}) = 'object'
              THEN ${users.socialLinks}
              ELSE '{}'::jsonb END
       ) AS e(k, v)
-      WHERE ${users.deletedAt} IS NULL
-        AND ${users.status} = 'active'
-        AND ${users.profileVisibility} = 'public'
+      WHERE ${countedUserWhere()}
         AND e.v <> ''
         AND e.k IN (${keyList})
+        AND EXISTS (
+          SELECT 1 FROM ${userSharedLinks}
+          WHERE ${userSharedLinks.userId} = ${users.id}
+            AND ${userSharedLinks.platform} = e.k
+        )
       GROUP BY e.k
     )
   `;
 }
 
 /**
- * The data class link presence actually reads, and the purpose that authorises
- * it.
+ * The data class link presence actually reads, and the declaration that
+ * authorises it.
  *
  * `covers` used to be declared, digested, shown to the user and then never
  * enforced, which is exactly where it went wrong: link presence aggregated
- * `users.social_links` (the `profile_links` class) off a `profile_analytics`
- * grant whose `covers` listed only `persona_selections` and whose copy named
- * only interests and tech stack. Reading the declaration here makes it load
- * bearing: if a future edit narrows `profile_analytics`, this surface goes dark
- * instead of quietly outrunning its disclosure.
+ * `users.social_links` (the `profile_links` class) off a grant whose `covers`
+ * listed only `persona_selections` and whose copy named only interests and tech
+ * stack. Reading the declaration here makes it load bearing. What it now reads
+ * is `PERSONA_STATISTICS.covers`, because this aggregate is statistics rather
+ * than consent: if a future edit narrows what the statistics copy says is
+ * counted, this surface goes dark instead of quietly outrunning it.
  */
 const LINK_PRESENCE_DATA_CLASS: PersonaDataClass = 'profile_links';
-const ANALYTICS_COVERS_LINKS = purposeCovers('profile_analytics', LINK_PRESENCE_DATA_CLASS);
+const STATISTICS_COVERS_LINKS = statisticsCovers(LINK_PRESENCE_DATA_CLASS);
 
 async function liveLinkPresence(
   db: DB,
   platforms: readonly PersonaLinkPlatformSpec[],
-  scopeDigest: string,
   minBucket: number,
 ): Promise<{ buckets: RawBucket[]; suppressed: number }> {
   const keys = platforms.map((p) => p.key);
   if (keys.length === 0) return { buckets: [], suppressed: 0 };
 
-  const cte = linkPresenceCte(scopeDigest, keys);
+  const cte = linkPresenceCte(keys);
   const visibleRes = await db.execute(
     sql`${cte} SELECT platform, n FROM presence WHERE n >= ${minBucket} ORDER BY n DESC, platform ASC`,
   );
@@ -795,21 +868,16 @@ export async function getPersonaLinkPresence(
 ): Promise<PersonaLinkPresence> {
   const { minBucket, minPopulation } = input.thresholds;
 
-  // The grant this joins on must cover the class it reads. See
+  // The statistics declaration must cover the class this reads. See
   // LINK_PRESENCE_DATA_CLASS.
-  if (!ANALYTICS_COVERS_LINKS) {
-    return unavailableLinkPresence('purpose_not_offered', null, minBucket);
+  if (!STATISTICS_COVERS_LINKS) {
+    return unavailableLinkPresence('statistics_not_covered', null, minBucket);
   }
 
   if (input.source === 'rollup') {
     const snapshot = await latestFinalisedSnapshot(db);
     if (!snapshot) return unavailableLinkPresence('no_snapshot_yet', null, minBucket);
-    const refused = snapshotUnavailableReason(
-      snapshot,
-      input.scopeDigest,
-      minPopulation,
-      utcDayKey(),
-    );
+    const refused = snapshotUnavailableReason(snapshot, minPopulation, utcDayKey());
     if (refused !== null) return unavailableLinkPresence(refused, snapshot.day, minBucket);
     const stored = await readStoredBuckets(db, snapshot.day, PERSONA_LINK_METRIC);
     return assembleLinkPresence({
@@ -821,12 +889,12 @@ export async function getPersonaLinkPresence(
     });
   }
 
-  const population = await eligiblePopulation(db, input.scopeDigest);
+  const population = await countedPopulation(db);
   if (population < minPopulation) {
     return unavailableLinkPresence('insufficient_population', null, minBucket);
   }
 
-  const live = await liveLinkPresence(db, input.platforms, input.scopeDigest, minBucket);
+  const live = await liveLinkPresence(db, input.platforms, minBucket);
   return assembleLinkPresence({
     platforms: input.platforms,
     buckets: live.buckets,
@@ -849,27 +917,26 @@ export interface OfferedPurpose {
 }
 
 /**
- * The DOUBLE consent join.
+ * How many counted members hold a current, digest-matching grant for one purpose.
  *
- * Only `profile_analytics` says "your answers are counted in group totals", so a
- * user is counted into an audience statistic only when they hold a current,
- * digest-matching grant for `profile_analytics` AND for the purpose in question.
- * Counting a `recruiter_visibility` holder into a total that nobody described to
- * them is the thing this join exists to make impossible.
+ * ONE JOIN, WHERE THERE USED TO BE TWO. The second leg was a `profile_analytics`
+ * grant, on the argument that only the analytics copy said "your answers are
+ * counted in group totals", so counting a recruiter-grant holder into a total
+ * nobody had described to them was the thing the double join prevented. That
+ * argument survives the correction; what changed is which instrument carries it.
+ * The statistics copy now describes the counting to everybody, and the member
+ * who does not want it says so with an objection, which is exactly what
+ * {@link countedUserWhere} excludes. So the analytics leg is not dropped, it is
+ * replaced by the anti-join, and an objector is absent from this count as they
+ * are from every other one in this file.
  */
-async function doubleJoinCount(
-  db: DB,
-  analyticsDigest: string,
-  offered: OfferedPurpose,
-): Promise<number> {
-  const primary = alias(userPurposeConsents, 'caud_primary');
-  const secondary = alias(userPurposeConsents, 'caud_secondary');
+async function audienceGrantCount(db: DB, offered: OfferedPurpose): Promise<number> {
+  const consents = alias(userPurposeConsents, 'caud');
   const [row] = await db
     .select({ n: sql<number>`count(*)::int` })
     .from(users)
-    .innerJoin(primary, currentGrant(primary, 'profile_analytics', analyticsDigest))
-    .innerJoin(secondary, currentGrant(secondary, offered.purpose, offered.scopeDigest))
-    .where(eligibleUserWhere());
+    .innerJoin(consents, currentGrant(consents, offered.purpose, offered.scopeDigest))
+    .where(countedUserWhere());
   return row?.n ?? 0;
 }
 
@@ -899,75 +966,61 @@ export async function getAudienceCounts(
 ): Promise<PersonaAudienceCounts> {
   const { minBucket, minPopulation } = input.thresholds;
   const offered = new Map(input.offeredPurposes.map((p) => [p.purpose, p]));
-  const analyticsOffered = offered.has('profile_analytics');
-
-  const counted = (purpose: ProcessingPurposeId, value: number | undefined): PersonaAudienceCount =>
-    offered.has(purpose) && analyticsOffered && value !== undefined
-      ? { available: true, count: quantisePersonaCount(value, minBucket) }
-      : PURPOSE_NOT_OFFERED;
 
   if (input.source === 'rollup') {
     const snapshot = await latestFinalisedSnapshot(db);
     if (!snapshot) return unavailableAudience('no_snapshot_yet', null, minBucket);
-    const refused = snapshotUnavailableReason(
-      snapshot,
-      input.scopeDigest,
-      minPopulation,
-      utcDayKey(),
-    );
-    // Every reason a finalised day can be refused is representable on this
-    // payload; `insufficient_bucket_diversity` is a per-field verdict and cannot
-    // reach here, so the fallback is the honest one rather than an assertion.
-    if (refused !== null) {
-      const audienceReason: PersonaAudienceUnavailableReason =
-        refused === 'insufficient_bucket_diversity' ? 'insufficient_population' : refused;
-      return unavailableAudience(audienceReason, snapshot.day, minBucket);
-    }
+    const refused = snapshotUnavailableReason(snapshot, minPopulation, utcDayKey());
+    if (refused !== null) return unavailableAudience(refused, snapshot.day, minBucket);
+
     const stored = await readStoredAudience(db, snapshot.day);
     return {
-      ...audienceSlots((purpose) =>
-        // The population row IS the analytics audience: everyone counted in it
-        // holds a current `profile_analytics` grant. Already quantised at write.
-        purpose === 'profile_analytics'
-          ? (analyticsOffered
-            ? { available: true, count: snapshot.population }
-            : PURPOSE_NOT_OFFERED)
-          : counted(purpose, stored.get(purpose)),
-      ),
+      ...audienceSlots((purpose) => {
+        const entry = offered.get(purpose);
+        if (entry === undefined) return PURPOSE_NOT_OFFERED;
+        // THE DIGEST GUARD, and the only surface that still needs one. A stored
+        // count of grant holders is worth exactly what the grants behind it are
+        // worth: a day computed before the operator added a recipient counts
+        // people whose grants now authorise nothing. A day that cannot say which
+        // scope it was computed under (`null`) is treated as a mismatch, because
+        // a figure that cannot prove its own basis is not servable.
+        if (snapshot.scopeDigest === null || snapshot.scopeDigest !== entry.scopeDigest) {
+          return { available: false, reason: 'scope_changed' };
+        }
+        const value = stored.get(purpose);
+        // No stored row means the purpose was not offered when that day was
+        // computed, which is what the reason says. Quantised at write.
+        return value === undefined ? PURPOSE_NOT_OFFERED : { available: true, count: value };
+      }),
       quantum: minBucket,
       available: true,
       asOf: snapshot.day,
     };
   }
 
-  if (!analyticsOffered) {
-    // Nothing can be counted without the purpose that describes counting.
-    return unavailableAudience('purpose_not_offered', null, minBucket);
-  }
-  const analyticsDigest = offered.get('profile_analytics')!.scopeDigest;
-  const population = await eligiblePopulation(db, analyticsDigest);
+  const population = await countedPopulation(db);
   if (population < minPopulation) {
     return unavailableAudience('insufficient_population', null, minBucket);
   }
 
-  // One double join per NON-analytics purpose, driven by the registry so a
-  // fourth purpose needs no edit here.
-  const secondary = PROCESSING_PURPOSES.filter((p) => p !== 'profile_analytics');
-  const secondaryCounts = new Map<ProcessingPurposeId, number>();
+  // One join per offered purpose, driven by the registry so the third purpose
+  // R3.6 describes how to add needs no edit here.
+  const counts = new Map<ProcessingPurposeId, number>();
   await Promise.all(
-    secondary.map(async (purpose) => {
+    PROCESSING_PURPOSES.map(async (purpose) => {
       const entry = offered.get(purpose);
       if (entry === undefined) return;
-      secondaryCounts.set(purpose, await doubleJoinCount(db, analyticsDigest, entry));
+      counts.set(purpose, await audienceGrantCount(db, entry));
     }),
   );
 
   return {
-    ...audienceSlots((purpose) =>
-      purpose === 'profile_analytics'
-        ? { available: true, count: quantisePersonaCount(population, minBucket) }
-        : counted(purpose, secondaryCounts.get(purpose)),
-    ),
+    ...audienceSlots((purpose) => {
+      const value = counts.get(purpose);
+      return value === undefined
+        ? PURPOSE_NOT_OFFERED
+        : { available: true, count: quantisePersonaCount(value, minBucket) };
+    }),
     quantum: minBucket,
     available: true,
     asOf: null,
@@ -983,42 +1036,49 @@ interface PersonaSnapshot {
   /** True when the day was written below the population floor. */
   populationSuppressed: boolean;
   /**
-   * The consent scope digest this day was computed under, or null for a day
-   * written before the marker existed. A null is treated as a mismatch: a day
-   * that cannot prove which grants produced it is not servable.
+   * The consent scope digest this day's AUDIENCE counts were computed under, or
+   * null when the day carries no audience figures (no purpose was offered) or
+   * predates the marker. Only {@link getAudienceCounts} reads it; a null is a
+   * mismatch there, because a grant count that cannot prove its own basis is not
+   * servable. The distributions and link presence on the same day are unaffected,
+   * having no consent basis to prove.
    */
   scopeDigest: string | null;
-  /** True when the day was written because no purpose authorised counting. */
-  purposeNotOffered: boolean;
 }
 
 /**
- * Can this finalised day be published against the CURRENT scope and floors?
+ * The reasons a finalised day is refused WHOLESALE, on every surface.
  *
- * Four ways a stored day stops being servable, all of which the read path used
+ * Narrow on purpose, and narrower than either payload's reason union, so both
+ * accept it without a mapping step. `scope_changed` is not here any more: it is
+ * a per-purpose verdict on the audience payload alone and is decided there.
+ */
+type SnapshotRefusal = 'insufficient_population' | 'no_snapshot_yet';
+
+/**
+ * Can this finalised day be published against the CURRENT floors?
+ *
+ * Two ways a stored day stops being servable, both of which the read path used
  * to ignore because suppression and quantisation are applied at write:
  *
- * - the operator changed the scope, so every grant behind it authorises nothing;
  * - the day is older than {@link PERSONA_SNAPSHOT_MAX_AGE_DAYS};
  * - the operator RAISED `minPopulation`, so a population that cleared the old
- *   floor no longer clears this one;
- * - the day recorded that no purpose authorised counting at all, which is a
- *   different answer from "too few people" and an operator has to tell them
- *   apart before going looking for missing members.
+ *   floor no longer clears this one.
+ *
+ * There were four. The scope check moved to the audience slots, where the
+ * consent it speaks about still lives, and the "no purpose authorised counting"
+ * marker is gone entirely: statistics no longer wait on a purpose, so a day with
+ * no offerable purpose still has real distributions on it and darkening the
+ * whole thing would now be a lie about the data rather than a protection of it.
  */
 function snapshotUnavailableReason(
   snapshot: PersonaSnapshot,
-  scopeDigest: string,
   minPopulation: number,
   today: string,
-): PersonaUnavailableReason | null {
-  if (snapshot.scopeDigest === null || snapshot.scopeDigest !== scopeDigest) {
-    return 'scope_changed';
-  }
+): SnapshotRefusal | null {
   if (daysBetweenUtcDays(snapshot.day, today) > PERSONA_SNAPSHOT_MAX_AGE_DAYS) {
     return 'no_snapshot_yet';
   }
-  if (snapshot.purposeNotOffered) return 'purpose_not_offered';
   if (snapshot.populationSuppressed || snapshot.population < minPopulation) {
     return 'insufficient_population';
   }
@@ -1062,10 +1122,10 @@ export async function latestFinalisedSnapshot(db: DB): Promise<PersonaSnapshot |
 
   if (!row) return null;
 
-  // The other meta rows for the same day: the scope digest it was computed
-  // under, and the marker distinguishing "no purpose offered" from "too few
-  // people". Both are dimensions rather than a sentinel VALUE; session 254
-  // removed the last `-1` sentinel from this codebase and it is not coming back.
+  // The other meta row for the same day: the consent scope digest the audience
+  // counts were computed under. A dimension rather than a sentinel VALUE;
+  // session 254 removed the last `-1` sentinel from this codebase and it is not
+  // coming back.
   const meta = await db
     .select({ dimension: personaMetricsDaily.dimension })
     .from(personaMetricsDaily)
@@ -1085,7 +1145,6 @@ export async function latestFinalisedSnapshot(db: DB): Promise<PersonaSnapshot |
       scopeRow === undefined
         ? null
         : scopeRow.dimension.slice(PERSONA_META_SCOPE_PREFIX.length),
-    purposeNotOffered: meta.some((m) => m.dimension === PERSONA_META_PURPOSE_NOT_OFFERED),
   };
 }
 
@@ -1159,7 +1218,12 @@ export interface PersonaRollupInput {
   fields: readonly PersonaMetricsField[];
   platforms: readonly PersonaLinkPlatformSpec[];
   thresholds: PersonaMetricsThresholds;
-  /** Offered purposes and their digests. `profile_analytics` must be among them. */
+  /**
+   * Offered purposes and their digests, for the audience counts alone. An empty
+   * list is a normal instance: it writes the distributions and the link presence
+   * exactly as it would otherwise, and no audience rows. Nothing here gates the
+   * statistics any more.
+   */
   offeredPurposes: readonly OfferedPurpose[];
 }
 
@@ -1210,37 +1274,37 @@ async function computePersonaRows(
   input: Omit<PersonaRollupInput, 'day'>,
 ): Promise<PersonaMetricRow[]> {
   const { minBucket, minPopulation } = input.thresholds;
-  const offered = new Map(input.offeredPurposes.map((p) => [p.purpose, p]));
-  const analytics = offered.get('profile_analytics');
-  if (!analytics) {
-    return [
-      { metric: PERSONA_METRIC_META, dimension: PERSONA_META_POPULATION, value: 0, suppressed: true },
-      // Says WHY, so the read path does not report a thin population to an
-      // operator whose real problem is an unofferable purpose.
-      { metric: PERSONA_METRIC_META, dimension: PERSONA_META_PURPOSE_NOT_OFFERED, value: 0, suppressed: true },
-    ];
-  }
 
-  // THE digest this day is computed under. Written first so it is present on
-  // every stored day including a suppressed one: a day that cannot say which
-  // grants produced it is refused on read rather than trusted.
-  const scopeRow: PersonaMetricRow = {
-    metric: PERSONA_METRIC_META,
-    dimension: personaScopeDimension(analytics.scopeDigest),
-    value: 0,
-    suppressed: false,
-  };
+  // THE digest this day's AUDIENCE counts are computed under. Written first so
+  // it is present on every stored day including a suppressed one: an audience
+  // figure that cannot say which grants produced it is refused on read rather
+  // than trusted.
+  //
+  // Every caller derives all of these from ONE `currentPurposeScope`, so the set
+  // is a singleton in practice. If a future caller ever mixes scopes in one
+  // pass, no row is written and every audience slot reads `scope_changed`, which
+  // fails in the direction of publishing nothing rather than publishing a count
+  // under a scope the day cannot name.
+  const digests = new Set(input.offeredPurposes.map((p) => p.scopeDigest));
+  const scopeRows: PersonaMetricRow[] = digests.size === 1
+    ? [{
+      metric: PERSONA_METRIC_META,
+      dimension: personaScopeDimension([...digests][0]!),
+      value: 0,
+      suppressed: false,
+    }]
+    : [];
 
-  const population = await eligiblePopulation(db, analytics.scopeDigest);
+  const population = await countedPopulation(db);
   if (population < minPopulation) {
     return [
-      scopeRow,
+      ...scopeRows,
       { metric: PERSONA_METRIC_META, dimension: PERSONA_META_POPULATION, value: 0, suppressed: true },
     ];
   }
 
   const rows: PersonaMetricRow[] = [
-    scopeRow,
+    ...scopeRows,
     {
       metric: PERSONA_METRIC_META,
       dimension: PERSONA_META_POPULATION,
@@ -1257,8 +1321,8 @@ async function computePersonaRows(
       // above `PERSONA_MAX_AGGREGATABLE_BUCKETS` (120 for a whole template, and
       // at most 64 options on one field), so it never truncates in practice and
       // exists only so a corrupted template cannot produce an unbounded read.
-      liveFieldBuckets(db, field, analytics.scopeDigest, minBucket, ROLLUP_BUCKET_CAP),
-      liveFieldSuppressedBuckets(db, field, analytics.scopeDigest, minBucket),
+      liveFieldBuckets(db, field, minBucket, ROLLUP_BUCKET_CAP),
+      liveFieldSuppressedBuckets(db, field, minBucket),
     ]);
 
     if (suppressedBuckets > 0) {
@@ -1284,8 +1348,8 @@ async function computePersonaRows(
     }
   }
 
-  if (input.platforms.length > 0 && ANALYTICS_COVERS_LINKS) {
-    const links = await liveLinkPresence(db, input.platforms, analytics.scopeDigest, minBucket);
+  if (input.platforms.length > 0 && STATISTICS_COVERS_LINKS) {
+    const links = await liveLinkPresence(db, input.platforms, minBucket);
     if (links.suppressed > 0) {
       rows.push({
         metric: PERSONA_LINK_METRIC,
@@ -1305,8 +1369,7 @@ async function computePersonaRows(
   }
 
   for (const purpose of input.offeredPurposes) {
-    if (purpose.purpose === 'profile_analytics') continue; // the meta row already carries it
-    const n = await doubleJoinCount(db, analytics.scopeDigest, purpose);
+    const n = await audienceGrantCount(db, purpose);
     rows.push({
       metric: personaAudienceMetric(purpose.purpose),
       dimension: PERSONA_AUDIENCE_DIMENSION,

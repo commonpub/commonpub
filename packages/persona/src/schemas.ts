@@ -86,7 +86,10 @@ export const personaFieldSchema = z
     pointsPerSelection: z.number().int().min(0).max(100).optional(),
     analytics: z.boolean().optional(),
     sensitive: z.boolean().optional(),
-    publicOnProfile: z.boolean().optional(),
+    // Opt IN, absent means not shown. There is no `publicOnProfile`, and
+    // `.strict()` is what makes that a boot-time error with a path rather than
+    // an operator quietly getting the opposite of what their config says.
+    showOnProfile: z.boolean().optional(),
     column: z.enum(USER_BRIDGE_COLUMNS).optional(),
   })
   .strict()

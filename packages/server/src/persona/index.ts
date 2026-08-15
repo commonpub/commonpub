@@ -1,7 +1,7 @@
 /**
- * Persona: schema resolution, answer storage, purpose consent, audience metrics
- * (plan sections 4, 5, 6 and 7) and the opt-in member visibility directory
- * (`docs/plans/member-visibility-directory.md`).
+ * Persona: schema resolution, answer storage, purpose consent, the statistics
+ * objection, audience metrics (plan sections 4, 5, 6 and 7) and the opt-in
+ * member visibility directory (`docs/plans/member-visibility-directory.md`).
  *
  * The boundary this module sits on (plan 14.3): `@commonpub/persona` is pure TS
  * with `zod` and nothing else and owns every predicate; `@commonpub/schema` owns
@@ -57,14 +57,20 @@ export {
   type RetiredPersonaValues,
   type SetPersonaSectionArgs,
   type SetPersonaSectionResult,
+  // Per-platform link sharing (plan phase 3, D6). Row present means shared, so
+  // the default is off by construction and there is no flag to flip later.
+  type SetSharedLinkPlatformsArgs,
+  type SetSharedLinkPlatformsResult,
   countPersonaFieldOptionRows,
   countPersonaFieldRows,
   deletePersonaFieldValue,
   getPersonaValues,
+  listSharedLinkPlatforms,
   personaAnswerMap,
   purgePersonaField,
   retirePersonaField,
   setPersonaSection,
+  setSharedLinkPlatforms,
   validatePersonaSectionAnswers,
 } from './values.js';
 
@@ -73,6 +79,18 @@ export {
 // there needs no edit here.
 export * from './consent.js';
 export * from './metrics.js';
+
+// The statistics objection (GDPR Art. 21, plan R3.1 D4 and D5). A SECOND pair of
+// opposites, alongside the metrics/directory one above, and worth the same
+// warning: consent and objection are different legal instruments. `consent.ts`
+// records what a member AGREED to disclose to a named third party, digest-bound
+// so it lapses when the terms move. `objections.ts` records a REFUSAL of
+// processing the instance does on its own records under legitimate interest, and
+// it must survive exactly the changes that lapse a grant. They share no table,
+// no digest and no history, and this barrel re-exporting both is not permission
+// to merge them: an objection folded into `user_purpose_consents` would lapse
+// silently the next time an operator added a field.
+export * from './objections.js';
 
 // The member visibility directory: the consent-gated, per-recipient, AUDITED
 // member listing, and the recipient resolution that binds an API key to a named
@@ -106,8 +124,11 @@ export {
   PERSONA_FIELD_TYPES,
   PERSONA_INVITE_DISMISSED_COOKIE,
   PERSONA_INVITE_MAX_DISMISSALS,
+  PERSONA_STATISTICS,
   PROCESSING_PURPOSES,
   PROCESSING_PURPOSE_SPECS,
+  STATISTICS_LEGAL_BASIS,
+  STATISTICS_OBJECTION_STATES,
   dataRecipientSchema,
   dataSharingConfigSchema,
   BUILTIN_PERSONA_LINK_PLATFORMS,
@@ -126,6 +147,12 @@ export {
   purposeIsOfferable,
   purposeScopeDigest,
   renderPurposeOnSummary,
+  // The statistics instrument's copy, alongside the consent copy, because the
+  // privacy page renders both and one import edge is enough. The WORDS live in
+  // `@commonpub/persona`; `objections.ts` above owns the record.
+  renderStatisticsSummary,
+  statisticsCovers,
+  statisticsStateSummary,
   type DataRecipient,
   type PersonaCompleteness,
   type PersonaDataClass,
@@ -136,4 +163,6 @@ export {
   type PersonaSection,
   type ProcessingPurposeId,
   type ProcessingPurposeSpec,
+  type StatisticsDisclosureSpec,
+  type StatisticsObjectionState,
 } from '@commonpub/persona';

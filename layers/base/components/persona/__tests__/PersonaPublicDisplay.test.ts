@@ -1,16 +1,17 @@
 /**
- * `<PersonaPublicDisplay>` — the read-only render of one member's persona on
- * their public profile (plan 8.5).
+ * `<PersonaPublicDisplay>` — the read-only render of the persona answers an
+ * operator has opted into a member's public profile (plan 8.5, corrected by plan
+ * R3.1 D1).
  *
  * Three properties are load-bearing and each is pinned below. It renders NOTHING
- * for a visitor when there is nothing to show, because an empty state on someone
- * else's profile is pressure applied to the wrong person. Its chips are inert
- * spans, because a visitor must not be able to touch another person's answer and
- * a control that looks operable but is not is worse than a label. And it renders
- * NO link to another site at all: `GET /api/users/:username/persona` excludes
- * `link` fields, because they live in `users.social_links` and the profile hero
- * already prints that column as its icon row. The one anchor this component can
- * produce is the owner's own `/settings/persona` link.
+ * for a visitor when there is nothing to show, which after the inversion is the
+ * DEFAULT case rather than an edge one: the route returns a field only when the
+ * schema opts it in, and no built-in does. Its chips are inert spans, because a
+ * visitor must not be able to touch another person's answer and a control that
+ * looks operable but is not is worse than a label. And it renders no anchor at
+ * all: `GET /api/users/:username/persona` excludes `link` fields, because they
+ * live in `users.social_links` and the profile hero already prints that column
+ * as its icon row.
  *
  * That exclusion is also why there is no `safeHref` here. `users.social_links`
  * holds rows written long before the current URL validators and this repo has
@@ -54,8 +55,9 @@ const SECTIONS: SectionItem[] = [
   },
 ];
 
-// NuxtLink is not registered outside a Nuxt app; a plain anchor keeps the
-// href assertion on the owner note honest.
+// NuxtLink is still registered as a plain anchor so that "renders no anchor" is
+// a statement about this component and not about a missing global: if the owner
+// note ever grows a link back, it resolves and the assertions below catch it.
 const NuxtLink = {
   props: { to: { type: String, required: true } },
   template: '<a :href="to"><slot /></a>',
@@ -90,12 +92,31 @@ describe('PersonaPublicDisplay — nothing to show', () => {
     }
   });
 
-  it('gives the OWNER one quiet line pointing at their own editor', () => {
-    const { container, getByRole } = mount({ sections: [], isOwner: true });
-    expect(getByRole('link').getAttribute('href')).toBe('/settings/persona');
-    // A pointer, not a scoreboard: no count, no percentage, no meter.
-    expect(container.textContent ?? '').not.toMatch(/\d/);
+  /**
+   * THE OWNER LINE CHANGED WITH THE MODEL (R3.1 D1). It used to say "You have
+   * not filled in your profile details yet" over a link to the editor. After the
+   * inversion a default instance publishes nothing however much the member
+   * writes, so that sentence would sit on every profile forever, nagging about
+   * something that is not broken and misdescribing why the section is empty.
+   */
+  it('tells the OWNER their answers are private, and does not nag them to write more', () => {
+    const { container } = mount({ sections: [], isOwner: true });
+    const text = (container.textContent ?? '').trim();
+    expect(text).toBe(
+      "Your answers to this site's questions are private. Only the ones this site publishes appear on your profile.",
+    );
+    // A statement, not a scoreboard and not a call to action.
+    expect(text).not.toMatch(/\d/);
     expect(container.querySelector('progress')).toBeNull();
+    expect(container.querySelector('a')).toBeNull();
+  });
+
+  it('never says the owner has failed to do something', () => {
+    const { container } = mount({ sections: [], isOwner: true });
+    const text = (container.textContent ?? '').toLowerCase();
+    for (const phrase of ['have not', 'has not', 'not filled', 'yet', 'add your']) {
+      expect(text, phrase).not.toContain(phrase);
+    }
   });
 
   it('shows the owner line only when there is nothing, never above real answers', () => {
@@ -186,11 +207,12 @@ describe('PersonaPublicDisplay — no outbound link surface', () => {
     expect(queryAllByRole('link')).toHaveLength(0);
   });
 
-  it('still renders the owner note as a real link to their own editor', () => {
-    // The one anchor this component may produce, so "no anchors" above is a
-    // statement about outbound links and not about a component that renders none.
-    const { getByRole } = mount({ sections: [], isOwner: true });
-    expect(getByRole('link').getAttribute('href')).toBe('/settings/persona');
+  it('renders no anchor on the owner note either', () => {
+    // The last anchor this component could produce went with the old owner copy.
+    // `NuxtLink` is registered in the harness, so this is the component's own
+    // choice rather than an unresolved global rendering as nothing.
+    const { queryAllByRole } = mount({ sections: [], isOwner: true });
+    expect(queryAllByRole('link')).toHaveLength(0);
   });
 });
 

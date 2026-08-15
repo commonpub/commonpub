@@ -37,6 +37,27 @@ describe('personaFieldSchema', () => {
     expect(personaFieldSchema.safeParse({ ...okField, pii: true }).success).toBe(false);
   });
 
+  it('takes showOnProfile as an opt IN, and refuses the old publicOnProfile key', () => {
+    // The rename is the point. `publicOnProfile: false` and
+    // `showOnProfile: undefined` mean the same thing and read oppositely, so an
+    // operator who kept the old key would get the OPPOSITE of what their config
+    // says. `.strict()` turns that into a boot-time error with a path.
+    expect(personaFieldSchema.safeParse({ ...okField, showOnProfile: true }).success).toBe(true);
+    expect(personaFieldSchema.safeParse({ ...okField, showOnProfile: false }).success).toBe(true);
+    expect(personaFieldSchema.safeParse({ ...okField, publicOnProfile: false }).success).toBe(
+      false,
+    );
+    expect(personaFieldSchema.safeParse({ ...okField, publicOnProfile: true }).success).toBe(false);
+  });
+
+  it('defaults a field to NOT shown, by absence rather than by a value', () => {
+    // Absent means private. There is no default to flip, which is why the
+    // built-ins can be read for the answer rather than reasoned about.
+    const parsed = personaFieldSchema.parse(okField);
+    expect('showOnProfile' in parsed).toBe(false);
+    expect(parsed.showOnProfile).toBeUndefined();
+  });
+
   it('rejects a contest-only field type', () => {
     expect(personaFieldSchema.safeParse({ key: 'x', label: 'X', type: 'signature' }).success).toBe(
       false,

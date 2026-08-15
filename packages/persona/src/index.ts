@@ -4,8 +4,8 @@
  *
  * Everything that decides what a persona field IS lives here: the type
  * registry, the storage partition, the link platforms, completeness, the
- * processing-purpose registry, the scope digest, the k-anonymity floors and
- * every Zod schema. `packages/schema` owns the tables, `packages/server` owns
+ * processing-purpose registry, the statistics objection, the scope digest, the
+ * k-anonymity floors and every Zod schema. `packages/schema` owns the tables, `packages/server` owns
  * the queries, and the layer owns the routes and the UI. The dependency
  * direction is one way and shallow, so this package is trivially testable,
  * publishable and replaceable.
@@ -66,6 +66,17 @@ export {
   purposeScopeDigest,
   renderPurposeOnSummary,
 } from './purposes.js';
+
+export {
+  PERSONA_STATISTICS,
+  STATISTICS_LEGAL_BASIS,
+  STATISTICS_OBJECTION_STATES,
+  type StatisticsDisclosureSpec,
+  type StatisticsObjectionState,
+  renderStatisticsSummary,
+  statisticsCovers,
+  statisticsStateSummary,
+} from './statistics.js';
 
 export { METRICS_MIN_BUCKET, MIN_AUDIENCE_POPULATION } from './thresholds.js';
 

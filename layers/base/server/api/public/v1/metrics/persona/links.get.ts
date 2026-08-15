@@ -27,20 +27,19 @@ import { personaMetricsContext } from '../../../../../utils/personaMetricsContex
 export default defineEventHandler(async (event): Promise<PersonaLinkPresence> => {
   requireFeature('persona');
   requireFeature('personaAnalytics');
-  // Every count here is a count of purpose GRANTS, and `dataSharingConsents`
-  // governs the surface where those are given and withdrawn. The counting must
-  // not outlive the surface: see `server/plugins/persona-rollup.ts`.
-  requireFeature('dataSharingConsents');
+  // NO `dataSharingConsents` gate: see `distribution.get.ts` for the reasoning.
+  // Note this endpoint counts a platform only when the member both lists it and
+  // has agreed to share it, so the sharing decision still narrows the number;
+  // it is not the flag that decides whether the endpoint exists.
   requireApiScope(event, 'read:audience');
 
   const db = useDB();
   const config = useConfig();
 
-  const { platforms, scope, thresholds } = await personaMetricsContext(db, config);
+  const { platforms, thresholds } = await personaMetricsContext(db, config);
 
   return await getPersonaLinkPresence(db, {
     thresholds,
-    scopeDigest: scope.digest,
     source: 'rollup',
     platforms,
   });

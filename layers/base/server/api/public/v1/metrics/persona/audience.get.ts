@@ -17,12 +17,16 @@
  * - It never publishes a structural zero. A purpose nobody can grant yet reports
  *   `{ available: false, reason: 'purpose_not_offered' }`, because a zero meaning
  *   "not implemented" reads identically to a zero meaning "nobody opted in"
- *   (audit B9). In this release `recruiter_visibility` and `sponsor_sharing` are
- *   exactly that case.
+ *   (audit B9). Both surviving purposes require a declared recipient, so an
+ *   instance that has named none reports exactly that for both slots.
  * - It never counts somebody into a statistic nobody described to them. A user
  *   appears in `openToRecruiters` only when they hold a current, digest-matching
- *   grant for BOTH `profile_analytics` and `recruiter_visibility`, because only
- *   the `profile_analytics` copy says "your answers are counted in group totals".
+ *   grant for `recruiter_visibility` itself. There is no second join: the
+ *   purpose whose copy was about counting is gone, and instance statistics now
+ *   run on legitimate interest with an objection rather than on consent.
+ *
+ * Each purpose carries its own digest inside `offeredPurposes`, beside the
+ * purpose it binds, rather than one digest for the whole read.
  */
 import { getAudienceCounts, type PersonaAudienceCounts } from '@commonpub/server';
 
@@ -43,7 +47,6 @@ export default defineEventHandler(async (event): Promise<PersonaAudienceCounts> 
 
   return await getAudienceCounts(db, {
     thresholds,
-    scopeDigest: scope.digest,
     source: 'rollup',
     offeredPurposes: scope.offerablePurposes.map((purpose) => ({
       purpose,

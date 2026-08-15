@@ -155,7 +155,6 @@ vi.mock('@commonpub/server', async (importOriginal) => {
     getAudienceCounts: async (_db: unknown, input: Record<string, unknown>) => {
       record('getAudienceCounts', input);
       return {
-        sharingAnalytics: { available: true as const, count: 40 },
         openToRecruiters: { available: false as const, reason: 'purpose_not_offered' as const },
         openToSponsorSharing: { available: false as const, reason: 'purpose_not_offered' as const },
         quantum: 5,
@@ -260,16 +259,28 @@ describe('feature gates 404 rather than 403', () => {
     expect(await statusOf(name, eventFor(name))).toBe(404);
   });
 
-  it.each(ROUTES)('%s: features.dataSharingConsents off gives 404', async (name) => {
-    // The counting cannot outlive its consent surface. Every number these four
-    // routes publish is a count of purpose GRANTS, and `dataSharingConsents`
-    // governs the page where a member gives and withdraws them: an operator who
-    // switched that off to revise recipient copy used to leave three of these
-    // four publishing cohorts nobody could then manage, which is the shape
-    // Art. 7(3) exists to prevent. The rollup plugin gates on it too.
+  it('audience alone still needs dataSharingConsents, because it counts grants', async () => {
+    // The one surface in this family whose numbers really are consent counts.
+    // Its gate has to die with the page that gives and withdraws them, which is
+    // the shape Art. 7(3) exists to prevent leaving behind.
     harness.features.dataSharingConsents = false;
-    expect(await statusOf(name, eventFor(name))).toBe(404);
+    expect(await statusOf('audience', eventFor('audience'))).toBe(404);
   });
+
+  it.each(['fields', 'distribution', 'links'] as const)(
+    '%s: dataSharingConsents off is still SERVED, because nothing here is a grant count',
+    async (name) => {
+      // These three used to carry the same gate, on the rationale that every
+      // number they published was a count of purpose grants. That stopped being
+      // true when instance statistics moved to legitimate interest: they now
+      // count answers minus objectors, and the objection lives behind
+      // `persona` + `personaAnalytics`. Keeping the gate would force an operator
+      // who wants public aggregates to also switch on third-party sharing they
+      // do not do, which is the makerspace case backwards.
+      harness.features.dataSharingConsents = false;
+      expect(await statusOf(name, eventFor(name))).toBe(200);
+    },
+  );
 
   it('the flag gate runs BEFORE the scope gate, so a bad key still sees 404', async () => {
     // Otherwise a caller could probe for the feature by watching 403 vs 404.
@@ -327,12 +338,17 @@ describe('GET /persona/distribution', () => {
     expect(call?.input.source).toBe('rollup');
   });
 
-  it('binds the CURRENT scope digest, so a stale grant joins to nothing', async () => {
+  it('passes NO scope digest, because a distribution is not a consent count', async () => {
+    // It used to bind the live digest so a stale grant joined to nothing. There
+    // is no grant in this query any more: the population is every counted
+    // member minus anyone who objected, and a consent digest cannot describe
+    // that. The property is asserted as an ABSENCE rather than dropped, because
+    // reintroducing the key would silently reintroduce the consent model.
     const handler = await load('distribution');
     await handler(makeEvent({ query: { field: 'interests' } }));
     const call = mock.calls.find((c) => c.fn === 'getPersonaFieldDistribution');
-    expect(typeof call?.input.scopeDigest).toBe('string');
-    expect(call?.input.scopeDigest).not.toBe('');
+    expect(call).toBeDefined();
+    expect(Object.keys(call!.input)).not.toContain('scopeDigest');
   });
 
   it('refuses an unknown field with a 400 and never binds it into SQL', async () => {
@@ -383,15 +399,45 @@ describe('GET /persona/links and /persona/audience', () => {
     expect(call?.input.platforms).toHaveLength(1);
   });
 
+  it('an instance that has named no recipient offers NOTHING to count', async () => {
+    // Worth asserting deliberately rather than patching around. Both surviving
+    // purposes require a declared, papered recipient, so the default instance
+    // passes an empty list and every audience slot reports itself unoffered
+    // rather than publishing a hard zero (audit B9).
+    const handler = await load('audience');
+    await handler(makeEvent());
+    const call = mock.calls.find((c) => c.fn === 'getAudienceCounts');
+    expect(call?.input.offeredPurposes).toEqual([]);
+    // No top-level digest: each purpose now carries its own, beside the purpose
+    // it binds, so one read cannot bind two purposes to one scope by accident.
+    expect(Object.keys(call!.input)).not.toContain('scopeDigest');
+  });
+
   it('audience passes ONLY the offerable purposes, each carrying the live digest', async () => {
+    harness.config = {
+      dataSharing: {
+        recipients: [
+          {
+            id: 'contoso',
+            name: 'Contoso Tools',
+            privacyPolicyUrl: 'https://contoso.example/privacy',
+            purposes: ['sponsor_sharing'],
+            relationship: 'processor',
+          },
+        ],
+      },
+    };
     const handler = await load('audience');
     await handler(makeEvent());
     const call = mock.calls.find((c) => c.fn === 'getAudienceCounts');
     const offered = call?.input.offeredPurposes as Array<{ purpose: string; scopeDigest: string }>;
     // `toEqual`, not `toContain`: the title says "only", and `toContain` passes
     // just as happily when the route wrongly passes a deferred purpose through.
-    expect(offered.map((o) => o.purpose)).toEqual(['profile_analytics']);
-    expect(offered.every((o) => o.scopeDigest === call?.input.scopeDigest)).toBe(true);
+    // `recruiter_visibility` has no recipient here, so it must NOT appear.
+    expect(offered.map((o) => o.purpose)).toEqual(['sponsor_sharing']);
+    expect(offered.every((o) => typeof o.scopeDigest === 'string' && o.scopeDigest !== '')).toBe(
+      true,
+    );
     // B9 itself (a purpose nobody can grant must not publish a hard zero) is
     // proven against the real function in
     // `packages/server/src/__tests__/personaMetrics.integration.test.ts`.

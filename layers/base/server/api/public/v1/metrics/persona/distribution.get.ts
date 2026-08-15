@@ -39,10 +39,13 @@ const querySchema = z.object({
 export default defineEventHandler(async (event): Promise<PersonaDistribution> => {
   requireFeature('persona');
   requireFeature('personaAnalytics');
-  // Every count here is a count of purpose GRANTS, and `dataSharingConsents`
-  // governs the surface where those are given and withdrawn. The counting must
-  // not outlive the surface: see `server/plugins/persona-rollup.ts`.
-  requireFeature('dataSharingConsents');
+  // NO `dataSharingConsents` gate, and its absence is deliberate. This surface
+  // used to carry one because every count was a count of purpose GRANTS, so the
+  // counting had to die with the surface that managed them. It no longer counts
+  // grants: instance statistics run on legitimate interest and exclude anyone
+  // who has objected, so requiring the sharing flag would force an operator who
+  // wants public aggregates to switch on third-party sharing they do not do.
+  // `persona` + `personaAnalytics` is the whole ladder for this endpoint.
   requireApiScope(event, 'read:audience');
 
   const parsed = querySchema.safeParse(getQuery(event));
@@ -60,7 +63,7 @@ export default defineEventHandler(async (event): Promise<PersonaDistribution> =>
   // `fields` is the countable set: an unknown key and a real-but-not-countable
   // key (free text, a link, a column-bound field, a retired or drifted one) are
   // both simply absent from it, so both refuse before any query is issued.
-  const { fields, scope, thresholds } = await personaMetricsContext(db, config);
+  const { fields, thresholds } = await personaMetricsContext(db, config);
   const field = fields.find((f) => f.fieldKey === parsed.data.field);
   if (field === undefined) {
     throw createError({
@@ -71,7 +74,6 @@ export default defineEventHandler(async (event): Promise<PersonaDistribution> =>
 
   return await getPersonaFieldDistribution(db, {
     thresholds,
-    scopeDigest: scope.digest,
     source: 'rollup',
     field,
     limit: parsed.data.limit,

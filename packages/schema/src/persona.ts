@@ -10,6 +10,7 @@ import {
   timestamp,
   index,
   uniqueIndex,
+  primaryKey,
 } from 'drizzle-orm/pg-core';
 import { relations, sql } from 'drizzle-orm';
 import { users } from './auth.js';
@@ -34,6 +35,9 @@ import { apiKeys } from './publicApi.js';
  * member visibility directory (`docs/plans/member-visibility-directory.md`
  * section 3). It is likewise additive; the only column that migration adds to an
  * existing table is the nullable `api_keys.recipient_id`.
+ *
+ * Migration 0048 appends `user_statistics_objections` and `user_shared_links`
+ * (plan revision 3, section R3.2). Also additive: it alters no existing table.
  */
 
 // --- (1) Closed-vocabulary answers ---
@@ -279,3 +283,80 @@ export const disclosureEventsRelations = relations(disclosureEvents, ({ one }) =
 
 export type DisclosureEventRow = typeof disclosureEvents.$inferSelect;
 export type NewDisclosureEventRow = typeof disclosureEvents.$inferInsert;
+
+// --- (6) Statistics objection (migration 0048) ---
+
+/**
+ * Row present means the member has objected to being counted in instance
+ * statistics (GDPR Art 21). Absent means no objection, so aggregates include
+ * them: the instance holds those anonymous numbers under legitimate interest,
+ * not consent (plan revision 3, decision D4).
+ *
+ * The primary key on `user_id` IS the design. One objection per member, so a
+ * double submit cannot create a second row, "has this member objected" is an
+ * index probe, and withdrawing the objection is one DELETE. There is no `state`
+ * column for the same reason `user_purpose_consents` has no 'denied': the
+ * absence of a row is the whole of "not objected".
+ *
+ * Deliberately NOT a `user_purpose_consents` row with `state: 'objected'`
+ * (decision D5). Consent and objection are different legal instruments with
+ * different lifecycles; conflating them would make the consent history
+ * unreadable and its scope digest meaningless — an objection has no scope to
+ * digest, because there is nothing the member was asked to agree to.
+ *
+ * Instance-local. Nothing here federates.
+ */
+export const userStatisticsObjections = pgTable('user_statistics_objections', {
+  userId: uuid('user_id')
+    .primaryKey()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  objectedAt: timestamp('objected_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const userStatisticsObjectionsRelations = relations(userStatisticsObjections, ({ one }) => ({
+  user: one(users, { fields: [userStatisticsObjections.userId], references: [users.id] }),
+}));
+
+export type UserStatisticsObjectionRow = typeof userStatisticsObjections.$inferSelect;
+export type NewUserStatisticsObjectionRow = typeof userStatisticsObjections.$inferInsert;
+
+// --- (7) Per-platform link sharing (migration 0048) ---
+
+/**
+ * Row present means the member shares this one profile link platform with the
+ * named recipients. Absent means not shared (decision D6), so the default is off
+ * BY CONSTRUCTION rather than by a `default(false)` somebody can later flip in a
+ * migration and silently opt every existing member in.
+ *
+ * The composite primary key on (`user_id`, `platform`) makes a second row for
+ * the same platform impossible, so "shared" is exact row equality rather than a
+ * flag that can disagree with itself. Sharing is per platform, never all-or-
+ * nothing: a member may hand a recruiter a portfolio without handing over a
+ * personal account.
+ *
+ * `platform` is the stable platform KEY from the member's links, not a URL and
+ * not a display label — the URL itself stays in the profile row, so revoking a
+ * share never rewrites the link and relabelling a platform never rewrites this
+ * table. varchar(32) matches the key cap; Zod enforces the vocabulary at write
+ * time, so the column never has to reject a legacy value.
+ *
+ * Instance-local. Nothing here federates.
+ */
+export const userSharedLinks = pgTable('user_shared_links', {
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  platform: varchar('platform', { length: 32 }).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [
+  primaryKey({ columns: [t.userId, t.platform] }),
+  // No separate (user_id) index: the primary key already leads with user_id,
+  // which is the only lookup shape ("which platforms does this member share").
+]);
+
+export const userSharedLinksRelations = relations(userSharedLinks, ({ one }) => ({
+  user: one(users, { fields: [userSharedLinks.userId], references: [users.id] }),
+}));
+
+export type UserSharedLinkRow = typeof userSharedLinks.$inferSelect;
+export type NewUserSharedLinkRow = typeof userSharedLinks.$inferInsert;

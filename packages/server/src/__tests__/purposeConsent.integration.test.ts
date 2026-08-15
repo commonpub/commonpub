@@ -5,6 +5,7 @@ import type { PurposeScopeSnapshot } from '@commonpub/schema';
 import {
   PROCESSING_PURPOSES,
   PROCESSING_PURPOSE_SPECS,
+  type ProcessingPurposeId,
   renderPurposeOnSummary,
 } from '@commonpub/persona';
 import type { DB } from '../types.js';
@@ -22,6 +23,7 @@ import {
   assertPurposeScopeSnapshot,
   buildPurposeScopeSnapshot,
   currentPurposeScope,
+  deferredProcessingPurposes,
   effectivePurposeGrant,
   getPurposeConsentState,
   listPurposeConsentHistory,
@@ -31,7 +33,17 @@ import {
 // Plan section 10.3, `purposeConsent.integration.test.ts`, minus every case about
 // `consent_proofs` (no such table in v1, section 14.5) and about `user_consents`
 // audit rows (deliberately not written, section 14.4).
+//
+// REVISED for the corrected model (plan revisions 2 and 3). `profile_analytics`
+// is gone, so the registry is exactly the two NAMED THIRD-PARTY purposes and
+// both of them require a recipient. The consequence runs through every case
+// here and is the point rather than an inconvenience: an instance that has
+// declared nobody offers NOTHING, and its members are asked nothing. The old
+// suite could grant on a bare config because the analytics purpose needed no
+// recipient; a scope with a declared recipient is now the precondition for
+// every write test.
 
+/** A processor covering ONE purpose, so the other stays unofferable on purpose. */
 const RECIPIENT = {
   id: 'contoso',
   name: 'Contoso Tools',
@@ -39,6 +51,9 @@ const RECIPIENT = {
   purposes: ['sponsor_sharing'],
   relationship: 'processor',
 };
+
+/** The config an instance that actually discloses to somebody has. */
+const SHARING_CONFIG = { dataSharing: { recipients: [RECIPIENT] } } as PurposeScopeConfig;
 
 async function currentRows(db: DB, userId: string) {
   return db
@@ -49,38 +64,73 @@ async function currentRows(db: DB, userId: string) {
     );
 }
 
+describe('the purpose registry after profile_analytics was removed', () => {
+  it('holds exactly the two named third-party purposes, and no statistics purpose', () => {
+    expect([...PROCESSING_PURPOSES].sort()).toEqual(['recruiter_visibility', 'sponsor_sharing']);
+    // The removed id, by name, so this fails if anybody puts it back.
+    expect([...PROCESSING_PURPOSES] as string[]).not.toContain('profile_analytics');
+  });
+
+  /**
+   * The registry is a registry of DISCLOSURES, and this is the property that
+   * keeps it one. Statistics are processing the instance does on its own records
+   * under legitimate interest; the member's instrument is the objection in
+   * `objections.ts`. A purpose readmitted under another name (`instance_metrics`,
+   * `community_counts`) would re-create the dark pattern the correction removed,
+   * so the assertion is on the SHAPE and not only on the deleted string.
+   */
+  it('every purpose discloses to named recipients, on consent, defaulting off', () => {
+    for (const id of PROCESSING_PURPOSES) {
+      const spec = PROCESSING_PURPOSE_SPECS[id];
+      expect(spec.disclosedTo).toBe('named_recipients');
+      expect(spec.legalBasis).toBe('consent');
+      expect(spec.defaultGranted).toBe(false);
+      expect(spec.requiresRecipients).toBe(true);
+      expect(id).not.toMatch(/analytic|statistic|metric|count/i);
+    }
+    expect(PROCESSING_PURPOSES.length).toBe(2);
+  });
+
+  it('the offered set is the whole registry and nothing outside it', () => {
+    expect([...OFFERED_PROCESSING_PURPOSES].sort()).toEqual([...PROCESSING_PURPOSES].sort());
+    for (const id of OFFERED_PROCESSING_PURPOSES) {
+      expect([...PROCESSING_PURPOSES] as string[]).toContain(id);
+    }
+  });
+});
+
 describe('currentPurposeScope', () => {
   let db: DB;
 
   beforeAll(async () => { db = await createTestDB(); });
   afterAll(async () => { await closeTestDB(db); });
 
-  it('offers profile_analytics on a default instance and nothing else', async () => {
-    const scope = await currentPurposeScope(db, {});
-    expect(scope.offerablePurposes).toEqual(['profile_analytics']);
-    expect(PROCESSING_PURPOSES.length).toBe(3);
-  });
-
   /**
-   * The safety property of listing all three purposes in
-   * `OFFERED_PROCESSING_PURPOSES` (member visibility directory, plan section 5).
-   *
-   * The constant says "a read surface exists for this purpose in this release".
-   * It is NOT the switch that discloses anything: `purposeIsOfferable` refuses a
-   * purpose whose `requiresRecipients` is true and which no declared recipient
-   * covers, so an instance that has named nobody sees no change at all. The
-   * assertion above is that same claim from the other side, and the pair is what
-   * makes the constant safe to widen.
+   * The makerspace case (plan R2.3) as an assertion. An operator can run persona
+   * for purely operational questions with no recruiter and no sponsor, and then
+   * there is nothing to ask about: no offerable purpose, no data class in the
+   * digest, and a member-facing page with no sharing section at all.
    */
-  it('lists all three purposes as having a read surface, and still offers one on an instance with no recipients', async () => {
-    expect([...OFFERED_PROCESSING_PURPOSES].sort()).toEqual(
-      [...PROCESSING_PURPOSES].sort(),
-    );
+  it('offers NOTHING on an instance that has declared no recipient', async () => {
     const scope = await currentPurposeScope(db, {});
-    expect(scope.offerablePurposes).toEqual(['profile_analytics']);
+    expect(scope.offerablePurposes).toEqual([]);
+    expect(scope.dataClasses).toEqual([]);
+    expect(scope.recipients).toEqual([]);
+    // Both purposes are named as deferred rather than vanishing, so a surface
+    // CAN say why it is empty. It still renders nothing here.
+    expect(deferredProcessingPurposes(scope.offerablePurposes).map((d) => d.purpose).sort())
+      .toEqual([...PROCESSING_PURPOSES].sort());
   });
 
-  it('offers all three once a papered recipient covers the other two', async () => {
+  it('offers a purpose once a papered recipient covers it, and only that one', async () => {
+    const scope = await currentPurposeScope(db, SHARING_CONFIG);
+    expect(scope.offerablePurposes).toEqual(['sponsor_sharing']);
+    expect(deferredProcessingPurposes(scope.offerablePurposes)).toEqual([
+      { purpose: 'recruiter_visibility', label: PROCESSING_PURPOSE_SPECS.recruiter_visibility.label },
+    ]);
+  });
+
+  it('offers both once one recipient covers both', async () => {
     const scope = await currentPurposeScope(db, {
       dataSharing: {
         recipients: [
@@ -95,17 +145,14 @@ describe('currentPurposeScope', () => {
         ],
       },
     } as PurposeScopeConfig);
-    expect(scope.offerablePurposes).toEqual([
-      'profile_analytics',
-      'recruiter_visibility',
-      'sponsor_sharing',
-    ]);
+    expect(scope.offerablePurposes).toEqual(['recruiter_visibility', 'sponsor_sharing']);
+    expect(deferredProcessingPurposes(scope.offerablePurposes)).toEqual([]);
   });
 
-  it('refuses the two named-recipient purposes when the covering recipient is unpapered', async () => {
+  it('refuses both when the covering recipient is unpapered', async () => {
     // An independent controller with no `agreementRef` is an undocumented
-    // onward transfer. Widening the offered constant must not become a way to
-    // deploy past one.
+    // onward transfer. Listing a purpose in the offered constant must not become
+    // a way to deploy past one.
     const scope = await currentPurposeScope(db, {
       dataSharing: {
         recipients: [
@@ -119,7 +166,23 @@ describe('currentPurposeScope', () => {
         ],
       },
     } as PurposeScopeConfig);
-    expect(scope.offerablePurposes).toEqual(['profile_analytics']);
+    expect(scope.offerablePurposes).toEqual([]);
+  });
+
+  /**
+   * There is no countable-field gate any more. It existed for
+   * `profile_analytics`, whose card was about counting; a CONSENT card about
+   * disclosure cannot be withheld on the grounds that there is nothing countable
+   * yet. A template with no aggregatable field at all still offers the purpose.
+   */
+  it('offers a purpose even when no field is aggregatable', async () => {
+    const scope = await currentPurposeScope(db, SHARING_CONFIG, {
+      sections: async () => [
+        { key: 'ops', label: 'Ops', fields: [{ key: 'bio', label: 'Bio', type: 'textarea' }] },
+      ],
+    });
+    expect(scope.aggregatableFieldKeys).toEqual([]);
+    expect(scope.offerablePurposes).toEqual(['sponsor_sharing']);
   });
 
   it('derives the aggregatable field keys from the built-in sections, sorted', async () => {
@@ -131,15 +194,20 @@ describe('currentPurposeScope', () => {
   });
 
   it('digests only the OFFERABLE purposes\' data classes', async () => {
-    const scope = await currentPurposeScope(db, {});
-    expect(scope.dataClasses).toEqual([...PROCESSING_PURPOSE_SPECS.profile_analytics.covers]);
+    const bare = await currentPurposeScope(db, {});
+    expect(bare.dataClasses).toEqual([]);
+
+    const scope = await currentPurposeScope(db, SHARING_CONFIG);
+    // sponsor_sharing alone is offerable, so recruiter-only classes stay out.
+    expect(scope.dataClasses).toEqual(
+      [...PROCESSING_PURPOSE_SPECS.sponsor_sharing.covers].sort(),
+    );
+    expect(scope.dataClasses).not.toContain('public_identity');
   });
 
   it('changes the digest when a recipient is declared', async () => {
     const before = await currentPurposeScope(db, {});
-    const after = await currentPurposeScope(db, {
-      dataSharing: { recipients: [RECIPIENT] },
-    } as PurposeScopeConfig);
+    const after = await currentPurposeScope(db, SHARING_CONFIG);
     expect(after.recipients).toHaveLength(1);
     expect(after.digest).not.toBe(before.digest);
   });
@@ -159,6 +227,9 @@ describe('currentPurposeScope', () => {
       ],
     });
     expect(after.aggregatableFieldKeys).toEqual(['industry', 'shift']);
+    // The field keys still bind the digest: a grant SENDS the member's
+    // selections to a named third party, so which selections exist is part of
+    // what leaves, not merely part of what was once tallied.
     expect(after.digest).not.toBe(before.digest);
   });
 
@@ -193,6 +264,7 @@ describe('currentPurposeScope', () => {
       dataSharing: { recipients: [{ id: 'x' }] },
     });
     expect(scope.recipients).toEqual([]);
+    expect(scope.offerablePurposes).toEqual([]);
     expect(scope.minBucket).toBe(5);
     expect(scope.minPopulation).toBe(25);
   });
@@ -205,9 +277,9 @@ describe('currentPurposeScope', () => {
           recipients: [{ ...RECIPIENT, purposes: ['sponsor_sharing'], relationship: 'independent_controller' }],
         },
       },
-      { offeredPurposes: ['profile_analytics', 'sponsor_sharing'] },
+      { offeredPurposes: ['sponsor_sharing'] },
     );
-    expect(scope.offerablePurposes).toEqual(['profile_analytics']);
+    expect(scope.offerablePurposes).toEqual([]);
   });
 });
 
@@ -248,41 +320,52 @@ describe('buildPurposeScopeSnapshot bounds (plan section 6.4)', () => {
 
   beforeAll(async () => {
     db = await createTestDB();
-    scope = await currentPurposeScope(db, {});
+    scope = await currentPurposeScope(db, SHARING_CONFIG);
   });
   afterAll(async () => { await closeTestDB(db); });
 
   it('records the copy verbatim from the registry', () => {
-    const snap = buildPurposeScopeSnapshot('profile_analytics', scope);
-    const spec = PROCESSING_PURPOSE_SPECS.profile_analytics;
+    const snap = buildPurposeScopeSnapshot('sponsor_sharing', scope);
+    const spec = PROCESSING_PURPOSE_SPECS.sponsor_sharing;
     expect(snap.purposeLabel).toBe(spec.label);
     expect(snap.offSummary).toBe(spec.offSummary);
-    // The ON copy is stored RENDERED, against the floors in force, because that
-    // is the sentence the member read. Storing the template would put a literal
-    // `{minBucket}` into the Art. 7(1) record.
-    expect(snap.onSummary).toBe(renderPurposeOnSummary('profile_analytics', scope));
-    expect(snap.onSummary).not.toMatch(/[{}]/);
+    // The ON copy is stored RENDERED, because that is the sentence the member
+    // read. Storing the template would put a literal `{minBucket}` into the
+    // Art. 7(1) record.
+    expect(snap.onSummary).toBe(renderPurposeOnSummary('sponsor_sharing', scope));
     expect(snap.policyVersion).toBe(scope.policyVersion);
     expect(snap.aggregatableFieldKeys).toEqual(scope.aggregatableFieldKeys);
+    expect(snap.dataClasses).toEqual([...spec.covers]);
   });
 
-  it('stores the OPERATOR’s bucket floor in the snapshot, not a hardcoded five', async () => {
-    // The stored snapshot is the evidence of what was disclosed. On an instance
-    // running `minBucket: 25` a snapshot claiming five understates the member's
-    // protection by five times and misrepresents the disclosure.
-    const strict = await currentPurposeScope(db, { dataSharing: { minBucket: 25 } });
-    const snap = buildPurposeScopeSnapshot('profile_analytics', strict);
-    expect(snap.onSummary).toContain('at least 25 people');
-    expect(snap.onSummary).not.toContain('at least 5 people');
+  /**
+   * Neither surviving purpose names a k-anonymity floor: both disclose one named
+   * member to one named recipient, and a floor over a group has nothing to say
+   * about that. The floors moved to the statistics copy, which is not consent
+   * and is not stored here.
+   *
+   * The render still goes through the one renderer, and this is what pins that:
+   * no unsubstituted token can reach the stored record at ANY floor setting, so
+   * a future purpose that does name one cannot store `{minBucket}` as the
+   * evidence of what a member was shown.
+   */
+  it('stores a finished sentence, never a template, at any floor setting', async () => {
+    for (const minBucket of [5, 25]) {
+      const at = await currentPurposeScope(db, {
+        dataSharing: { recipients: [RECIPIENT], minBucket },
+      } as PurposeScopeConfig);
+      expect(at.minBucket).toBe(minBucket);
+      const snap = buildPurposeScopeSnapshot('sponsor_sharing', at);
+      expect(snap.onSummary).toBe(renderPurposeOnSummary('sponsor_sharing', at));
+      expect(snap.onSummary).not.toMatch(/[{}]/);
+      expect(snap.offSummary).not.toMatch(/[{}]/);
+    }
   });
 
-  it('records only the recipients of THIS purpose', async () => {
-    const withRecipient = await currentPurposeScope(db, {
-      dataSharing: { recipients: [RECIPIENT] },
-    });
-    // The recipient covers sponsor_sharing, so an analytics snapshot names nobody.
-    expect(buildPurposeScopeSnapshot('profile_analytics', withRecipient).recipients).toEqual([]);
-    expect(buildPurposeScopeSnapshot('sponsor_sharing', withRecipient).recipients).toEqual([
+  it('records only the recipients of THIS purpose', () => {
+    // The recipient covers sponsor_sharing, so a recruiter snapshot names nobody.
+    expect(buildPurposeScopeSnapshot('recruiter_visibility', scope).recipients).toEqual([]);
+    expect(buildPurposeScopeSnapshot('sponsor_sharing', scope).recipients).toEqual([
       { id: 'contoso', name: 'Contoso Tools', relationship: 'processor' },
     ]);
   });
@@ -298,7 +381,7 @@ describe('buildPurposeScopeSnapshot bounds (plan section 6.4)', () => {
         id: `r${i}`.padEnd(PURPOSE_SCOPE_SNAPSHOT_CAPS.recipientId, 'x'),
         name: 'n'.repeat(PURPOSE_SCOPE_SNAPSHOT_CAPS.recipientName),
         privacyPolicyUrl: 'https://example.com/privacy',
-        purposes: ['profile_analytics'] as const,
+        purposes: ['recruiter_visibility'] as const,
         relationship: 'independent_controller' as const,
         agreementRef: 'ref',
       })).map((r) => ({ ...r, purposes: [...r.purposes] })),
@@ -308,7 +391,7 @@ describe('buildPurposeScopeSnapshot bounds (plan section 6.4)', () => {
       ),
       policyVersion: 'v'.repeat(PURPOSE_SCOPE_SNAPSHOT_CAPS.policyVersion),
     };
-    const snap = buildPurposeScopeSnapshot('profile_analytics', worst);
+    const snap = buildPurposeScopeSnapshot('recruiter_visibility', worst);
     const bytes = Buffer.byteLength(JSON.stringify(snap), 'utf8');
     expect(bytes).toBeLessThanOrEqual(PURPOSE_SCOPE_SNAPSHOT_MAX_BYTES);
     // The budget was met by dropping field keys, never recipients or copy.
@@ -326,12 +409,12 @@ describe('buildPurposeScopeSnapshot bounds (plan section 6.4)', () => {
         id: `r${i}`.padEnd(PURPOSE_SCOPE_SNAPSHOT_CAPS.recipientId, 'x'),
         name: 'n'.repeat(PURPOSE_SCOPE_SNAPSHOT_CAPS.recipientName),
         privacyPolicyUrl: 'https://example.com/privacy',
-        purposes: ['profile_analytics'],
+        purposes: ['recruiter_visibility'],
         relationship: 'processor' as const,
       })),
       aggregatableFieldKeys: [],
     };
-    expect(() => buildPurposeScopeSnapshot('profile_analytics', absurd))
+    expect(() => buildPurposeScopeSnapshot('recruiter_visibility', absurd))
       .toThrow(PurposeScopeSnapshotTooLargeError);
   });
 
@@ -364,7 +447,7 @@ describe('recordPurposeConsent (plan sections 6.4, 6.5)', () => {
 
   beforeAll(async () => {
     db = await createTestDB();
-    scope = await currentPurposeScope(db, {});
+    scope = await currentPurposeScope(db, SHARING_CONFIG);
   });
   afterAll(async () => { await closeTestDB(db); });
 
@@ -375,7 +458,7 @@ describe('recordPurposeConsent (plan sections 6.4, 6.5)', () => {
   function act(userId: string, grant: boolean) {
     return recordPurposeConsent(db, {
       userId,
-      purpose: 'profile_analytics',
+      purpose: 'sponsor_sharing',
       grant,
       scopeDigest: scope.digest,
       scope,
@@ -384,6 +467,29 @@ describe('recordPurposeConsent (plan sections 6.4, 6.5)', () => {
       userAgent: 'TestAgent/1.0',
     });
   }
+
+  /**
+   * The deleted purpose as a RUNTIME assertion, not only a type one. The type
+   * union already rejects it at compile time, but a route reads its purpose off
+   * an HTTP body, so the string can still arrive; `isProcessingPurposeId` is
+   * what stops it becoming a row.
+   */
+  it('refuses the removed profile_analytics purpose as an unknown purpose', async () => {
+    const userId = await freshUser('removed');
+    for (const grant of [true, false]) {
+      const err = await recordPurposeConsent(db, {
+        userId,
+        purpose: 'profile_analytics' as ProcessingPurposeId,
+        grant,
+        scopeDigest: scope.digest,
+        scope,
+        source: 'api',
+      }).catch((e: unknown) => e as PurposeNotOfferedError);
+      expect(err).toBeInstanceOf(PurposeNotOfferedError);
+      expect(err.status).toBe(404);
+    }
+    expect(await currentRows(db, userId)).toHaveLength(0);
+  });
 
   it('grant, revoke, grant writes THREE rows and leaves exactly one current', async () => {
     const userId = await freshUser('history');
@@ -431,8 +537,12 @@ describe('recordPurposeConsent (plan sections 6.4, 6.5)', () => {
     expect(row!.source).toBe('settings');
     expect(row!.scopeDigest).toBe(scope.digest);
     const snap = row!.scopeSnapshot as PurposeScopeSnapshot;
-    expect(snap.purposeLabel).toBe(PROCESSING_PURPOSE_SPECS.profile_analytics.label);
+    expect(snap.purposeLabel).toBe(PROCESSING_PURPOSE_SPECS.sponsor_sharing.label);
     expect(snap.aggregatableFieldKeys).toEqual(scope.aggregatableFieldKeys);
+    // The recipient the member was actually shown, by name.
+    expect(snap.recipients).toEqual([
+      { id: 'contoso', name: 'Contoso Tools', relationship: 'processor' },
+    ]);
   });
 
   it('every stored value fits its column', async () => {
@@ -452,7 +562,7 @@ describe('recordPurposeConsent (plan sections 6.4, 6.5)', () => {
     const userId = await freshUser('stale');
     await expect(recordPurposeConsent(db, {
       userId,
-      purpose: 'profile_analytics',
+      purpose: 'sponsor_sharing',
       grant: true,
       scopeDigest: 'stale123',
       scope,
@@ -465,7 +575,7 @@ describe('recordPurposeConsent (plan sections 6.4, 6.5)', () => {
   it('surfaces the scope change as a NON-retryable 409 carrying both digests', async () => {
     const userId = await freshUser('stale409');
     const err = await recordPurposeConsent(db, {
-      userId, purpose: 'profile_analytics', grant: true,
+      userId, purpose: 'sponsor_sharing', grant: true,
       scopeDigest: 'stale123', scope, source: 'settings',
     }).catch((e: unknown) => e as PurposeScopeChangedError);
     expect(err.status).toBe(409);
@@ -477,8 +587,9 @@ describe('recordPurposeConsent (plan sections 6.4, 6.5)', () => {
 
   it('refuses a GRANT for a purpose this instance does not offer, with a 404', async () => {
     const userId = await freshUser('notoffered');
+    // No recipient covers recruiter_visibility in this scope.
     const err = await recordPurposeConsent(db, {
-      userId, purpose: 'sponsor_sharing', grant: true,
+      userId, purpose: 'recruiter_visibility', grant: true,
       scopeDigest: scope.digest, scope, source: 'settings',
     }).catch((e: unknown) => e as PurposeNotOfferedError);
     expect(err).toBeInstanceOf(PurposeNotOfferedError);
@@ -488,7 +599,7 @@ describe('recordPurposeConsent (plan sections 6.4, 6.5)', () => {
   it('ALLOWS a withdrawal of a purpose that stopped being offered', async () => {
     const userId = await freshUser('withdraw');
     const result = await recordPurposeConsent(db, {
-      userId, purpose: 'sponsor_sharing', grant: false,
+      userId, purpose: 'recruiter_visibility', grant: false,
       scopeDigest: scope.digest, scope, source: 'settings',
     });
     // A config change must never be able to trap a user in a grant.
@@ -507,7 +618,7 @@ describe('recordPurposeConsent (plan sections 6.4, 6.5)', () => {
 
     const err = await recordPurposeConsent(racingDb, {
       userId: '00000000-0000-0000-0000-000000000001',
-      purpose: 'profile_analytics', grant: true,
+      purpose: 'sponsor_sharing', grant: true,
       scopeDigest: scope.digest, scope, source: 'settings',
     }).catch((e: unknown) => e as PurposeConsentConflictError);
 
@@ -522,7 +633,7 @@ describe('recordPurposeConsent (plan sections 6.4, 6.5)', () => {
     } as unknown as DB;
     await expect(recordPurposeConsent(brokenDb, {
       userId: '00000000-0000-0000-0000-000000000001',
-      purpose: 'profile_analytics', grant: true,
+      purpose: 'sponsor_sharing', grant: true,
       scopeDigest: scope.digest, scope, source: 'settings',
     })).rejects.toThrow('connection terminated');
   });
@@ -533,7 +644,7 @@ describe('recordPurposeConsent (plan sections 6.4, 6.5)', () => {
     const [row] = await currentRows(db, userId);
     await expect(db.insert(userPurposeConsents).values({
       userId,
-      purpose: 'profile_analytics',
+      purpose: 'sponsor_sharing',
       state: 'granted',
       scopeDigest: scope.digest,
       scopeSnapshot: row!.scopeSnapshot,
@@ -544,7 +655,7 @@ describe('recordPurposeConsent (plan sections 6.4, 6.5)', () => {
     // ...and it permits a second SUPERSEDED row, which is what the history needs.
     await db.insert(userPurposeConsents).values({
       userId,
-      purpose: 'profile_analytics',
+      purpose: 'sponsor_sharing',
       state: 'revoked',
       scopeDigest: scope.digest,
       scopeSnapshot: row!.scopeSnapshot,
@@ -580,7 +691,7 @@ describe('getPurposeConsentState', () => {
 
   beforeAll(async () => {
     db = await createTestDB();
-    scope = await currentPurposeScope(db, {});
+    scope = await currentPurposeScope(db, SHARING_CONFIG);
   });
   afterAll(async () => { await closeTestDB(db); });
 
@@ -600,13 +711,13 @@ describe('getPurposeConsentState', () => {
   it('authorises a live grant and de-authorises it when the scope moves', async () => {
     const userId = (await createTestUser(db, { username: `st-grant-${Date.now()}` })).id;
     await recordPurposeConsent(db, {
-      userId, purpose: 'profile_analytics', grant: true,
+      userId, purpose: 'sponsor_sharing', grant: true,
       scopeDigest: scope.digest, scope, source: 'settings',
     });
 
     const live = await getPurposeConsentState(db, userId, {
       scopeDigest: scope.digest,
-      purposes: ['profile_analytics'],
+      purposes: ['sponsor_sharing'],
     });
     expect(live[0]!.state).toBe('granted');
     expect(live[0]!.authorised).toBe(true);
@@ -615,7 +726,7 @@ describe('getPurposeConsentState', () => {
 
     const moved = await getPurposeConsentState(db, userId, {
       scopeDigest: 'somethingelse',
-      purposes: ['profile_analytics'],
+      purposes: ['sponsor_sharing'],
     });
     expect(moved[0]!.authorised).toBe(false);
     expect(moved[0]!.needsReconfirmation).toBe(true);
@@ -626,17 +737,17 @@ describe('getPurposeConsentState', () => {
   it('reads only the CURRENT row, and reports a revocation as refused', async () => {
     const userId = (await createTestUser(db, { username: `st-rev-${Date.now()}` })).id;
     await recordPurposeConsent(db, {
-      userId, purpose: 'profile_analytics', grant: true,
+      userId, purpose: 'sponsor_sharing', grant: true,
       scopeDigest: scope.digest, scope, source: 'settings',
     });
     await recordPurposeConsent(db, {
-      userId, purpose: 'profile_analytics', grant: false,
+      userId, purpose: 'sponsor_sharing', grant: false,
       scopeDigest: scope.digest, scope, source: 'settings',
     });
 
     const state = await getPurposeConsentState(db, userId, {
       scopeDigest: scope.digest,
-      purposes: ['profile_analytics'],
+      purposes: ['sponsor_sharing'],
     });
     expect(state).toHaveLength(1);
     expect(state[0]!.state).toBe('revoked');
@@ -654,12 +765,12 @@ describe('getPurposeConsentState', () => {
     const a = (await createTestUser(db, { username: `st-a-${Date.now()}` })).id;
     const b = (await createTestUser(db, { username: `st-b-${Date.now()}` })).id;
     await recordPurposeConsent(db, {
-      userId: a, purpose: 'profile_analytics', grant: true,
+      userId: a, purpose: 'sponsor_sharing', grant: true,
       scopeDigest: scope.digest, scope, source: 'settings',
     });
     const state = await getPurposeConsentState(db, b, {
       scopeDigest: scope.digest,
-      purposes: ['profile_analytics'],
+      purposes: ['sponsor_sharing'],
     });
     expect(state[0]!.state).toBe('absent');
     expect(await listPurposeConsentHistory(db, b)).toHaveLength(0);

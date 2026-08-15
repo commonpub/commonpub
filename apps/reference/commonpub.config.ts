@@ -89,8 +89,15 @@ export default defineCommonPubConfig({
    *   relabelling an option never rewrites user data;
    * - a section holds at most 24 fields, a template at most 300, and at most 120
    *   countable buckets in total (one per option of each counted field);
+   * - ANSWERS ARE PRIVATE BY DEFAULT. A field appears on the public profile
+   *   route only when it declares `showOnProfile: true`, and no built-in field
+   *   declares it, so a default instance publishes no answers at all. Marking
+   *   interests and tech stack visible is the common choice, not the default,
+   *   and an operational question (which tools are you trained on) should
+   *   usually stay private;
    * - `sensitive: true` is the Art. 9 escape hatch. It moves the field to the
-   *   free-text store and removes it from EVERY count, permanently;
+   *   free-text store and removes it from EVERY count, permanently, and it is
+   *   never on the public profile whatever `showOnProfile` says;
    * - `analytics: false` does the same without the Art. 9 claim;
    * - neither may be set on a `multiselect`, and nor may `column`: those three
    *   all route a field to a store that holds ONE value, so the field would be
@@ -112,9 +119,12 @@ export default defineCommonPubConfig({
   //       fields: [
   //         {
   //           // A COUNTED field: closed vocabulary, so it can become a cohort.
+  //           // Answers are PRIVATE by default; this one opts in to the public
+  //           // profile, which is a choice rather than a formality.
   //           key: 'workshop_space',
   //           label: 'Where do you build?',
   //           type: 'select',
+  //           showOnProfile: true,
   //           options: [
   //             { value: 'home', label: 'At home' },
   //             { value: 'makerspace', label: 'A makerspace' },
@@ -122,13 +132,14 @@ export default defineCommonPubConfig({
   //           ],
   //         },
   //         {
-  //           // NEVER counted, and never on the public profile. `sensitive` is
-  //           // the Art. 9 hatch; note the closed vocabulary is still enforced.
+  //           // NEVER counted, and never on the public profile: `sensitive` is
+  //           // the Art. 9 hatch, so it overrides `showOnProfile` even if
+  //           // somebody sets it. No visibility flag is needed here, private is
+  //           // already the default. The closed vocabulary is still enforced.
   //           key: 'accessibility_needs',
   //           label: 'Anything we should know to make events work for you?',
   //           type: 'select',
   //           sensitive: true,
-  //           publicOnProfile: false,
   //           options: [
   //             { value: 'step_free', label: 'Step-free access' },
   //             { value: 'quiet', label: 'A quiet space' },
@@ -136,7 +147,8 @@ export default defineCommonPubConfig({
   //           ],
   //         },
   //         {
-  //           // Collected and shown, deliberately kept out of statistics.
+  //           // Collected, private like every other answer, and deliberately
+  //           // kept out of statistics.
   //           key: 'shop_notes',
   //           label: 'What is on your bench right now?',
   //           type: 'textarea',

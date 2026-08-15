@@ -51,8 +51,13 @@ export interface PersonaField {
   /** Per-selection weight for a multiselect, capped by `maxSelections`. */
   pointsPerSelection?: number;
   /**
-   * Operator scoping. User consent is the actual gate; this only lets an
-   * operator keep a closed-vocabulary field out of statistics entirely.
+   * Operator scoping: keeps a closed-vocabulary field out of the aggregatable
+   * partition entirely, so it can never become a statistics bucket.
+   *
+   * This is the OPERATOR's control over their own numbers. The MEMBER's control
+   * over statistics is the objection in `statistics.ts`, not a consent toggle:
+   * the instance counts answers over its own members either way, and asking
+   * permission for processing that happens regardless is a dark pattern.
    */
   analytics?: boolean;
   /**
@@ -60,8 +65,25 @@ export interface PersonaField {
    * into the never-counted text sink.
    */
   sensitive?: boolean;
-  /** Default true. */
-  publicOnProfile?: boolean;
+  /**
+   * Opt IN to the public profile. Absent or `false` means this answer is never
+   * rendered on `/u/:username`; only `true` puts it there.
+   *
+   * Off by default because a persona field is A QUESTION THE OPERATOR ASKED,
+   * not profile content the member wrote to be read. Somebody types a bio so
+   * that people will read it; they answer "which machines are you checked out
+   * on" because the makerspace asked them. Publishing the second by default is
+   * the inversion that made every sharing control downstream feel like theatre,
+   * because the honest answer to "may we share this" was already "you are
+   * publishing it".
+   *
+   * Renamed from `publicOnProfile` deliberately, and with no alias.
+   * `publicOnProfile: false` and `showOnProfile: undefined` mean the same thing
+   * and read oppositely, so keeping the old name would have let every call site
+   * inherit a flipped default in silence. The old key now fails `.strict()`,
+   * which is the loud failure an operator can act on.
+   */
+  showOnProfile?: boolean;
   /** Binds this field to an existing `users` column. */
   column?: UserBridgeColumn;
 }
@@ -452,6 +474,13 @@ function linkField(platform: PersonaLinkPlatformSpec): PersonaField {
  * (`industry`, `interests`, `tech_stack`) touch the new persona tables; every
  * `column:`-bound field writes to the existing `users` row, and every `link`
  * field writes to the existing `users.social_links` keys.
+ *
+ * NOT ONE FIELD HERE SETS `showOnProfile: true`, and that is the point. Which
+ * answers belong on a public page is a decision about a particular community,
+ * not a default this package gets to impose: a makerspace asking which tools
+ * you are trained on wants none of them published, and an instance building a
+ * maker directory will want interests and tech stack there. Opting a field in
+ * is one key in `commonpub.config.ts`, made once, on purpose.
  */
 export const BUILTIN_PERSONA_SECTIONS: readonly PersonaSection[] = [
   {
@@ -498,7 +527,11 @@ export const BUILTIN_PERSONA_SECTIONS: readonly PersonaSection[] = [
         key: 'industry',
         label: 'Industry',
         type: 'select',
-        help: 'Pick the closest one. This is one of the answers that can be counted in community statistics.',
+        // No statistics or sharing language in a built-in help string. An
+        // instance can run persona with every sharing flag off, and copy that
+        // names counting or recruiters would then describe something that does
+        // not happen there.
+        help: 'Pick the closest one.',
         options: INDUSTRY_OPTIONS,
       },
     ],

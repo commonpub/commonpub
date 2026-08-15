@@ -76,12 +76,19 @@ import {
 import { dataRecipientSchema, dataSharingConfigSchema } from '@commonpub/persona';
 import type { DataRecipient } from '@commonpub/persona';
 
-/** Why `purposeIsOfferable` refused a purpose. Null when it did not refuse. */
+/**
+ * Why `purposeIsOfferable` refused a purpose. Null when it did not refuse.
+ *
+ * There was a fourth reason, `no_countable_field`, and it is deleted rather
+ * than kept as a branch that can never be taken. It was reachable through
+ * exactly one purpose, `profile_analytics`, whose spec set the countable-field
+ * requirement; that purpose is gone, the requirement went with it, and instance
+ * statistics are no longer a consent purpose at all.
+ */
 export type PurposeBlocker =
   | 'not_offered_in_release'
   | 'no_recipient'
-  | 'unpapered_recipient'
-  | 'no_countable_field';
+  | 'unpapered_recipient';
 
 export interface AdminRecipientView extends DataRecipient {
   /** Which half of the union this entry came from. Config entries are read only. */
@@ -123,7 +130,6 @@ export interface AdminPurposeView {
   /** Why not. Null when `offerable`. Explanatory only, never the gate. */
   blocker: PurposeBlocker | null;
   requiresRecipients: boolean;
-  requiresAggregatableField: boolean;
   /** Ids of declared recipients covering this purpose, in effective order. */
   recipientIds: string[];
 }
@@ -215,9 +221,7 @@ export default defineEventHandler(
       let blocker: PurposeBlocker | null = null;
       if (!offerable) {
         if (!offered.includes(id)) blocker = 'not_offered_in_release';
-        else if (spec.requiresAggregatableField && scope.aggregatableFieldKeys.length === 0) {
-          blocker = 'no_countable_field';
-        } else if (spec.requiresRecipients && covering.length === 0) blocker = 'no_recipient';
+        else if (spec.requiresRecipients && covering.length === 0) blocker = 'no_recipient';
         else if (covering.some(isUnpapered)) blocker = 'unpapered_recipient';
       }
 
@@ -227,7 +231,6 @@ export default defineEventHandler(
         offerable,
         blocker,
         requiresRecipients: spec.requiresRecipients,
-        requiresAggregatableField: spec.requiresAggregatableField,
         recipientIds: covering.map((r) => r.id),
       };
     });
