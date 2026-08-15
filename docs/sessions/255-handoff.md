@@ -6,13 +6,14 @@ k-anonymous audience analytics. Planned, audited twice, then built as an **isola
 **ROLLED AND LIVE on all three instances, 2026-08-14, with every flag OFF.**
 
 persona 0.1.0 (first publish), config 0.39.0, schema 0.64.0, server 2.131.0, ui 0.16.0,
-layer 0.134.0, migrations 0046 and 0047. commonpub.io, deveco.io and heatsynclabs.io all report
-health 200 and 46 flags with the four new ones `false`, and `/api/persona` correctly 404s while off.
-Nothing collects, counts or discloses until an operator opts in.
+layer **0.134.1**, migrations 0046 and 0047. commonpub.io, deveco.io and heatsynclabs.io all report
+health 200 and 46 flags with the four new ones `false`. Nothing collects, counts or discloses until
+an operator opts in.
 
 The roll followed the prerelease pattern: layer published as `0.134.0-rc.1` under the `next` tag,
 verified by the deveco fork's CI on a draft PR (the only place the PUBLISHED layer is typechecked),
-then promoted to `latest` and the forks repinned to the final. See "Roll notes" below.
+then promoted and the forks repinned. **0.134.1 is a hotfix rolled immediately after**, see
+"Post-roll hotfix" below. See "Roll notes" below.
 
 Detail: `docs/sessions/255-persona-customization-plan.md`. Plan and both audits:
 `docs/plans/persona-customization-and-audience-analytics.md` (2130 lines). Session 254's context:
@@ -219,6 +220,77 @@ queried to prove it. Confirm directly before turning any flag on.
 
 **heatsync has no PR CI**, only deploy-on-push, which is why the deveco draft PR is the sole place the
 published layer gets typechecked before it reaches an instance. Worth fixing separately.
+
+## Post-roll hotfix: layer 0.134.1 (admin feature flags)
+
+Reported from deveco right after the roll: **every save on `/admin/features` returned 400.** An
+operator could not toggle anything at all.
+
+**Cause, and it was not really persona.** The page posts the ENTIRE accumulated override set on every
+save (`{ ...currentOverrides, ...pendingChanges }`), so the payload grows with the instance rather
+than with the edit. The validator capped it at a literal `20`, written when the config had far fewer
+flags. There are now 46 and deveco had 38 on. The cap was already below the flag count before this
+session added four more; persona pushed it further past a line it had already crossed.
+
+The cap now derives from the known flag list. Every key was already validated against that same list,
+so the largest legitimate payload IS that count and the literal was pure rot.
+
+**A latent second bug found while fixing it.** `features.identity` is a nested OBJECT of sub-flags,
+and the GET route iterated every key in `config.features`, so `/admin/features` rendered a TOGGLE for
+it. Flipping it would have posted `identity: true`, and the override merge is a shallow spread, so
+the whole object would have been replaced by a boolean and every identity sub-flag destroyed. It only
+ever surfaced as a 400 because the PUT's `z.boolean()` rejected the non-boolean. Both routes now
+filter to booleans.
+
+**Verified by reproducing the failure**, not by inspection: 25 overrides seeded into a local instance
+(past the old cap), logged in, toggled a flag, saved. It persisted, the toggled flag flipped, no
+console error. Before the fix that request was a guaranteed 400. The regression test derives its
+fixture from the real config rather than a number copied out of the source, and asserts there are more
+than 20 flags so it cannot quietly stop proving anything; mutation-tested both ways.
+
+## Audit finding still OPEN: "reset to default" does nothing
+
+Found while auditing the hotfix, in the same screen. **Not fixed, because it was not what was
+reported.** It is user-visible and should be next.
+
+Each overridden flag on `/admin/features` shows a reset control. Clicking it fires a success toast and
+changes nothing. The page sends the override set MINUS that key, and the handler does:
+
+```ts
+const merged = { ...existing, ...body.overrides };   // index.put.ts:69
+```
+
+A merge cannot remove. Demonstrated:
+
+| | |
+|---|---|
+| stored | `video, docs, hubs` |
+| page sends (video reset) | `docs, hubs` |
+| handler stores | `video, docs, hubs` |
+
+The route's own docblock says "To remove an override, omit the key from overrides", which is false,
+and a comment further down already proposes the fix: "Future reset-to-default can be a separate
+DELETE-overrides handler." That handler does not exist. A previous audit in this session recorded it
+as delivered; it was not, which is worth remembering about agent self-reports.
+
+Consequence beyond the dead button: an override can never be removed through the UI, so a corrupt
+value (an `identity: true` written before the boolean filter, say) is unreachable. The GET's new
+filter hides such a value from the page but the PUT's merge preserves it in storage.
+
+Fix: add `DELETE /api/admin/features` taking the keys to clear, point the page's `resetOverride` at
+it, and correct the PUT docblock. Roughly one route plus a two-line page change.
+
+## The bug class, recorded because it will recur
+
+A literal size cap written against yesterday's data set rots silently and surfaces later as an outage
+somewhere unrelated. Nothing fails when the cap is written, nothing fails when the 21st flag is added,
+and the break appears in the browser console as a bare 400 that reads like an auth problem.
+
+**When a validator bounds a collection the codebase already enumerates, derive the bound from that
+enumeration.** The rest of the tree was swept for both shapes: no other code iterates
+`config.features` (every other read is a single named key), and the remaining numeric caps bound
+user-supplied content (tags, prizes, criteria, participants), not domains the code enumerates.
+`api_keys.scopes` is `.min(1)` with no max and validates each entry against the enum, so it is safe.
 
 ## Deploy safety analysis
 
