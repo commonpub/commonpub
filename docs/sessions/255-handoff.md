@@ -348,6 +348,22 @@ by the Zod schemas, `personaKeySchema` (used internally at `schemas.ts:48`), and
 `DIGEST_INCLUDES_FIELD_KEYS`, which exists deliberately so the plan's open question B10 is one
 flippable line rather than a rewrite. No finished-but-unwired refactor.
 
+## Unpublished on main after the audit
+
+`@commonpub/schema` **0.64.1** is bumped on main and NOT published. It carries one change: the
+`RESERVED_SETTING_PREFIXES` refusal message now names `/api/admin/data-sharing/recipients`, which
+exists, instead of telling operators to edit `commonpub.config.ts`.
+
+The bump exists to stop a specific trap. The message fix landed on main without one, so
+`@commonpub/schema@0.64.0` on npm and `0.64.0` on main were the same version number with different
+code, and npm forbids republishing a version, so the mismatch could not have been resolved in place.
+
+Who has the fix today: **commonpub.io only**, because it builds from the monorepo source. deveco and
+heatsync consume the package from npm, so they still show the stale message until schema is published
+and their pins move. That is acceptable: the message is only ever seen by an admin attempting a
+blocked write through the generic settings route, so it does not warrant a roll of its own. Ship it
+with whatever goes next.
+
 ## Deploy safety analysis
 
 The question a reviewer will ask is what happens to the three live instances the moment this layer is
