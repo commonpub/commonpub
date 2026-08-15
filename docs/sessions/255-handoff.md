@@ -292,6 +292,62 @@ enumeration.** The rest of the tree was swept for both shapes: no other code ite
 user-supplied content (tags, prizes, criteria, participants), not domains the code enumerates.
 `api_keys.scopes` is `.min(1)` with no max and validates each entry against the enum, so it is safe.
 
+## Wider audit, 2026-08-15
+
+Five dimensions, each checked against the code rather than against an agent report. Two of the five
+turned up something; the other three are recorded as clean so the next reader does not redo them.
+
+**1. Authorization on everything new. Clean.** Every route under `/api/admin/**` in the whole tree
+carries `requirePermission`, verified by sweep, not sampling. The persona and directory routes carry
+the guards their design calls for: member routes `requireAuth`, admin routes `settings.manage` except
+`/admin/persona-metrics` which correctly uses `audit.read`, public routes `read:audience` and the
+directory `read:members`.
+
+Two anomalies surfaced and both cleared on reading the code. `persona/status.get.ts` has no
+`requireFeature`, which is deliberate and documented at the code: the banner asks "should I offer
+this?", a 404 is indistinguishable from a routing bug, so it answers `enabled: false` instead.
+`users/[username]/persona.get.ts` has no auth guard because it is the public profile render; it is
+flag-gated and was verified live to 404 a non-public profile for an anonymous viewer.
+
+**2. The class behind the 0.134.1 outage. Confined.** Swept for both shapes across the tree.
+No other admin page posts whole state back (`/admin/features` is the only one), and no other route
+merges instead of replaces (`index.put.ts:69` is the only `{ ...existing, ...body }`). The remaining
+numeric caps in validators bound user-supplied content (tags, prizes, criteria, participants), not
+domains the code enumerates. `api_keys.scopes` was the one real candidate and is safe: `.min(1)`, no
+max, each entry validated against the enum. No other code iterates `config.features`; every other read
+is a single named key. **The reset-to-default bug above is the last open instance of the class.**
+
+**3. The generic settings back door. Properly closed, but its error message had rotted.**
+`RESERVED_SETTING_PREFIXES` rejects `persona.` and `dataSharing.` in the VALIDATOR rather than the
+route, so every caller inherits the refusal, and `sanitizePersonaSchema` runs on read as
+defence-in-depth. Both are real.
+
+The operator-facing message was wrong, though, and had been wrong in both directions. It once pointed
+at `/api/admin/data-sharing` before that route existed; it was rewritten to say recipients are
+config-file only; then the member-directory work shipped `/api/admin/data-sharing/recipients` and the
+`/admin/data-sharing` screen, making it stale again. An operator hitting it was told to edit a config
+file and redeploy when a screen for the job had just shipped. **Fixed**, and the comment now says to
+check both routes still exist before editing the string.
+
+**4. The two new timer plugins, which run in production right now. Correct, with one asymmetry worth
+a decision.** Both re-check their flags on EVERY run rather than only at startup, explicitly fixing
+the weakness in `metrics-rollup.ts` that would keep a worker running for up to six hours after an
+operator switched a feature off. `persona-rollup` additionally requires `dataSharingConsents`, on the
+argument that counting must die with the consent surface that manages it (Art. 7(3)).
+
+The asymmetry: `disclosure-purge` gates on `memberDirectory` the same way, so **switching the
+directory off also switches off retention enforcement**, and `disclosure_events` rows then persist
+past `disclosureRetentionYears` indefinitely. That is backwards. Counting should stop with the
+feature; deletion should not. Currently moot, since no disclosure has ever been written on a live
+instance, but it should be inverted before the flag is ever switched on: the purge should run whenever
+there are rows to purge, regardless of the flag.
+
+**5. Dead exports, the `METRICS_MIN_BUCKET` class. None.** Fifteen `@commonpub/persona` exports have
+no consumer outside the package, and all of them are legitimate: parameter types, limit constants used
+by the Zod schemas, `personaKeySchema` (used internally at `schemas.ts:48`), and
+`DIGEST_INCLUDES_FIELD_KEYS`, which exists deliberately so the plan's open question B10 is one
+flippable line rather than a rewrite. No finished-but-unwired refactor.
+
 ## Deploy safety analysis
 
 The question a reviewer will ask is what happens to the three live instances the moment this layer is

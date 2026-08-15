@@ -32,15 +32,22 @@ export const adminSettingSchema = z.object({
     .refine(
       (key) => !RESERVED_SETTING_PREFIXES.some((prefix) => key.startsWith(prefix)),
       {
-        // Names only surfaces that EXIST. An earlier version sent operators to
-        // /api/admin/data-sharing, which has never shipped, so somebody
-        // following the message hit a 404 and concluded the feature was broken.
-        // Data-sharing recipients and both k-anonymity floors are config-file
-        // only in this release, validated at boot.
+        // Names only surfaces that EXIST, and this message has now been wrong in
+        // BOTH directions. It first sent operators to /api/admin/data-sharing
+        // before that route shipped, so they hit a 404 and concluded the
+        // feature was broken. It was then rewritten to say recipients are
+        // config-file only, and the member-directory work shipped
+        // /api/admin/data-sharing/recipients and the /admin/data-sharing screen
+        // immediately afterwards, so it was stale again. Check both routes
+        // still exist before editing this string.
+        //
+        // The k-anonymity floors (`minBucket`, `minPopulation`) genuinely ARE
+        // config-file only: they are resolved at boot and have no admin route.
         message:
-          'This setting has its own route. Use /api/admin/persona/schema for persona keys, ' +
-          'and declare data-sharing recipients and thresholds in commonpub.config.ts, ' +
-          'so the document is validated before it is stored.',
+          'This setting has its own route. Use /api/admin/persona/schema for persona keys '
+          + 'and /api/admin/data-sharing/recipients for data-sharing recipients, so the '
+          + 'document is validated before it is stored. The k-anonymity floors are set in '
+          + 'commonpub.config.ts.',
       },
     ),
   value: z.unknown(),
