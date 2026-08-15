@@ -1,15 +1,29 @@
 # CommonPub — Status & Operator Runbook
 
-> **Living doc — your "come back later" reference.** Snapshot updated 2026-08-02 (through session 248).
+> **Living doc — your "come back later" reference.** Snapshot updated 2026-08-15 (through session 255).
 > Verify any version/flag claim before trusting it: `npm view @commonpub/<pkg> version`,
 > `curl https://<instance>/api/features`, `cargo search create-commonpub`.
-> **Current LIVE (all 3 instances):** persona **0.1.0** / config **0.39.0** / schema **0.64.0** /
-> server **2.131.0** / ui **0.16.0** / layer **0.134.1**, migrations **0046** and **0047**,
-> **46 flags** (session 255, 2026-08-14 — persona, opt-in sharing consent, k-anonymous audience
+> **Current LIVE (all 3 instances):** persona **0.2.0** / config **0.39.1** / schema **0.65.0** /
+> server **2.132.0** / ui **0.16.0** / layer **0.135.0**, migrations **0046**, **0047** and **0048**,
+> **46 flags** (session 255, rolled 2026-08-15 — persona, opt-in sharing consent, k-anonymous audience
 > analytics and the opt-in member visibility directory).
-> **All four new flags are OFF on every instance**, so nothing collects, counts or discloses until
-> an operator opts in. Verified live: commonpub.io, deveco.io and heatsynclabs.io all healthy, all
-> reporting 46 flags with the four new ones `false`, and `/api/persona` correctly 404s while off.
+>
+> **Layer 0.135.0 corrects the privacy model, and the correction is the point of the release.**
+> Profile data is public by intent; persona *questions* are not. So: answers are private by default
+> (no field ships `showOnProfile: true`), aggregate statistics run on legitimate interest with an
+> Art 21 objection rather than pretending to be consent, and the member's actual choice is about
+> **third-party exposure** — being named in a recruiter or sponsor search — not about being counted.
+> An instance can therefore ask custom questions with no recruitment or analytics use at all.
+> Breaking rename `publicOnProfile` → `showOnProfile` with **no alias**, deliberately: an unrecognised
+> key fails closed to "not shown", which is the safe direction for a visibility flag.
+> Migration 0048 adds `user_shared_links` + `user_statistics_objections` and ALTERs nothing existing.
+>
+> **The four persona flags ship `false`, but flag state is per-instance and lives in the DB.**
+> Verified live 2026-08-15: all three healthy, all reporting 46 flags, all three carrying migration
+> 0048. commonpub.io and heatsynclabs.io have all four `false`. **deveco.io has all four ON** — an
+> operator override saved via `/admin/features`, not a shipped default. deveco is therefore the one
+> instance where this release changes live behaviour: members previously uncounted without a
+> `profile_analytics` grant are now counted in k-anonymous aggregates unless they object.
 > Before turning any of them on, read `docs/reference/guides/persona-schema.md`.
 > **Layer 0.134.1 is a hotfix**: every save on `/admin/features` returned 400 once an instance had
 > more than 20 flag overrides, because the page posts the whole accumulated set and the cap was a

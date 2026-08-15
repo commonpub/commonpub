@@ -572,3 +572,92 @@ cross-device dismissal record; `/api/admin/data-sharing/recipients`; `user_profi
    `db-migrate` will silently skip 0046
 5. Verify the consumer through a `--tag next` prerelease and a fork draft PR before promoting
 6. Flags stay `false` everywhere until a browser pass on the target instance
+
+
+---
+
+# Rolled 2026-08-15 — the privacy-model correction is live
+
+The roll order above was followed as written, with the versions it could not know in advance.
+
+| Package | Version |
+| --- | --- |
+| `@commonpub/persona` | 0.2.0 |
+| `@commonpub/config` | 0.39.1 |
+| `@commonpub/schema` | 0.65.0 (migration 0048) |
+| `@commonpub/server` | 2.132.0 |
+| `@commonpub/layer` | 0.135.0 (via `0.135.0-rc.1` on `--tag next`) |
+
+`@commonpub/ui` did **not** change on this branch and was **not** republished. The roll order
+lists it because the original work touched it; this correction did not, and republishing an
+unchanged package only invites the "same version, different code" trap in the other direction.
+
+## Consumer verification actually happened before promotion
+
+deveco PR #23 was opened as a **draft** pinned to `0.135.0-rc.1`, and its CI (Build & Typecheck)
+went green against the **published** packages before the rc was promoted to `latest`. That is the
+only step that typechecks what consumers really install. It was then repointed at `0.135.0`, went
+green a second time, and was merged. heatsync reports no branch checks at all, so it inherits
+deveco's verification of the identical published artifacts — worth remembering as a real gap in
+that fork rather than a passed check.
+
+## Verified live, not assumed
+
+The forks' deploy health checks `curl || ::warning`, so a crashed container still reports success.
+Everything below was therefore checked independently:
+
+- health 200 on all three, 46 flags on all three
+- `db:migrate succeeded` in all three deploy logs, which is hard-gated (`|| exit 1`), so 0048 applied
+- the always-on part of this release is the settings nav restructure, and
+  `/settings/profile/{basics,links,questions}` return 302-to-login (not 404) on all three, which is
+  what proves the new code is actually serving rather than a stale image
+- no 5xx on deveco's persona surfaces, and `/settings/persona` still redirects rather than erroring
+
+## The thing that was NOT expected: deveco has persona ON
+
+`/api/features` reports `persona`, `dataSharingConsents`, `personaAnalytics` and `memberDirectory`
+all **`true`** on deveco.io. That is an operator override stored in deveco's database, not a shipped
+default — every config file in this repo still ships `false`, and this roll did not touch the
+override. It most likely dates from the `/admin/features` session that surfaced the 400 bug.
+
+**Why it matters, stated plainly:** deveco is the one instance where this release changes live
+behaviour rather than shipping dormant code. Under the old model a member who had not granted
+`profile_analytics` was not counted at all. Under the corrected model they are counted in
+k-anonymous aggregates unless they object. That is the intended design — statistics are legitimate
+interest with an Art 21 objection, and no member is *named* anywhere without an explicit
+third-party-exposure grant — but on deveco it applies to real people today, not hypothetically.
+
+Nothing was changed about deveco's flags. Turning them off is a live operator decision, not a
+cleanup task, and it belongs to whoever owns that instance.
+
+## Pre-existing e2e flakiness, recorded so it is not re-diagnosed
+
+The CommonPub e2e job reports **1–2 flaky** on main runs, independent of this work. On the release
+run the two were `analytics-consent.spec.ts:274` ("withdrawing consent removes the provider cookies
+from the device") and `contest-lifecycle.spec.ts:188` (a `page.$$eval` "execution context was
+destroyed" navigation race). Neither spec, nor the consent composable, is touched by this branch.
+The consent one is worth fixing on its own merits precisely because a flaky consent-withdrawal
+assertion is the kind that gets waved through.
+
+## Two e2e bugs this branch fixed, both of the same family
+
+1. The spec pointed at `.cpub-persona-sections`, which the settings merge had renamed, and at
+   `.cpub-profile-tabpanel, .cpub-profile-about`, which **never existed** — a vacuously passing
+   guard. The real class is `.cpub-about-grid`.
+2. The 44px tap-target check called `getByRole('switch').first()` under an
+   `if (dataSharingConsents === true)` guard. That guard was sound before the correction and is not
+   now: a purpose is only offerable once a recipient is declared, and CI declares none, so the flag
+   is on and **zero** switches render. The check failed on a *correctly configured* instance — the
+   makerspace case reaching into the test suite. It now measures every grant/revoke/objection
+   control and asserts a count floor first, so it cannot pass vacuously.
+
+## Still open (unchanged by this roll)
+
+- `/admin/features` per-flag "reset to default" does nothing: the handler merges and there is no
+  DELETE route
+- `disclosure-purge` gates on `memberDirectory`, so turning the directory **off** stops retention
+  enforcement — backwards, and it matters more now that deveco has the flag on
+- retired-purpose consent rows have no cleanup path
+- the local dev DB still holds 46 stale `profile_analytics` rows to clear
+- `@commonpub/layer`'s `next` dist-tag still points at `0.135.0-rc.1` (identical code to `0.135.0`,
+  so harmless, but it is stale)
