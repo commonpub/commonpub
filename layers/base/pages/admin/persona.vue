@@ -1756,6 +1756,17 @@ async function copyExport(): Promise<void> {
 .cpub-persona-rows { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--text-dim); }
 
 .cpub-persona-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--space-3); }
+/* THE SPACING IS THE `gap` AND NOTHING ELSE.
+   The UA default `p { margin-block: 1em }` was never reset here, and flex does
+   not collapse margins, so every gap on this screen was really
+   `gap + 1em + 1em`. On this page that turned 53 separate 8px gaps into 26px,
+   with the em following each element's own font-size. Same defect the two
+   member-facing persona pages carried; same fix. Scoped, so the persona
+   components keep the margins they set deliberately. */
+.cpub-persona-admin :is(h1, h2, h3, h4, p, ul) {
+  margin: 0;
+}
+
 .cpub-persona-control { display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; }
 .cpub-persona-mono { font-family: var(--font-mono); }
 .cpub-persona-key { font-family: var(--font-mono); font-size: var(--text-xs); }

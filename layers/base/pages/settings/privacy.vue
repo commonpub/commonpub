@@ -697,7 +697,10 @@ function historyLabel(row: ConsentHistoryRowDto): string {
     <template v-if="consentsEnabled">
       <section class="cpub-privacy-block" aria-labelledby="cpub-sharing-heading">
         <h3 id="cpub-sharing-heading" class="cpub-privacy-subhead">Sharing choices</h3>
-        <p class="cpub-privacy-note">
+        <!-- Describes the switches, so it renders only when there are any.
+             With none offered it was a rule about controls that were not on
+             screen. -->
+        <p v-if="purposes.length" class="cpub-privacy-note">
           Every choice here is off unless you turn it on, and you can turn any of them off again at
           any time.
         </p>
@@ -706,7 +709,7 @@ function historyLabel(row: ConsentHistoryRowDto): string {
           Loading your choices...
         </p>
 
-        <p v-else-if="!purposes.length" class="cpub-privacy-note">
+        <p v-else-if="!purposes.length && !deferredPurposes.length" class="cpub-privacy-note">
           This site does not ask you to share anything at the moment.
         </p>
 
@@ -932,7 +935,7 @@ function historyLabel(row: ConsentHistoryRowDto): string {
       keeps no history at all, by design.
     -->
     <section
-      v-if="consentsEnabled"
+      v-if="consentsEnabled && (history.length || historyUnavailable || purposes.length)"
       class="cpub-privacy-block"
       aria-labelledby="cpub-history-heading"
     >
@@ -991,8 +994,37 @@ function historyLabel(row: ConsentHistoryRowDto): string {
 .cpub-privacy-settings {
   display: flex;
   flex-direction: column;
-  gap: var(--space-8);
+  /* Was --space-8. On a spacious theme that resolved to 64px between every
+     block AND 96px under the title, which is what made the page read as
+     fragments floating rather than as a document. */
+  gap: var(--space-6);
   max-width: 720px;
+}
+
+/* THE SPACING IS THE `gap` AND NOTHING ELSE.
+   The UA default `p { margin-block: 1em }` was never reset, and a flex
+   container does not collapse margins, so every gap was really
+   `gap + 1em + 1em`. Scoped, so the persona components keep the margins they
+   set on purpose. */
+.cpub-privacy-settings :is(h2, h3, h4, p, ul, table) {
+  margin: 0;
+}
+
+/* Measure. These paragraphs ran to ~96 characters a line, and this is the copy
+   a member is least able to skim.
+
+   52ch, not the usual 65ch: `1ch` is the width of "0", ~0.63em in this face
+   against an average character of ~0.49em, so a `ch` cap buys about a quarter
+   more characters than its number suggests. 65ch rendered ~78 per line, 58ch
+   ~74, 52ch ~65. Measured in a browser, not reasoned about. */
+.cpub-privacy-note,
+.cpub-statistics-status,
+.cpub-statistics-detail,
+.cpub-purpose-off,
+.cpub-purpose-on,
+.cpub-purpose-basis,
+.cpub-purpose-revocation {
+  max-width: 52ch;
 }
 
 .cpub-privacy-block {
@@ -1003,14 +1035,14 @@ function historyLabel(row: ConsentHistoryRowDto): string {
 
 .cpub-privacy-subhead {
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: var(--text-label);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--text-dim);
 }
 
 .cpub-privacy-note {
-  font-size: 12px;
+  font-size: var(--text-sm);
   line-height: 1.7;
   color: var(--text-faint);
 }
@@ -1032,7 +1064,7 @@ function historyLabel(row: ConsentHistoryRowDto): string {
   border: var(--border-width-default) solid var(--yellow-border);
   background: var(--yellow-bg);
   color: var(--text);
-  font-size: 13px;
+  font-size: var(--text-base);
   line-height: 1.7;
 }
 
@@ -1040,8 +1072,14 @@ function historyLabel(row: ConsentHistoryRowDto): string {
    is a disclosure of the same weight. What separates them is the copy and the
    control, not a colour, because a lighter treatment would read as a lesser
    thing and this is the one that is already happening. */
+/* A prose card hugs its own measure. Capping the paragraphs but not the box
+   left ~190px of empty card to the right of every line, which reads as a
+   layout bug rather than as a column. Derived from the same 52ch the copy is
+   capped at plus this card's own padding and border, so the two cannot drift
+   apart when either is tuned. */
 .cpub-purpose-card,
 .cpub-statistics-card {
+  max-width: calc(52ch + 2 * var(--space-4) + 2 * var(--border-width-default));
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
@@ -1054,14 +1092,14 @@ function historyLabel(row: ConsentHistoryRowDto): string {
 /* The current standing, at full contrast, exactly like `offSummary` on a
    consent card: what is true right now is the sentence that gets read. */
 .cpub-statistics-status {
-  font-size: 13px;
+  font-size: var(--text-base);
   line-height: 1.7;
   color: var(--text);
   font-weight: 600;
 }
 
 .cpub-statistics-detail {
-  font-size: 13px;
+  font-size: var(--text-base);
   line-height: 1.7;
   color: var(--text-dim);
 }
@@ -1078,13 +1116,13 @@ function historyLabel(row: ConsentHistoryRowDto): string {
 }
 
 .cpub-purpose-title {
-  font-size: 14px;
+  font-size: var(--text-base);
   font-weight: 600;
   color: var(--text);
 }
 
 .cpub-purpose-off {
-  font-size: 13px;
+  font-size: var(--text-base);
   line-height: 1.7;
   color: var(--text);
 }
@@ -1092,13 +1130,13 @@ function historyLabel(row: ConsentHistoryRowDto): string {
 .cpub-purpose-on,
 .cpub-purpose-basis,
 .cpub-purpose-revocation {
-  font-size: 13px;
+  font-size: var(--text-base);
   line-height: 1.7;
   color: var(--text-dim);
 }
 
 .cpub-purpose-recipients-lead {
-  font-size: 13px;
+  font-size: var(--text-base);
   color: var(--text);
 }
 
@@ -1114,7 +1152,7 @@ function historyLabel(row: ConsentHistoryRowDto): string {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  font-size: 13px;
+  font-size: var(--text-base);
   line-height: 1.6;
 }
 
@@ -1125,13 +1163,13 @@ function historyLabel(row: ConsentHistoryRowDto): string {
 
 .cpub-recipient-rel {
   color: var(--text-dim);
-  font-size: 12px;
+  font-size: var(--text-sm);
 }
 
 .cpub-recipient-policy {
   color: var(--accent);
   text-decoration: underline;
-  font-size: 12px;
+  font-size: var(--text-sm);
 }
 
 .cpub-recipient-policy:focus-visible,
@@ -1148,7 +1186,7 @@ function historyLabel(row: ConsentHistoryRowDto): string {
   border: var(--border-width-default) solid var(--border);
   background: var(--surface2);
   color: var(--text);
-  font-size: 13px;
+  font-size: var(--text-base);
   line-height: 1.7;
 }
 
@@ -1172,7 +1210,7 @@ function historyLabel(row: ConsentHistoryRowDto): string {
   background: var(--surface2);
   color: var(--text);
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: var(--text-xs);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   cursor: pointer;
@@ -1222,7 +1260,7 @@ function historyLabel(row: ConsentHistoryRowDto): string {
 }
 
 .cpub-purpose-state {
-  font-size: 12px;
+  font-size: var(--text-xs);
   color: var(--text-faint);
 }
 
@@ -1233,7 +1271,7 @@ function historyLabel(row: ConsentHistoryRowDto): string {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
-  font-size: 13px;
+  font-size: var(--text-base);
   line-height: 1.7;
   color: var(--text);
 }
@@ -1246,7 +1284,7 @@ function historyLabel(row: ConsentHistoryRowDto): string {
 }
 
 .cpub-field-error {
-  font-size: 12px;
+  font-size: var(--text-sm);
   color: var(--red-text);
 }
 
@@ -1275,7 +1313,7 @@ function historyLabel(row: ConsentHistoryRowDto): string {
 .cpub-history-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 12px;
+  font-size: var(--text-sm);
 }
 
 .cpub-history-caption {

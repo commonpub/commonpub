@@ -1378,7 +1378,7 @@ This is **not** the "second persona-only field taxonomy" that §13 rejects: the 
 
 `personaCompleteness(schema, answers)` is a pure exported function in `@commonpub/config` returning `{ perSection, filledFields, totalFields, percent, points }`.
 
-Default rendering (`completeness: 'progress'`) is a neutral meter: `role="progressbar"` with `aria-valuenow`, `aria-valuemin` and `aria-valuemax`, plus the text equivalent "4 of 9 sections filled in", plus one honest line: "This is all optional. Fill in what you want people to see." No score, no streak, no leaderboard, no percentage shaming, no red state, no decay.
+Default rendering (`completeness: 'progress'`) is a neutral meter: `role="progressbar"` with `aria-valuenow`, `aria-valuemin` and `aria-valuemax`, plus the text equivalent "4 of 9 parts of your profile filled in", plus one honest line: "This is all optional. Answer what you want and leave the rest." No score, no streak, no leaderboard, no percentage shaming, no red state, no decay. **Both strings were revised in the session-255 UX pass.** "sections" collided with the per-section counts the editor draws over a smaller field set, and "what you want people to see" promised a visibility the `showOnProfile` inversion had removed.
 
 `'points'` exists because the community's norms are the operator's call, and renders per-field `points` as badges plus per-selection `pointsPerSelection` capped by `maxSelections`, which is what the inspiration screenshot's "+4 PTS EACH (MAX 5)" actually expresses. Three rules make it not-cringe, all testable:
 
