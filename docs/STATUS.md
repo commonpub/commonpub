@@ -3,13 +3,15 @@
 > **Living doc — your "come back later" reference.** Snapshot updated 2026-08-02 (through session 248).
 > Verify any version/flag claim before trusting it: `npm view @commonpub/<pkg> version`,
 > `curl https://<instance>/api/features`, `cargo search create-commonpub`.
-> **Current LIVE (all 3 instances):** schema **0.63** / config **0.36** / infra **0.19** / editor **0.17** /
-> server **2.130** / layer **0.133**, migration **0045**, **42 flags** LIVE (session 254).
-> **UNPUBLISHED in this working tree (sessions 255):** `@commonpub/persona` 0.1.0 (new package),
-> migrations **0046** (persona) and **0047** (member directory), **46 flags**. Nothing rolled; see
-> `docs/sessions/255-handoff.md`. Previous banner, session 250, 2026-08-07/08 — contest
-> email CTAs now absolute AND pointed at the contest instead of account signup, hero register CTA,
-> registration required before entering; **CI green**, incl. the docs worker-RPC flake fixed at the source). **Layer 0.119 = post-launch hotfix: contest hero mobile
+> **Current LIVE (all 3 instances):** persona **0.1.0** / config **0.39.0** / schema **0.64.0** /
+> server **2.131.0** / ui **0.16.0** / layer **0.134.0**, migrations **0046** and **0047**,
+> **46 flags** (session 255, 2026-08-14 — persona, opt-in sharing consent, k-anonymous audience
+> analytics and the opt-in member visibility directory).
+> **All four new flags are OFF on every instance**, so nothing collects, counts or discloses until
+> an operator opts in. Verified live: commonpub.io, deveco.io and heatsynclabs.io all healthy, all
+> reporting 46 flags with the four new ones `false`, and `/api/persona` correctly 404s while off.
+> Before turning any of them on, read `docs/reference/guides/persona-schema.md`.
+> Detail: `docs/sessions/255-handoff.md`.
 > description Show more/less toggle + `markdownToExcerpt` strips `<!--` HTML comments so a Markdown-imported
 > description header no longer leaks into homepage/list excerpts.** **Session 249 (2026-08-02/03) — production-readiness sweep
 > before the deveco contest launch: rolled the upload-OOM guard (deveco Caddyfile 128MB catch-all cap +
