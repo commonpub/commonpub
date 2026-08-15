@@ -2,11 +2,20 @@ import { setInstanceSetting, getInstanceSetting } from '@commonpub/server';
 import type { FeatureFlags } from '@commonpub/config';
 import { z } from 'zod';
 
+/**
+ * The cap is NOT a magic number. `/admin/features` posts the ENTIRE accumulated
+ * override set on every save (existing overrides + the pending change), so the
+ * payload grows with the instance, not with the edit. A literal `20` was
+ * written when the config had far fewer flags; by session 255 there were 46,
+ * deveco had 38 of them on, and every single save 400'd with "Too many
+ * overrides". An operator could not toggle anything.
+ *
+ * Every key is separately validated against the known flag list below, so the
+ * largest legitimate payload IS the number of known flags. The cap is derived
+ * from that in the handler and exists only to bound an absurd body.
+ */
 const updateFeaturesSchema = z.object({
-  overrides: z.record(z.string(), z.boolean()).refine(
-    (obj) => Object.keys(obj).length <= 20,
-    'Too many overrides',
-  ),
+  overrides: z.record(z.string(), z.boolean()),
 });
 
 /**
@@ -20,12 +29,34 @@ export default defineEventHandler(async (event) => {
   const body = await parseBody(event, updateFeaturesSchema);
   const db = useDB();
 
-  // Validate that all keys are known feature flags
+  // Validate that all keys are known, TOGGLEABLE feature flags.
+  //
+  // Booleans only: `features.identity` is a nested object of sub-flags, and
+  // accepting it here would replace that whole object with `true` and destroy
+  // every sub-flag. It is excluded from `/admin/features` too, so nothing
+  // offers it in the first place.
   const config = useConfig();
-  const knownFlags = Object.keys(config.features);
+  const allFeatures = config.features as unknown as Record<string, unknown>;
+  const knownFlags = Object.entries(allFeatures)
+    .filter(([, v]) => typeof v === 'boolean')
+    .map(([k]) => k);
+
+  if (Object.keys(body.overrides).length > knownFlags.length) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: `Too many overrides: ${Object.keys(body.overrides).length} sent, `
+        + `${knownFlags.length} flags exist`,
+    });
+  }
+
   for (const key of Object.keys(body.overrides)) {
     if (!knownFlags.includes(key)) {
-      throw createError({ statusCode: 400, statusMessage: `Unknown feature flag: ${key}` });
+      throw createError({
+        statusCode: 400,
+        statusMessage: key in allFeatures
+          ? `Feature flag is not a simple toggle and cannot be overridden here: ${key}`
+          : `Unknown feature flag: ${key}`,
+      });
     }
   }
 
