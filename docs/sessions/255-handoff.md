@@ -3,10 +3,16 @@
 Persona customization: an operator-defined profile schema, purpose-scoped sharing consent, and
 k-anonymous audience analytics. Planned, audited twice, then built as an **isolated package**.
 
-**Nothing is rolled, and nothing has run on a published layer inside a fork.** It HAS been applied to
-a real PostgreSQL 16 and driven end to end in a real browser, and both of those found blockers the
-full test suite passed through. See "The live run", "The member visibility directory" and
-"Deploy safety analysis" below.
+**ROLLED AND LIVE on all three instances, 2026-08-14, with every flag OFF.**
+
+persona 0.1.0 (first publish), config 0.39.0, schema 0.64.0, server 2.131.0, ui 0.16.0,
+layer 0.134.0, migrations 0046 and 0047. commonpub.io, deveco.io and heatsynclabs.io all report
+health 200 and 46 flags with the four new ones `false`, and `/api/persona` correctly 404s while off.
+Nothing collects, counts or discloses until an operator opts in.
+
+The roll followed the prerelease pattern: layer published as `0.134.0-rc.1` under the `next` tag,
+verified by the deveco fork's CI on a draft PR (the only place the PUBLISHED layer is typechecked),
+then promoted to `latest` and the forks repinned to the final. See "Roll notes" below.
 
 Detail: `docs/sessions/255-persona-customization-plan.md`. Plan and both audits:
 `docs/plans/persona-customization-and-audience-analytics.md` (2130 lines). Session 254's context:
@@ -190,6 +196,29 @@ from the aggregates that must not.
 
 **Local config:** the `dataSharing.recipients` block used for this run was reverted to a commented
 worked example. A committed config must not assert a partnership that does not exist.
+
+## Roll notes (2026-08-14)
+
+**One new failure mode, worth knowing before the next first-publish.** `@commonpub/persona` published
+fine and `npm` resolved it, but every `pnpm install` in the forks failed with
+`ERR_PNPM_FETCH_404 ... is not in the npm registry, or you have no permission to fetch it`. It is
+neither a permissions nor an `--access` problem. npm serves two metadata documents: `npm` reads the
+full one, `pnpm` reads the ABBREVIATED one (`Accept: application/vnd.npm.install-v1+json`), and on a
+first publish the registry generates the abbreviated one minutes later. Diagnose it by curling both
+and comparing status codes against an established package in the same scope. `pnpm view` succeeds
+throughout because it reads the full doc, so it is NOT a valid readiness check.
+
+**Verification actually performed, and its limits.** All three instances were confirmed live by
+`/api/health` and by `/api/features` reporting 46 flags with the four new ones `false`, and by
+`/api/persona` returning 404. deveco's build log shows the persona route chunks in the bundle, and
+its deploy reported `db:migrate succeeded` with `database: ok`. That migrations 0046 and 0047
+specifically applied is an inference from a sound chain (the lockfile resolves `@commonpub/schema` to
+0.64.0, so the migration files were in the image, and db-migrate succeeded) rather than a direct
+observation: with the flags off there is no endpoint that touches the new tables, so nothing can be
+queried to prove it. Confirm directly before turning any flag on.
+
+**heatsync has no PR CI**, only deploy-on-push, which is why the deveco draft PR is the sole place the
+published layer gets typechecked before it reaches an instance. Worth fixing separately.
 
 ## Deploy safety analysis
 
