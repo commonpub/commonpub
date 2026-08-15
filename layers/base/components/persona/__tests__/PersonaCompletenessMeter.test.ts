@@ -36,19 +36,23 @@ function completeness(filledSections: number, totalSections: number): PersonaCom
 
 describe('PersonaCompletenessMeter — with data', () => {
   it('is a progressbar counting SECTIONS, matching the visible text exactly', () => {
+    // The visible wording is "parts of your profile", not "sections": this
+    // figure spans every profile tab, and the About-you tab draws its own
+    // per-section counts over a smaller field set. Two true numbers about
+    // different sets must not share one word on one screen.
     const { getByRole, getByText } = render(Meter, { props: { completeness: completeness(4, 9) } });
     const bar = getByRole('progressbar');
     expect(bar.getAttribute('aria-valuenow')).toBe('4');
     expect(bar.getAttribute('aria-valuemin')).toBe('0');
     expect(bar.getAttribute('aria-valuemax')).toBe('9');
-    expect(bar.getAttribute('aria-valuetext')).toBe('4 of 9 sections filled in');
+    expect(bar.getAttribute('aria-valuetext')).toBe('4 of 9 parts of your profile filled in');
     // The text equivalent is on the page, not only in an ARIA attribute.
-    expect(getByText('4 of 9 sections filled in')).toBeTruthy();
+    expect(getByText('4 of 9 parts of your profile filled in')).toBeTruthy();
   });
 
   it('carries the one honest line', () => {
     const { getByText } = render(Meter, { props: { completeness: completeness(4, 9) } });
-    expect(getByText('This is all optional. Fill in what you want people to see.')).toBeTruthy();
+    expect(getByText('This is all optional. Answer what you want and leave the rest.')).toBeTruthy();
   });
 
   it('leaves the empty state to the page, so the sentence is never on screen twice', () => {
@@ -62,7 +66,18 @@ describe('PersonaCompletenessMeter — with data', () => {
   it('reports zero filled sections honestly rather than hiding the meter', () => {
     const { getByText, getByRole } = render(Meter, { props: { completeness: completeness(0, 9) } });
     expect(getByRole('progressbar').getAttribute('aria-valuenow')).toBe('0');
-    expect(getByText('0 of 9 sections filled in')).toBeTruthy();
+    expect(getByText('0 of 9 parts of your profile filled in')).toBeTruthy();
+  });
+
+  it('never promises the answers are shown to anybody', () => {
+    // The copy said "fill in what you want people to see" while the page it
+    // renders on said none of these answers reach a profile. A meter cannot
+    // make a visibility promise: whether any field is public is the operator's
+    // `showOnProfile`, and no built-in field sets it.
+    const { container } = render(Meter, { props: { completeness: completeness(4, 9) } });
+    const text = (container.textContent ?? '').toLowerCase();
+    expect(text).not.toContain('people to see');
+    expect(text).not.toContain('public');
   });
 
   it('has no score, streak, leaderboard, percentage or red state in its copy', () => {

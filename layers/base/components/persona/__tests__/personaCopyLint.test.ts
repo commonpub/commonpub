@@ -122,7 +122,7 @@ describe('persona copy lint — user-facing copy', () => {
 
   it('uses the exact agreed strings for the load-bearing lines this tree owns', () => {
     const all = sources.map((s) => s.template).join('\n');
-    expect(all).toContain('This is all optional. Fill in what you want people to see.');
+    expect(all).toContain('This is all optional. Answer what you want and leave the rest.');
     expect(all).toContain('This was collected under a question that is no longer part of this profile. You can delete it.');
   });
 

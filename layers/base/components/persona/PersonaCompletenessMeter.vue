@@ -40,6 +40,14 @@ const ready = computed(() => props.completeness != null);
 /**
  * Sections, not fields, is what the text equivalent counts, because that is the
  * unit the editor is divided into and the unit the reader can act on.
+ *
+ * The visible wording says "parts of your profile" rather than "sections", and
+ * that is not a synonym chosen for variety. This figure spans every profile tab,
+ * so a section the About-you tab draws as "0 of 1" can legitimately be counted
+ * here as filled by a name typed during registration. Calling both of them
+ * "sections" put two true numbers about different sets on one screen under one
+ * word, which reads as a bug. Naming the wider set differently is what makes the
+ * page consistent; the count itself was never wrong.
  */
 const totalSections = computed(() => props.completeness?.perSection.length ?? 0);
 const filledSections = computed(
@@ -54,7 +62,7 @@ const percent = computed(() =>
 );
 
 const summary = computed(
-  () => `${filledSections.value} of ${totalSections.value} sections filled in`,
+  () => `${filledSections.value} of ${totalSections.value} parts of your profile filled in`,
 );
 
 </script>
@@ -80,11 +88,15 @@ const summary = computed(
       <p class="cpub-persona-meter-text">{{ summary }}</p>
 
       <!-- The one honest line. Not "complete your profile", not a nudge.
+           It no longer says "what you want people to see": after the
+           `showOnProfile` inversion no built-in field is on the profile at all,
+           and the page carrying this meter says so two paragraphs above. The
+           sentence promised a visibility the feature had stopped providing.
            The "Nothing here yet" empty state deliberately does NOT live here:
            `pages/settings/persona.vue` renders it above the sections, which is
            where a reader looks for it, and printing it in both places would put
            the same sentence on screen twice. -->
-      <p class="cpub-persona-meter-note">This is all optional. Fill in what you want people to see.</p>
+      <p class="cpub-persona-meter-note">This is all optional. Answer what you want and leave the rest.</p>
     </template>
 
     <!-- Not resolved: a shape, never a number. An INDETERMINATE progressbar
@@ -98,7 +110,7 @@ const summary = computed(
         aria-busy="true"
         :aria-label="label"
       ></div>
-      <p class="cpub-persona-meter-note">This is all optional. Fill in what you want people to see.</p>
+      <p class="cpub-persona-meter-note">This is all optional. Answer what you want and leave the rest.</p>
     </template>
   </div>
 </template>

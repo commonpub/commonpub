@@ -547,10 +547,18 @@ const statisticsBasisNote = PERSONA_STATISTICS.basisNote;
     </p>
 
     <template v-else>
-      <p class="cpub-questions-intro">
-        These are the questions this site asks. All of it is optional, you can change any answer at
-        any time, and you can leave anything blank.
-      </p>
+      <!--
+        One lede, spaced as a group. These three sentences answer "what is this
+        page", "who sees it" and "where is the rest of my profile", and a reader
+        takes them together. The optionality clause that used to end the first
+        sentence is gone: the meter below says it, the empty state said it, and
+        five restatements of "this is optional" on one page is not reassurance,
+        it is noise.
+      -->
+      <div class="cpub-questions-lede">
+        <p class="cpub-questions-intro">
+          These are the questions this site asks. You can change or clear any answer later.
+        </p>
 
       <!--
         The visibility sentence, derived from the schema this member was served.
@@ -558,33 +566,34 @@ const statisticsBasisNote = PERSONA_STATISTICS.basisNote;
         field in, and saying which fields those are is the difference between a
         rule and a fact somebody can check.
       -->
-      <p v-if="sections.length" class="cpub-questions-note">
-        <template v-if="publicFieldLabels.length">
-          These answers appear on your public profile: {{ publicFieldLabels.join(', ') }}. Every
-          other answer here is seen only by you and the people who run this site.
-        </template>
-        <template v-else>
-          Your answers here are seen only by you and the people who run this site. None of them
-          appear on your public profile.
-        </template>
-      </p>
+        <p v-if="sections.length" class="cpub-questions-note">
+          <template v-if="publicFieldLabels.length">
+            These answers appear on your public profile: {{ publicFieldLabels.join(', ') }}. Every
+            other answer here is seen only by you and the people who run this site.
+          </template>
+          <template v-else>
+            Your answers here are seen only by you and the people who run this site. None of them
+            appear on your public profile.
+          </template>
+        </p>
 
-      <p class="cpub-questions-note">
-        Your name, photo and bio are on the
-        <NuxtLink to="/settings/profile/basics" class="cpub-questions-link">Basics</NuxtLink> tab.
+        <p class="cpub-questions-note">
+          Your name, photo and bio are on the
+          <NuxtLink to="/settings/profile/basics" class="cpub-questions-link">Basics</NuxtLink> tab.
         <!--
           Said out loud rather than left to be discovered. A link answered here
           and on the Links tab is ONE stored value, and a member who finds the
           same field twice with no explanation reasonably concludes one of them
           is not working.
         -->
-        <template v-if="linkFieldLabels.length">
-          The links you list are shown on your profile, like the rest of it, and they are also on
-          the
-          <NuxtLink to="/settings/profile/links" class="cpub-questions-link">Links</NuxtLink> tab.
-          Changes made in either place are the same answer.
-        </template>
-      </p>
+          <template v-if="linkFieldLabels.length">
+            The links you list are shown on your profile, like the rest of it, and they are also on
+            the
+            <NuxtLink to="/settings/profile/links" class="cpub-questions-link">Links</NuxtLink> tab.
+            Changes made in either place are the same answer.
+          </template>
+        </p>
+      </div>
 
       <!--
         THE ONE DECISION, and only where there is one to make. Rendered above the
@@ -721,8 +730,11 @@ const statisticsBasisNote = PERSONA_STATISTICS.basisNote;
         There is nothing to fill in on this site yet.
       </p>
 
+      <!-- "Answer whatever you want to answer. You can change it at any time."
+           is deleted, not moved: the meter directly above already says the
+           whole thing is optional and that answers can be left. -->
       <p v-else-if="!answered" class="cpub-questions-note">
-        Nothing here yet. Answer whatever you want to answer. You can change it at any time.
+        Nothing here yet.
       </p>
 
       <div class="cpub-questions-sections">
@@ -779,14 +791,61 @@ const statisticsBasisNote = PERSONA_STATISTICS.basisNote;
   max-width: 720px;
 }
 
+/* THE SPACING IS THE `gap` AND NOTHING ELSE.
+   Without this reset the UA default `p { margin-block: 1em }` survives, and a
+   flex container does NOT collapse margins, so every gap became
+   `gap + 1em + 1em` with the em following each element's own font-size. That
+   put six different gaps (32/44/56/57/77/92px) on one page, which is why the
+   rhythm read as broken rather than as any single value being wrong.
+   Scoped, so it stops at this page: the persona components set their own
+   margins deliberately and must keep them. */
+.cpub-questions-page :is(h2, h3, h4, p, ul) {
+  margin: 0;
+}
+
+/* Two steps, not one. A heading and the lines it owns sit a `--space-2` apart;
+   whole blocks sit a `--space-4` apart. Equal spacing everywhere is what made
+   the page read as items floating rather than as groups, because proximity is
+   the only signal that a heading belongs to the text under it. */
+.cpub-questions-lede {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+/* Measure. At 720px these paragraphs ran to ~96 characters a line, well past
+   the 45-75 that stays comfortable, and this is the copy a member is least
+   able to skim.
+
+   52ch, not the usual 65ch, and every step of that was measured in a browser
+   rather than reasoned about. `1ch` is the width of "0", which in this face is
+   ~0.63em against an average character of ~0.49em, so a `ch` cap buys about a
+   quarter more characters than its number suggests: 65ch rendered ~78 per line
+   and 58ch still rendered ~74. 52ch renders ~65. `ch` is still the right unit
+   because it tracks the font when an operator changes the family. */
+.cpub-questions-intro,
+.cpub-questions-note,
+.cpub-questions-purpose-status,
+.cpub-questions-purpose-on,
+.cpub-questions-purpose-revocation {
+  max-width: 52ch;
+}
+
+/* The meter's own bottom margin fought the page `gap` and won twice over,
+   making the largest gap on the page. The page owns its rhythm; this is its
+   only consumer. */
+:deep(.cpub-persona-meter) {
+  margin-bottom: 0;
+}
+
 .cpub-questions-intro {
-  font-size: 13px;
+  font-size: var(--text-base);
   line-height: 1.7;
   color: var(--text-dim);
 }
 
 .cpub-questions-note {
-  font-size: 12px;
+  font-size: var(--text-sm);
   line-height: 1.7;
   color: var(--text-dim);
 }
@@ -811,8 +870,14 @@ const statisticsBasisNote = PERSONA_STATISTICS.basisNote;
   gap: var(--space-3);
 }
 
+/* A prose card hugs its own measure. Capping the paragraphs but not the box
+   left ~190px of empty card to the right of every line, which reads as a
+   layout bug rather than as a column. Derived from the same 52ch the copy is
+   capped at plus this card's own padding and border, so the two cannot drift
+   apart when either is tuned. */
 .cpub-questions-sharing,
 .cpub-questions-statistics {
+  max-width: calc(52ch + 2 * var(--space-4) + 2 * var(--border-width-default));
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
@@ -823,7 +888,7 @@ const statisticsBasisNote = PERSONA_STATISTICS.basisNote;
 
 .cpub-questions-subhead {
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: var(--text-label);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--text-dim);
@@ -839,26 +904,26 @@ const statisticsBasisNote = PERSONA_STATISTICS.basisNote;
 }
 
 .cpub-questions-purpose-title {
-  font-size: 14px;
+  font-size: var(--text-base);
   line-height: 1.5;
   color: var(--text);
 }
 
 .cpub-questions-purpose-status {
-  font-size: 13px;
+  font-size: var(--text-sm);
   line-height: 1.7;
   color: var(--text);
 }
 
 .cpub-questions-purpose-on,
 .cpub-questions-purpose-revocation {
-  font-size: 12px;
+  font-size: var(--text-sm);
   line-height: 1.7;
   color: var(--text-dim);
 }
 
 .cpub-questions-purpose-moved {
-  font-size: 12px;
+  font-size: var(--text-sm);
   line-height: 1.7;
   color: var(--text);
   padding: var(--space-2);
@@ -876,7 +941,7 @@ const statisticsBasisNote = PERSONA_STATISTICS.basisNote;
   background: none;
   color: var(--accent-text);
   font-family: inherit;
-  font-size: 12px;
+  font-size: var(--text-sm);
   text-align: left;
   text-decoration: underline;
   cursor: pointer;
@@ -901,7 +966,7 @@ const statisticsBasisNote = PERSONA_STATISTICS.basisNote;
 
 .cpub-questions-recipients-lead {
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: var(--text-label);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--text-dim);
@@ -912,7 +977,7 @@ const statisticsBasisNote = PERSONA_STATISTICS.basisNote;
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
-  font-size: 12px;
+  font-size: var(--text-sm);
   line-height: 1.7;
   color: var(--text);
 }
@@ -950,7 +1015,7 @@ const statisticsBasisNote = PERSONA_STATISTICS.basisNote;
   background: var(--surface);
   color: var(--text);
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: var(--text-xs);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   cursor: pointer;
@@ -999,7 +1064,7 @@ const statisticsBasisNote = PERSONA_STATISTICS.basisNote;
 }
 
 .cpub-questions-purpose-state {
-  font-size: 12px;
+  font-size: var(--text-xs);
   color: var(--text-dim);
 }
 </style>
