@@ -661,3 +661,83 @@ assertion is the kind that gets waved through.
 - the local dev DB still holds 46 stale `profile_analytics` rows to clear
 - `@commonpub/layer`'s `next` dist-tag still points at `0.135.0-rc.1` (identical code to `0.135.0`,
   so harmless, but it is stale)
+
+
+---
+
+# Layer 0.135.1 — the persona UX pass (2026-08-15)
+
+Triggered by the operator's own reading of the shipped screens: "very wordy, weird spacing".
+Both complaints turned out to be specific, measurable defects rather than taste.
+
+## The spacing was one bug
+
+`/settings/profile/questions` and `/settings/privacy` lay out with `display: flex` + `gap` and
+neither reset the browser default `p { margin-block: 1em }`. **Flex margins do not collapse**, so
+every gap was really `gap + 1em + 1em`, and because `1em` follows each element's own font-size,
+elements at 10px, 12px and 13px produced a different gap each: six values on one page. Nothing in
+the source looked wrong, and no unit test could catch it, because it is cascade behaviour rather
+than output. Fixed by resetting the margin and letting `gap` alone do the spacing: one value per
+page (32px and 48px).
+
+**The extent was found by re-scanning for the CLASS, not by assuming the two pages were all of it.**
+`/admin/persona` has zero hardcoded font-sizes and therefore looked clean, but it never reset the
+paragraph margin either: 53 separate 8px gaps were rendering at 26px. Measured 53 before, 0 after.
+
+## The type was never on the theme's scale
+
+30 hardcoded pixel font-sizes across the two member pages. `theme-studio` generates `--text-*` from
+the operator's recipe, so a literal is not "the same size", it is a different size on every instance
+that tunes its scale. `--text-label` for the mono subheads is what `basics`/`links`/`experience`
+already use, so the profile tab group is now 4/4 tokenised.
+
+**Recorded, not fixed: 1,907 hardcoded pixel font-sizes across 223 layer `.vue` files.** The persona
+pages were following the prevailing house convention. Changing that convention is separate work.
+
+## Measure
+
+~96 characters a line against a 45-75 target. Capped at **52ch**, and the number was measured in a
+browser at each step rather than copied from the usual advice: `1ch` is the width of "0", ~0.63em in
+this face against an average character of ~0.49em, so a `ch` cap buys about a quarter more
+characters than its number suggests. 65ch rendered ~78 per line, 58ch ~74, 52ch ~65. The prose cards
+derive their own `max-width` from the same 52ch plus their padding, so a capped paragraph no longer
+sits in a card 190px wider than its longest line.
+
+## Copy
+
+"This is optional" appeared five times on the questions page; "nothing is shared" four times on the
+privacy page. Once each now. The sharing lead renders only when there are switches to describe, the
+"does not ask you to share anything" line yields to the deferred sentence that names the purposes,
+and the consent history follows the rule the disclosures block above it already followed: render
+only when there is something to say.
+
+The completeness meter said "Fill in what you want people to see" two paragraphs below the page
+stating that none of these answers reach a profile. That was leftover from before the `showOnProfile`
+inversion, and **two tests were pinning the wrong string**. Its visible unit is now "parts of your
+profile" rather than "sections": the figure deliberately spans every profile tab, so a section the
+editor draws as "0 of 1" can legitimately be counted here as filled by a name typed at registration.
+Two true numbers about different sets were sharing one word. **The count itself was never wrong, and
+the whole-profile scope is a documented decision that was left intact.**
+
+## The new guard
+
+`layers/base/pages/settings/__tests__/personaSurfaceStyleLint.test.ts` reads the source of all three
+persona surfaces, because neither defect can fail a component-render test. It asserts every
+font-size goes through a token, the UA margin reset exists, the measure is capped in `ch`, and the
+lede is grouped. It carries its own guard against walking zero files, and all three failure modes
+were mutation-verified red before it landed.
+
+## Verification
+
+2,788 layer unit tests, typecheck, lint, persona e2e 7/7, member-directory and responsive e2e,
+production build, and re-measurement at 1440px and 390px. CI e2e: 167 passed, 12 skipped, 2 flaky,
+which accounts for all 181 chromium tests and matches the pre-existing flaky baseline on main.
+
+## What was NOT verified after deploy, stated plainly
+
+Both changed pages are behind auth, and the operator's production account was not used to log in, so
+**the rendered CSS on a live instance was not inspected**. What is confirmed: both forks pin 0.135.1
+in `package.json` and in both lockfiles, the Docker builds run frozen installs that would fail on a
+mismatch, deveco's consumer CI passed against 0.135.1 specifically, all three Deploy Production runs
+succeeded, and all three instances answer healthy at 45 flags. Opening `/settings/privacy` on deveco
+while signed in is the one step that would close the loop.

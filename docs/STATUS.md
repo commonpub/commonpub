@@ -4,7 +4,7 @@
 > Verify any version/flag claim before trusting it: `npm view @commonpub/<pkg> version`,
 > `curl https://<instance>/api/features`, `cargo search create-commonpub`.
 > **Current LIVE (all 3 instances):** persona **0.2.0** / config **0.39.1** / schema **0.65.0** /
-> server **2.132.0** / ui **0.16.0** / layer **0.135.0**, migrations **0046**, **0047** and **0048**,
+> server **2.132.0** / ui **0.16.0** / layer **0.135.1**, migrations **0046**, **0047** and **0048**,
 > **46 flags** (session 255, rolled 2026-08-15 — persona, opt-in sharing consent, k-anonymous audience
 > analytics and the opt-in member visibility directory).
 >
@@ -25,6 +25,16 @@
 > instance where this release changes live behaviour: members previously uncounted without a
 > `profile_analytics` grant are now counted in k-anonymous aggregates unless they object.
 > Before turning any of them on, read `docs/reference/guides/persona-schema.md`.
+>
+> **Layer 0.135.1 (2026-08-15) is the persona UX pass.** A browser pass found six different gaps
+> between sibling blocks on one page (32/44/56/57/77/92px) with no rule setting them: the pages lay
+> out with flex `gap` and never reset the UA default `p { margin-block: 1em }`, and flex does not
+> collapse margins, so every gap was `gap + 1em + 1em` varying with each element's font-size. Fixed
+> on both member pages and on `/admin/persona`, which carried the same defect 53 times. Type now
+> resolves through the theme tokens instead of 30 hardcoded pixel sizes, and the measure is capped
+> at 52ch (measured, not assumed: `1ch` is ~0.63em in this face, so 65ch rendered ~78 characters).
+> **The wider extent is recorded rather than fixed: 1,907 hardcoded pixel font-sizes across 223
+> layer `.vue` files.** That is a house-wide convention and its own piece of work.
 > **Layer 0.134.1 is a hotfix**: every save on `/admin/features` returned 400 once an instance had
 > more than 20 flag overrides, because the page posts the whole accumulated set and the cap was a
 > literal 20 against 46 flags. **Known and still open on that screen: the per-flag "reset to default"
