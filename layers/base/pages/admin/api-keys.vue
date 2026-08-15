@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { AdminApiKeyView, ApiKeyUsageStats } from '@commonpub/server';
-import { PUBLIC_API_SCOPES, originPatternSchema } from '@commonpub/schema';
+import { PUBLIC_API_SCOPES, WILDCARD_PROTECTED_SCOPES, originPatternSchema } from '@commonpub/schema';
 
 definePageMeta({ layout: 'admin', middleware: 'auth' });
 
@@ -11,13 +11,49 @@ useSeoMeta({ title: `API Keys, Admin, ${useSiteName()}` });
 const { publicApi } = useFeatures();
 const toast = useToast();
 
+/**
+ * The one scope that lists identified people rather than aggregates
+ * (member-visibility plan section 4). It is the only scope with a SECOND gate
+ * behind it: the key must also carry a `recipient_id` naming the party it
+ * belongs to, so every disclosure it makes is attributable. A key holding it
+ * with no recipient reads nothing at all, which is a 403 an operator would
+ * otherwise discover from their consumer rather than from this form.
+ *
+ * Declared once here and used by the guard, the selector and the help text, so
+ * the requirement and the sentence describing it cannot disagree.
+ */
+const MEMBER_SCOPE = 'read:members';
+
+/**
+ * The key rows this page renders.
+ *
+ * `AdminApiKeyView` now carries `recipientId` itself (the column is
+ * `api_keys.recipient_id`, migration 0047, written by `createApiKey` and
+ * serialised by `toAdminApiKeyView`), so this is an alias rather than a
+ * widening. It stays named because the list and the selector both read it and
+ * a future admin-only field would land here rather than in the DTO.
+ */
+type KeyView = AdminApiKeyView;
+
 interface KeyListResponse {
-  items: AdminApiKeyView[];
+  items: KeyView[];
   total: number;
 }
 
+/** The slice of `/api/admin/data-sharing/recipients` the selector needs. */
+interface RecipientOption {
+  id: string;
+  name: string;
+  purposes: string[];
+}
+
+interface RecipientsResponse {
+  configRecipients: RecipientOption[];
+  storedRecipients: RecipientOption[];
+}
+
 interface CreateResponse {
-  key: AdminApiKeyView;
+  key: KeyView;
   token: string;
 }
 
@@ -34,6 +70,8 @@ const form = reactive({
   expiresAt: '',
   rateLimitPerMinute: 60,
   allowedOrigins: '',
+  /** The named recipient a `read:members` key belongs to. '' means unbound. */
+  recipientId: '',
 });
 // CORS preset: 'none' (server-to-server, default), 'any' (*), 'localhost', or
 // 'custom' (free-text origin patterns). Keeps the common cases one click away
@@ -48,10 +86,66 @@ const copied = ref(false);
 
 const availableScopes = PUBLIC_API_SCOPES.filter((s) => s !== 'read:*');
 
+/* What `read:*` does NOT cover, generated from the same list `hasScope`
+ * enforces. Hand-writing the sentence is how the checkbox comes to promise
+ * something the gate refuses, and an operator only finds out when a consumer
+ * 403s. `read:members` joined this list in the same commit as the scope itself,
+ * so it appears here with no edit to this line. Empty list renders nothing. */
+const wildcardExclusions = computed<string>(() => WILDCARD_PROTECTED_SCOPES.join(', '));
+
+/** Is the member directory scope selected right now? Drives the whole binding UI. */
+const needsRecipient = computed<boolean>(() => form.scopes.includes(MEMBER_SCOPE));
+
+// --- Recipient binding -----------------------------------------------------
+
+/**
+ * Recipients come from `/api/admin/data-sharing/recipients`, which enforces
+ * `settings.manage`, while this page enforces `apikeys.manage`. Those are
+ * deliberately different capabilities, so an operator who can mint keys may not
+ * be able to read the recipient list.
+ *
+ * That is handled by DEGRADING rather than by hiding: the fetch is lazy (only
+ * once the scope is actually ticked, so nobody who never touches this scope pays
+ * for it or sees an error about it), and a failure says plainly that the list
+ * could not be read and who can read it. Hiding the selector would let the same
+ * operator mint a key that reads nothing and discover it from their consumer.
+ */
+const recipients = ref<RecipientOption[]>([]);
+const recipientsState = ref<'idle' | 'loading' | 'ready' | 'error'>('idle');
+
+async function loadRecipients(): Promise<void> {
+  if (recipientsState.value === 'loading' || recipientsState.value === 'ready') return;
+  recipientsState.value = 'loading';
+  try {
+    const result = await $fetch<RecipientsResponse>('/api/admin/data-sharing/recipients');
+    // The union, in the same order the data sharing screen renders it: the file
+    // half wins a collision on id, so it goes first and the duplicate is dropped.
+    const seen = new Set<string>();
+    const merged: RecipientOption[] = [];
+    for (const r of [...result.configRecipients, ...result.storedRecipients]) {
+      if (seen.has(r.id)) continue;
+      seen.add(r.id);
+      merged.push({ id: r.id, name: r.name, purposes: r.purposes });
+    }
+    recipients.value = merged;
+    recipientsState.value = 'ready';
+  } catch {
+    recipients.value = [];
+    recipientsState.value = 'error';
+  }
+}
+
 function toggleScope(scope: string): void {
   const i = form.scopes.indexOf(scope);
   if (i >= 0) form.scopes.splice(i, 1);
   else form.scopes.push(scope);
+  if (scope === MEMBER_SCOPE) {
+    if (form.scopes.includes(MEMBER_SCOPE)) void loadRecipients();
+    // Un-ticking clears the binding: a recipient left behind on a key that no
+    // longer holds the scope is a claim about who the key belongs to that
+    // nothing enforces.
+    else form.recipientId = '';
+  }
 }
 
 function resetForm(): void {
@@ -61,6 +155,7 @@ function resetForm(): void {
   form.expiresAt = '';
   form.rateLimitPerMinute = 60;
   form.allowedOrigins = '';
+  form.recipientId = '';
   corsPreset.value = 'none';
   createError.value = '';
 }
@@ -96,6 +191,15 @@ async function submitCreate(): Promise<void> {
     createError.value = 'Select at least one scope';
     return;
   }
+  // The binding is not optional decoration: an unbound `read:members` key is
+  // refused by the endpoint on every request, and a key that reads nothing is
+  // worse than no key, because it looks like it works until a consumer 403s.
+  // Refused here rather than after a round trip so the reason is readable.
+  if (needsRecipient.value && form.recipientId === '') {
+    createError.value =
+      'Choose the recipient this key belongs to. A key with read:members and no recipient can read nothing.';
+    return;
+  }
   const origins = resolveOrigins();
   if (origins === null) return; // invalid custom pattern; error already set
 
@@ -108,6 +212,9 @@ async function submitCreate(): Promise<void> {
       expiresAt: form.expiresAt || null,
       rateLimitPerMinute: form.rateLimitPerMinute,
       allowedOrigins: origins.length ? origins : null,
+      // Sent only when the scope is held, so a key that does not list members
+      // never carries a claim about whose it is.
+      recipientId: needsRecipient.value ? form.recipientId : null,
     };
     const result = await $fetch<CreateResponse>('/api/admin/api-keys', { method: 'POST', body });
     createdKey.value = result;
@@ -224,6 +331,9 @@ function fmtErrorRate(rate: number): string {
         <span>Name: <strong>{{ createdKey.key.name }}</strong></span>
         <span>Prefix: <code>{{ createdKey.key.prefix }}</code></span>
         <span>Scopes: <code>{{ createdKey.key.scopes.join(', ') }}</code></span>
+        <span v-if="createdKey.key.recipientId">
+          Recipient: <code>{{ createdKey.key.recipientId }}</code>
+        </span>
       </div>
     </div>
 
@@ -245,13 +355,51 @@ function fmtErrorRate(rate: number): string {
                   placeholder="What is this key used for?" />
       </div>
       <div class="cpub-form-row">
-        <label>Scopes</label>
-        <div class="cpub-scope-grid">
+        <label id="key-scopes-label">Scopes</label>
+        <div class="cpub-scope-grid" role="group" aria-labelledby="key-scopes-label" aria-describedby="key-scopes-help">
           <label v-for="scope in availableScopes" :key="scope" class="cpub-scope-chip">
             <input type="checkbox" :checked="form.scopes.includes(scope)" @change="toggleScope(scope)" />
             <code>{{ scope }}</code>
           </label>
         </div>
+        <p v-if="wildcardExclusions" id="key-scopes-help" class="cpub-form-hint">
+          <code>read:*</code> covers every read scope except <code>{{ wildcardExclusions }}</code>, which a key has to be given by name.
+        </p>
+      </div>
+
+      <!-- Recipient binding. Only rendered when read:members is actually held:
+           it is the only scope that returns identified people, and the only one
+           that needs a second gate. -->
+      <div v-if="needsRecipient" class="cpub-form-row">
+        <label for="key-recipient">Recipient</label>
+        <p id="key-recipient-help" class="cpub-form-hint">
+          <code>{{ MEMBER_SCOPE }}</code> lists the individual members who chose to be
+          visible. Every request it makes is recorded against the recipient named here, and
+          shown to those members. A key with no recipient can read nothing.
+        </p>
+        <div v-if="recipientsState === 'loading'" class="cpub-loading">Loading recipients...</div>
+        <p v-else-if="recipientsState === 'error'" class="cpub-form-error" role="alert">
+          Recipients could not be loaded. Reading them needs the settings permission, so ask
+          an operator who has it to add one in Data sharing.
+        </p>
+        <p v-else-if="recipients.length === 0" class="cpub-form-error" role="alert">
+          No recipient is declared on this site, so this key cannot be bound to one and
+          would read nothing. Add one in
+          <NuxtLink to="/admin/data-sharing">Data sharing</NuxtLink> first.
+        </p>
+        <select
+          v-else
+          id="key-recipient"
+          v-model="form.recipientId"
+          class="cpub-input"
+          aria-describedby="key-recipient-help"
+          required
+        >
+          <option value="">Choose a recipient</option>
+          <option v-for="r in recipients" :key="r.id" :value="r.id">
+            {{ r.name }} ({{ r.id }})
+          </option>
+        </select>
       </div>
       <div class="cpub-form-row cpub-form-grid">
         <div>
@@ -334,6 +482,18 @@ function fmtErrorRate(rate: number): string {
           <td><code>{{ k.prefix }}...</code></td>
           <td>
             <span v-for="s in k.scopes" :key="s" class="cpub-scope-tag">{{ s }}</span>
+            <!-- The binding is part of what this key can do, so it belongs
+                 beside the scopes rather than in a column most keys leave
+                 empty. An unbound member key is called out because it reads
+                 NOTHING, which no other combination of scopes does. -->
+            <div v-if="k.scopes.includes(MEMBER_SCOPE)" class="cpub-key-recipient">
+              <template v-if="k.recipientId">
+                Recipient: <code>{{ k.recipientId }}</code>
+              </template>
+              <span v-else class="cpub-key-badge cpub-key-badge-yellow">
+                No recipient, reads nothing
+              </span>
+            </div>
           </td>
           <td>{{ fmtDate(k.lastUsedAt) }}</td>
           <td>{{ fmtDate(k.createdAt) }}</td>
@@ -484,6 +644,8 @@ function fmtErrorRate(rate: number): string {
 }
 .cpub-key-table th { font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-faint); background: var(--surface2); }
 .cpub-key-desc { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+.cpub-key-recipient { font-size: 11px; color: var(--text-dim); margin-top: 4px; white-space: normal; }
+.cpub-key-recipient code { font-family: var(--font-mono); color: var(--text); }
 .cpub-key-revoked { opacity: 0.5; }
 
 .cpub-scope-tag {

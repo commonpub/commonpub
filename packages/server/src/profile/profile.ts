@@ -135,6 +135,19 @@ export async function updateUserProfile(
     }>;
     pronouns?: string;
     timezone?: string;
+    /**
+     * Who can see this profile. Settable for the first time here (plan section
+     * 8.5): the column has existed since the beginning and defaulted to
+     * 'public', and the audience aggregation in `persona/metrics.ts` counts
+     * only public profiles. Without a way to set it, the consent disclosure
+     * "while your profile is set to private, your answers are not counted"
+     * would describe a state nobody could reach.
+     *
+     * Note the split with Phase 0 (plan 14.4): making the column SETTABLE is
+     * this feature's work; ENFORCING it on the app's own read paths and on the
+     * federation actor routes is a separate change with its own flag.
+     */
+    profileVisibility?: 'public' | 'members' | 'private';
     emailNotifications?: {
       digest?: 'daily' | 'weekly' | 'none';
       likes?: boolean;
@@ -166,6 +179,7 @@ export async function updateUserProfile(
   if (input.experience !== undefined) updates.experience = input.experience;
   if (input.pronouns !== undefined) updates.pronouns = input.pronouns;
   if (input.timezone !== undefined) updates.timezone = input.timezone;
+  if (input.profileVisibility !== undefined) updates.profileVisibility = input.profileVisibility;
   if (input.emailNotifications !== undefined) updates.emailNotifications = input.emailNotifications;
 
   await db.update(users).set(updates).where(eq(users.id, userId));
@@ -177,6 +191,42 @@ export async function updateUserProfile(
     .limit(1);
 
   return getUserByUsername(db, user[0]!.username);
+}
+
+/**
+ * The viewer's OWN profile-privacy settings.
+ *
+ * Deliberately separate from {@link UserProfile}: that DTO is shared by the
+ * owner's settings screen, the public `/api/users/:username` route and the
+ * federation serializer, so a field added there is a field disclosed to
+ * strangers. `profile_visibility` is a setting about a person, not a fact for
+ * their visitors, and this feature is not the change that fixes the shared-DTO
+ * problem (plan 14.4 defers that to Phase 0).
+ */
+export interface ProfilePrivacySettings {
+  profileVisibility: 'public' | 'members' | 'private';
+}
+
+/** Reads {@link ProfilePrivacySettings} for one user. Owner-only by contract: the caller must have authenticated as `userId`. */
+export async function getProfilePrivacySettings(
+  db: DB,
+  userId: string,
+): Promise<ProfilePrivacySettings | null> {
+  const rows = await db
+    .select({ profileVisibility: users.profileVisibility })
+    .from(users)
+    .where(and(eq(users.id, userId), isNull(users.deletedAt)))
+    .limit(1);
+
+  const row = rows[0];
+  if (!row) return null;
+  // The column is NOT NULL with a 'public' default, but it is a varchar: a value
+  // written before the enum existed must not become a silent "private".
+  const value = row.profileVisibility;
+  return {
+    profileVisibility:
+      value === 'members' || value === 'private' || value === 'public' ? value : 'public',
+  };
 }
 
 export interface GetUserContentOptions {

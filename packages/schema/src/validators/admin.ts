@@ -3,8 +3,46 @@ import { permissionKeySchema } from '../permissions.js';
 
 // --- Admin validators ---
 
+/**
+ * Instance-setting namespaces the generic `PUT /api/admin/settings` route may
+ * NOT write (audit B4).
+ *
+ * Both namespaces have a dedicated route that validates their document before
+ * storing it: `persona.*` through `personaSectionsSchema`, `dataSharing.*`
+ * through `dataRecipientSchema` and `dataSharingConfigSchema`. The generic
+ * route takes `value: z.unknown()`, so a write through it bypasses that
+ * validation entirely, and a malformed recipient is worse than a malformed
+ * section: recipients feed both the consent scope digest and the disclosure
+ * copy a user is shown before agreeing.
+ *
+ * The dedicated routes also invalidate the persona schema cache. A generic
+ * write does not, so it would serve a stale schema for up to a minute on top of
+ * storing an unvalidated one.
+ *
+ * Rejected here rather than in the route so every caller of the validator
+ * inherits the refusal.
+ */
+export const RESERVED_SETTING_PREFIXES = ['persona.', 'dataSharing.'] as const;
+
 export const adminSettingSchema = z.object({
-  key: z.string().min(1).max(128),
+  key: z
+    .string()
+    .min(1)
+    .max(128)
+    .refine(
+      (key) => !RESERVED_SETTING_PREFIXES.some((prefix) => key.startsWith(prefix)),
+      {
+        // Names only surfaces that EXIST. An earlier version sent operators to
+        // /api/admin/data-sharing, which has never shipped, so somebody
+        // following the message hit a 404 and concluded the feature was broken.
+        // Data-sharing recipients and both k-anonymity floors are config-file
+        // only in this release, validated at boot.
+        message:
+          'This setting has its own route. Use /api/admin/persona/schema for persona keys, ' +
+          'and declare data-sharing recipients and thresholds in commonpub.config.ts, ' +
+          'so the document is validated before it is stored.',
+      },
+    ),
   value: z.unknown(),
 });
 export type AdminSettingInput = z.infer<typeof adminSettingSchema>;

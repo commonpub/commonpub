@@ -32,6 +32,10 @@ function makeConfig(idOverrides: Partial<CommonPubConfig['features']['identity']
       referralLinks: false,
       featuredHub: false,
       hubGovernance: false,
+      persona: false,
+      dataSharingConsents: false,
+      personaAnalytics: false,
+      memberDirectory: false,
       identity: {
         linkRemoteAccounts: false,
         signInWithRemote: false,

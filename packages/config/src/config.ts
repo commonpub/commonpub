@@ -48,6 +48,16 @@ export function defineCommonPubConfig(input: {
   /** Analytics provider + property. Its cookies are derived from the provider
    *  registry, so they do NOT need declaring in `cookies` above. */
   analytics?: AnalyticsConfig;
+  /** Persona sections and link platforms, typed `unknown` on purpose: this
+   *  package deliberately does not know what a persona section is, and
+   *  `@commonpub/persona` validates the document at resolution time (plan
+   *  14.3). Author it with `definePersonaSections()` from that package for a
+   *  typed literal. Without this key the zod schema would accept the config
+   *  while the hand-written input type rejected it. */
+  persona?: unknown;
+  /** Data-sharing recipients and k-anonymity thresholds. Same passthrough
+   *  rationale as `persona` above; `dataSharingConfigSchema` validates it. */
+  dataSharing?: unknown;
 }): ConfigResult {
   const config = configSchema.parse(input) as CommonPubConfig;
   const warnings: ConfigWarning[] = [];

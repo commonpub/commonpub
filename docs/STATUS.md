@@ -4,7 +4,10 @@
 > Verify any version/flag claim before trusting it: `npm view @commonpub/<pkg> version`,
 > `curl https://<instance>/api/features`, `cargo search create-commonpub`.
 > **Current LIVE (all 3 instances):** schema **0.63** / config **0.36** / infra **0.19** / editor **0.17** /
-> server **2.127** / layer **0.128**, migration **0045**, **39 flags** (session 250, 2026-08-07/08 — contest
+> server **2.130** / layer **0.133**, migration **0045**, **42 flags** LIVE (session 254).
+> **UNPUBLISHED in this working tree (sessions 255):** `@commonpub/persona` 0.1.0 (new package),
+> migrations **0046** (persona) and **0047** (member directory), **46 flags**. Nothing rolled; see
+> `docs/sessions/255-handoff.md`. Previous banner, session 250, 2026-08-07/08 — contest
 > email CTAs now absolute AND pointed at the contest instead of account signup, hero register CTA,
 > registration required before entering; **CI green**, incl. the docs worker-RPC flake fixed at the source). **Layer 0.119 = post-launch hotfix: contest hero mobile
 > description Show more/less toggle + `markdownToExcerpt` strips `<!--` HTML comments so a Markdown-imported
@@ -24,6 +27,41 @@
 > `docs/sessions/249-kickoff.md`**, the session-246 audit `docs/reviews/production-readiness-audit-2026-07-23.md`
 > (batch-2 P2s still open), scalability memory `project_pagination_scalability.md`, contest guide
 > `docs/reference/guides/contests.md`.
+
+---
+
+## Session 255 (2026-08-12) — persona, purpose consent, audience analytics — **BUILT, NOT ROLLED**
+
+**Nothing here is published, and nothing has run in a browser.** All three flags default `false`,
+so an instance that takes the roll without turning them on is unchanged.
+
+Migration 0046 and the whole persona read/write/consent/rollup path HAVE now been exercised against
+a real PostgreSQL 16 (the `docker compose` instance on :5433, full 47-migration chain, then the real
+`@commonpub/server` functions against it). What that confirmed, which PGlite could not:
+`uq_purpose_current` keeps a full history while rejecting a second current row; all three FKs cascade
+on account delete while `persona_metrics_daily` survives (it holds no `user_id`); the consent inner
+join with `HAVING count(*) >= minBucket` runs and drops a 3-person bucket while reporting
+`suppressed: 1`; a 12-person bucket publishes as 10, so quantisation floors; the rollup writes both
+the `*suppressed` sentinel and the `scope:<digest>` meta row; and a finalised day is refused with
+`scope_changed` under a different digest and with `insufficient_population` under a raised floor.
+**A browser pass is still outstanding**, and it is what blocks the roll.
+
+| Thing | State |
+|---|---|
+| `@commonpub/persona` | **NEW package, 0.1.0, unpublished.** Zod-only pure TS: field registry, storage partition, completeness, purpose registry, scope digest, k-anonymity floors, every Zod schema. |
+| Migration | **0046** (`0046_jazzy_frog_thor.sql`). Four `CREATE TABLE`, seven indexes, three FKs on its own tables, **zero `ALTER`s**. Its SQL is executed by `packages/server/src/__tests__/persona-migration-0046.integration.test.ts`. |
+| Tables | `user_persona_answers`, `user_persona_text`, `user_purpose_consents`, `persona_metrics_daily` |
+| Flags | **46 total**, four new: `persona`, `dataSharingConsents`, `personaAnalytics`, `memberDirectory`, all default `false`. `personaAnalytics` publishing now REQUIRES `dataSharingConsents`, because everything it counts is a purpose grant. `memberDirectory` opens the opt-in member visibility directory (`GET /api/public/v1/members/open-to/{audience}`, scope `read:members`) and is inert until a papered recipient covering the purpose is declared in `dataSharing.recipients`. |
+| Routes | 17 new: 7 member, 5 admin, 4 public `/api/public/v1/metrics/persona/*` behind `read:audience`, and `GET /api/users/:username/persona` (the public-profile render, its own route so `UserProfile` — shared with the public API serializer and the federation actor — stays untouched) |
+| Pages | `/settings/persona`, `/settings/privacy`, `/admin/persona`, `/admin/persona-metrics` (the audience dashboard, gated on `audit.read`, NOT `settings.manage`) |
+| Config | `config.persona` and `config.dataSharing`, both opaque passthroughs. **File-only**: there is no runtime override route for `dataSharing.*`. A commented example lives in `apps/reference/commonpub.config.ts`. |
+
+**Roll order and the five open blockers are in `docs/sessions/255-handoff.md`.** The roll starts with
+a `chore(release)` commit: no package version changed in this work, so the publish steps fail
+literally as written without one, and a fork's `@commonpub/schema` pin has no new minor to cross,
+which is the condition that makes `db-migrate` silently skip 0046.
+
+Post-build audit and what it changed: plan section **14.10**.
 
 ---
 

@@ -274,6 +274,12 @@ export interface AdminApiKeyView {
   description: string | null;
   allowedOrigins: string[] | null;
   rateLimitPerMinute: number;
+  /**
+   * The named recipient this key discloses members to, or `null` for every key
+   * that does not hold `read:members`. Carried so the admin list can show an
+   * unbound member key as reading nothing rather than looking healthy.
+   */
+  recipientId: string | null;
   createdBy: { id: string; username: string; displayName: string | null } | null;
   createdAt: string;
   lastUsedAt: string | null;
@@ -295,6 +301,7 @@ export function toAdminApiKeyView(
     description: key.description,
     allowedOrigins: key.allowedOrigins,
     rateLimitPerMinute: key.rateLimitPerMinute,
+    recipientId: key.recipientId ?? null,
     createdBy,
     createdAt: key.createdAt.toISOString(),
     lastUsedAt: key.lastUsedAt?.toISOString() ?? null,

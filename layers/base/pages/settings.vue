@@ -1,7 +1,7 @@
 <script setup lang="ts">
 definePageMeta({ middleware: 'auth' });
 useSeoMeta({ title: `Settings, ${useSiteName()}` });
-const { referralLinks } = useFeatures();
+const { referralLinks, persona, dataSharingConsents } = useFeatures();
 </script>
 
 <template>
@@ -13,8 +13,14 @@ const { referralLinks } = useFeatures();
           <NuxtLink to="/settings/profile" class="cpub-settings-link">
             <i class="fa-solid fa-user" style="width: 14px"></i> Profile
           </NuxtLink>
+          <NuxtLink v-if="persona" to="/settings/persona" class="cpub-settings-link">
+            <i class="fa-solid fa-id-card" style="width: 14px"></i> Profile Details
+          </NuxtLink>
           <NuxtLink to="/settings/account" class="cpub-settings-link">
             <i class="fa-solid fa-shield-halved" style="width: 14px"></i> Account
+          </NuxtLink>
+          <NuxtLink v-if="dataSharingConsents" to="/settings/privacy" class="cpub-settings-link">
+            <i class="fa-solid fa-user-shield" style="width: 14px"></i> Privacy
           </NuxtLink>
           <NuxtLink to="/settings/notifications" class="cpub-settings-link">
             <i class="fa-solid fa-bell" style="width: 14px"></i> Notifications

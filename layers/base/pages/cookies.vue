@@ -6,6 +6,10 @@ useSeoMeta({ title: `Cookie Policy, ${siteName.value}` });
 
 const { cookies, consentLevel, acceptAll, acceptEssential, resetConsent, hasConsented, consentIsStale } = useCookieConsent();
 
+// Gates the sharing pointer below. The cookie surface itself is unaffected by
+// this flag; it only decides whether there IS a sharing decision to point at.
+const { dataSharingConsents } = useFeatures();
+
 const essentialCookies = computed(() => cookies.value.filter((c) => c.category === 'essential'));
 const functionalCookies = computed(() => cookies.value.filter((c) => c.category === 'functional'));
 const analyticsCookies = computed(() => cookies.value.filter((c) => c.category === 'analytics'));
@@ -127,6 +131,22 @@ const analyticsCookies = computed(() => cookies.value.filter((c) => c.category =
         <p>You can change your cookie preferences at any time using the buttons above or by clearing your browser cookies. Most browsers also allow you to control cookies through their settings.</p>
         <p v-if="analyticsCookies.length > 0">Withdrawing consent deletes the analytics cookies listed above from this device and tells the analytics code to stop storing anything and stop reporting your visits. Nothing further is collected, and no analytics cookie is set again unless you accept.</p>
         <p>For more information about how we handle your data, see our <NuxtLink to="/privacy">Privacy Policy</NuxtLink>.</p>
+      </section>
+
+      <!--
+        Cookies and sharing are two different decisions, and until this section
+        existed the second one was reachable only by a member who already knew
+        it was in Settings. Somebody who declines analytics cookies here has no
+        way to discover that a separate sharing choice is waiting for them.
+
+        A LINK, never a fourth button, and never a purpose folded into the
+        cookie level: `currentScope` digests cookies only, so a purpose reaching
+        that digest would re-prompt every visitor on the instance.
+      -->
+      <section v-if="dataSharingConsents" class="cpub-legal-section">
+        <h2>Sharing what you tell us about yourself</h2>
+        <p>Cookies are separate from what you choose to share about yourself. Your answers on your profile are only counted in community statistics if you turn that on, and it is off unless you do.</p>
+        <p>You can review and change those choices in <NuxtLink to="/settings/privacy">Privacy settings</NuxtLink>.</p>
       </section>
     </div>
   </div>

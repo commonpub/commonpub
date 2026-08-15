@@ -34,7 +34,12 @@ import {
   reports,
   hubFlags,
   files,
+  userPersonaAnswers,
+  userPersonaText,
+  userPurposeConsents,
+  disclosureEvents,
 } from '@commonpub/schema';
+import type { PersonaSection } from '@commonpub/persona';
 import { eq, sql } from 'drizzle-orm';
 
 // SECURITY / THIRD-PARTY EXCLUSIONS (session 231 round-6 audit) — deliberately
@@ -89,6 +94,69 @@ export interface UserDataExport {
   certificates: Array<Record<string, unknown>>;
   files: Array<Record<string, unknown>>;
   contentVersions: Array<Record<string, unknown>>;
+  // Persona (session 255). Every persona table carrying `user_id` appears here,
+  // and a parity guard asserts it, so a new persona table cannot be silently
+  // omitted from a subject access request. `socialLinks` and `website` stay on
+  // the profile section above: the normalization into a links table is deferred
+  // (plan section 14.4), so removing them here would drop data that is still the
+  // only home of the subject's links.
+  personaAnswers: Array<Record<string, unknown>>;
+  personaText: Array<Record<string, unknown>>;
+  purposeConsents: Array<Record<string, unknown>>;
+  /**
+   * Who this instance disclosed the subject to, and when.
+   *
+   * This is the direct answer to the Art. 15(1)(c) question "who are the
+   * recipients of my personal data", so it is the last section that should be
+   * missing from a copy the subject can download. It carries the recipient id
+   * rather than a resolved name on purpose: a recipient the operator has since
+   * removed still has to appear, and the id is the durable fact.
+   */
+  disclosureEvents: Array<Record<string, unknown>>;
+}
+
+export interface UserDataExportOptions {
+  /**
+   * The instance's EFFECTIVE persona schema, after file/DB precedence.
+   *
+   * Used only to resolve labels. Every persona row is exported with its raw
+   * `sectionKey`, `fieldKey` and stored `value` whether or not a label resolves
+   * (plan section 6.11), so a retired or renamed field is never invisible in a
+   * subject access request; passing the sections only adds the human-readable
+   * side of each row.
+   *
+   * There is deliberately NO default. Defaulting to the built-in sections would
+   * print a built-in label next to an operator's relabelled field, and a wrong
+   * label in a legal record is worse than no label. The caller that can reach
+   * the persona registry passes the resolved sections; a caller that cannot
+   * passes nothing and gets raw keys.
+   */
+  personaSections?: readonly PersonaSection[];
+}
+
+interface PersonaFieldLabels {
+  label: string;
+  /** Option value to option label, for closed-vocabulary answers. */
+  options: Map<string, string>;
+}
+
+/** sectionKey and fieldKey lookups built once per export. */
+function indexPersonaLabels(sections: readonly PersonaSection[] | undefined): {
+  sections: Map<string, string>;
+  fields: Map<string, PersonaFieldLabels>;
+} {
+  const sectionLabels = new Map<string, string>();
+  const fieldLabels = new Map<string, PersonaFieldLabels>();
+  for (const section of sections ?? []) {
+    sectionLabels.set(section.key, section.label);
+    for (const field of section.fields) {
+      fieldLabels.set(field.key, {
+        label: field.label,
+        options: new Map((field.options ?? []).map((o) => [o.value, o.label])),
+      });
+    }
+  }
+  return { sections: sectionLabels, fields: fieldLabels };
 }
 
 /**
@@ -102,13 +170,19 @@ export interface UserDataExport {
  * acceptances, hub memberships + authored hub posts/replies, learning
  * enrollments + authored paths + certificates, events + RSVPs, videos,
  * products, docs sites, uploaded files, referral links + own attribution,
- * contest votes cast, and reports + hub moderation flags the user raised (their
- * statement only). It deliberately EXCLUDES
+ * contest votes cast, reports + hub moderation flags the user raised (their
+ * statement only), and the persona sections: closed-vocabulary answers, free
+ * text, and the full purpose-consent history with the snapshot of what was
+ * shown at each grant or withdrawal. It deliberately EXCLUDES
  * secrets (keypairs, sessions, accounts) and third-party-bearing tables
  * (audit_logs) — see the exclusion note at the top of this module. Rows that
  * name a third party are projected down to the subject's own fields.
  */
-export async function exportUserData(db: DB, userId: string): Promise<UserDataExport> {
+export async function exportUserData(
+  db: DB,
+  userId: string,
+  opts: UserDataExportOptions = {},
+): Promise<UserDataExport> {
   const [profile, content, userComments, userLikes, following, followers, userBookmarks, userNotifications, userMessages] = await Promise.all([
     // Profile
     db.select({
@@ -480,6 +554,75 @@ export async function exportUserData(db: DB, userId: string): Promise<UserDataEx
     }).from(contentVersions).where(eq(contentVersions.createdById, userId)),
   ]);
 
+  // Persona batch (session 255). All three tables are the subject's own rows and
+  // name no third party. `purposeConsents` is the reason this feature writes no
+  // `sharing:*` row into `user_consents` (plan section 14.4): this section is
+  // strictly more informative than that audit row would have been, because it
+  // carries the state, the scope digest and the snapshot of the exact copy the
+  // user was shown, and it needs no ALTER on a live GDPR table.
+  const [personaAnswerRows, personaTextRows, purposeConsentRows, disclosureEventRows] = await Promise.all([
+    db.select({
+      sectionKey: userPersonaAnswers.sectionKey,
+      fieldKey: userPersonaAnswers.fieldKey,
+      value: userPersonaAnswers.value,
+      createdAt: userPersonaAnswers.createdAt,
+    }).from(userPersonaAnswers).where(eq(userPersonaAnswers.userId, userId)),
+
+    db.select({
+      sectionKey: userPersonaText.sectionKey,
+      fieldKey: userPersonaText.fieldKey,
+      value: userPersonaText.value,
+      createdAt: userPersonaText.createdAt,
+      updatedAt: userPersonaText.updatedAt,
+    }).from(userPersonaText).where(eq(userPersonaText.userId, userId)),
+
+    // The FULL history, not just the current row: an Art. 15 request about
+    // consent that showed only the latest state would hide every withdrawal.
+    db.select({
+      purpose: userPurposeConsents.purpose,
+      state: userPurposeConsents.state,
+      scopeDigest: userPurposeConsents.scopeDigest,
+      scopeSnapshot: userPurposeConsents.scopeSnapshot,
+      policyVersion: userPurposeConsents.policyVersion,
+      source: userPurposeConsents.source,
+      actedAt: userPurposeConsents.actedAt,
+      supersededAt: userPurposeConsents.supersededAt,
+      ipAddress: userPurposeConsents.ipAddress,
+      userAgent: userPurposeConsents.userAgent,
+    }).from(userPurposeConsents).where(eq(userPurposeConsents.userId, userId)),
+
+    // Every disclosure made about this subject through the member visibility
+    // directory. One row per (recipient, member) per response, so a repeat pull
+    // shows as a repeat row and the count is the signal. Retained for
+    // `dataSharing.disclosureRetentionYears`, so this section is bounded by the
+    // same window the member sees on /settings/privacy, not by all time.
+    db.select({
+      recipientId: disclosureEvents.recipientId,
+      purpose: disclosureEvents.purpose,
+      scopeDigest: disclosureEvents.scopeDigest,
+      disclosedAt: disclosureEvents.disclosedAt,
+    }).from(disclosureEvents).where(eq(disclosureEvents.userId, userId)),
+  ]);
+
+  // Label resolution. The raw keys are ALWAYS emitted and the label is `null`
+  // when nothing resolves, so a field the operator retired or renamed still
+  // appears with its stored value rather than vanishing from the export.
+  const labels = indexPersonaLabels(opts.personaSections);
+  const personaAnswerRowsLabelled = personaAnswerRows.map((r) => {
+    const field = labels.fields.get(r.fieldKey);
+    return {
+      ...r,
+      sectionLabel: labels.sections.get(r.sectionKey) ?? null,
+      fieldLabel: field?.label ?? null,
+      valueLabel: field?.options.get(r.value) ?? null,
+    };
+  });
+  const personaTextRowsLabelled = personaTextRows.map((r) => ({
+    ...r,
+    sectionLabel: labels.sections.get(r.sectionKey) ?? null,
+    fieldLabel: labels.fields.get(r.fieldKey)?.label ?? null,
+  }));
+
   return {
     exportedAt: new Date().toISOString(),
     profile: profile[0] ?? {},
@@ -523,5 +666,9 @@ export async function exportUserData(db: DB, userId: string): Promise<UserDataEx
     certificates: earnedCertificates as Record<string, unknown>[],
     files: uploadedFiles as Record<string, unknown>[],
     contentVersions: authoredContentVersions as Record<string, unknown>[],
+    personaAnswers: personaAnswerRowsLabelled as Record<string, unknown>[],
+    personaText: personaTextRowsLabelled as Record<string, unknown>[],
+    purposeConsents: purposeConsentRows as Record<string, unknown>[],
+    disclosureEvents: disclosureEventRows as Record<string, unknown>[],
   };
 }

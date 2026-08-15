@@ -1,13 +1,19 @@
 <script setup lang="ts">
 import { analyticsSpec } from '@commonpub/config/analytics';
 import type { AnalyticsConfig } from '@commonpub/config/analytics';
+import { PROCESSING_PURPOSES, PROCESSING_PURPOSE_SPECS } from '@commonpub/persona';
+import type { ProcessingPurposeId } from '@commonpub/persona';
 useSeoMeta({
   title: `Privacy Policy, ${useSiteName()}`,
   description: 'How we collect, use, and protect your personal data.',
 });
 
 const siteName = useSiteName();
-const { federation: federationEnabled, analytics: analyticsEnabled } = useFeatures();
+const {
+  federation: federationEnabled,
+  analytics: analyticsEnabled,
+  dataSharingConsents: sharingEnabled,
+} = useFeatures();
 
 // What this instance actually measures, derived from the configured provider so
 // the page cannot claim something the code does not do (in either direction).
@@ -18,13 +24,70 @@ const analytics = computed(() =>
     : null,
 );
 
-// Section numbers are DERIVED, not hand-written. Two sections are conditional,
-// and the numbering was previously a chain of `federationEnabled ? '7' : '6'`
+/*
+ * The sharing choices, RENDERED FROM THE PURPOSE REGISTRY rather than restated.
+ *
+ * This closes an audit finding: the cookie banner and `/cookies` both link
+ * across to Privacy settings, and `/settings/privacy` renders every sentence of
+ * consent copy from `@commonpub/persona`, but this page (the one a person reads
+ * BEFORE signing up, and the one Art. 13 is actually about) never described the
+ * purposes at all. Paraphrasing them here would have created a second copy that
+ * drifts from the one members act on, which is precisely what the registry
+ * exists to prevent, so nothing below is written in this file.
+ *
+ * WHAT IS DELIBERATELY NOT RENDERED HERE, and why. `onSummaryTemplate` is a
+ * TEMPLATE, not a sentence: `profile_analytics` names the operator's
+ * k-anonymity floor, and only the server can resolve it (it lives in
+ * `dataSharing.minBucket`, which is not in the public runtime config). A page
+ * that substituted a plausible default would state "at least five people" on an
+ * instance whose SQL floor is 25, understating a member's own protection by
+ * five times, which is the exact defect `renderPurposeOnSummary` was introduced
+ * to prevent. So a template carrying a token is not rendered as prose at all;
+ * the resolved sentence is shown beside the switch on `/settings/privacy`,
+ * where the server renders it, and this page says so. A test asserts no
+ * `{token}` ever reaches the DOM.
+ *
+ * Likewise this page names no RECIPIENTS. Which parties are declared, and which
+ * of these choices are therefore offered at all, is instance state resolved
+ * server-side (`purposeIsOfferable` over `dataSharing.recipients`), and there is
+ * no unauthenticated payload carrying it. Naming a party this instance has not
+ * declared would be worse than pointing at the surface that lists them, which is
+ * what the lead paragraph does.
+ */
+const FLOOR_TOKEN = /\{[a-zA-Z]+\}/;
+
+interface PolicyPurpose {
+  id: ProcessingPurposeId;
+  label: string;
+  offSummary: string;
+  /** Empty when the registry sentence needs an operator value to be true. */
+  onSummary: string;
+  revocationEffect: string;
+}
+
+const sharingPurposes = computed<PolicyPurpose[]>(() =>
+  sharingEnabled.value
+    ? PROCESSING_PURPOSES.map((id) => {
+        const spec = PROCESSING_PURPOSE_SPECS[id];
+        return {
+          id,
+          label: spec.label,
+          offSummary: spec.offSummary,
+          onSummary: FLOOR_TOKEN.test(spec.onSummaryTemplate) ? '' : spec.onSummaryTemplate,
+          revocationEffect: spec.revocationEffect,
+        };
+      })
+    : [],
+);
+
+// Section numbers are DERIVED, not hand-written. Three sections are conditional
+// now, and the numbering was previously a chain of `federationEnabled ? '7' : '6'`
 // ternaries that every later heading had to repeat: adding one more conditional
 // section would have meant editing all of them and getting it right by hand.
 const sectionKeys = computed(() => [
   'who', 'data', 'use', 'basis', 'cookies',
   ...(analytics.value ? ['analytics'] : []),
+  ...(sharingPurposes.value.length ? ['sharing'] : []),
   ...(federationEnabled.value ? ['federation'] : []),
   'third-party', 'retention', 'rights', 'contact',
 ]);
@@ -145,6 +208,29 @@ const essentialCookies = computed(() => cookies.value.filter((c) => c.category =
           and the full list of what each provider is allowed to contact and which cookies it sets is
           <a :href="`${SOURCE_BASE}/packages/config/src/analytics.ts`" target="_blank" rel="noopener">packages/config/src/analytics.ts</a>.
           You can also confirm it in your own browser: open developer tools and check that no request to {{ analytics.processor }} is made until you accept.</p>
+      </section>
+
+      <!--
+        Every sentence in this section comes from the purpose registry in
+        `@commonpub/persona`, the same source `/settings/privacy` renders. It is
+        not a summary of those choices, because a summary is a second copy and a
+        second copy drifts from the behaviour it describes.
+      -->
+      <section v-if="sharingPurposes.length" class="cpub-legal-section">
+        <h2>{{ n('sharing') }}. Choices you make about your own profile</h2>
+        <p>These are separate from cookies. Each one is off unless you turn it on, turning one off is one click on the same control that turned it on, and our legal basis for every one of them is your consent (Art. 6(1)(a)). Which of these this site offers, the parties each one names, and the exact wording that applies here are all shown beside the switch in your <NuxtLink to="/settings/privacy">Privacy settings</NuxtLink>.</p>
+
+        <div v-for="purpose in sharingPurposes" :key="purpose.id">
+          <h3>{{ purpose.label }}</h3>
+          <!-- What is true while it is OFF is read before what would change, on
+               this page for the same reason it is on the consent card. -->
+          <p>{{ purpose.offSummary }}</p>
+          <p v-if="purpose.onSummary">{{ purpose.onSummary }}</p>
+          <p v-else>What turning this on does is described in one sentence that names a number the operator of this site chooses, so it is shown beside the switch in your <NuxtLink to="/settings/privacy">Privacy settings</NuxtLink> rather than restated here with a number that might not be this site's.</p>
+          <p>{{ purpose.revocationEffect }}</p>
+        </div>
+
+        <p>None of these choices shares your email address, and none of them creates a way for anyone to contact you other than the messages any account on this site can already send you.</p>
       </section>
 
       <section v-if="federationEnabled" class="cpub-legal-section">

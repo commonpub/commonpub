@@ -160,6 +160,46 @@ export const featureFlagsSchema = z.object({
   // Steward role (moderate discussions + flag projects/members, no destructive
   // powers), and members unlink their own shared projects. Default OFF.
   hubGovernance: z.boolean().default(false),
+  // Persona: operator-defined profile sections users fill in about themselves
+  // (interests, tech stack, what they're building). Gates the persona editor,
+  // /api/persona/*, the dashboard invitation, the admin schema editor at
+  // /admin/persona, AND the render on the member's PUBLIC profile
+  // (GET /api/users/:username/persona, shown in the About tab of /u/:username).
+  // That last one is why this flag is more than a collection switch: turning it
+  // on both starts collecting personal data that was not collected before and
+  // starts DISPLAYING it, subject to each field's `publicOnProfile` and the
+  // member's own `profileVisibility`. Neither is a change an upgrade should make
+  // for an operator silently, hence default OFF. The section definitions live in
+  // `config.persona`, which this package accepts opaquely (see configSchema below).
+  persona: z.boolean().default(false),
+  // Purpose-scoped data-sharing consents. Gates the purpose toggles,
+  // /settings/privacy and /api/consent/purposes. Default OFF: this is the
+  // DISCLOSING surface, a separate risk from collecting, so an operator opts in
+  // to it separately from `persona`.
+  dataSharingConsents: z.boolean().default(false),
+  // Aggregate persona audience metrics. Gates the aggregate endpoint family,
+  // the daily rollup pass, GET /api/admin/persona-metrics and the admin audience
+  // dashboard that reads it at /admin/persona-metrics (whose nav entry needs
+  // `audit.read`, not `settings.manage`). Default OFF, and
+  // inert unless `persona` is also on (nothing to aggregate). The public
+  // endpoints additionally require `publicApi`, a `read:audience` key AND
+  // `dataSharingConsents`: everything they count is a purpose grant, so the
+  // counting must not outlive the surface where a member withdraws one.
+  // Aggregating is a third risk surface, hence a third flag.
+  personaAnalytics: z.boolean().default(false),
+  // Member visibility directory. Turning this on lets a NAMED RECIPIENT, holding
+  // a key bound to that recipient, LIST the individual members who opted in to
+  // `recruiter_visibility` or `sponsor_sharing`: username, public profile fields
+  // and public persona answers, filterable. Never an email address, and no
+  // contact channel beyond the on-site DMs any two accounts already have.
+  // This is the only persona flag that discloses IDENTIFIED people rather than
+  // k-anonymous counts, which is why it is its own switch and defaults OFF.
+  // It is INERT until a recipient covering the purpose is declared in
+  // `config.dataSharing.recipients`: with no recipient there is no key binding
+  // to grant, the member is never offered the consent, and the endpoint has
+  // nobody to answer. Also inert without `persona`, `dataSharingConsents`,
+  // `publicApi` and a `read:members` key.
+  memberDirectory: z.boolean().default(false),
 });
 
 // --- Compile-time parity guard --------------------------------------------------
@@ -313,4 +353,16 @@ export const configSchema = z.object({
   cookies: z.array(cookieDefinitionSchema).optional(),
   themes: z.array(registeredThemeSchema).optional(),
   defaultTheme: z.string().max(64).optional(),
+  // OPAQUE PASSTHROUGH. `@commonpub/config` deliberately does not know what a
+  // persona section, a persona field type or a data recipient is. That
+  // vocabulary belongs to `@commonpub/persona`, which validates both blocks at
+  // resolution time (plan section 14.3). Importing `@commonpub/persona` here
+  // would invert the dependency direction: config is the package everything
+  // else depends on and it depends on nothing but zod, so it must not learn a
+  // feature's domain types. Accepting the keys as `unknown` keeps
+  // `commonpub.config.ts` the single place an operator declares them without
+  // creating that edge, and an operator typo still fails loudly — just at
+  // registry resolution rather than at config parse.
+  persona: z.unknown().optional(),
+  dataSharing: z.unknown().optional(),
 });

@@ -9,13 +9,15 @@ A scoped, admin-provisioned REST API for reading CommonPub data from outside the
 4. [Rate limiting](#rate-limiting)
 5. [Endpoints](#endpoints)
 6. [Metrics](#metrics)
-7. [Metrics privacy contract](#metrics-privacy-contract)
-8. [Errors](#errors)
-9. [What is NEVER returned](#what-is-never-returned)
-10. [CORS](#cors)
-11. [Versioning and deprecation](#versioning-and-deprecation)
-12. [Creating a key (admin)](#creating-a-key-admin)
-13. [Revoking a key (admin)](#revoking-a-key-admin)
+7. [Audience metrics (persona)](#audience-metrics-persona)
+8. [Member visibility directory](#member-visibility-directory)
+9. [Metrics privacy contract](#metrics-privacy-contract)
+10. [Errors](#errors)
+11. [What is NEVER returned](#what-is-never-returned)
+12. [CORS](#cors)
+13. [Versioning and deprecation](#versioning-and-deprecation)
+14. [Creating a key (admin)](#creating-a-key-admin)
+15. [Revoking a key (admin)](#revoking-a-key-admin)
 
 ## Status and scope
 
@@ -65,9 +67,37 @@ Scopes are read-only in v1. A key must hold the listed scope for each endpoint. 
 | `read:search` | `/search` |
 | `read:analytics` | `/metrics/overview`, `/metrics/content/top`, `/metrics/tags/trending`, `/metrics/contributors/top`, `/metrics/engagement`, `/metrics/timeseries` |
 | `read:federation` | `/metrics/federation` (also needs `features.publicApiMetricsFederation`) |
-| `read:*` | every `read:...` scope |
+| `read:audience` | `/metrics/persona/fields`, `/metrics/persona/distribution`, `/metrics/persona/links`, `/metrics/persona/audience` (also needs `features.persona` and `features.personaAnalytics`) |
+| `read:members` | `/members/open-to/:audience` (also needs `features.persona`, `features.dataSharingConsents` and `features.memberDirectory`, **and** a key bound to a named data recipient) |
+| `read:*` | every `read:...` scope EXCEPT the wildcard-protected ones below |
 
 A wrong-scope request returns `403 Missing scope: <scope>`.
+
+### Scopes `read:*` does not cover
+
+Two scopes are **wildcard protected**: a key holding `read:*` is refused and
+must be granted them by name.
+
+- `read:audience`, on the four aggregate persona endpoints.
+- `read:members`, on the member visibility directory. It is the only scope in
+  the API that returns identified people rather than aggregates, and it needs a
+  recipient binding on top of the scope itself, so a `read:*` key could not use
+  it even if the wildcard covered it.
+
+The reason is that the scope arrived after the keys did. Keys already in the
+field were issued to read content and instance metrics; the people who issued
+them agreed to that, not to member cohort data derived from answers their
+members gave under a separate consent. A shortcut that silently widened as new
+scopes shipped would make every past grant a blank cheque.
+
+The protected set is `WILDCARD_PROTECTED_SCOPES`, declared in
+`packages/schema/src/validators/publicApi.ts` and re-exported as a Set by
+`packages/server/src/publicApi/scopes.ts`. It is the single source for this
+table, for the admin key screen's disclaimer and for the refusal itself, and a
+test derives this section's list from it so a protected scope cannot ship
+undocumented. An explicit grant always wins: a key holding both `read:*` and
+`read:audience` passes, because the exact-match check runs before the
+protection check.
 
 ## Rate limiting
 
@@ -301,6 +331,236 @@ Scope: `read:federation`. Federation reach: known instances, active mirrors, acc
 
 Opt-in: requires both `features.federation` and `features.publicApiMetricsFederation` (default OFF). When either is off the endpoint returns `404`, keeping the surface invisible. This exposes network-topology data about third-party instances, so enabling it is a deliberate operator decision on top of granting the `read:federation` scope.
 
+## Audience metrics (persona)
+
+Group totals over the optional questions members answer about themselves. Four
+endpoints, all scoped `read:audience`, all requiring `features.persona` and
+`features.personaAnalytics`. When either flag is off they return `404`, not
+`403`, so an instance that does not run this feature does not advertise it.
+
+Three properties hold across all four, and they are enforced in SQL rather than
+in the serializer:
+
+- **Consent is a join, not a check.** Every aggregate INNER JOINs the consent
+  table on a current grant whose recorded scope digest equals the live one. A
+  grant given against an older disclosure authorises nothing, and there is no
+  code path that counts a person without passing through that join.
+- **Counts are FLOORED, never rounded**, to a multiple of `quantum` (the
+  instance's k-anonymity bucket floor, at least 5). Rounding to nearest would
+  publish a true 8 as 10, which on a small instance is a false statement and
+  overstates every cohort an operator is making decisions with.
+- **A completed UTC day, not a live count.** These endpoints serve the finalised
+  rollup and report which day in `asOf`. A live count can be polled, and polling
+  reveals the moment a bucket crosses the floor from below, which is the floor
+  defeated by repetition.
+
+Two things are refused outright and are not planned: cross-tabulation (asking
+for one field split by another), and cohort membership (asking who is in a
+bucket). Both turn group totals back into an identification tool.
+
+### `GET /api/public/v1/metrics/persona/fields`
+
+The countable fields on THIS instance, so a caller can discover the cohorts
+before asking for one. Schema metadata, never answers. Query: `limit`
+(1..100, default 20). Returns `items`, `limit`, `total` and `truncated` (both
+counting FIELDS), plus `quantum` and `asOf`.
+
+### `GET /api/public/v1/metrics/persona/distribution`
+
+One field's distribution. Query: `field` (required, a key from `/fields`),
+`limit` (1..100, default 20).
+
+```json
+{
+  "field": "interests",
+  "label": "What are you into?",
+  "items": [
+    { "value": "robotics", "label": "Robotics", "count": 40 },
+    { "value": "pcb", "label": "PCB design", "count": 25 }
+  ],
+  "suppressed": 2,
+  "quantum": 5,
+  "available": true,
+  "asOf": "2026-08-11"
+}
+```
+
+`suppressed` is a count of withheld BUCKETS, never of people. There is
+deliberately no `total`, no `population` and no `eligibleUsers`: publishing a
+total alongside suppressed buckets lets a caller subtract, which recovers the
+withheld count exactly.
+
+When the surface cannot be served, `available` is `false` and `reason` says
+which rule refused. There are five values, and a consumer switching on `reason`
+should handle all of them:
+
+| `reason` | Meaning | What a consumer should do |
+|---|---|---|
+| `no_snapshot_yet` | This instance has not finished a UTC day yet, or its most recent finalised day is more than a week old. **The first value every new instance returns.** | Retry tomorrow. |
+| `scope_changed` | The operator changed what sharing covers (a recipient, the policy version, or the set of counted fields), so every existing grant now authorises nothing until members confirm again. | Retry after the next finalisation. |
+| `insufficient_population` | Fewer consenting, eligible members than the instance's minimum. | Nothing; this is a small instance. |
+| `insufficient_bucket_diversity` | A single-answer field with any withheld bucket, where the remaining buckets would identify the withheld one by elimination. | Nothing; the field is structurally unpublishable at this size. |
+| `purpose_not_offered` | This instance does not offer the purpose the surface counts. | Stop asking for it. |
+
+`asOf` names the finalised UTC day served, or is `null` for a live read and when
+no snapshot exists.
+
+### `GET /api/public/v1/metrics/persona/links`
+
+Presence counts per link platform, computed once a day from profile links. No
+query parameters: a `limit` would drop platforms from a list whose `suppressed`
+count is only meaningful against the whole set. Each item carries
+`authenticitySignal`, which says whether an account on that platform is
+independently verifiable, not anything about the member.
+
+### `GET /api/public/v1/metrics/persona/audience`
+
+Counts of members who have granted a sharing purpose. Requires
+`features.dataSharingConsents` in addition to the two persona flags.
+
+The payload carries a top-level `available`, `reason`, `quantum` and `asOf`
+alongside one slot per registered purpose:
+
+| Slot | Purpose |
+|---|---|
+| `sharingAnalytics` | `profile_analytics` |
+| `openToRecruiters` | `recruiter_visibility` |
+| `openToSponsorSharing` | `sponsor_sharing` |
+
+Each slot is a discriminated union: `{ "available": true, "count": 25 }` or
+`{ "available": false, "reason": "..." }`. Purposes this release does not offer
+are reported as `{ "available": false, "reason": "purpose_not_offered" }` rather
+than as `0`. A hard zero that means "not implemented" reads as "nobody opted in",
+and an operator would act on it. Counts are floored to `quantum` exactly as
+distribution counts are.
+
+**All four persona endpoints require `features.dataSharingConsents`** in addition
+to `persona` and `personaAnalytics`. Everything they count is a purpose grant,
+and that flag governs the surface where a member gives and withdraws one, so the
+counting cannot outlive the ability to manage it.
+
+## Member visibility directory
+
+One endpoint, and the only one in this API that returns identified people. Say
+plainly what it is:
+
+**A list of members who asked to be found.** Each one holds a current, explicit
+grant for the purpose the audience maps to, given against the disclosure that is
+in force today. **No email address is in the payload, ever**, and there is no
+contact channel here at all: a recipient reaches somebody through the
+direct messages any two accounts on the instance already have, subject to the
+same blocking and reporting as every other message on it. Being listed signals
+willingness and grants nothing else. **Every read is logged per recipient, and
+the member can see who looked.**
+
+It is deliberately not under `/metrics/`. A list of people beneath a metrics
+prefix is a category error that invites somebody to hand it an analytics key.
+The persona aggregates exist to make individuals unidentifiable; this endpoint
+identifies them on purpose, with consent, and the two are separate modules that
+share no code path.
+
+### `GET /api/public/v1/members/open-to/{audience}`
+
+Scope: `read:members` (**not** covered by `read:*`). `audience` is `recruiters`
+or `sponsors`; anything else is `404`. Requires `features.persona`,
+`features.dataSharingConsents` and `features.memberDirectory`, all three of
+which return `404` when off, so an instance that does not run the directory does
+not advertise it.
+
+**In this release only `recruiters` can return members.** The recruiter purpose
+tells members that people approved for hiring will see their public profile, so
+it covers disclosing who they are. The sponsor purpose says their interests,
+tech stack and profile links are shared, and never that their name is, so
+`sponsors` answers `404` rather than publishing names under a sentence nobody
+read. Enabling it is a copy change on the purpose, and that change re-asks every
+member who already agreed. That cost is the point, not an obstacle.
+
+**The key must be bound to a named recipient.** An operator binds a key to an
+entry in `dataSharing.recipients`, and the request is refused with `403` unless
+that recipient exists and its declared `purposes` include the purpose the
+audience maps to (`recruiters` to `recruiter_visibility`, `sponsors` to
+`sponsor_sharing`). The binding is what makes a disclosure attributable: without
+it, "who has my data" is a question the instance could not answer. Deleting a
+recipient stops its key immediately; revoking the key afterwards is cleanup, not
+the control.
+
+Query parameters:
+
+| Parameter | Meaning |
+|---|---|
+| `interests`, `techStack`, `industry` | Persona option values, repeatable (`?interests=a&interests=b`) or comma-joined (`?interests=a,b`). OR within one field, AND across fields. An unknown field or an unknown option value is a `400`, never a silent empty page. |
+| `hasLink` | Link platform keys, **ANDed**: a member must have all of them. A caller wanting either can issue two requests and merge; a caller wanting both cannot express that with any number of OR requests, so the API provides the direction that is not recoverable. |
+| `location` | Substring match on the member's own location string. |
+| `q` | Username or display name search, identical to `/users`. |
+| `limit` | 1..**50**, default 20. Half the metrics family's ceiling, because these are people. |
+| `offset` | Default 0. |
+
+```json
+{
+  "items": [
+    {
+      "id": "11111111-...",
+      "username": "ada",
+      "displayName": "Ada Lovelace",
+      "headline": "Builds small robots",
+      "bio": "Mostly ARM and a lot of solder.",
+      "avatarUrl": null,
+      "pronouns": "she/her",
+      "location": "Manchester",
+      "website": "https://ada.example",
+      "skills": ["soldering"],
+      "socialLinks": { "github": "https://github.com/ada" },
+      "createdAt": "2026-01-02T03:04:05.000Z",
+      "persona": [
+        {
+          "fieldKey": "interests",
+          "label": "What are you into?",
+          "display": "chips",
+          "values": ["Robotics"]
+        }
+      ]
+    }
+  ],
+  "total": 1,
+  "hasMore": false,
+  "limit": 20,
+  "offset": 0,
+  "disclosed": 1
+}
+```
+
+`disclosed` is how many rows this response wrote to the instance's disclosure
+log, and it always equals `items.length`. It is published rather than hidden: a
+recipient should be able to see that they are being recorded.
+
+What the payload can and cannot carry:
+
+- The public profile fields, through the same serializer every other public
+  endpoint uses. That serializer has **no email field at all**, so email is
+  structurally absent rather than filtered out.
+- The member's persona answers, resolved to **labels**, never raw option
+  values. A `sensitive` field never appears, a field the operator marked
+  non-public never appears, and a field whose meaning changed since the answer
+  was stored is withheld rather than misrepresented.
+- Nothing a member's own public profile would not already show. This endpoint
+  adds the opt-in signal, the filtering and the audit; it does not widen what is
+  visible.
+
+Refusals worth handling separately:
+
+| Status | Meaning |
+|---|---|
+| `400` | Unknown filter field, unknown option value, or a malformed parameter. The body carries a machine `code`. |
+| `403` | Missing `read:members`, **or** the key is not bound to a recipient declared for this audience. |
+| `404` | Unknown audience, a feature flag off, or the audience's purpose does not cover disclosing who somebody is. The last one is a real state: a purpose whose member-facing copy never said a name would be shared cannot back a listing of names, and widening it takes a copy change that re-asks every member who already agreed. |
+
+Two things this endpoint does not do, and neither is an oversight. **It cannot
+recall what was already disclosed.** A member who revokes disappears from the
+next response; earlier disclosures happened and the member-facing copy says so
+rather than implying otherwise. And **consent is per audience, not per company**:
+a member cannot currently exclude one specific recipient, which needs
+per-recipient consent rows and is deferred rather than pretended.
+
 ## Metrics privacy contract
 
 These rules are enforced in the serializers and queries, not just documented:
@@ -310,7 +570,10 @@ These rules are enforced in the serializers and queries, not just documented:
 - **Public entities only.** Aggregations count only `status='published'`, `visibility='public'`, non-deleted content, and only active, public-profile, non-deleted users, filtered at the SQL level.
 - **Contributor attribution is already-public information.** Leaderboards rank only public-profile users by their already-public published content.
 - **Federation reach is opt-in and domain-level.** Never per-user; gated by a config flag that defaults OFF.
-- **k-anonymity is ready for Phase 3.** Phase 2 exposes only non-pivotable instance aggregates and the intentional contributor leaderboard, so no suppression applies yet; the `METRICS_MIN_BUCKET` threshold guards the user-pivotable breakdowns added with Phase 3 rollups.
+- **Persona aggregates are consent-joined, floored and k-anonymised.** Answers count only where the member's grant is current AND its recorded scope digest matches what is disclosed today, and only where their profile is public, their account active and not deleted. Buckets below the floor are dropped inside the database, and the withheld-bucket count is a bucket count, never a person count. Free-text persona answers are never aggregated, never returned, and are not referenced anywhere in the aggregation module.
+- **k-anonymity applies to the persona family and to nothing else yet.** The Phase 2 content and contributor metrics are non-pivotable instance aggregates plus an intentional public leaderboard, so no suppression applies to them. The persona endpoints are the first surface where `METRICS_MIN_BUCKET` is enforced, and it is enforced in SQL (`HAVING count(*) >= minBucket`), at write time in the rollup, and again on read so that raising the floor takes effect immediately rather than at the next finalisation.
+- **Residual channel, stated rather than hidden.** These are DAILY series. A caller polling once a day can see a bucket appear when it crosses the floor, which says one specific person joined that bucket that day. Serving a finalised day coarsens that observation from hourly to daily; it does not remove it. The population floor (`MIN_AUDIENCE_POPULATION`, 25) is the actual defence, and an operator wanting more should raise `dataSharing.minBucket` and `dataSharing.minPopulation` in `commonpub.config.ts`.
+- **Where the thresholds live.** `dataSharing.recipients`, `dataSharing.policyVersion`, `dataSharing.minBucket` and `dataSharing.minPopulation` are declared in `commonpub.config.ts` only. There is no runtime override route for them in this release, and `PUT /api/admin/settings` refuses any `dataSharing.` key.
 
 ## Errors
 

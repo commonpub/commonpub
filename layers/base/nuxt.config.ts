@@ -141,6 +141,10 @@ export default defineNuxtConfig({
         referralLinks: false,
         featuredHub: false,
         hubGovernance: false,
+        persona: false,
+        dataSharingConsents: false,
+        personaAnalytics: false,
+        memberDirectory: false,
         // Nested identity sub-flags must be declared here too, or
         // NUXT_PUBLIC_FEATURES_IDENTITY_* env overrides silently drop (same
         // rule as the booleans above). Mirrors @commonpub/config's
