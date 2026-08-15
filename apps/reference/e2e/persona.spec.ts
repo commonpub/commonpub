@@ -387,12 +387,35 @@ test.describe('Persona round trip', () => {
         `the privacy page overflows at 390px (${privacyOverflow.scrollWidth} > ${privacyOverflow.innerWidth})`,
       ).toBeLessThanOrEqual(privacyOverflow.innerWidth);
 
-      const switchBox = await page.getByRole('switch').first().boundingBox();
-      expect(switchBox, 'the sharing switch renders at 390px').not.toBeNull();
-      expect(
-        switchBox!.height,
-        'the control that grants and revokes has to clear 44px on a phone',
-      ).toBeGreaterThanOrEqual(44);
+      // Measure the controls this page ACTUALLY has, not the one it used to
+      // have. `dataSharingConsents` being on no longer implies a purpose switch
+      // exists: since statistics moved to legitimate interest, a purpose is only
+      // offerable once a recipient is declared, and CI declares none. Grabbing
+      // `.first()` switch therefore measured nothing and failed on a correctly
+      // configured instance.
+      //
+      // Measuring every relevant control is also a better test than the
+      // original, which measured whichever one happened to render first. Scoped
+      // to the controls this assertion is ABOUT (grant, revoke, object) rather
+      // than every button on the page, so it stays a tap-target check.
+      const controls = page.locator(
+        '.cpub-privacy-settings :is([role="switch"], .cpub-statistics-action, .cpub-visibility-select)',
+      );
+      const controlCount = await controls.count();
+      // The guard's own guard: with `persona` and `personaAnalytics` on, the
+      // objection control always renders, so zero here means the page did not
+      // load and every height assertion below would pass vacuously.
+      expect(controlCount, 'no grant, revoke or objection control rendered on /settings/privacy').toBeGreaterThan(0);
+
+      for (let i = 0; i < controlCount; i += 1) {
+        const box = await controls.nth(i).boundingBox();
+        if (box === null) continue; // genuinely hidden, not a tap target
+        const label = (await controls.nth(i).innerText().catch(() => '')).trim().slice(0, 40);
+        expect(
+          box.height,
+          `a control a member taps has to clear 44px on a phone: "${label || `control ${i}`}"`,
+        ).toBeGreaterThanOrEqual(44);
+      }
     }
 
     await page.setViewportSize({ width: 1280, height: 900 });
