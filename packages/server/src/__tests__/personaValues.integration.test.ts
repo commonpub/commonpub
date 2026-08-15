@@ -5,6 +5,7 @@ import {
   instanceSettings,
   userPersonaAnswers,
   userPersonaText,
+  userSharedLinks,
   users,
 } from '@commonpub/schema';
 import { type PersonaSection, personaCompleteness } from '@commonpub/persona';
@@ -20,10 +21,12 @@ import {
   countPersonaFieldRows,
   deletePersonaFieldValue,
   getPersonaValues,
+  listSharedLinkPlatforms,
   personaAnswerMap,
   purgePersonaField,
   retirePersonaField,
   setPersonaSection,
+  setSharedLinkPlatforms,
   validatePersonaSectionAnswers,
 } from '../persona/values.js';
 
@@ -99,6 +102,7 @@ describe('persona values: read, write, retire', () => {
   beforeEach(async () => {
     await db.delete(userPersonaAnswers);
     await db.delete(userPersonaText);
+    await db.delete(userSharedLinks);
     await db.delete(instanceSettings);
     await db.delete(auditLogs);
     invalidatePersonaSchemaCache(db);
@@ -377,6 +381,113 @@ describe('persona values: read, write, retire', () => {
       const deleted = await deletePersonaFieldValue(db, { userId, fieldKey: 'about' });
       expect(deleted.deleted).toBe(1);
       expect(await db.select().from(userPersonaText)).toHaveLength(0);
+    });
+  });
+
+  describe('per-platform link sharing (plan R3.1 D6)', () => {
+    async function shared(): Promise<string[]> {
+      return listSharedLinkPlatforms(db, userId);
+    }
+
+    it('starts empty, because a row is the whole of "shared"', async () => {
+      // The default is off BY CONSTRUCTION. There is no column holding `false`
+      // that a later migration could flip, and no member has to find a control
+      // to be left alone.
+      expect(await shared()).toEqual([]);
+      expect(await db.select().from(userSharedLinks)).toHaveLength(0);
+    });
+
+    it('writes one row per chosen platform and reads them back sorted', async () => {
+      const result = await setSharedLinkPlatforms(db, {
+        userId,
+        platforms: ['linkedin', 'github'],
+        config: CONFIG,
+      });
+      expect(result).toEqual({ ok: true, platforms: ['github', 'linkedin'] });
+      expect(await shared()).toEqual(['github', 'linkedin']);
+    });
+
+    it('unticking one platform removes only that one', async () => {
+      await setSharedLinkPlatforms(db, {
+        userId,
+        platforms: ['github', 'linkedin'],
+        config: CONFIG,
+      });
+      const result = await setSharedLinkPlatforms(db, {
+        userId,
+        platforms: ['github'],
+        config: CONFIG,
+      });
+      expect(result).toEqual({ ok: true, platforms: ['github'] });
+    });
+
+    it('unticking EVERY platform actually clears them', async () => {
+      // The failure this is here to catch is the one `setPersonaSection` had to
+      // be written around: a delete scoped to the submitted keys makes an empty
+      // submission a no-op, so a member who unticks everything stays shared and
+      // is never told.
+      await setSharedLinkPlatforms(db, {
+        userId,
+        platforms: ['github', 'linkedin', 'mastodon'],
+        config: CONFIG,
+      });
+      expect(await shared()).toHaveLength(3);
+
+      const cleared = await setSharedLinkPlatforms(db, { userId, platforms: [], config: CONFIG });
+      expect(cleared).toEqual({ ok: true, platforms: [] });
+      expect(await db.select().from(userSharedLinks)).toHaveLength(0);
+    });
+
+    it('re-ticking a platform keeps the time the member first agreed', async () => {
+      await setSharedLinkPlatforms(db, { userId, platforms: ['github'], config: CONFIG });
+      const [first] = await db
+        .select({ createdAt: userSharedLinks.createdAt })
+        .from(userSharedLinks)
+        .where(eq(userSharedLinks.userId, userId));
+      expect(first?.createdAt).toBeInstanceOf(Date);
+
+      await setSharedLinkPlatforms(db, {
+        userId,
+        platforms: ['github', 'linkedin'],
+        config: CONFIG,
+      });
+      const [again] = await db
+        .select({ createdAt: userSharedLinks.createdAt })
+        .from(userSharedLinks)
+        .where(eq(userSharedLinks.platform, 'github'));
+      expect(again?.createdAt?.getTime()).toBe(first?.createdAt?.getTime());
+    });
+
+    it('refuses an unknown platform, and writes nothing at all', async () => {
+      await setSharedLinkPlatforms(db, { userId, platforms: ['github'], config: CONFIG });
+      const result = await setSharedLinkPlatforms(db, {
+        userId,
+        platforms: ['github', 'not_a_platform'],
+        config: CONFIG,
+      });
+      expect(result).toMatchObject({ ok: false, platform: 'not_a_platform' });
+      // Validation happens before the transaction opens, so the earlier choice
+      // is untouched rather than half-rewritten.
+      expect(await shared()).toEqual(['github']);
+    });
+
+    it('deduplicates and ignores blanks in the submission', async () => {
+      const result = await setSharedLinkPlatforms(db, {
+        userId,
+        platforms: ['github', 'github', '  ', 'linkedin'],
+        config: CONFIG,
+      });
+      expect(result).toEqual({ ok: true, platforms: ['github', 'linkedin'] });
+    });
+
+    it('is per member: clearing one member does not touch another', async () => {
+      const other = (await createTestUser(db, { username: `values-other-${crypto.randomUUID().slice(0, 8)}` })).id;
+      await setSharedLinkPlatforms(db, { userId, platforms: ['github'], config: CONFIG });
+      await setSharedLinkPlatforms(db, { userId: other, platforms: ['github'], config: CONFIG });
+
+      await setSharedLinkPlatforms(db, { userId, platforms: [], config: CONFIG });
+      expect(await shared()).toEqual([]);
+      expect(await listSharedLinkPlatforms(db, other)).toEqual(['github']);
     });
   });
 });

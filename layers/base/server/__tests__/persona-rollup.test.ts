@@ -264,13 +264,52 @@ describe('scheduling', () => {
     expect(parse(personaDelay?.[1] ?? '0')).toBeGreaterThan(parse(metricsDelay?.[1] ?? '0'));
   });
 
-  it('passes a UTC day key and the live scope digest', async () => {
+  it('passes a UTC day key, and no offered purpose on an instance with no recipient', async () => {
     await boot();
     const input = first(mock.runs, 'rollup runs');
     expect(String(input.day)).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-    const offered = input.offeredPurposes as Array<{ purpose: string; scopeDigest: string }>;
-    expect(offered.map((o) => o.purpose)).toContain('profile_analytics');
+    // Both surviving purposes require a declared, papered recipient, so the
+    // default instance offers none and the audience slots report themselves
+    // unoffered. The pass still runs: distributions and link presence are the
+    // instance counting its own answers under legitimate interest, and a guard
+    // that skipped the pass when no purpose was offerable would silently stop
+    // thin instances producing statistics at all.
+    expect(input.offeredPurposes).toEqual([]);
+    expect(input.fields).toBeDefined();
+  });
+
+  it('carries the live digest beside each purpose once a recipient is named', async () => {
+    harness.config = {
+      dataSharing: {
+        recipients: [
+          {
+            id: 'contoso',
+            name: 'Contoso Tools',
+            privacyPolicyUrl: 'https://contoso.example/privacy',
+            purposes: ['sponsor_sharing'],
+            relationship: 'processor',
+          },
+        ],
+      },
+    };
+    await boot();
+    const offered = first(mock.runs, 'rollup runs').offeredPurposes as Array<{
+      purpose: string;
+      scopeDigest: string;
+    }>;
+    expect(offered.map((o) => o.purpose)).toEqual(['sponsor_sharing']);
     expect(first(offered, 'offered purposes').scopeDigest).not.toBe('');
+  });
+
+  it('still rolls up with dataSharingConsents off, because it counts no grants', async () => {
+    // The gate used to include that flag on the reasoning that the pass counted
+    // nothing but purpose grants. It no longer does: distributions and link
+    // presence run on legitimate interest and exclude anyone who objected, and
+    // the objection switch is gated on `persona` + `personaAnalytics`, which is
+    // exactly the pair this worker requires.
+    harness.features.dataSharingConsents = false;
+    await boot();
+    expect(mock.runs).toHaveLength(1);
   });
 
   it('only rolls up fields the read routes would serve', async () => {

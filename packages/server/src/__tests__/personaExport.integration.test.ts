@@ -7,8 +7,25 @@ import type { DB } from '../types.js';
 import { createTestDB, createTestUser, closeTestDB } from './helpers/testdb.js';
 import { exportUserData, type UserDataExport } from '../profile/export.js';
 import { currentPurposeScope, recordPurposeConsent } from '../persona/consent.js';
+import { setStatisticsObjection } from '../persona/objections.js';
+import type { PurposeScopeConfig } from '../persona/consent.js';
 
 // Plan section 6.11 (the DSAR gains persona) and section 10.4 (the parity guard).
+
+/** The instance that actually discloses to somebody, so a purpose is offerable. */
+const SHARING_CONFIG = {
+  dataSharing: {
+    recipients: [
+      {
+        id: 'contoso',
+        name: 'Contoso Tools',
+        privacyPolicyUrl: 'https://contoso.example/privacy',
+        purposes: ['sponsor_sharing'],
+        relationship: 'processor',
+      },
+    ],
+  },
+} as PurposeScopeConfig;
 
 const SECTIONS: PersonaSection[] = [
   {
@@ -55,27 +72,54 @@ describe('exportUserData persona sections (plan section 6.11)', () => {
       value: 'Because taking things apart is how I learned to read.',
     });
 
-    const scope = await currentPurposeScope(db, {});
+    // A purpose can only be granted where it is OFFERABLE, and both surviving
+    // purposes require a declared, papered recipient, so the fixture has to
+    // name one. `currentPurposeScope(db, {})` on a default instance now offers
+    // nothing at all, which is the makerspace case rather than a broken setup.
+    const scope = await currentPurposeScope(db, SHARING_CONFIG);
     await recordPurposeConsent(db, {
-      userId, purpose: 'profile_analytics', grant: true,
+      userId, purpose: 'sponsor_sharing', grant: true,
       scopeDigest: scope.digest, scope, source: 'settings',
       ip: '198.51.100.7', userAgent: 'TestAgent/1.0',
     });
     await recordPurposeConsent(db, {
-      userId, purpose: 'profile_analytics', grant: false,
+      userId, purpose: 'sponsor_sharing', grant: false,
       scopeDigest: scope.digest, scope, source: 'settings',
     });
+
+    // The Art. 21 objection is a different instrument in a different table, and
+    // the export has to carry it: see the parity guard below.
+    await setStatisticsObjection(db, userId, true);
   });
 
   afterAll(async () => { await closeTestDB(db); });
 
-  it('exports all three persona sections as arrays', async () => {
+  it('exports every persona section as an array', async () => {
     const data = await exportUserData(db, userId);
-    for (const key of ['personaAnswers', 'personaText', 'purposeConsents'] as const) {
+    for (const key of [
+      'personaAnswers',
+      'personaText',
+      'purposeConsents',
+      'statisticsObjections',
+      'sharedLinks',
+    ] as const) {
       expect(Array.isArray(data[key]), `${key} should be an array`).toBe(true);
     }
     expect(data.personaAnswers).toHaveLength(3);
     expect(data.personaText).toHaveLength(1);
+  });
+
+  it('exports the Art. 21 objection, because a right exercised is a fact held', async () => {
+    const data = await exportUserData(db, userId);
+    expect(data.statisticsObjections).toHaveLength(1);
+    expect(data.statisticsObjections[0]!.objectedAt).toBeTruthy();
+  });
+
+  it('exports shared link platforms as an array, empty when nothing is shared', async () => {
+    // Row-present-means-shared, so an empty array is a COMPLETE answer and not
+    // a missing section. This subject has shared nothing.
+    const data = await exportUserData(db, userId);
+    expect(data.sharedLinks).toEqual([]);
   });
 
   it('emits the RAW keys and the stored value with or without a resolvable label', async () => {
@@ -125,7 +169,7 @@ describe('exportUserData persona sections (plan section 6.11)', () => {
     expect(states).toEqual(['granted', 'revoked']);
 
     const granted = data.purposeConsents.find((r) => r.state === 'granted')!;
-    expect(granted.purpose).toBe('profile_analytics');
+    expect(granted.purpose).toBe('sponsor_sharing');
     expect(granted.policyVersion).toBeTruthy();
     expect(granted.scopeDigest).toBeTruthy();
     expect(granted.ipAddress).toBe('198.51.100.7');

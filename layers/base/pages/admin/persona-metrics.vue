@@ -7,17 +7,25 @@
  * public endpoints publish, and the operator who turned the flag on has no way
  * to see a single number.
  *
- * THE DASHBOARD GETS NO EXEMPTION, and this page is built to make that visible
- * rather than merely true. The route already applies the same consent inner
- * join, the same k-anonymity floors and the same downward quantisation as the
- * public API, so every number arriving here has already been suppressed and
- * floored. This page therefore does exactly three things with a number: prints
- * it, prints the quantum it was floored to, and prints the as-of it belongs to.
- * It never sums, never averages, never derives a percentage of anything, and
- * never renders a total or a population beyond the audience payload's own
- * quantised figure. `PersonaDistribution` deliberately carries no `total` key
- * (metrics.ts: "adding one is the differencing oracle"), and a denominator this
- * page computed for itself would reintroduce exactly that.
+ * THESE NUMBERS ARE EXACT, AND THE PAGE HAS TO SAY SO (plan R3.4 phase 4). The
+ * route applies no k-anonymity floor: the operator is the data controller,
+ * holds the rows, and can already read every answer one profile at a time, so
+ * suppression here prevented bulk convenience rather than access. An operator
+ * who believes these totals are floored will read "20" as "somewhere between 20
+ * and 24" and make a decision on a number that is not the one in front of them,
+ * so the disclosure at the top of this screen is load bearing rather than
+ * decorative, and so is the sentence saying what the PUBLIC API does instead.
+ *
+ * WHAT IS STILL TRUE. Members who objected to being counted are absent from
+ * every number here, because an objection is an objection to being counted at
+ * all rather than a request for coarser rounding. And this page still does
+ * exactly three things with a number: prints it, prints its quantum, prints the
+ * as-of it belongs to. It never sums, never averages, never derives a percentage
+ * of anything, and never renders a total or a population beyond the audience
+ * payload's own figure. `PersonaDistribution` deliberately carries no `total`
+ * key (metrics.ts: "adding one is the differencing oracle"), and a denominator
+ * this page computed for itself would reintroduce exactly that on the surface
+ * whose numbers are now precise.
  *
  * The bar widths below are the only derived values, and they are derived from
  * the PUBLISHED counts against the largest published count. They disclose
@@ -36,8 +44,13 @@
  *   GET /api/admin/persona-metrics[?field=<key>][?fields=a,b,c][&limit=n]
  *     requireFeature('admin'), requireFeature('persona'),
  *     requireFeature('personaAnalytics'), requirePermission('audit.read')
- *     -> { fields, distribution, distributions, links, audience, thresholds,
- *          quantum, asOf }
+ *     -> { fields, distribution, distributions, links, audience,
+ *          publicThresholds, quantum, asOf }
+ *
+ * `publicThresholds` is NOT the floors in force here. It is what the public API
+ * applies, carried so this page can state the difference in the operator's own
+ * configured numbers. The key was renamed from `thresholds` for that reason: on
+ * a payload that applies none, `thresholds` reads as the floors that were used.
  *
  * Two properties of that contract shape this page:
  *
@@ -72,15 +85,23 @@ useSeoMeta({ title: `Audience, Admin, ${useSiteName()}` });
 
 // --- Route DTO (mirrors AdminPersonaMetricsResponse) -----------------------
 
+/**
+ * The DISTRIBUTION union. `purpose_not_offered` and `scope_changed` left it when
+ * the statistics stopped being consent-gated: neither can describe a
+ * distribution any more. `statistics_not_covered` arrived in their place, for a
+ * class the statistics disclosure does not cover.
+ */
 type PersonaUnavailableReason =
   | 'insufficient_population'
   | 'insufficient_bucket_diversity'
   | 'no_snapshot_yet'
-  | 'purpose_not_offered';
+  | 'statistics_not_covered';
 
+/** The AUDIENCE union, which is a different set because those counts are consent counts. */
 type PersonaAudienceUnavailableReason =
   | 'purpose_not_offered'
   | 'insufficient_population'
+  | 'scope_changed'
   | 'no_snapshot_yet';
 
 interface PersonaOptionDto {
@@ -106,7 +127,16 @@ interface PersonaDistributionDto {
   field: string;
   label: string;
   items: PersonaDistributionItemDto[];
-  /** A bucket COUNT, never a person count. Never phrase it as people. */
+  /**
+   * A bucket COUNT, never a person count, and ALWAYS 0 on this route: nothing is
+   * withheld from an operator, so there is nothing to report as hidden.
+   *
+   * Kept on the DTO because it is on the wire and this type is the record of
+   * what the route sends. It is deliberately not rendered: "0 answers are
+   * hidden" on every load is noise, and a non-zero value here would mean the
+   * route had quietly started applying a floor, which the disclosure at the top
+   * of the screen says it does not.
+   */
   suppressed: number;
   quantum: number;
   available: boolean;
@@ -134,13 +164,16 @@ type PersonaAudienceCountDto =
   | { available: true; count: number }
   | { available: false; reason: PersonaAudienceUnavailableReason };
 
+/**
+ * Two slots, not three. `sharingAnalytics` went with the purpose behind it:
+ * being counted is no longer a consent question, so there is no grant to count.
+ */
 interface PersonaAudienceCountsDto {
-  sharingAnalytics: PersonaAudienceCountDto;
   openToRecruiters: PersonaAudienceCountDto;
   openToSponsorSharing: PersonaAudienceCountDto;
   quantum: number;
   available: boolean;
-  reason?: PersonaUnavailableReason;
+  reason?: PersonaAudienceUnavailableReason;
   asOf: string | null;
 }
 
@@ -155,7 +188,9 @@ interface AdminPersonaMetricsResponseDto {
   links: PersonaLinkPresenceDto;
   /** Null when `features.dataSharingConsents` is off: nobody COULD opt in. */
   audience: PersonaAudienceCountsDto | null;
-  thresholds: PersonaThresholdsDto;
+  /** What the PUBLIC API applies. Nothing on this page was computed with it. */
+  publicThresholds: PersonaThresholdsDto;
+  /** 1 on this route, because these counts are exact. */
   quantum: number;
   asOf: null;
 }
@@ -226,7 +261,9 @@ const distribution = computed<PersonaDistributionDto | null>(
 );
 const links = computed<PersonaLinkPresenceDto | null>(() => data.value?.links ?? null);
 const audience = computed<PersonaAudienceCountsDto | null>(() => data.value?.audience ?? null);
-const thresholds = computed<PersonaThresholdsDto | null>(() => data.value?.thresholds ?? null);
+const publicThresholds = computed<PersonaThresholdsDto | null>(
+  () => data.value?.publicThresholds ?? null,
+);
 
 const currentField = computed<PersonaMetricsFieldDto | null>(
   () => fields.value.find((f) => f.fieldKey === selectedField.value) ?? null,
@@ -246,57 +283,93 @@ function selectField(event: Event): void {
 // --- Copy ------------------------------------------------------------------
 
 /**
- * Small counts read as words in the agreed copy, and the agreed copy names
- * five because five is the default floor. An operator running `minBucket: 25`
- * must not be shown a sentence understating their own protection by five times,
- * which is the defect the consent copy already carries. So the number is
- * substituted, and it reads as the plan's exact string at the default.
+ * The floors THE PUBLIC API applies, substituted into the disclosure below.
+ *
+ * Never a hardcoded five. An operator running `minBucket: 25` must not be shown
+ * a sentence understating their own published protection by five times, and the
+ * fallbacks here are the package defaults rather than an invention, used only
+ * before the first response arrives.
  */
-const NUMBER_WORDS: Record<number, string> = { 5: 'five' };
-function peopleCount(n: number): string {
-  return NUMBER_WORDS[n] ?? String(n);
-}
+const publicMinBucket = computed(() => publicThresholds.value?.minBucket ?? 5);
+const publicMinPopulation = computed(() => publicThresholds.value?.minPopulation ?? 25);
 
-const minBucket = computed(() => thresholds.value?.minBucket ?? 5);
-const minPopulation = computed(() => thresholds.value?.minPopulation ?? 25);
+/**
+ * THE disclosure. Two sentences, both load bearing: what this screen is, and
+ * what the published API does instead. An operator who reads a floored number as
+ * exact makes a smaller mistake than one who reads an exact number as floored,
+ * because the second silently widens every cohort they are about to act on.
+ */
+const UNSUPPRESSED_COPY =
+  'These totals are exact and nothing here is hidden or rounded. You run this site, and ' +
+  'every answer on this page is already yours to read one profile at a time.';
 
-/** Plan 8.5, admin dashboard, below the population floor. */
-const POPULATION_COPY = computed(
+const PUBLIC_API_COPY = computed(
   () =>
-    'There are not enough people sharing statistics yet to show totals safely. ' +
-    `Totals appear once at least ${minPopulation.value} people have turned sharing on.`,
+    'The public statistics API is different. It leaves out any answer chosen by fewer than ' +
+    `${publicMinBucket.value} people, rounds every total down to a multiple of ` +
+    `${publicMinBucket.value}, and shows nothing at all below ${publicMinPopulation.value} people.`,
 );
 
-/** Plan 8.5, admin dashboard, all buckets suppressed. */
-const BUCKET_COPY = computed(
-  () => `No answer has been chosen by at least ${peopleCount(minBucket.value)} people yet.`,
-);
+/**
+ * The Art. 21 objection, stated where the numbers are read.
+ *
+ * An operator looking at a total needs to know it is a total over the people who
+ * did not ask to be left out, because that is what makes the exclusion real
+ * rather than a switch on a settings page nobody acts on.
+ */
+const OBJECTION_COPY =
+  'People who asked not to be counted are not included in any total on this page.';
 
-/** Plan 8.5 and 6.9, admin dashboard, no finalised day. */
+/** Nobody is counted on this instance at all. */
+const POPULATION_COPY = 'There is nobody to count on this site yet.';
+
+/** Nobody has answered the question in front of the operator. */
+const BUCKET_COPY = 'Nobody has answered this question yet.';
+
+/** Plan 8.5 and 6.9, no finalised day. */
 const NO_SNAPSHOT_COPY =
   'Statistics are worked out once a day. The first set will appear after the next daily run.';
 
-/** Plan 6.9, the suppression explainer, so an empty screen reads as working. */
-const SUPPRESSION_COPY = computed(
-  () =>
-    `Answers are only shown as totals when at least ${peopleCount(minBucket.value)} people ` +
-    'chose them, and totals are rounded. On a small instance most answers will be hidden. ' +
-    'That is working correctly.',
-);
-
+/**
+ * Total coverage of the union, including the two members this route cannot
+ * return today.
+ *
+ * `insufficient_bucket_diversity` needs a withheld bucket and nothing is
+ * withheld here; `no_snapshot_yet` needs a rollup read and this one is live.
+ * Both stay wired because the route is one word from being able to return
+ * either, and an unreachable branch that prints the truth is cheaper than a
+ * missing branch that prints nothing.
+ */
 function unavailableCopy(reason: PersonaUnavailableReason | undefined): string {
   switch (reason) {
     case 'insufficient_population':
-      return POPULATION_COPY.value;
+      return POPULATION_COPY;
     case 'insufficient_bucket_diversity':
-      return BUCKET_COPY.value;
+      return BUCKET_COPY;
     case 'no_snapshot_yet':
       return NO_SNAPSHOT_COPY;
-    case 'purpose_not_offered':
-      return 'Sharing choices are not offered on this site yet, so nothing is being counted.';
+    case 'statistics_not_covered':
+      return 'The statistics on this site do not cover this, so nothing here is counted.';
     default:
-      return BUCKET_COPY.value;
+      return BUCKET_COPY;
   }
+}
+
+/**
+ * The WHOLE-SURFACE audience refusal, which is a different union from the
+ * distribution one and no longer overlaps it.
+ *
+ * It used to call `unavailableCopy`, back when the two unions were the same set.
+ * They are not: `scope_changed` can only describe a consent count, and
+ * `statistics_not_covered` can only describe a distribution. Feeding one to the
+ * other's switch would fall through to a default and print a sentence about a
+ * different thing entirely.
+ */
+function audienceSurfaceCopy(reason: PersonaAudienceUnavailableReason | undefined): string {
+  // The route always names one. A refusal that cannot say why is still a
+  // refusal, and saying so beats printing a reason it does not have.
+  if (reason === undefined) return 'These totals are not available right now.';
+  return audienceCopy(reason);
 }
 
 function audienceCopy(reason: PersonaAudienceUnavailableReason): string {
@@ -304,7 +377,9 @@ function audienceCopy(reason: PersonaAudienceUnavailableReason): string {
     case 'purpose_not_offered':
       return 'Not offered on this site.';
     case 'insufficient_population':
-      return POPULATION_COPY.value;
+      return POPULATION_COPY;
+    case 'scope_changed':
+      return 'What is shared changed after these people agreed, so this total is not shown.';
     case 'no_snapshot_yet':
       return NO_SNAPSHOT_COPY;
   }
@@ -319,9 +394,9 @@ function audienceCopy(reason: PersonaAudienceUnavailableReason): string {
  * from a page-level guess, so a section served from a different day or a
  * different floor says so.
  *
- * The plan copy says "rounded"; the implementation floors (`Math.floor`), so
- * this says rounded down. Never overstate a cohort an operator is about to make
- * a recruiting decision with.
+ * A quantum of 1 is not "rounded to the nearest 1", which reads as a rounding
+ * rule where there is none. It says the counts are exact, in words, because that
+ * is the fact an operator has to carry away from this screen.
  */
 function provenance(p: Provenanced | null | undefined): string {
   if (!p) return '';
@@ -329,32 +404,28 @@ function provenance(p: Provenanced | null | undefined): string {
     p.asOf === null
       ? 'Live reading, taken when this page loaded.'
       : `Daily snapshot for ${p.asOf} (UTC).`;
-  return `${when} Counts are rounded down to the nearest ${p.quantum}.`;
+  const precision =
+    p.quantum > 1 ? `Counts are rounded down to the nearest ${p.quantum}.` : 'Counts are exact.';
+  return `${when} ${precision}`;
 }
 
-/** A withheld-BUCKET count. Options, never people. */
-function suppressedCopy(n: number): string {
-  const each = peopleCount(minBucket.value);
-  return n === 1
-    ? `1 answer is hidden because fewer than ${each} people chose it.`
-    : `${n} answers are hidden because fewer than ${each} people chose each one.`;
-}
-
+/**
+ * Two rows, not three. The third was "Counted in community statistics", a count
+ * of members holding a `profile_analytics` grant, and that purpose is gone:
+ * being counted is not a consent question, so there is no grant to count and
+ * nothing here would be a number about anybody's decision. What replaced it is
+ * the objection sentence at the top of the screen.
+ */
 const AUDIENCE_ROWS = [
-  {
-    key: 'sharingAnalytics',
-    label: 'Counted in community statistics',
-    help: 'People who turned on sharing for group totals.',
-  },
   {
     key: 'openToRecruiters',
     label: 'Open to recruiters',
-    help: 'People open to being seen through the hiring directory.',
+    help: 'People who agreed to being found through the hiring directory.',
   },
   {
     key: 'openToSponsorSharing',
     label: 'Open to sharing with sponsors',
-    help: 'People who agreed to their answers being shared with named sponsors.',
+    help: 'People who agreed to their answers being sent to the sponsors you have named.',
   },
 ] as const;
 
@@ -420,7 +491,6 @@ function barWidth(count: number, all: ReadonlyArray<{ count: number }>): string 
         <NuxtLink to="/admin/features">Audience Analytics feature flag</NuxtLink> to
         count answers in group totals.
       </p>
-      <p class="cpub-audience-off-text">{{ SUPPRESSION_COPY }}</p>
     </div>
 
     <div v-else-if="!canAudit" class="cpub-audience-off">
@@ -435,8 +505,8 @@ function barWidth(count: number, all: ReadonlyArray<{ count: number }>): string 
         <div>
           <h1 class="cpub-audience-title">Audience</h1>
           <p class="cpub-audience-subtitle">
-            Group totals over the questions people chose to answer, counted only where
-            someone turned sharing on.
+            Group totals over the questions your members answered, for you as the operator
+            of this site.
           </p>
         </div>
         <button
@@ -450,19 +520,12 @@ function barWidth(count: number, all: ReadonlyArray<{ count: number }>): string 
         </button>
       </div>
 
-      <!-- The explainer sits ABOVE the numbers, so an operator staring at an
-           empty dashboard reads why before they read nothing. -->
+      <!-- The disclosure sits ABOVE the numbers, so nobody reads a total before
+           they read what kind of total it is. -->
       <div class="cpub-audience-note">
-        <p class="cpub-audience-note-line">{{ SUPPRESSION_COPY }}</p>
-        <p class="cpub-audience-note-line">
-          This dashboard gets no exemption from those rules. It uses the same consent
-          check, the same floors and the same rounding as the public API, because the
-          agreement is with the member and not with the API.
-        </p>
-        <p v-if="thresholds" class="cpub-audience-note-line">
-          Totals are hidden below {{ minBucket }} people in a single answer, and the
-          whole screen stays dark below {{ minPopulation }} people sharing.
-        </p>
+        <p class="cpub-audience-note-line">{{ UNSUPPRESSED_COPY }}</p>
+        <p v-if="publicThresholds" class="cpub-audience-note-line">{{ PUBLIC_API_COPY }}</p>
+        <p class="cpub-audience-note-line">{{ OBJECTION_COPY }}</p>
       </div>
 
       <p v-if="pending && !data" class="cpub-audience-loading">Loading statistics.</p>
@@ -488,7 +551,7 @@ function barWidth(count: number, all: ReadonlyArray<{ count: number }>): string 
 
           <template v-else>
             <p v-if="audience?.available !== true" class="cpub-audience-empty">
-              {{ unavailableCopy(audience?.reason) }}
+              {{ audienceSurfaceCopy(audience?.reason) }}
             </p>
 
             <template v-else>
@@ -572,13 +635,6 @@ function barWidth(count: number, all: ReadonlyArray<{ count: number }>): string 
                 </li>
               </ul>
 
-              <p
-                v-if="distribution?.available === true && distribution.suppressed > 0"
-                class="cpub-audience-hint"
-              >
-                {{ suppressedCopy(distribution.suppressed) }}
-              </p>
-
               <p class="cpub-audience-provenance">{{ provenance(distribution) }}</p>
             </template>
           </template>
@@ -588,8 +644,8 @@ function barWidth(count: number, all: ReadonlyArray<{ count: number }>): string 
         <section v-if="links" class="cpub-audience-card" aria-labelledby="cpub-audience-links">
           <h2 id="cpub-audience-links" class="cpub-audience-h2">Profile links</h2>
           <p class="cpub-audience-lede">
-            How many people list a link on each platform. The addresses themselves are
-            never counted or shown here.
+            How many people list a link on each platform and have chosen to share it. The
+            addresses themselves are never counted or shown here.
           </p>
 
           <p v-if="links?.available !== true" class="cpub-audience-empty">
@@ -618,10 +674,6 @@ function barWidth(count: number, all: ReadonlyArray<{ count: number }>): string 
                 </span>
               </li>
             </ul>
-
-            <p v-if="(links?.suppressed ?? 0) > 0" class="cpub-audience-hint">
-              {{ suppressedCopy(links?.suppressed ?? 0) }}
-            </p>
 
             <p class="cpub-audience-provenance">{{ provenance(links) }}</p>
           </template>

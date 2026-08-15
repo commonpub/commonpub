@@ -43,6 +43,13 @@ import type { DB } from '../types.js';
  * erasure tombstone. All four persona tables cascade on `users.id`, so account
  * deletion needs no code here at all. v1 makes no onward disclosure, so there is
  * nothing an erasure-surviving proof would defend.
+ *
+ * WHAT DELIBERATELY IS NOT HERE. The statistics objection (Art. 21) is not
+ * consent: it is a refusal of processing that runs on legitimate interest, it
+ * has no scope digest, and it must SURVIVE the scope changes that degrade a
+ * grant. `objections.ts` owns it, against its own table. Nothing in this module
+ * knows about it, and a `state: 'objected'` row here would make both the consent
+ * history and the digest meaningless (plan R3.1 D5).
  */
 
 // --- Errors ---------------------------------------------------------------------
@@ -160,30 +167,35 @@ export class InvalidPurposeScopeSnapshotError extends PurposeConsentError {
 /**
  * The purposes whose READ surface exists in this release (plan section 6.10).
  *
- * All three are listed as of the member visibility directory
- * (`docs/plans/member-visibility-directory.md` section 5).
- * `recruiter_visibility` and `sponsor_sharing` always carried a full registry
- * entry and full member-facing copy; what they lacked was a surface that
- * honoured the grant, and asking for a consent nothing can act on is exactly
- * what Art. 4(11) specificity forbids. That surface now exists: the directory
- * lists a consenting member to a named recipient, writes a disclosure row per
- * recipient, and shows the member who looked.
+ * Both of them, which is the whole registry: every purpose a member can be asked
+ * about is now one shape, NAMED THIRD-PARTY EXPOSURE, and each has a surface that
+ * honours the grant. The directory lists a consenting member to a named
+ * recipient, writes a disclosure row per recipient, and shows the member who
+ * looked. Asking for a consent nothing can act on is exactly what Art. 4(11)
+ * specificity forbids, so a purpose without such a surface would not be listed.
+ *
+ * INSTANCE STATISTICS ARE NOT HERE and never will be. They are not a consent
+ * question: the instance counts its own members' answers into anonymous totals
+ * whether or not anybody agrees, so the member's instrument is an objection
+ * (Art. 21) rather than an opt-in. `objections.ts` next door holds it, backed by
+ * its own table. Adding a statistics-shaped id to this array would re-create the
+ * dark pattern this correction removed.
  *
  * THIS LINE IS NOT THE SWITCH THAT DISCLOSES ANYTHING, and that is the safety
  * property worth stating rather than assuming. `purposeIsOfferable` still has
  * the last word: a purpose whose `requiresRecipients` is true and which no
  * declared recipient covers is not offerable, and a covering recipient that is a
  * joint or independent controller with no `agreementRef` makes it unofferable
- * too. So on an instance that has declared no recipient, this change alters
- * nothing a member sees: `/settings/privacy` still shows one toggle, the scope
- * digest does not move, and no existing grant is disturbed. An operator cannot
- * deploy past an unpapered onward transfer by editing this array.
+ * too. Both purposes here require recipients, so on an instance that has
+ * declared nobody this array offers NOTHING: `/settings/privacy` shows no
+ * sharing toggle at all, which is exactly the makerspace case the corrected
+ * model is built around (plan R2.3). An operator cannot deploy past an unpapered
+ * onward transfer by editing this array.
  *
  * The directory endpoint itself is additionally gated on the `memberDirectory`
  * feature flag, which defaults off. Consent is necessary and never sufficient.
  */
 export const OFFERED_PROCESSING_PURPOSES: readonly ProcessingPurposeId[] = [
-  'profile_analytics',
   'recruiter_visibility',
   'sponsor_sharing',
 ];
@@ -192,11 +204,19 @@ export const OFFERED_PROCESSING_PURPOSES: readonly ProcessingPurposeId[] = [
  * The registered purposes this instance is NOT offering, with their labels.
  *
  * Exists so the deferral can be SAID rather than merely be true. A member who
- * reads a heading called "Sharing choices" and sees one switch cannot tell
- * whether recruiter and sponsor sharing were never built or are quietly on;
+ * reads a heading about sharing and sees fewer switches than the registry holds
+ * cannot tell whether the missing one was never built or is quietly on;
  * `/api/admin/persona-metrics` is honest about this (`purpose_not_offered`) and
  * the member-facing surface was the only one that was silent. Derived from the
  * registry minus the offered list, so the sentence cannot outlive the deferral.
+ *
+ * The layer passes `scope.offerablePurposes`, not the constant, so a purpose
+ * that is registered and enabled but has no papered recipient is named as
+ * deferred rather than vanishing. On an instance that discloses to nobody that
+ * is BOTH of them, and the surface renders no sharing section at all rather than
+ * a list of things that do not happen there (plan R2.3): a page that says
+ * "recruiter sharing is off" still teaches a makerspace member that recruiters
+ * are somewhere in this software.
  */
 export function deferredProcessingPurposes(
   offered: readonly ProcessingPurposeId[] = OFFERED_PROCESSING_PURPOSES,
@@ -349,10 +369,14 @@ export function buildPurposeScopeSnapshot(
     purposeLabel: spec.label,
     offSummary: spec.offSummary,
     // Rendered against the floors IN FORCE, so the Art. 7(1) record carries the
-    // number the member was actually shown rather than a hardcoded five.
+    // sentence the member was actually shown rather than a template. Neither
+    // surviving purpose names a floor today (both disclose one named member to
+    // one named recipient, and a floor over a group says nothing about that),
+    // but the render still goes through the one renderer so a future purpose
+    // that does name one cannot store a literal `{minBucket}` as the record.
     onSummary: renderPurposeOnSummary(purpose, scope),
     // Only the recipients this purpose actually discloses to. A sponsor named
-    // for `sponsor_sharing` has nothing to do with an analytics grant, and
+    // for `sponsor_sharing` has nothing to do with a recruiter grant, and
     // recording them together would misstate the disclosure.
     recipients: scope.recipients
       .filter((r) => r.purposes.includes(purpose))
@@ -402,9 +426,10 @@ export interface PurposeScopeConfig {
  * file alone.
  *
  * A caller that forgets to pass the registry computes a digest over the FILE
- * sections while the analytics join counts the DB-resolved ones. That is
- * fail-closed (a digest mismatch authorises nothing) but it is still wrong, so
- * every route that can reach the registry must pass it.
+ * sections while the directory's disclosure join binds the digest built from the
+ * DB-resolved ones. That is fail-closed (a digest mismatch authorises nothing,
+ * so nobody is named to a recipient) but it is still wrong, so every route that
+ * can reach the registry must pass it.
  */
 export interface PurposeScopeResolvers {
   sections?: (db: DB, config: PurposeScopeConfig) => Promise<readonly PersonaSection[]>;
@@ -424,9 +449,19 @@ export interface PurposeScope {
   dataClasses: PersonaDataClass[];
   /** Every declared recipient, validated. */
   recipients: DataRecipient[];
-  /** Sorted keys of every field that can become an aggregate bucket. */
+  /**
+   * Sorted keys of every closed-vocabulary field, which is what a grant sends to
+   * a named recipient and therefore part of what binds the digest. The name is
+   * historical (these are also the keys the instance's own totals bucket on) and
+   * `isPersonaFieldAggregatable` still decides membership, but nothing about
+   * offerability or about statistics reads this any more.
+   */
   aggregatableFieldKeys: string[];
-  /** k-anonymity floors, so a caller does not re-parse `dataSharing`. */
+  /**
+   * k-anonymity floors, so a caller does not re-parse `dataSharing`. Neither
+   * purpose's copy names one today; the statistics disclosure does, and it
+   * renders against these same numbers.
+   */
   minBucket: number;
   minPopulation: number;
 }
@@ -495,12 +530,14 @@ export function aggregatableFieldKeys(sections: readonly PersonaSection[]): stri
  * The live scope, and the digest every grant is bound to.
  *
  * Two deliberate choices about what moves the digest, both erring toward asking
- * again rather than counting someone who has not agreed to the current terms:
+ * again rather than disclosing someone who has not agreed to the current terms:
  *
  * - DATA CLASSES are the union over the OFFERABLE purposes only. A purpose that
- *   cannot be granted processes nothing, and taking the union over all three
- *   would mean making a deferred purpose offerable later moves no digest and
- *   re-asks nobody, which is precisely the case that must re-ask.
+ *   cannot be granted processes nothing, and taking the union over the whole
+ *   registry would mean making a deferred purpose offerable later moves no
+ *   digest and re-asks nobody, which is precisely the case that must re-ask.
+ *   On an instance with no declared recipient nothing is offerable, so this set
+ *   is empty and the digest is over the policy version and the field keys alone.
  * - RECIPIENT IDS are every declared recipient, not only those covering an
  *   offerable purpose. The privacy page lists all of them, and "we added a
  *   recipient since you agreed" is the stale-grant copy this exists to trigger.
@@ -521,12 +558,14 @@ export async function currentPurposeScope(
   const fieldKeys = aggregatableFieldKeys(sections);
   const offered = resolvers.offeredPurposes ?? OFFERED_PROCESSING_PURPOSES;
 
+  // No `aggregatableFieldKeys` here: offerability turns on recipients and their
+  // paperwork alone. The countable-field gate existed for `profile_analytics`,
+  // whose card was about counting, and it left with that purpose. The field keys
+  // are still computed, because they still bind the scope digest (a grant sends
+  // the member's selections to a third party, so which selections exist is part
+  // of what leaves), but they no longer decide whether a card is shown.
   const offerablePurposes = PROCESSING_PURPOSES.filter((id) =>
-    purposeIsOfferable(id, {
-      recipients,
-      aggregatableFieldKeys: fieldKeys,
-      enabledPurposes: offered,
-    }),
+    purposeIsOfferable(id, { recipients, enabledPurposes: offered }),
   );
 
   const classes = new Set<PersonaDataClass>();
@@ -586,8 +625,9 @@ export interface EffectivePurposeGrant {
  * An unrecognised state string (a row written by a future release) is treated as
  * "not granted": a caller deciding whether to process personal data fails closed.
  *
- * This is advisory for a UI. The analytics join binds the digest in SQL, so a
- * caller who forgets to call this still cannot count a stale grant.
+ * This is advisory for a UI. The directory's disclosure join binds the digest in
+ * SQL, so a caller who forgets to call this still cannot name a member to a
+ * recipient on a stale grant.
  */
 export function effectivePurposeGrant(
   current: CurrentPurposeConsent | null | undefined,

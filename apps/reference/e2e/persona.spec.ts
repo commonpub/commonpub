@@ -14,8 +14,8 @@ import { readFeatures, signUp, type E2EAccount } from './helpers/account';
  *    member would look at rather than on the row a unit test would query. This
  *    is the no-bundling rule (persona plan 6.8) and it is the one rule whose
  *    breach a member would never notice;
- *  - revocation costing exactly ONE click with no confirmation step, which is
- *    an interaction property, not a function;
+ *  - objecting to statistics costing exactly ONE click with no confirmation
+ *    step, which is an interaction property, not a function;
  *  - the answers reaching a stranger's view of the profile;
  *  - a 44px target and a page that does not scroll sideways at 390px, which is
  *    precisely what jsdom cannot answer because it has no layout at all.
@@ -73,34 +73,29 @@ function chipStatus(page: Page): Locator {
  * this spec actually needs.
  */
 async function openPersonaEditor(page: Page): Promise<void> {
+  // The canonical path since the settings merge. `/settings/persona` still
+  // redirects here and a test below pins that, but the helper navigates
+  // directly so a broken redirect fails one named test rather than every test
+  // in this file.
+  await page.goto('/settings/profile/questions');
+  await page.waitForSelector('.cpub-questions-page', { timeout: 60_000 });
+}
+
+/**
+ * The settings merge kept `/settings/persona` as a redirect rather than renaming
+ * it, because the invitation banner links there and so did every older bookmark.
+ * Nothing else covers it now that `openPersonaEditor` navigates directly, and a
+ * silently broken redirect would strand anyone arriving from the banner.
+ */
+async function assertLegacyPersonaPathRedirects(page: Page): Promise<void> {
   await page.goto('/settings/persona');
-  await page.waitForSelector('.cpub-persona-sections', { timeout: 60_000 });
+  await page.waitForSelector('.cpub-questions-page', { timeout: 60_000 });
+  expect(new URL(page.url()).pathname).toBe('/settings/profile/questions');
 }
 
 async function openPrivacySettings(page: Page): Promise<void> {
   await page.goto('/settings/privacy');
   await page.waitForSelector('.cpub-privacy-settings', { timeout: 60_000 });
-}
-
-/**
- * Drive a `role="switch"` to a wanted state, idempotently.
- *
- * Clicks ONLY when the control is in the wrong state, so retrying cannot flip
- * it past the target. That matters because the switch is server-rendered and a
- * click that lands before hydration is swallowed with no error: without the
- * retry this is flaky, and with a naive retry it toggles twice.
- *
- * The revocation test deliberately does NOT use this. Counting the clicks is
- * the whole assertion there.
- */
-async function setSwitch(control: Locator, want: boolean): Promise<void> {
-  const target = want ? 'true' : 'false';
-  await expect(async () => {
-    if ((await control.getAttribute('aria-checked')) !== target) {
-      await control.click();
-    }
-    await expect(control).toHaveAttribute('aria-checked', target, { timeout: 1500 });
-  }).toPass({ timeout: 45_000 });
 }
 
 /** The purpose rows the server holds for this member, which is the record of record. */
@@ -111,6 +106,13 @@ async function serverPurposes(): Promise<Array<{ id: string; state: string; need
     purposes: Array<{ id: string; state: string; needsReconfirmation: boolean }>;
   };
   return body.purposes ?? [];
+}
+
+/** The objection row the server holds for this member. */
+async function serverObjection(): Promise<{ objected: boolean; state: string }> {
+  const res = await member.ctx.request.get(`${BASE}/api/consent/objection`);
+  expect(res.ok(), `GET /api/consent/objection: ${res.status()}`).toBeTruthy();
+  return (await res.json()) as { objected: boolean; state: string };
 }
 
 test.describe('Persona round trip', () => {
@@ -131,6 +133,11 @@ test.describe('Persona round trip', () => {
 
   test.afterAll(async () => {
     await member?.close();
+  });
+
+  test('the old /settings/persona path still lands on the questions tab', async () => {
+    test.skip(flags.persona !== true, 'features.persona is off on this instance');
+    await assertLegacyPersonaPathRedirects(member.page);
   });
 
   test('a chip grid saves one section, and the answers survive a reload', async () => {
@@ -161,7 +168,7 @@ test.describe('Persona round trip', () => {
     // THE assertion. Not "the ref updated" and not "the request was sent": a
     // fresh document, a fresh fetch, and the boxes are still ticked.
     await page.reload();
-    await page.waitForSelector('.cpub-persona-sections', { timeout: 30_000 });
+    await page.waitForSelector('.cpub-questions-page', { timeout: 30_000 });
     for (const pick of PICKED) {
       await expect(chip(page, pick.value), `${pick.value} did not survive the reload`).toBeChecked();
     }
@@ -189,10 +196,17 @@ test.describe('Persona round trip', () => {
 
     const switches = page.getByRole('switch');
     const count = await switches.count();
-    // A guard needs its own guard. Zero switches would make the loop below pass
-    // while proving nothing at all, which is the shape of a test that quietly
-    // stopped testing.
-    expect(count, 'the privacy page must offer at least one sharing choice').toBeGreaterThan(0);
+    // A guard needs its own guard, and the guard itself had to change. Zero
+    // switches is now the CORRECT state on an instance that has declared no
+    // recipient: both surviving purposes require one, so there is nothing to
+    // ask and the page shows no sharing section at all. Asserting "at least one
+    // switch" would fail on a correctly configured makerspace. What still has
+    // to hold is that whatever switches exist are OFF, and the server agrees.
+    const serverRows = await serverPurposes();
+    expect(
+      count,
+      'a switch on the page for every purpose the server offers, and no more',
+    ).toBe(serverRows.length);
 
     for (let i = 0; i < count; i += 1) {
       await expect(
@@ -207,45 +221,49 @@ test.describe('Persona round trip', () => {
     }
   });
 
-  test('granting analytics reads as on after a reload', async () => {
+  test('objecting to statistics reads as objected after a reload', async () => {
     test.skip(flags.persona !== true, 'features.persona is off on this instance');
-    test.skip(flags.dataSharingConsents !== true, 'features.dataSharingConsents is off on this instance');
+    test.skip(flags.personaAnalytics !== true, 'features.personaAnalytics is off on this instance');
     const { page } = member;
 
     await openPrivacySettings(page);
-    const analytics = page.getByRole('switch', { name: /community statistics/i });
-    await expect(analytics, 'the analytics purpose is the one this instance offers').toBeVisible();
 
-    await setSwitch(analytics, true);
-    await expect(page.locator('.cpub-toast')).toContainText('Turned on', { timeout: 20_000 });
+    // Deliberately NOT a `role="switch"`. Every switch on this page reads "off
+    // means nothing is happening", and a switch whose off state meant "you are
+    // counted" would be read backwards by everyone who learned the rest of the
+    // page. The control is a button whose LABEL is the objection.
+    const objectButton = page.locator('.cpub-statistics-action');
+    await expect(objectButton, 'the statistics card offers the objection').toBeVisible();
+    await expect(
+      objectButton,
+      'nobody has objected yet, so the button offers to object',
+    ).toHaveText(/leave me out|do not count/i);
+
+    await objectButton.click();
+
+    await expect(
+      page.locator('.cpub-statistics-status').first(),
+      'the status line has to change with the row, not with the click',
+    ).toContainText(/not counted|left out/i, { timeout: 20_000 });
 
     await page.reload();
     await page.waitForSelector('.cpub-privacy-settings', { timeout: 30_000 });
     await expect(
-      page.getByRole('switch', { name: /community statistics/i }),
-      'a grant that does not survive a reload was never recorded',
-    ).toHaveAttribute('aria-checked', 'true');
+      page.locator('.cpub-statistics-action'),
+      'an objection that does not survive a reload was never recorded',
+    ).toHaveText(/count me|include me/i);
 
-    const analyticsRow = (await serverPurposes()).find((p) => p.id === 'profile_analytics');
-    expect(analyticsRow?.state).toBe('granted');
-    expect(analyticsRow?.needsReconfirmation, 'a fresh grant is current, not stale').toBe(false);
+    const row = await serverObjection();
+    expect(row.objected, 'the objection reached the server').toBe(true);
+    expect(row.state).toBe('objected');
   });
 
-  test('revoking takes one click and shows no confirmation step', async () => {
+  test('withdrawing the objection takes one click and shows no confirmation step', async () => {
     test.skip(flags.persona !== true, 'features.persona is off on this instance');
-    test.skip(flags.dataSharingConsents !== true, 'features.dataSharingConsents is off on this instance');
+    test.skip(flags.personaAnalytics !== true, 'features.personaAnalytics is off on this instance');
     const { page } = member;
 
     await openPrivacySettings(page);
-
-    // Hydration barrier with a REASON: `humanDate` returns '' until `onMounted`
-    // runs, so a non-empty date in the history table proves the client app is
-    // live. The previous test wrote the row this reads. Without a barrier the
-    // single click below could land on server-rendered markup and be swallowed,
-    // and the whole point of this test is that there is exactly one click.
-    const firstDate = page.locator('.cpub-history-table time').first();
-    await expect(firstDate, 'the grant from the previous test is on record').toBeVisible({ timeout: 20_000 });
-    await expect(firstDate, 'client app is hydrated').not.toHaveText('', { timeout: 20_000 });
 
     // A native confirm()/alert() would satisfy an "are you sure" flow without
     // adding any DOM, so watch for both kinds of confirmation.
@@ -255,55 +273,67 @@ test.describe('Persona round trip', () => {
       await d.dismiss();
     });
 
-    const analytics = page.getByRole('switch', { name: /community statistics/i });
-    await expect(analytics).toHaveAttribute('aria-checked', 'true');
+    const action = page.locator('.cpub-statistics-action');
+    await expect(action, 'the previous test left an objection on record').toHaveText(
+      /count me|include me/i,
+      { timeout: 20_000 },
+    );
 
-    await analytics.click(); // exactly one, deliberately not retried
+    await action.click(); // exactly one, deliberately not retried
 
     await expect(
-      analytics,
-      'one click on the same control must be enough to say no',
-    ).toHaveAttribute('aria-checked', 'false', { timeout: 20_000 });
+      action,
+      'one click on the same control must be enough to change your mind',
+    ).toHaveText(/leave me out|do not count/i, { timeout: 20_000 });
 
-    expect(nativeDialog, 'refusing must not raise a browser confirmation').toBeNull();
+    expect(nativeDialog, 'changing your mind must not raise a browser confirmation').toBeNull();
     expect(
       await page.locator('[role="dialog"]:visible, [role="alertdialog"]:visible, dialog[open]').count(),
-      'refusing must not open a confirmation dialog',
+      'changing your mind must not open a confirmation dialog',
     ).toBe(0);
 
-    const analyticsRow = (await serverPurposes()).find((p) => p.id === 'profile_analytics');
-    expect(analyticsRow?.state, 'the revocation reached the server').toBe('revoked');
+    expect((await serverObjection()).objected, 'the withdrawal reached the server').toBe(false);
   });
 
-  test('the chosen answers appear on the public profile, for the owner and for a stranger', async ({ page: stranger }) => {
+  test('answers are PRIVATE on the public profile until a field opts in', async ({ page: stranger }) => {
     test.skip(flags.persona !== true, 'features.persona is off on this instance');
 
+    // The load-bearing inversion. No built-in field sets `showOnProfile: true`,
+    // so a default instance publishes nothing however much a member fills in,
+    // and the answers saved by the first test in this file must not appear.
+    // Asserted from BOTH sides, because "the stranger cannot see it" and "the
+    // owner is told why" are different failures.
     for (const [who, page] of [['owner', member.page], ['stranger', stranger]] as const) {
       await page.goto(`/u/${member.username}`);
-      // `<PersonaPublicDisplay>` is mounted inside the profile's ABOUT tab, and
-      // the page opens on Overview. The tab is a client-side ref with no URL
-      // state, so this has to be a real click; retried as a unit because a
-      // click landing before hydration is swallowed with no error. That the
-      // answers live one tab in is exactly the kind of fact a component test
-      // cannot see.
-      //
-      // NOT `exact: true`. Every tab button carries a Font Awesome `<i>`, and
-      // Chromium folds the icon font's `::before` glyph into the accessible
-      // name, so the name is a private-use character followed by "About" and an
-      // exact match never fires.
       await expect(async () => {
         await page.getByRole('button', { name: 'About' }).click();
-        await expect(page.locator('.cpub-persona-public')).toBeVisible({ timeout: 3000 });
+        // The About tab itself has to be reachable before anything below means
+        // anything; a click swallowed before hydration would make every
+        // negative assertion pass against a page that never opened.
+        await expect(page.locator('.cpub-about-grid')).toBeVisible({
+          timeout: 3000,
+        });
       }).toPass({ timeout: 45_000 });
-      const block = page.locator('.cpub-persona-public');
-      for (const pick of PICKED) {
-        await expect(block, `${who} cannot see ${pick.label}`).toContainText(pick.label);
-      }
+
       await expect(
-        block,
-        'an option nobody picked must not be rendered',
-      ).not.toContainText(NOT_PICKED.label);
+        page.locator('.cpub-persona-public'),
+        `${who} must not see a published answer block on a default instance`,
+      ).toHaveCount(0);
+
+      for (const pick of PICKED) {
+        await expect(
+          page.locator('body'),
+          `${who} can see the answer ${pick.label}, which nothing opted in`,
+        ).not.toContainText(pick.label);
+      }
     }
+
+    // The owner is told WHY the section is empty, and is not nagged to fill in
+    // something they already filled in.
+    await expect(
+      member.page.locator('.cpub-persona-public-owner-note'),
+      'the owner is told their answers are private, not that they are missing',
+    ).toContainText('private');
   });
 
   test('at 390px every chip clears 44px and the page does not scroll sideways', async () => {
@@ -357,12 +387,35 @@ test.describe('Persona round trip', () => {
         `the privacy page overflows at 390px (${privacyOverflow.scrollWidth} > ${privacyOverflow.innerWidth})`,
       ).toBeLessThanOrEqual(privacyOverflow.innerWidth);
 
-      const switchBox = await page.getByRole('switch').first().boundingBox();
-      expect(switchBox, 'the sharing switch renders at 390px').not.toBeNull();
-      expect(
-        switchBox!.height,
-        'the control that grants and revokes has to clear 44px on a phone',
-      ).toBeGreaterThanOrEqual(44);
+      // Measure the controls this page ACTUALLY has, not the one it used to
+      // have. `dataSharingConsents` being on no longer implies a purpose switch
+      // exists: since statistics moved to legitimate interest, a purpose is only
+      // offerable once a recipient is declared, and CI declares none. Grabbing
+      // `.first()` switch therefore measured nothing and failed on a correctly
+      // configured instance.
+      //
+      // Measuring every relevant control is also a better test than the
+      // original, which measured whichever one happened to render first. Scoped
+      // to the controls this assertion is ABOUT (grant, revoke, object) rather
+      // than every button on the page, so it stays a tap-target check.
+      const controls = page.locator(
+        '.cpub-privacy-settings :is([role="switch"], .cpub-statistics-action, .cpub-visibility-select)',
+      );
+      const controlCount = await controls.count();
+      // The guard's own guard: with `persona` and `personaAnalytics` on, the
+      // objection control always renders, so zero here means the page did not
+      // load and every height assertion below would pass vacuously.
+      expect(controlCount, 'no grant, revoke or objection control rendered on /settings/privacy').toBeGreaterThan(0);
+
+      for (let i = 0; i < controlCount; i += 1) {
+        const box = await controls.nth(i).boundingBox();
+        if (box === null) continue; // genuinely hidden, not a tap target
+        const label = (await controls.nth(i).innerText().catch(() => '')).trim().slice(0, 40);
+        expect(
+          box.height,
+          `a control a member taps has to clear 44px on a phone: "${label || `control ${i}`}"`,
+        ).toBeGreaterThanOrEqual(44);
+      }
     }
 
     await page.setViewportSize({ width: 1280, height: 900 });

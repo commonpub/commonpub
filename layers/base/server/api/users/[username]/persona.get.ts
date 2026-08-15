@@ -5,8 +5,22 @@ import type { PersonaField } from '@commonpub/persona';
 import { personaFieldSink, personaFieldSpec } from '@commonpub/persona';
 
 /**
- * GET /api/users/:username/persona — one member's persona answers, as they chose
- * to show them (plan section 8.5).
+ * GET /api/users/:username/persona — the few persona answers the OPERATOR has
+ * opted into the public profile (plan section 8.5, corrected by plan R3.1 D1).
+ *
+ * THE DEFAULT IS PRIVATE, AND THE INVERSION IS THE POINT. Persona questions are
+ * questions the operator asks a member; they are not profile content. This route
+ * therefore includes a field only when its schema says `showOnProfile === true`,
+ * and no built-in section sets it (D2). An instance that turns `persona` on and
+ * changes nothing else publishes NOTHING here, which is the correct answer for
+ * the makerspace asking which tools you are trained on.
+ *
+ * It used to be the other way round: every answer rendered unless the operator
+ * opted the field OUT. The opt-out key is deleted rather than aliased, and
+ * `personaFieldSchema` is `.strict()`, so a config still carrying it fails at
+ * boot with a path instead of quietly publishing the opposite of what it says.
+ * `docs/adr/030-persona-package-boundary.md` records the deletion; this file
+ * describes the rule in force.
  *
  * WHY A DEDICATED ROUTE, not a wider `UserProfile`. `getUserByUsername` feeds
  * three surfaces at once: this profile page, the public API serializer
@@ -17,23 +31,29 @@ import { personaFieldSink, personaFieldSpec } from '@commonpub/persona';
  * its own visibility check and its own failure mode: this endpoint 404ing does
  * not take the profile page down with it.
  *
- * CONSENT IS NOT A GATE HERE, AND MUST NOT BECOME ONE. `profile_analytics` and
- * the other purposes in `@commonpub/persona`'s registry govern AGGREGATION:
- * whether an answer may be counted into a cohort alongside other people's.
- * Showing your own answers on your own profile is what filling them in was FOR,
- * and it is the member's own `publicOnProfile` decision (via the operator's
- * schema) that governs it. Joining `user_purpose_consents` here would mean a
- * member who refuses statistics also loses their own profile, which is consent
- * under duress and precisely what the offer/refuse copy promises does not
- * happen. A later reader who sees an uncounted field rendering here is looking
- * at the design, not at a missing join.
+ * CONSENT IS NOT A GATE HERE, AND MUST NOT BECOME ONE. Every purpose in
+ * `@commonpub/persona`'s registry is an exposure to a NAMED THIRD PARTY: what a
+ * member decides there is whether a recruiter or a sponsor may be handed their
+ * answers, not what their own instance shows on their own profile. Joining
+ * `user_purpose_consents` here would price a public profile at the cost of
+ * agreeing to be handed to strangers, which is consent under duress and exactly
+ * what the revocation copy promises does not happen.
+ *
+ * The statistics objection is not a gate here either, for the same reason from
+ * the other direction. A member who objects to being counted has objected to
+ * aggregation over the instance's own records; they have not withdrawn a field
+ * the operator publishes. A later reader who sees an uncounted, unconsented
+ * field rendering here is looking at the design, not at a missing join.
  *
  * WHAT IS DELIBERATELY NOT RETURNED:
  * - `sensitive` fields (the Art. 9 escape hatch). Never derived from the sink:
  *   `personaFieldSink` also routes an `analytics: false` field to `text`, and an
  *   operator who turned counting off did not thereby mark the field special.
- * - `publicOnProfile === false` fields. This route is the reader that makes that
- *   operator control mean something.
+ * - every field the operator has not opted in. `showOnProfile !== true` is the
+ *   test, so a field with no opinion at all is private. This route is the reader
+ *   that makes that operator control mean something, and it is the ONLY reader:
+ *   `sensitive` and the two sink exclusions below are checked independently, so
+ *   `showOnProfile: true` on a sensitive field still publishes nothing.
  * - `column:`-bound fields (display name, headline, location, pronouns, bio).
  *   They are already rendered by the profile hero and its Details block;
  *   repeating them here would print each one twice.
@@ -106,7 +126,14 @@ export interface PublicPersonaSection {
 export interface PublicPersonaResponse {
   /** Schema order, and only sections that ended up with something to show. */
   sections: PublicPersonaSection[];
-  /** True when the viewer is the person whose profile this is. Drives the one owner-only line. */
+  /**
+   * True when the viewer is the person whose profile this is.
+   *
+   * Drives the one owner-only line, which after the inversion says that answers
+   * are private rather than that the member has not written any. On a default
+   * instance `sections` is empty for everybody, so a "you have not filled this
+   * in" nudge here would be permanent and wrong.
+   */
   isOwner: boolean;
 }
 
@@ -226,7 +253,10 @@ export default defineEventHandler(async (event): Promise<PublicPersonaResponse> 
       // which the hero's icon row has always printed. See the header.
       if (personaFieldSink(field) === 'links') continue;
       if (field.sensitive === true) continue;
-      if (field.publicOnProfile === false) continue;
+      // THE INVERSION (R3.1 D1). Opted in, or absent. `!== true` rather than
+      // `=== false` on purpose: a field with no opinion is private, which is
+      // what makes a default instance publish nothing.
+      if (field.showOnProfile !== true) continue;
       if (driftedKeys.has(field.key)) continue;
 
       const resolved = displayValues(field, values.answers[field.key], values.text[field.key]);

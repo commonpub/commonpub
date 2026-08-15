@@ -26,9 +26,15 @@ const repoRoot = resolve(here, '../../../../..');
 const componentFiles = readdirSync(componentDir).filter((f) => f.endsWith('.vue')).sort();
 const testFiles = readdirSync(here).filter((f) => f.endsWith('.test.ts')).sort();
 
-/** Floors. A deleted component must fail here, not silently shrink the sweep. */
-const MIN_COMPONENTS = 6;
-const MIN_FILES = 10;
+/**
+ * Floors. A deleted component must fail here, not silently shrink the sweep.
+ *
+ * Raised from 6/10 to 7/12 when `PersonaLinkSharing.vue` joined the tree (plan
+ * phase 3). A floor that is not raised with the corpus stops guarding the newest
+ * file, which is the one most likely to be deleted by mistake.
+ */
+const MIN_COMPONENTS = 7;
+const MIN_FILES = 12;
 
 interface Source { name: string; raw: string; template: string }
 
@@ -51,12 +57,14 @@ describe('persona copy lint — the guard on the guard (P7)', () => {
     expect(componentFiles.length + testFiles.length).toBeGreaterThanOrEqual(MIN_FILES);
   });
 
-  it('read the six components this feature is built from, by name', () => {
+  it('read the components this feature is built from, by name', () => {
     for (const expected of [
       'PersonaChipGrid.vue',
       'PersonaCompletenessMeter.vue',
       'PersonaFieldInput.vue',
       'PersonaInvitationBanner.vue',
+      'PersonaLinkSharing.vue',
+      'PersonaPublicDisplay.vue',
       'PersonaRetiredData.vue',
       'PersonaSectionEditor.vue',
     ]) {
@@ -116,6 +124,36 @@ describe('persona copy lint — user-facing copy', () => {
     const all = sources.map((s) => s.template).join('\n');
     expect(all).toContain('This is all optional. Fill in what you want people to see.');
     expect(all).toContain('This was collected under a question that is no longer part of this profile. You can delete it.');
+  });
+
+  /**
+   * PLAN R2.3, THE MAKERSPACE CASE. An instance may run `persona` for purely
+   * operational questions ("which tools are you trained on") with no
+   * recruitment, sponsor or analytics ambitions at all. With the sharing flags
+   * off, no sharing language may appear anywhere, and "recruiter sharing is off"
+   * is still sharing language.
+   *
+   * `PersonaLinkSharing.vue` is the ONE component allowed to say any of this,
+   * and it renders nothing at all unless the server confirms a purpose covering
+   * `profile_links` is offerable. Every other component in this tree is mounted
+   * on `persona` alone, so a sharing word in one of them would reach the
+   * makerspace member.
+   */
+  const SHARING_WORDS = ['shar', 'recruit', 'sponsor', 'recipient', 'statistic', 'third part'];
+
+  it.each(SHARING_WORDS)('no component except the gated one says "%s"', (word) => {
+    for (const s of sources) {
+      if (s.name === 'PersonaLinkSharing.vue') continue;
+      expect(s.template.toLowerCase(), `${s.name} contains "${word}"`).not.toContain(word);
+    }
+  });
+
+  it('positive control: the gated component really does use those words', () => {
+    // Otherwise the sweep above would pass against a corpus in which nobody
+    // says anything, which is indistinguishable from a corpus that is correct.
+    const gated = sources.find((s) => s.name === 'PersonaLinkSharing.vue')!;
+    const text = gated.template.toLowerCase();
+    expect(SHARING_WORDS.some((w) => text.includes(w))).toBe(true);
   });
 
   it('leaves the editor empty state to the page, so it is never printed twice', () => {

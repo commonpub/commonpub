@@ -1,6 +1,6 @@
 {
   "name": "@commonpub/persona",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "description": "Framework-agnostic persona brain: the persona field registry, storage-sink partition, link platforms, completeness, processing-purpose registry and every persona Zod schema. Pure TypeScript, zod only.",
   "license": "AGPL-3.0-or-later",

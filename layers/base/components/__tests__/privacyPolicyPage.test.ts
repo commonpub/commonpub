@@ -1,6 +1,5 @@
 /**
- * Component test for `/privacy`, the policy page (member visibility directory
- * plan section 5.4).
+ * Component test for `/privacy`, the policy page.
  *
  * The audit finding this closes: the cookie banner and `/cookies` both link
  * across to Privacy settings, `/settings/privacy` renders every sentence of
@@ -8,11 +7,17 @@
  * read before signing up, and the one Art. 13 is actually about) described the
  * sharing purposes nowhere at all.
  *
- * The assertion that gives the section its value is the one comparing the
- * rendered text to `PROCESSING_PURPOSE_SPECS` character for character. A
- * paraphrase would pass a "does it mention recruiters" test forever while
- * drifting from the sentence members actually act on, which is the whole reason
- * the registry exists.
+ * The assertion that gives each section its value is the one comparing the
+ * rendered text to `PROCESSING_PURPOSE_SPECS` and `PERSONA_STATISTICS` character
+ * for character. A paraphrase would pass a "does it mention recruiters" test
+ * forever while drifting from the sentence members actually act on, which is the
+ * whole reason the registry exists.
+ *
+ * Three properties are the corrected model and are pinned below:
+ *   - statistics are described as legitimate interest with an OBJECTION, never
+ *     as a consent choice, and the purpose that used to say otherwise is gone;
+ *   - persona answers are stated to be private unless the operator shows them;
+ *   - with the persona and sharing flags off, neither subject appears at all.
  *
  * Lives under components/__tests__ (bracket-free) for the same packaging reason
  * as `privacySettingsPage.test.ts`.
@@ -21,7 +26,11 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { render } from '@testing-library/vue';
 import axe from 'axe-core';
 import { defineComponent, h, ref, computed } from 'vue';
-import { PROCESSING_PURPOSES, PROCESSING_PURPOSE_SPECS } from '@commonpub/persona';
+import {
+  PERSONA_STATISTICS,
+  PROCESSING_PURPOSES,
+  PROCESSING_PURPOSE_SPECS,
+} from '@commonpub/persona';
 import PrivacyPolicyPage from '../../pages/privacy.vue';
 
 const NuxtLink = defineComponent({
@@ -33,6 +42,8 @@ const NuxtLink = defineComponent({
 const sharingOn = ref(true);
 const federationOn = ref(false);
 const analyticsOn = ref(false);
+const personaOn = ref(true);
+const personaAnalyticsOn = ref(true);
 
 const COOKIES = [
   {
@@ -49,6 +60,8 @@ Object.assign(globalThis, {
   useFeatures: () => ({
     federation: federationOn,
     analytics: analyticsOn,
+    persona: personaOn,
+    personaAnalytics: personaAnalyticsOn,
     dataSharingConsents: sharingOn,
   }),
   useRuntimeConfig: () => ({ public: { analytics: undefined } }),
@@ -60,6 +73,8 @@ beforeEach(() => {
   sharingOn.value = true;
   federationOn.value = false;
   analyticsOn.value = false;
+  personaOn.value = true;
+  personaAnalyticsOn.value = true;
 });
 
 function mount(): HTMLElement {
@@ -82,7 +97,11 @@ describe('/privacy sharing purposes', () => {
   it('renders every registered purpose, using the registry sentences verbatim', async () => {
     const container = mount();
     const text = readable(container);
-    expect(PROCESSING_PURPOSES.length).toBe(3); // guard: an empty registry asserts nothing
+    // Exactly the two named-third-party purposes. `profile_analytics` was
+    // removed rather than deprecated, so a third entry here means somebody put
+    // a non-disclosure back into a registry of disclosures.
+    expect(PROCESSING_PURPOSES.length).toBe(2); // guard: an empty registry asserts nothing
+    expect([...PROCESSING_PURPOSES]).toEqual(['recruiter_visibility', 'sponsor_sharing']);
 
     for (const id of PROCESSING_PURPOSES) {
       const spec = PROCESSING_PURPOSE_SPECS[id];
@@ -94,27 +113,33 @@ describe('/privacy sharing purposes', () => {
     }
   });
 
-  it('renders the on-state sentence only for purposes whose copy needs no operator value', async () => {
+  it('renders the on-state sentence for every purpose whose copy needs no operator value', async () => {
     const container = mount();
     const text = readable(container);
-    for (const id of PROCESSING_PURPOSES) {
-      const template = PROCESSING_PURPOSE_SPECS[id].onSummaryTemplate;
-      if (/\{[a-zA-Z]+\}/.test(template)) continue;
-      expect(text).toContain(template.replace(/\s+/g, ' '));
-    }
-    // And at least one purpose exercises each branch, so neither is untested.
+    // Neither surviving purpose names a k-anonymity floor, because both
+    // disclose one named member to one named recipient and a floor over a group
+    // has nothing to say about that. So both sentences render in full today.
     const withToken = PROCESSING_PURPOSES.filter((id) =>
       /\{[a-zA-Z]+\}/.test(PROCESSING_PURPOSE_SPECS[id].onSummaryTemplate),
     );
-    expect(withToken.length).toBeGreaterThan(0);
-    expect(withToken.length).toBeLessThan(PROCESSING_PURPOSES.length);
+    expect(withToken).toEqual([]);
+    for (const id of PROCESSING_PURPOSES) {
+      const template = PROCESSING_PURPOSE_SPECS[id].onSummaryTemplate;
+      expect(text).toContain(template.replace(/\s+/g, ' '));
+    }
+    // The token guard in the page is deliberately kept even though no purpose
+    // exercises it now: it is this surface's half of the invariant that a
+    // template is never printed raw, and a purpose added later must not be able
+    // to bypass it. The invariant itself is asserted by the next test, which is
+    // live because `PERSONA_STATISTICS.summaryTemplate` does carry a token.
   });
 
   it('never prints an unsubstituted copy token', async () => {
-    // `onSummaryTemplate` names the operator's k-anonymity floor. Printing the
-    // raw `{minBucket}` would be gibberish; printing a guessed 5 on an instance
-    // running 25 would understate a member's protection by five times. Neither
-    // reaches the page.
+    // `PERSONA_STATISTICS.summaryTemplate` names the operator's k-anonymity
+    // floor. Printing the raw `{minBucket}` would be gibberish; printing a
+    // guessed 5 on an instance running 25 would understate a member's
+    // protection by five times. Neither reaches the page.
+    expect(PERSONA_STATISTICS.summaryTemplate).toMatch(/\{minBucket\}/); // guard: a token-free registry asserts nothing
     const container = mount();
     const text = readable(container);
     expect(text.length).toBeGreaterThan(500); // guard: an empty render prints no token either
@@ -144,7 +169,109 @@ describe('/privacy sharing purposes', () => {
     for (const id of PROCESSING_PURPOSES) {
       expect(text).not.toContain(PROCESSING_PURPOSE_SPECS[id].label);
     }
-    expect(text).not.toContain('Choices you make about your own profile');
+    expect(text).not.toContain('Choices about people outside this site');
+  });
+});
+
+/**
+ * The correction: counting is not a consent question, and the policy has to say
+ * which basis it runs on and what the member can do about it.
+ */
+describe('/privacy community statistics', () => {
+  it('describes statistics as legitimate interest with an objection, never as consent', async () => {
+    const container = mount();
+    const text = readable(container);
+    expect(text).toContain('Community statistics');
+    expect(text).toContain(PERSONA_STATISTICS.basisNote.replace(/\s+/g, ' '));
+    expect(text).toContain(PERSONA_STATISTICS.objectEffect.replace(/\s+/g, ' '));
+    expect(text).toContain('legitimate interest (Art. 6(1)(f)), not your consent');
+    expect(text).toContain('the right to object (Art. 21)');
+    // The control is named by its real label, so the policy and the switch
+    // cannot describe different acts.
+    expect(text).toContain(PERSONA_STATISTICS.objectLabel);
+    // The default is stated, because it is the opposite of every other control
+    // described on this page.
+    expect(text).toContain('You are counted until you use it');
+  });
+
+  it('carries no trace of the deleted consent purpose', async () => {
+    const container = mount();
+    const text = readable(container);
+    expect(text.length).toBeGreaterThan(500); // guard: an empty render carries no trace either
+    expect(text).not.toContain('profile_analytics');
+    expect(text).not.toContain('Count my answers');
+    // The sentence that made counting a consent question, in either direction.
+    expect(text).not.toContain('nothing about you leaves this site');
+  });
+
+  it('renders no statistics section when personaAnalytics is off', async () => {
+    personaAnalyticsOn.value = false;
+    const container = mount();
+    const text = readable(container);
+    expect(text.length).toBeGreaterThan(500); // guard: the rest of the policy still rendered
+    expect(text).not.toContain('Community statistics');
+    expect(text).not.toContain(PERSONA_STATISTICS.basisNote.replace(/\s+/g, ' '));
+  });
+});
+
+/**
+ * The persona model itself: answers are private unless the operator opts a field
+ * on to the profile, and the whole subject disappears when `persona` is off.
+ */
+describe('/privacy the questions this site asks', () => {
+  it('says answers are private unless the operator shows them, and that admins can see them', async () => {
+    const container = mount();
+    const text = readable(container);
+    expect(text).toContain('Your Profile, and the Questions We Ask');
+    expect(text).toContain('Your profile is public because that is what a profile is');
+    expect(text).toContain('not shown on your profile');
+    expect(text).toContain('Nothing you answer is published by default');
+    expect(text).toContain('Administrators of this site can see your answers');
+  });
+
+  it('says nothing about questions, statistics or sharing on an instance running none of it', async () => {
+    // The makerspace case, and its mirror: an instance with persona off asks no
+    // questions at all, so a section about answers would describe nothing.
+    personaOn.value = false;
+    personaAnalyticsOn.value = false;
+    sharingOn.value = false;
+    const container = mount();
+    const text = readable(container);
+    expect(text.length).toBeGreaterThan(500); // guard: the rest of the policy still rendered
+    for (const banned of [
+      'Your Profile, and the Questions We Ask',
+      'Community statistics',
+      'Choices about people outside this site',
+      'recruiter',
+      'sponsor',
+      'group totals',
+      'counted',
+    ]) {
+      expect(text.toLowerCase()).not.toContain(banned.toLowerCase());
+    }
+    // The generic Art. 21 bullet survives, because the right exists whatever
+    // this instance runs. What must not survive is the STATISTICS-specific
+    // version of it, which names a control that is not there.
+    expect(text).toContain('Restriction and objection: contact the instance administrator');
+  });
+
+  it('says nothing about statistics or sharing when only persona is on', async () => {
+    // `persona` alone: questions, private answers, and no sharing language.
+    personaAnalyticsOn.value = false;
+    sharingOn.value = false;
+    const container = mount();
+    const text = readable(container);
+    expect(text).toContain('Your Profile, and the Questions We Ask');
+    for (const banned of [
+      'Community statistics',
+      'group totals',
+      'counted',
+      'recruiter',
+      'sponsor',
+      'shared with',
+    ]) {
+      expect(text.toLowerCase()).not.toContain(banned.toLowerCase());
+    }
   });
 });
 
@@ -164,7 +291,7 @@ describe('/privacy section numbering stays derived', () => {
       });
     }
 
-    const sharing = withSharing.find((h2) => h2.includes('Choices you make about your own profile'));
+    const sharing = withSharing.find((h2) => h2.includes('Choices about people outside this site'));
     expect(sharing).toBeDefined();
     // It sits after the cookie disclosures, where the other consent-based
     // sections live, rather than being appended at the end.

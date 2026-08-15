@@ -252,7 +252,6 @@ describe('data sharing recipients: union, sanitizer, key binding', () => {
       const r = recipient({ purposes: ['recruiter_visibility'] });
       expect(recipientCoversPurpose(r, 'recruiter_visibility')).toBe(true);
       expect(recipientCoversPurpose(r, 'sponsor_sharing')).toBe(false);
-      expect(recipientCoversPurpose(r, 'profile_analytics')).toBe(false);
     });
 
     it('is true for each of several declared purposes', () => {

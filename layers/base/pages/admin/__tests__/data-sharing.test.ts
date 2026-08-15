@@ -53,7 +53,6 @@ interface WirePurpose {
   offerable: boolean;
   blocker: string | null;
   requiresRecipients: boolean;
-  requiresAggregatableField: boolean;
   recipientIds: string[];
 }
 
@@ -88,23 +87,17 @@ interface WireDisclosures {
   empty: boolean;
 }
 
+// Exactly the registry: two purposes, both named third-party exposure, both
+// requiring a declared recipient. There is no counting purpose to mirror here,
+// and no `requiresAggregatableField`: the countable-field gate belonged to the
+// purpose that was removed and left with it.
 const PURPOSES: WirePurpose[] = [
   {
-    id: 'profile_analytics',
-    label: 'Count my answers in community statistics',
+    id: 'recruiter_visibility',
+    label: 'Let people hiring find me by my answers',
     offerable: true,
     blocker: null,
-    requiresRecipients: false,
-    requiresAggregatableField: true,
-    recipientIds: [],
-  },
-  {
-    id: 'recruiter_visibility',
-    label: 'Let people hiring see my profile in the members directory',
-    offerable: false,
-    blocker: 'not_offered_in_release',
     requiresRecipients: true,
-    requiresAggregatableField: false,
     recipientIds: ['acme'],
   },
   {
@@ -113,7 +106,6 @@ const PURPOSES: WirePurpose[] = [
     offerable: false,
     blocker: 'no_recipient',
     requiresRecipients: true,
-    requiresAggregatableField: false,
     recipientIds: [],
   },
 ];
@@ -139,7 +131,7 @@ function makeRecipients(overrides: Partial<WireRecipients> = {}): WireRecipients
     configError: null,
     droppedConfigEntries: [],
     purposes: JSON.parse(JSON.stringify(PURPOSES)) as WirePurpose[],
-    offeredPurposes: ['profile_analytics'],
+    offeredPurposes: ['recruiter_visibility', 'sponsor_sharing'],
     scopeDigest: 'a1b2c3d4e5f60718',
     policyVersion: '1',
     maxStoredRecipients: 50,
@@ -313,11 +305,12 @@ async function addRecipient(
     );
   }
   if (fields.purpose === true) {
-    // The last fieldset's third purpose checkbox: sponsor_sharing.
+    // The last fieldset's SECOND purpose checkbox: sponsor_sharing. Two, not
+    // three, since the registry is exactly the two named-exposure purposes.
     const fieldsets = [...container.querySelectorAll('fieldset')];
     const boxes = [...(fieldsets[fieldsets.length - 1]?.querySelectorAll('.cpub-sharing-choice input') ?? [])];
-    expect(boxes).toHaveLength(3);
-    await fireEvent.click(boxes[2] as HTMLInputElement);
+    expect(boxes).toHaveLength(2);
+    await fireEvent.click(boxes[1] as HTMLInputElement);
   }
 }
 
@@ -522,6 +515,14 @@ describe('/admin/data-sharing — a refused config recipient is reported, not si
 
 describe('/admin/data-sharing — a purpose that is not offered explains itself', () => {
   it('explains a deferred release rather than implying a misconfiguration', () => {
+    // Not in the default fixture any more: every registered purpose is offered
+    // in this release, so `not_offered_in_release` is a state the operator can
+    // only reach if a future release defers one. The copy still has to exist,
+    // so the case is constructed rather than dropped.
+    const purposes = JSON.parse(JSON.stringify(PURPOSES)) as WirePurpose[];
+    purposes[0]!.offerable = false;
+    purposes[0]!.blocker = 'not_offered_in_release';
+    recipientsRef.value = makeRecipients({ purposes });
     const { container } = mount();
     expect(text(container)).toContain(
       'This site does not offer this choice to members yet. You can name recipients for it now, and they take effect when it is offered.',
@@ -537,8 +538,8 @@ describe('/admin/data-sharing — a purpose that is not offered explains itself'
 
   it('explains that one unpapered recipient withdraws the purpose from all of them', () => {
     const purposes = JSON.parse(JSON.stringify(PURPOSES)) as WirePurpose[];
-    purposes[2]!.blocker = 'unpapered_recipient';
-    purposes[2]!.recipientIds = ['acme', 'globex'];
+    purposes[1]!.blocker = 'unpapered_recipient';
+    purposes[1]!.recipientIds = ['acme', 'globex'];
     recipientsRef.value = makeRecipients({ purposes });
     const { container } = mount();
 

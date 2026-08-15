@@ -53,7 +53,11 @@ useSeoMeta({ title: `Data Sharing, Admin, ${useSiteName()}` });
 
 // --- Route DTOs ------------------------------------------------------------
 
-type ProcessingPurposeIdDto = 'profile_analytics' | 'recruiter_visibility' | 'sponsor_sharing';
+// Hand-mirrored from `PROCESSING_PURPOSES` in `@commonpub/persona`, because a
+// page DTO describes the wire and not the registry. It lost `profile_analytics`
+// when instance statistics stopped being a consent purpose; if a third purpose
+// is ever added (plan R3.6) this line is one of the two places to add it.
+type ProcessingPurposeIdDto = 'recruiter_visibility' | 'sponsor_sharing';
 
 type RelationshipDto = 'processor' | 'joint_controller' | 'independent_controller';
 
@@ -62,8 +66,7 @@ type TransferMechanismDto = 'adequacy' | 'scc' | 'bcr' | 'derogation';
 type PurposeBlockerDto =
   | 'not_offered_in_release'
   | 'no_recipient'
-  | 'unpapered_recipient'
-  | 'no_countable_field';
+  | 'unpapered_recipient';
 
 interface RecipientDto {
   id: string;
@@ -92,7 +95,6 @@ interface PurposeDto {
   offerable: boolean;
   blocker: PurposeBlockerDto | null;
   requiresRecipients: boolean;
-  requiresAggregatableField: boolean;
   recipientIds: string[];
 }
 
@@ -430,8 +432,6 @@ function blockerCopy(purpose: PurposeDto): string {
       return 'No recipient is named for this purpose, so members are not asked about it and nothing is shared.';
     case 'unpapered_recipient':
       return 'A recipient named for this purpose is a joint or independent controller with no agreement reference. That withdraws this purpose from every recipient named for it, not only from that one, so nothing is shared with anybody under it until the reference is filled in.';
-    case 'no_countable_field':
-      return 'No question on the member profile can be counted, so there is nothing to share under this purpose.';
     default:
       // Unreachable while `blocker` is non-null exactly when `offerable` is
       // false, and rendered anyway: an empty paragraph under a "Not offered"

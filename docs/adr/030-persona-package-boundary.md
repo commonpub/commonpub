@@ -1,6 +1,6 @@
 # 030 — Persona package boundary
 
-**Status**: Accepted (session 255). Ships flag-gated behind `persona`, `dataSharingConsents` and `personaAnalytics`, all default OFF; migration 0046 is purely additive, so no behavior changes until an operator opts in.
+**Status**: Accepted (session 255), **amended** by the profile/persona information-architecture correction (see [Amendment](#amendment-the-consent-model-narrowed) below, and `docs/plans/profile-persona-information-architecture.md` revisions 2 and 3). Ships flag-gated behind `persona`, `dataSharingConsents` and `personaAnalytics`, all default OFF; migration 0046 is purely additive, so no behavior changes until an operator opts in.
 
 ## Context
 
@@ -50,6 +50,49 @@ Separate registry (`PROCESSING_PURPOSES` in `@commonpub/persona`, not `BUILTIN_C
 - **The boundary is enforced, not documented.** `packages/persona/src/__tests__/isolation.test.ts` asserts persona imports nothing but `zod` (with a file-count floor, so a broken path cannot pass by walking zero files), that `packages/schema/src/persona.ts` imports nothing from it, that `metricsRollup.ts` and the contest engine contain no reference to persona, and that the cookie composable's one persona line is exactly the essential cookie name. Undoing an isolation decision means deleting an assertion that states why it exists.
 - **Cost of the pure package**: `purposeScopeDigest` is still 32-bit FNV-1a, because `node:crypto` is an import the isolation test forbids. It is an authorisation predicate bound into SQL and a collision fails OPEN. The parts are newline-delimited, which removes the constructible half of the problem; a SHA-256 truncation fits the existing `varchar(16)` exactly and needs the isolation rule relaxed for one hashing import.
 
+## Amendment: the consent model narrowed
+
+Recorded as an amendment rather than an edit to the text above, so the decision as taken and the
+correction to it both stay readable. Authority: `docs/plans/profile-persona-information-architecture.md`
+§R2.2, §R2.4 and §R3.1. Safe to do destructively because all four persona flags are off on all three
+instances and nothing in production has ever consented, so the removed concepts are deleted rather
+than deprecated (§R3.5).
+
+Two assumptions baked into the shipped release were wrong, and one of them lands inside decision 3.
+
+**Persona answers are private by default.** The release rendered every answer on `/u/:username` unless
+a field opted out (`publicOnProfile: false`). That is inverted: `showOnProfile`, default false, and no
+built-in field sets it. This changes no package boundary, but it does change what the sentence
+"purpose-scoped sharing consent" is protecting. It is not protecting publication, which no longer
+happens by default.
+
+**Being counted is not a consent question.** `profile_analytics` is **removed** from
+`PROCESSING_PURPOSES`. Instance statistics run on legitimate interest, disclosed, with a GDPR Art. 21
+objection switch, because the instance holds those anonymous aggregates over its own members
+regardless and asking for consent whose refusal would not be honoured is a dark pattern. The registry
+decision 3 describes therefore now holds exactly one shape of purpose: **named third-party exposure**
+(`recruiter_visibility`, `sponsor_sharing`). Adding a third is one registry entry plus one recipient
+id, no schema (plan §R3.6).
+
+**Decision 3's separation principle is extended, not weakened.** An objection is stored in its own
+table (`user_statistics_objections`, row present means excluded), **not** as a `user_purpose_consents`
+row carrying a state. Consent and objection are different legal instruments with different lifecycles;
+folding one into the other would make the consent history unreadable and the scope digest meaningless,
+which is the same argument that kept Art. 6(1)(a) processing consent out of the ePrivacy cookie table.
+
+**Decision 4 stands unchanged.** `persona_metrics_daily` is still persona's own table. What changed is
+how it gets filled: the aggregate path swaps its consent inner join for an objection exclusion, and
+the digest-bound consent join survives in exactly one place, `packages/server/src/persona/directory.ts`,
+because naming a member to a third party is still consent. k-anonymity is untouched and now carries
+the whole weight of making the published output anonymous rather than sitting behind a consent gate.
+
+**Nothing here moves a package boundary**, so `packages/persona/src/__tests__/isolation.test.ts`
+stands as written, and migration 0046 remains the additive migration this ADR describes. The
+correction adds tables; it alters none. The statistics disclosure and its objection copy land in a new
+module inside the pure package, alongside `purposes.ts` rather than inside it, which is decision 3's
+"different instrument, different home" rule applied one level down: a purpose registry entry carries a
+scope digest and a grant lifecycle, and an objection has neither.
+
 ## What would have to be true to revisit this
 
 - **Merge the registries** when a third consumer needs the same field taxonomy, or when persona genuinely grows `required` and `pii` semantics. One shared abstraction serving two callers with opposite requirements is worse than two.
@@ -60,6 +103,9 @@ The opt-in member visibility directory (`docs/plans/member-visibility-directory.
 
 ## Related
 
+- `docs/plans/profile-persona-information-architecture.md` **revisions 2 and 3**, which are authoritative for the
+  corrected visibility and consent model recorded in the amendment above. Where an older plan disagrees with it,
+  the older plan is stale.
 - `docs/plans/persona-customization-and-audience-analytics.md` **section 14**, which is authoritative for implementation and carries the full verified-constraint table, the do-not-touch list, the isolation test, the sanctioned exception, and the post-build audit. This ADR records the decision; that section holds the detail.
 - `docs/reference/guides/persona-schema.md` — the operator guide to declaring sections.
 - ADR 029 (contest proposal + PII model), whose `FormField` and PII partition this ADR declines to share.

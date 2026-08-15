@@ -56,10 +56,8 @@ export interface PublicPersonaFieldsResponse {
 export default defineEventHandler(async (event): Promise<PublicPersonaFieldsResponse> => {
   requireFeature('persona');
   requireFeature('personaAnalytics');
-  // Every count here is a count of purpose GRANTS, and `dataSharingConsents`
-  // governs the surface where those are given and withdrawn. The counting must
-  // not outlive the surface: see `server/plugins/persona-rollup.ts`.
-  requireFeature('dataSharingConsents');
+  // NO `dataSharingConsents` gate: see `distribution.get.ts` for the reasoning.
+  // Nothing this endpoint reports is a consent count any more.
   requireApiScope(event, 'read:audience');
 
   const parsed = querySchema.safeParse(getQuery(event));

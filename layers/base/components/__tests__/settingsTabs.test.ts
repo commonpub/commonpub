@@ -1,10 +1,14 @@
 /**
  * Tab registration for `/settings` (plan 6.8 and 8.1).
  *
- * Both new tabs are flag gated. A flag that is off must not leave a link to a
- * page that renders only a "not enabled" notice, and the persona tab must not
- * appear on an instance that has never turned the feature on, which is every
- * instance by default.
+ * A flag that is off must not leave a link to a page that renders only a "not
+ * enabled" notice.
+ *
+ * Profile Details is gone from this nav: it was a second editor for the same
+ * person and is now a tab inside Profile (plan R3.1 D7). The `persona` flag
+ * still gates it, one level down, which is `settingsProfileTabs.test.ts`'s
+ * subject. What this file now guards is that no route back to the duplicate
+ * survives here.
  *
  * Lives under components/__tests__ (bracket-free) so packaging excludes it.
  */
@@ -58,39 +62,47 @@ describe('settings tabs', () => {
     expect(links).toContain('/settings/appearance');
   });
 
-  it('hides both new tabs while their flags are off (the default)', () => {
-    const { container } = mount();
-    const links = hrefs(container);
-    expect(links).not.toContain('/settings/persona');
-    expect(links).not.toContain('/settings/privacy');
+  it('never links a second Profile entry, with `persona` on or off', () => {
+    // The merge is not finished while two editors exist. Turning `persona` on
+    // must add a TAB inside Profile, not a sibling of it.
+    for (const on of [false, true]) {
+      persona.value = on;
+      const links = hrefs(mount().container);
+      expect(links).not.toContain('/settings/persona');
+      expect(links.filter((l) => l.startsWith('/settings/profile'))).toEqual(['/settings/profile']);
+    }
   });
 
-  it('shows the persona tab only when `persona` is on', async () => {
-    persona.value = true;
-    const { container } = mount();
-    const links = hrefs(container);
-    expect(links).toContain('/settings/persona');
-    // The two flags are independent: collecting is not disclosing.
-    expect(links).not.toContain('/settings/privacy');
-  });
-
-  it('shows the privacy tab only when `dataSharingConsents` is on', () => {
-    dataSharingConsents.value = true;
-    const { container } = mount();
-    const links = hrefs(container);
+  it('shows the privacy tab with every sharing flag OFF', () => {
+    // It used to be gated on `dataSharingConsents`, which was right while
+    // sharing consents were the only thing on that page. They are not: profile
+    // visibility, the subject-rights links and the statistics objection all
+    // live there, and the objection is a member's control over processing that
+    // runs whether or not they agree. Gating the only route to it behind a
+    // sharing flag would make an Art. 21 right reachable only by typing a URL.
+    dataSharingConsents.value = false;
+    persona.value = false;
+    const links = hrefs(mount().container);
     expect(links).toContain('/settings/privacy');
     expect(links).not.toContain('/settings/persona');
   });
 
-  it('orders the persona tab after Profile and the privacy tab after Account', () => {
-    // RELATIVE order, not adjacency. Index arithmetic turns red when any
-    // unrelated settings tab is inserted or the nav is reordered for a design
-    // reason, and catches no defect the flag-gating tests above miss.
-    persona.value = true;
+  it('still shows the privacy tab when `dataSharingConsents` is on', () => {
     dataSharingConsents.value = true;
     const { container } = mount();
     const links = hrefs(container);
-    expect(links.indexOf('/settings/persona')).toBeGreaterThan(links.indexOf('/settings/profile'));
+    expect(links).toContain('/settings/privacy');
+    // The two flags are independent: collecting is not disclosing.
+    expect(links).not.toContain('/settings/persona');
+  });
+
+  it('orders the privacy tab after Account', () => {
+    // RELATIVE order, not adjacency. Index arithmetic turns red when any
+    // unrelated settings tab is inserted or the nav is reordered for a design
+    // reason, and catches no defect the tests above miss.
+    dataSharingConsents.value = true;
+    const { container } = mount();
+    const links = hrefs(container);
     expect(links.indexOf('/settings/privacy')).toBeGreaterThan(links.indexOf('/settings/account'));
   });
 

@@ -8,6 +8,15 @@ deliberately stopped short of a member-level read surface. This is that surface.
 sponsors do **not** get to contact them directly. Contact stays on-instance, through DMs. Email is
 never shared.
 
+> **SUPERSEDED IN PART (session 256).** `docs/plans/profile-persona-information-architecture.md`
+> revisions 2 and 3 are authoritative wherever they disagree with this document. Two of this plan's
+> assumptions were corrected in shipped code: persona answers are **private by default**
+> (`showOnProfile: true` opts one field in; there is no `publicOnProfile`), and being counted in
+> instance statistics is **not a consent purpose** (`profile_analytics` was removed; statistics run
+> on legitimate interest with an objection recorded in `user_statistics_objections`). Read the
+> machinery here, take the model from there.
+
+
 ---
 
 ## 0. The finding that reframes this
@@ -65,7 +74,7 @@ account, so being listed grants no new contact capability. It signals willingnes
 | # | Principle | Why |
 |---|---|---|
 | D1 | **This is not metrics. It must not share a module with the aggregate pipeline.** | `personaMetrics.ts` exists to make individuals unidentifiable: suppression below 5, floors, quantisation. A directory identifies individuals **on purpose, with consent**. Routed through the same code, either the directory returns nothing or someone deletes the suppression and silently breaks every aggregate. Separate module, separate test, isolation assertion in both directions. |
-| D2 | **The required grant is the specific purpose, not `profile_analytics`.** | The aggregate `/persona/audience` count needs a double join because only the analytics copy mentions being counted in statistics. The directory needs `recruiter_visibility` alone, because that purpose's copy describes exactly this disclosure. Requiring analytics too would exclude people who consented to precisely the thing being done. |
+| D2 | **The required grant is the specific purpose.** | The directory needs `recruiter_visibility` alone, because that purpose's copy describes exactly this disclosure. _(As shipped, this is now the only reading available: `profile_analytics` was removed, and `/persona/audience` counts a single purpose per slot with no second join.)_ |
 | D3 | **Every disclosure is attributable to a named recipient and logged before the response.** | Without it, "who has my data" is unanswerable, which fails Art 15 and makes the whole product untrustworthy. The log is also what makes bulk extraction visible. |
 | D4 | **Email is structurally absent, not filtered out.** | Reuse `toPublicUser`, which has no email field, rather than selecting columns and remembering to drop one. |
 | D5 | **Revocation removes you from the next response. History of past disclosures is retained.** | Cannot unring a bell; the copy must say so rather than implying recall. |
@@ -137,7 +146,7 @@ invites someone to hand it a metrics key.
 | Flags | `persona` + `dataSharingConsents` + new `memberDirectory` (default false). `requireFeature` throws 404, so a non-participating instance does not reveal the surface |
 | Filters | `interests=`, `techStack=`, `industry=` (repeatable, validated against the effective schema, unknown key is a clean 400), `hasLink=github,linkedin`, `q=` reusing the existing search, `location=` |
 | Pagination | `limit` 1..50 default 20 (lower than the metrics family: this is people), `offset`, `toPageMeta` like the rest of the family |
-| Response | `toPublicUser` fields **plus** the member's public persona answers, resolved to labels. Never email. Never free text unless `publicOnProfile !== false`. Never `sensitive` fields |
+| Response | `toPublicUser` fields **plus** the member's persona answers, resolved to labels. Never email. Never `sensitive` fields. _(As shipped: the profile-visibility gate was removed from this payload when the `recruiter_visibility` copy stopped pointing at the profile and started naming the answers directly. `showOnProfile` governs `/u/:username`, not this surface.)_ |
 | Audit | `disclosure_events` rows inserted in the same transaction that reads the page, before the response is serialised |
 
 The consent join, in `packages/server/src/persona/directory.ts` (new module, D1):
@@ -221,8 +230,8 @@ and the surface that shows them who used it, both exist.
 
 - A member with no grant is absent. With a stale digest, absent. Revoked, absent. Non-public profile,
   absent. Suspended or soft-deleted, absent.
-- A member granting **only** `profile_analytics` is absent from the recruiter directory (D2 in the
-  other direction: analytics consent is not directory consent).
+- A member holding a grant for some OTHER purpose only (`sponsor_sharing`) is absent from the
+  recruiter directory (D2 in the other direction: one consent is not another).
 - Every response writes exactly one `disclosure_events` row per member returned, in the same
   transaction, and a failed write fails the request rather than disclosing unlogged.
 - A `read:*` key gets 403. A `read:members` key with no `recipient_id` gets 403. A key bound to a

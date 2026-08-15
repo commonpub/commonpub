@@ -1,25 +1,38 @@
 import { fnv1a32 } from './digest.js';
 
 /**
- * Every processing purpose a user can be asked about. Each id is at most 24
- * characters, so it fits `user_purpose_consents.purpose varchar(24)` (migration
- * 0046). A test asserts it.
+ * Every processing purpose a member can be ASKED about, which is now exactly one
+ * shape: NAMED THIRD-PARTY EXPOSURE. Something about the member leaves this
+ * instance and reaches a party the operator has declared, by name, with a
+ * privacy policy to link.
  *
- * The bound originally existed for a `'sharing:' + id` row in `user_consents`;
- * plan 14.4 removed that row rather than `ALTER` a live GDPR table, so the
- * column this bound now serves is persona's own.
+ * Instance statistics are deliberately not here. The instance counts answers
+ * over its own members whether or not anybody agrees, because they are anonymous
+ * totals about its own records, so dressing that as a consent toggle was asking
+ * permission for processing that happens regardless. It runs on legitimate
+ * interest with an objection instead; `statistics.ts` holds that instrument and
+ * its copy. Consent and objection are different legal acts with different
+ * lifecycles, which is why they are different modules and different tables.
+ *
+ * Each id is at most 24 characters, so it fits `user_purpose_consents.purpose
+ * varchar(24)` (migration 0046). A test asserts it.
+ *
+ * ADDING A THIRD PURPOSE: one entry here, one in `PROCESSING_PURPOSE_SPECS` with
+ * its copy, one id in the recipient's `purposes`, and it appears. No schema, no
+ * migration. Speculating one before a real recipient needs it would be cruft
+ * rather than foresight, so there are two.
  */
-export const PROCESSING_PURPOSES = [
-  'profile_analytics',
-  'recruiter_visibility',
-  'sponsor_sharing',
-] as const;
+export const PROCESSING_PURPOSES = ['recruiter_visibility', 'sponsor_sharing'] as const;
 
 export type ProcessingPurposeId = (typeof PROCESSING_PURPOSES)[number];
 
 /**
  * The classes of persona data a purpose can cover. Coarse on purpose: a class is
  * what a person can hold in their head while reading a consent card.
+ *
+ * Shared with `statistics.ts`, which declares the classes the instance's own
+ * totals are built from. One vocabulary, so "what is counted" and "what is
+ * disclosed" are stated in the same words and can be compared.
  */
 export const PERSONA_DATA_CLASSES = [
   'persona_selections',
@@ -58,14 +71,20 @@ export interface ProcessingPurposeSpec {
   /**
    * What starts happening if it is turned on, as a TEMPLATE.
    *
-   * It is not the finished sentence, and the name says so, because the copy
-   * names the operator's k-anonymity floor and that floor is configurable. A
-   * hardcoded "at least five people" on an instance running `minBucket: 25`
-   * understates the member's own protection by five times, and the stored Art.
-   * 7(1) snapshot then carries the wrong number as the record of what they were
-   * shown. Render it with {@link renderPurposeOnSummary}; the type forces every
-   * consumer through that function, so the resolved floor, the rendered card,
-   * the stored snapshot and the SQL `HAVING` cannot diverge.
+   * It is not the finished sentence, and the name says so, because a purpose
+   * whose copy names one of the operator's k-anonymity floors has to name the
+   * configured number rather than a hardcoded one. A "at least five people" on
+   * an instance running `minBucket: 25` understates the member's own protection
+   * by five times, and the stored Art. 7(1) snapshot then carries the wrong
+   * number as the record of what they were shown.
+   *
+   * Neither purpose here names a floor today, because both disclose one named
+   * member to one named recipient and a floor over a group has nothing to say
+   * about that. The indirection stays anyway: {@link renderPurposeOnSummary} is
+   * the ONE way to turn a template into a sentence, so the rendered card and the
+   * stored snapshot cannot diverge, and a future purpose that does name a floor
+   * cannot bypass it. `statistics.ts` uses the same tokens, and its copy does
+   * name the floor.
    *
    * Tokens: `{minBucket}`, `{minPopulation}`.
    */
@@ -75,13 +94,20 @@ export interface ProcessingPurposeSpec {
    *
    * Load bearing, not decorative: it is what `currentPurposeScope` digests into
    * the scope digest and what `buildPurposeScopeSnapshot` stores as the record
-   * of what the member agreed to. An aggregate that reads a class absent from
+   * of what the member agreed to. A disclosure that sends a class absent from
    * the granting purpose's `covers` is processing outside its consent, so a new
-   * aggregate over a new class is a `covers` edit AND a copy edit, both of which
-   * move the digest and re-ask everyone who already agreed.
+   * field in a new class is a `covers` edit AND a copy edit, both of which move
+   * the digest and re-ask everyone who already agreed.
    */
   readonly covers: readonly PersonaDataClass[];
-  readonly disclosedTo: 'this_instance' | 'named_recipients';
+  /**
+   * Literal, not a union: every purpose in this registry is an exposure to a
+   * party outside this instance. That is the whole reason the registry exists
+   * after `profile_analytics` left it. Processing this instance does with its
+   * own records is not a consent question and does not belong here; widening
+   * this type is the deliberate act that would let one in.
+   */
+  readonly disclosedTo: 'named_recipients';
   /**
    * The Art. 6 lawful basis, rendered on the consent card beside the copy.
    * Every purpose here is consent; the field exists so a future
@@ -90,12 +116,15 @@ export interface ProcessingPurposeSpec {
   readonly legalBasis: 'consent';
   readonly revocationEffect: string;
   /**
-   * What happens to the ANSWERS after a revocation. They stay on the user's own
-   * profile; what stops is the processing.
+   * What happens to the ANSWERS after a revocation: they stay in the member's
+   * account, and what stops is the processing.
+   *
+   * It does NOT say "on your profile", because after the `showOnProfile`
+   * inversion most answers are not on a profile at all. A reassurance that
+   * describes a place the data is not would be worse than no reassurance.
    */
-  readonly answersAfterRevocation: 'kept_on_your_profile';
+  readonly answersAfterRevocation: 'kept_in_your_account';
   readonly requiresRecipients: boolean;
-  readonly requiresAggregatableField: boolean;
   /**
    * Literal `false`, not `boolean`: shipping a purpose that defaults on is a
    * typecheck failure, not a test failure.
@@ -113,59 +142,41 @@ export interface ProcessingPurposeSpec {
  * change being visible.
  */
 export const PROCESSING_PURPOSE_SPECS = {
-  profile_analytics: {
-    label: 'Count my answers in community statistics',
-    offSummary:
-      'Right now your answers are only visible on your profile and are not counted anywhere.',
-    // Appendix B3: the aggregation query filters on a public profile, so a user
-    // who grants this and later makes their profile private is silently not
-    // counted. The exclusion is disclosed here, in the same sentence block that
-    // promises the counting, and again inline on the toggle.
-    //
-    // The link sentence is not optional garnish: `getPersonaLinkPresence`
-    // aggregates `users.social_links` off THIS grant, so `profile_links` is in
-    // `covers` and the copy has to name it or the record misstates the scope.
-    onSummaryTemplate:
-      'If you turn this on: your interests, your tech stack and which link platforms you list (never the addresses) are counted in group totals. Totals are shown only when at least {minBucket} people share an answer, and counts are rounded down. Your name is never attached and nothing about you leaves this site. While your profile is set to private, your answers are not counted, even with this turned on.',
-    covers: ['persona_selections', 'profile_links'],
-    disclosedTo: 'this_instance',
-    legalBasis: 'consent',
-    revocationEffect:
-      'You can turn this off at any time. Turning it off stops your answers being counted in new statistics, usually within a day. Statistics already published for past days are group totals and are not recalculated. Your answers stay on your profile until you change or delete them.',
-    answersAfterRevocation: 'kept_on_your_profile',
-    requiresRecipients: false,
-    requiresAggregatableField: true,
-    defaultGranted: false,
-  },
   recruiter_visibility: {
-    label: 'Let people hiring see my profile in the members directory',
+    label: 'Let people hiring find me by my answers',
     offSummary:
-      'Right now nobody outside this site can see your profile through the hiring directory.',
+      'Right now nobody outside this site can find you through the hiring directory, and none of your answers are sent to anyone.',
+    // Every class in `covers` is named in this sentence, because the sentence is
+    // the record of what the member agreed to. `public_identity` is the name and
+    // profile, `profile_links` the addresses on it, `location_coarse` the town,
+    // `persona_selections` the interests and tech stack.
     onSummaryTemplate:
-      'If you turn this on: people the operator has approved for hiring can see what is already on your public profile, including the links on it and the town you list, plus your interests and tech stack. They cannot see your email address. They contact you through messages on this site.',
+      'If you turn this on: your name, your public profile, the links on it, the town you list and your answers about interests and tech stack are shown to the people named below when they search this site for someone to hire. Each time one of them looks you up it is recorded and shown to you. They cannot see your email address.',
     covers: ['persona_selections', 'public_identity', 'profile_links', 'location_coarse'],
     disclosedTo: 'named_recipients',
     legalBasis: 'consent',
+    // "It cannot recall what was already shared" is the honest sentence and it
+    // stays. Promising more than the architecture delivers is the failure the
+    // whole surface exists to avoid.
     revocationEffect:
-      'You can turn this off at any time. Your answers stay on your profile.',
-    answersAfterRevocation: 'kept_on_your_profile',
+      'You can turn this off at any time, and new searches stop finding you straight away. It cannot recall what was already shared: somebody who looked you up keeps whatever they noted down. Your answers stay in your account.',
+    answersAfterRevocation: 'kept_in_your_account',
     requiresRecipients: true,
-    requiresAggregatableField: false,
     defaultGranted: false,
   },
   sponsor_sharing: {
     label: 'Share my answers with contest sponsors',
-    offSummary: 'Right now nothing about you is shared with sponsors.',
+    offSummary:
+      'Right now nothing about you is shared with sponsors, and no sponsor is told you are here.',
     onSummaryTemplate:
-      'If you turn this on: your interests, your tech stack and your public profile links are shared with the sponsors named below. Each of these has a privacy policy linked below.',
+      'If you turn this on: your answers about interests and tech stack, and the links on your profile, are sent to the sponsors named below. Each of them keeps its own copy under its own privacy policy, linked beside its name, and this site cannot delete their copy for you.',
     covers: ['persona_selections', 'profile_links'],
     disclosedTo: 'named_recipients',
     legalBasis: 'consent',
     revocationEffect:
-      'You can turn this off at any time. Your answers stay on your profile.',
-    answersAfterRevocation: 'kept_on_your_profile',
+      'You can turn this off at any time, and nothing further is sent. It cannot recall what was already shared: a sponsor that already has your answers keeps them under its own policy, and you would ask that sponsor directly. Your answers stay in your account.',
+    answersAfterRevocation: 'kept_in_your_account',
     requiresRecipients: true,
-    requiresAggregatableField: false,
     defaultGranted: false,
   },
 } satisfies Record<ProcessingPurposeId, ProcessingPurposeSpec>;
@@ -212,11 +223,11 @@ export function renderPurposeOnSummary(
 /**
  * Does `purpose` authorise processing `dataClass`?
  *
- * The point of exporting this is that `covers` stops being decorative: an
- * aggregate asserts the class it reads against the purpose it joins on, so a
- * future aggregate cannot silently outrun the disclosure the member read. The
- * one place this already went wrong (link presence counted under a purpose whose
- * copy named only interests and tech stack) is exactly what it now prevents.
+ * The point of exporting this is that `covers` stops being decorative: the
+ * surface that discloses a class asserts that class against the purpose it joins
+ * on, so a disclosure cannot silently outrun the sentence the member read. It
+ * has already caught one real case, where a link aggregate ran off a grant whose
+ * copy named only interests and tech stack.
  */
 export function purposeCovers(
   purpose: ProcessingPurposeId,
@@ -227,7 +238,6 @@ export function purposeCovers(
 
 export interface PurposeOfferabilityContext {
   readonly recipients: readonly DataRecipient[];
-  readonly aggregatableFieldKeys: readonly string[];
   /** Purposes whose READ surface exists. A purpose absent here is never offered. */
   readonly enabledPurposes: readonly ProcessingPurposeId[];
 }
@@ -238,6 +248,12 @@ export interface PurposeOfferabilityContext {
  * Nothing is collected that cannot yet be acted on, which is what Art. 4(11)
  * specificity requires and what keeps the one ask a user will read from being
  * spent on nothing.
+ *
+ * There is no aggregatable-field gate any more. It existed for one purpose,
+ * `profile_analytics`, which is gone: statistics are not a consent question, so
+ * "there is nothing countable yet" can no longer be a reason a CONSENT card is
+ * withheld. What every purpose here needs is a recipient, and one with its
+ * paperwork.
  */
 export function purposeIsOfferable(
   id: ProcessingPurposeId,
@@ -246,10 +262,6 @@ export function purposeIsOfferable(
   if (!ctx.enabledPurposes.includes(id)) return false;
 
   const spec = PROCESSING_PURPOSE_SPECS[id];
-
-  if (spec.requiresAggregatableField && ctx.aggregatableFieldKeys.length === 0) {
-    return false;
-  }
 
   const covering = ctx.recipients.filter((r) => r.purposes.includes(id));
   if (spec.requiresRecipients && covering.length === 0) return false;
@@ -270,12 +282,17 @@ export function purposeIsOfferable(
  * as opposed to only the data classes and recipients.
  *
  * Appendix B10 leaves this open, and the two answers trade real things against
- * each other. `true` means consent tracks exactly what is counted: adding an
- * aggregatable field degrades every existing `profile_analytics` grant and puts
- * a re-confirm card in front of every consenting user. `false` means a new field
- * inside an already-consented data class is treated as covered, and users are
- * re-asked only when a class or a recipient changes, which avoids training
- * people to click through consent.
+ * each other. `true` means a grant tracks exactly which closed-vocabulary
+ * answers exist to be disclosed: adding one degrades every existing grant and
+ * puts a re-confirm card in front of every consenting member. `false` means a
+ * new field inside an already-consented data class is treated as covered, and
+ * members are re-asked only when a class or a recipient changes, which avoids
+ * training people to click through consent.
+ *
+ * The reading is if anything stronger now than when it was written for counting.
+ * Both surviving purposes SEND a member's selections to a named third party, so
+ * "which selections exist" is part of what leaves, not merely part of what is
+ * tallied.
  *
  * Shipped as `true`, the conservative reading. It is the DEFAULT of a real
  * input rather than a module constant, so both branches are reachable and

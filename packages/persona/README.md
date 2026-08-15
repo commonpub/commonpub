@@ -2,7 +2,7 @@
 
 The persona brain for CommonPub: the typed source of truth for what a persona
 field is, where its answer is stored, which answers can ever be counted, and what
-a user is actually agreeing to when they turn on a sharing toggle.
+a member is actually agreeing to when they turn on a sharing toggle.
 
 Pure TypeScript. The only runtime dependency is `zod`. No framework, no ORM, no
 database, no HTTP, no DOM.
@@ -46,10 +46,36 @@ mirror, each with a test pinning it to its original:
 | `fields.ts` | `PERSONA_FIELD_TYPES`, `PERSONA_FIELD_SPECS` (closed with `satisfies`), and a fail-closed registry lookup |
 | `persona.ts` | `PersonaField`, `PersonaSection`, `personaFieldSink`, `isPersonaFieldAggregatable`, `personaCompleteness`, the link platforms, `BUILTIN_PERSONA_SECTIONS` |
 | `purposes.ts` | `PROCESSING_PURPOSES`, the purpose specs and their plain-language copy, `purposeIsOfferable`, `purposeScopeDigest` |
+| `statistics.ts` | `PERSONA_STATISTICS`: the legitimate-interest disclosure and the objection, with its copy. Not a purpose, and deliberately not in the registry |
 | `thresholds.ts` | `METRICS_MIN_BUCKET` and `MIN_AUDIENCE_POPULATION`, the k-anonymity floors, in one place |
 | `schemas.ts` | Every Zod schema, plus `definePersonaSections` for `commonpub.config.ts` |
 | `digest.ts` | `fnv1a32` |
 | `url.ts` | `httpUrl`, `optionalUrl` |
+
+## The model, in four lines
+
+| Layer | Who sees it | Basis | The member's control |
+|---|---|---|---|
+| Profile | everyone | published by intent | none needed, they wrote it to be read |
+| Answers to the operator's questions | the member and the operator | the operator asked, the member answered | answer or do not; a field appears on the public profile only where the operator set `showOnProfile: true` |
+| Community statistics | the operator | legitimate interest, disclosed | **an objection** (`statistics.ts`) |
+| Named third parties | the recipients the operator declared | **consent, default off** | **the one real toggle** (`purposes.ts`) |
+
+Two consequences worth being explicit about.
+
+**Answers are private by default.** `showOnProfile` is an opt IN: absent or
+`false` means the answer never reaches `/u/:username`. No built-in section sets
+it. An operator running persona for operational questions (which machines are
+you checked out on) publishes nothing by accident, and an operator building a
+maker directory opts the fields in deliberately, one key at a time.
+
+**Being counted is not a consent question.** The instance holds anonymous totals
+over its own members whether or not anyone agrees, so asking permission whose
+refusal would change nothing was a dark pattern with good intentions. Statistics
+run on legitimate interest with an objection, and the objection is honoured in
+the query. The one thing consent is asked for is the one thing that is genuinely
+the member's to decide: whether named third parties may find them by these
+answers.
 
 ## Two invariants worth stating out loud
 

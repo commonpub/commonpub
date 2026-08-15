@@ -207,12 +207,14 @@ export interface FeatureFlags {
    * PUBLIC profile (`GET /api/users/:username/persona`, in the About tab of
    * `/u/:username`).
    *
-   * That last one is why this is more than a collection switch: turning it on
-   * both starts collecting personal data that was not collected before and
-   * starts DISPLAYING it, subject to each field's `publicOnProfile` and the
-   * member's own `profileVisibility`. Hence default OFF. The section definitions
-   * live in `config.persona`, which this package accepts opaquely and never
-   * interprets.
+   * Turning it on starts collecting personal data that was not collected
+   * before, which is why the default is OFF. It does NOT publish anything on
+   * its own: an answer appears on the public profile only where the operator
+   * set `showOnProfile: true` on that field, and no built-in field does, so a
+   * default instance asks its questions and publishes none of the answers. The
+   * member's own `profileVisibility` still applies on top. The section
+   * definitions live in `config.persona`, which this package accepts opaquely
+   * and never interprets.
    */
   persona: boolean;
   /**

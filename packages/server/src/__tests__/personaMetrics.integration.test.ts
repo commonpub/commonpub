@@ -8,6 +8,8 @@ import {
   userPersonaAnswers,
   userPersonaText,
   userPurposeConsents,
+  userSharedLinks,
+  userStatisticsObjections,
   personaMetricsDaily,
 } from '@commonpub/schema';
 import type { PurposeScopeSnapshot } from '@commonpub/schema';
@@ -36,13 +38,20 @@ import {
 } from '../persona/metrics.js';
 
 /**
- * Plan 10.3, minus the two rows section 14.4 defers (`api_keys.purposes`
- * differentiation, and the `/metrics/timeseries` persona back door, which cannot
- * exist because persona writes to its own table).
+ * Plan 10.3, re-cut for the corrected model (`profile-persona-information-
+ * architecture.md` R2.5 and R3.3): statistics run on legitimate interest with an
+ * Art. 21 objection, not on a consent purpose, and the aggregate queries exclude
+ * objectors instead of joining grants.
  *
  * Every case here is an ABSENCE case or a SUPPRESSION case: the interesting
  * property of this layer is what it refuses to publish, so a test that only
  * proved the happy path would prove almost nothing.
+ *
+ * The exclusion fixture below is the sharpest instrument in the file and it is
+ * kept exactly as it was, retargeted: each way a member can be left out gets its
+ * own cohort of exactly `minBucket` people answering with its own sentinel
+ * value, so a broken predicate produces a NAMED bucket instead of nudging a real
+ * one by one inside the quantum.
  */
 
 // --- The template under test ----------------------------------------------------
@@ -65,7 +74,7 @@ const SECTIONS: PersonaSection[] = [
       { key: 'industry', label: 'Industry', type: 'select', options: INDUSTRY_OPTIONS },
       { key: 'sector', label: 'Sector', type: 'select', options: INDUSTRY_OPTIONS },
       // Free text: never countable, and the table it lives in is not imported by
-      // the analytics module at all.
+      // the statistics module at all.
       { key: 'about_me', label: 'About you', type: 'textarea', maxLength: 500 },
       // Art. 9 escape hatch: a closed vocabulary forced out of the countable
       // partition by the operator.
@@ -90,13 +99,11 @@ const SECTIONS: PersonaSection[] = [
 
 const AGGREGATABLE_KEYS = ['industry', 'sector', 'interests'];
 
-const ANALYTICS_DIGEST = purposeScopeDigest({
-  policyVersion: '1',
-  dataClasses: ['persona_selections'],
-  recipientIds: [],
-  aggregatableFieldKeys: AGGREGATABLE_KEYS,
-});
-
+/**
+ * The digest a `recruiter_visibility` grant carries. Consent still exists on
+ * this surface, and only here: the audience counts are counts of people who
+ * agreed to be named to a third party.
+ */
 const RECRUITER_DIGEST = purposeScopeDigest({
   policyVersion: '1',
   dataClasses: ['persona_selections', 'public_identity'],
@@ -107,15 +114,15 @@ const RECRUITER_DIGEST = purposeScopeDigest({
 /** A grant carrying this authorises nothing: the policy version moved on. */
 const STALE_DIGEST = purposeScopeDigest({
   policyVersion: '0',
-  dataClasses: ['persona_selections'],
-  recipientIds: [],
+  dataClasses: ['persona_selections', 'public_identity'],
+  recipientIds: ['acme'],
   aggregatableFieldKeys: AGGREGATABLE_KEYS,
 });
 
 const THRESHOLDS = resolvePersonaThresholds({ minBucket: 5, minPopulation: 25 });
 
 const SNAPSHOT: PurposeScopeSnapshot = {
-  purposeLabel: 'Count my answers in community statistics',
+  purposeLabel: 'Let people hiring find me by my answers',
   offSummary: 'off',
   onSummary: 'on',
   recipients: [],
@@ -192,9 +199,25 @@ async function grant(
   });
 }
 
+/** Row present means objected. There is no state to set and no default to trust. */
+async function objectToStatistics(db: DB, userId: string): Promise<void> {
+  await db.insert(userStatisticsObjections).values({ userId });
+}
+
 async function answer(db: DB, userId: string, fieldKey: string, value: string): Promise<void> {
   const sectionKey = fieldKey === 'interests' ? 'interests' : 'work';
   await db.insert(userPersonaAnswers).values({ userId, sectionKey, fieldKey, value });
+}
+
+async function link(db: DB, user: SeedUser, platform: string): Promise<void> {
+  await db
+    .update(users)
+    .set({ socialLinks: { [platform]: `https://${platform}.example/u${user.index}` } })
+    .where(eq(users.id, user.id));
+}
+
+async function share(db: DB, userId: string, platform: string): Promise<void> {
+  await db.insert(userSharedLinks).values({ userId, platform });
 }
 
 // --- Exclusion cohorts -----------------------------------------------------------
@@ -208,83 +231,49 @@ function exclusionValue(name: string): string {
 
 type ExclusionCase = [name: string, seed: SeedOptions, mutate: (db: DB, userId: string) => Promise<void>];
 
-/** One row per way the query is supposed to exclude somebody. */
+/**
+ * One row per way the query is supposed to leave somebody out.
+ *
+ * The consent cases are gone because consent no longer decides this: a member
+ * with no consent row of any kind IS counted, and a separate test asserts that
+ * directly rather than leaving it to be inferred from an absence.
+ */
 const EXCLUSION_CASES: ExclusionCase[] = [
-  // No consent row at all: nothing to inner join to.
-  ['no_consent', {}, async () => {}],
-  // Granted, then revoked. The old grant is superseded; the current row is a
-  // refusal. Both must fail the join, for different reasons.
+  // THE new one. An objection on record (Art. 21), honoured in the query.
+  ['objected', {}, async (db, userId) => { await objectToStatistics(db, userId); }],
+  // An objector who ALSO consents to being named to recruiters. The objection is
+  // about counting and the grant is about disclosure; holding one must not undo
+  // the other, in either direction. This cohort proves the audience count skips
+  // them too.
   [
-    'revoked',
+    'objected_but_open_to_recruiters',
     {},
     async (db, userId) => {
-      await grant(db, userId, 'profile_analytics', ANALYTICS_DIGEST, {
-        supersededAt: new Date('2026-01-01T00:00:00Z'),
-      });
-      await grant(db, userId, 'profile_analytics', ANALYTICS_DIGEST, { state: 'revoked' });
-    },
-  ],
-  // A current grant carrying a digest that no longer matches the scope.
-  [
-    'stale_digest',
-    {},
-    async (db, userId) => {
-      await grant(db, userId, 'profile_analytics', STALE_DIGEST);
-    },
-  ],
-  // Granted, but the profile is not public. Disclosed in the consent copy (B3).
-  [
-    'private_profile',
-    { visibility: 'private' },
-    async (db, userId) => {
-      await grant(db, userId, 'profile_analytics', ANALYTICS_DIGEST);
-    },
-  ],
-  [
-    'members_only_profile',
-    { visibility: 'members' },
-    async (db, userId) => {
-      await grant(db, userId, 'profile_analytics', ANALYTICS_DIGEST);
-    },
-  ],
-  [
-    'suspended',
-    { status: 'suspended' },
-    async (db, userId) => {
-      await grant(db, userId, 'profile_analytics', ANALYTICS_DIGEST);
-    },
-  ],
-  [
-    'soft_deleted',
-    { deleted: true },
-    async (db, userId) => {
-      await grant(db, userId, 'profile_analytics', ANALYTICS_DIGEST);
-    },
-  ],
-  // Holds a current grant, but for a DIFFERENT purpose. Consenting to be visible
-  // to recruiters is not consenting to be counted.
-  [
-    'other_purpose_only',
-    {},
-    async (db, userId) => {
+      await objectToStatistics(db, userId);
       await grant(db, userId, 'recruiter_visibility', RECRUITER_DIGEST);
     },
   ],
+  // Not public. Stated in the statistics copy: a member who goes private stops
+  // being counted, and they were told so.
+  ['private_profile', { visibility: 'private' }, async () => {}],
+  ['members_only_profile', { visibility: 'members' }, async () => {}],
+  ['suspended', { status: 'suspended' }, async () => {}],
+  ['soft_deleted', { deleted: true }, async () => {}],
 ];
 
 // --- The main suite --------------------------------------------------------------
 
-describe('persona metrics — consent join, k-anonymity and suppression', () => {
+describe('persona statistics — the objection anti-join, k-anonymity and suppression', () => {
   let db: DB;
-  /** 30 users who are eligible AND consenting. */
-  let eligible: SeedUser[];
+  /** 30 members who are counted: active, public, and not objecting. */
+  let counted: SeedUser[];
 
   beforeAll(async () => {
     db = await createTestDB();
 
-    eligible = await seedUsers(db, 30);
-    for (const u of eligible) {
-      await grant(db, u.id, 'profile_analytics', ANALYTICS_DIGEST);
+    counted = await seedUsers(db, 30);
+    for (const u of counted) {
+      // NO consent row is written here, and that is the point of the fixture.
       // `sector` is the clean scalar: everybody answers the same way, so no
       // bucket is ever withheld and the field stays publishable.
       await answer(db, u.id, 'sector', 'software');
@@ -297,44 +286,35 @@ describe('persona metrics — consent join, k-anonymity and suppression', () => 
     // interests (multiselect): 23 rust, 4 niche, 3 unanswered.
     // 23 is deliberately not a multiple of 5, and rounds UP to 25 but floors to
     // 20, so the payload distinguishes flooring from rounding (audit B8).
-    for (const u of eligible.slice(0, 23)) await answer(db, u.id, 'interests', 'rust');
-    for (const u of eligible.slice(23, 27)) await answer(db, u.id, 'interests', 'niche');
+    for (const u of counted.slice(0, 23)) await answer(db, u.id, 'interests', 'rust');
+    for (const u of counted.slice(23, 27)) await answer(db, u.id, 'interests', 'niche');
 
     // industry (select): 25 software, 4 aerospace. The 4 is withheld, and because
     // the field is scalar the WHOLE field is then refused.
-    for (const u of eligible.slice(0, 25)) await answer(db, u.id, 'industry', 'software');
-    for (const u of eligible.slice(25, 29)) await answer(db, u.id, 'industry', 'aerospace');
+    for (const u of counted.slice(0, 25)) await answer(db, u.id, 'industry', 'software');
+    for (const u of counted.slice(25, 29)) await answer(db, u.id, 'industry', 'aerospace');
 
-    // Links: 23 github (visible), 4 discord (withheld).
-    for (const u of eligible.slice(0, 23)) {
-      await db
-        .update(users)
-        .set({ socialLinks: { github: `https://github.com/u${u.index}` } })
-        .where(eq(users.id, u.id));
+    // Links: 23 github listed AND shared (visible), 4 discord listed and shared
+    // (withheld), and TWO who list github without sharing it. Those two are the
+    // sharp edge: 23 floors to 20 and 25 floors to 25, so dropping the
+    // `user_shared_links` intersection changes the published number rather than
+    // hiding inside the quantum.
+    for (const u of counted.slice(0, 23)) {
+      await link(db, u, 'github');
+      await share(db, u.id, 'github');
     }
-    for (const u of eligible.slice(23, 27)) {
-      await db
-        .update(users)
-        .set({ socialLinks: { discord: `https://discord.gg/u${u.index}` } })
-        .where(eq(users.id, u.id));
+    for (const u of counted.slice(23, 27)) {
+      await link(db, u, 'discord');
+      await share(db, u.id, 'discord');
     }
+    for (const u of counted.slice(27, 29)) await link(db, u, 'github');
     // Audit B12: a legacy row whose social_links is not a jsonb OBJECT must not
     // blow up the link pass. Only raw SQL can produce it; the Drizzle type cannot.
     await db.execute(
-      sql`UPDATE ${users} SET social_links = '"not-an-object"'::jsonb WHERE id = ${eligible[29]!.id}`,
+      sql`UPDATE ${users} SET social_links = '"not-an-object"'::jsonb WHERE id = ${counted[29]!.id}`,
     );
 
-    // --- Every way a user can be excluded.
-    //
-    // Each category gets EXCLUSION_COHORT users answering `interests` with its
-    // OWN sentinel value. Two reasons, both learned the hard way while writing
-    // this file: a cohort of exactly minBucket clears the bucket floor on its
-    // own, so a leak becomes a visible bucket rather than being swallowed by
-    // suppression; and a distinct value per category means the failing assertion
-    // NAMES the predicate that broke. Piling every excluded user onto 'rust'
-    // instead hides a single-user leak inside the quantum, which is how the
-    // first draft of this test passed with the scope digest deleted from the
-    // join condition.
+    // --- Every way a member can be left out.
     for (const [name, opts, mutate] of EXCLUSION_CASES) {
       const cohort = await seedUsers(db, EXCLUSION_COHORT, opts);
       for (const u of cohort) {
@@ -343,19 +323,49 @@ describe('persona metrics — consent join, k-anonymity and suppression', () => 
       }
     }
 
-    // --- Audience: 10 of the eligible also grant recruiter_visibility.
-    for (const u of eligible.slice(0, 10)) {
+    // --- Audience: 10 of the counted also grant recruiter_visibility.
+    for (const u of counted.slice(0, 10)) {
       await grant(db, u.id, 'recruiter_visibility', RECRUITER_DIGEST);
     }
+    // Two more grants that must NOT be counted: one superseded-then-revoked, one
+    // carrying a digest the scope has moved past.
+    await grant(db, counted[10]!.id, 'recruiter_visibility', RECRUITER_DIGEST, {
+      supersededAt: new Date('2026-01-01T00:00:00Z'),
+    });
+    await grant(db, counted[10]!.id, 'recruiter_visibility', RECRUITER_DIGEST, { state: 'revoked' });
+    await grant(db, counted[11]!.id, 'recruiter_visibility', STALE_DIGEST);
   }, 180_000);
 
   afterAll(async () => {
     await closeTestDB(db);
   });
 
-  const live = { thresholds: THRESHOLDS, scopeDigest: ANALYTICS_DIGEST, source: 'live' as const };
+  const live = { thresholds: THRESHOLDS, source: 'live' as const };
+  const recruiters = [{ purpose: 'recruiter_visibility' as const, scopeDigest: RECRUITER_DIGEST }];
 
-  it('counts only consenting, public, active, non-deleted users', async () => {
+  it('counts a member who has consented to nothing at all', async () => {
+    // The whole correction in one assertion. These 30 hold no `profile_analytics`
+    // row, because there is no such purpose, and no consent row is required to
+    // be counted: statistics are legitimate interest and the member's instrument
+    // is the objection, not a grant.
+    const [consents] = await db
+      .select({ n: sql<number>`count(*)::int` })
+      .from(userPurposeConsents);
+    // The only consent rows on this instance are recruiter grants: 10 live, one
+    // superseded plus its revocation, one stale, and one per objector in the
+    // `objected_but_open_to_recruiters` cohort.
+    expect(consents?.n).toBe(13 + EXCLUSION_COHORT);
+
+    const dist = await getPersonaFieldDistribution(db, {
+      ...live,
+      field: fieldByKey('sector'),
+      limit: 20,
+    });
+    expect(dist.available).toBe(true);
+    expect(dist.items).toEqual([{ value: 'software', label: 'Software', count: 30 }]);
+  });
+
+  it('counts only non-objecting, public, active, non-deleted members', async () => {
     const dist = await getPersonaFieldDistribution(db, {
       ...live,
       field: fieldByKey('interests'),
@@ -369,18 +379,21 @@ describe('persona metrics — consent join, k-anonymity and suppression', () => 
     // The sharp assertion: each excluded cohort is exactly minBucket people with
     // its own sentinel value, so a broken predicate produces a NAMED bucket
     // rather than nudging 'rust' by one inside the quantum. This is what fails
-    // if the scope digest, the superseded check, the state check, the purpose
-    // check, the visibility filter, the status filter or the soft-delete filter
-    // is removed from the join.
+    // if the objection anti-join, the visibility filter, the status filter or
+    // the soft-delete filter is dropped from `countedUserWhere`.
     expect(dist.items.map((i) => i.value)).toEqual(['rust']);
   });
 
   it('leaves no excluded cohort reachable through any surface', async () => {
     // Guard: the cases really were seeded, so an empty EXCLUSION_CASES cannot
     // make this pass green.
-    expect(EXCLUSION_CASES.length).toBeGreaterThanOrEqual(8);
+    expect(EXCLUSION_CASES.length).toBeGreaterThanOrEqual(6);
     const [seeded] = await db.select({ n: sql<number>`count(*)::int` }).from(users);
     expect(seeded?.n).toBe(30 + EXCLUSION_CASES.length * EXCLUSION_COHORT);
+    const [objections] = await db
+      .select({ n: sql<number>`count(*)::int` })
+      .from(userStatisticsObjections);
+    expect(objections?.n).toBe(2 * EXCLUSION_COHORT);
 
     const dist = await getPersonaFieldDistribution(db, {
       ...live,
@@ -391,13 +404,10 @@ describe('persona metrics — consent join, k-anonymity and suppression', () => 
       expect(dist.items.map((i) => i.value)).not.toContain(exclusionValue(name));
     }
 
-    // Same for the population figure: 30 eligible, and any leaked cohort of five
-    // would move it to 35.
-    const audience = await getAudienceCounts(db, {
-      ...live,
-      offeredPurposes: [{ purpose: 'profile_analytics', scopeDigest: ANALYTICS_DIGEST }],
-    });
-    expect(audience.sharingAnalytics).toEqual({ available: true, count: 30 });
+    // Same for the audience count: five objectors hold a live recruiter grant,
+    // and 15 would floor to 15 rather than hiding inside the quantum.
+    const audience = await getAudienceCounts(db, { ...live, offeredPurposes: recruiters });
+    expect(audience.openToRecruiters).toEqual({ available: true, count: 10 });
   });
 
   it('floors the published count rather than rounding to nearest (audit B8)', () => {
@@ -436,18 +446,6 @@ describe('persona metrics — consent join, k-anonymity and suppression', () => 
     expect(dist.items).toEqual([]);
     // The refusal must not itself disclose how many options were rare.
     expect(dist.suppressed).toBe(0);
-  });
-
-  it('publishes a scalar field with no withheld bucket', async () => {
-    const dist = await getPersonaFieldDistribution(db, {
-      ...live,
-      field: fieldByKey('sector'),
-      limit: 20,
-    });
-
-    expect(dist.available).toBe(true);
-    expect(dist.suppressed).toBe(0);
-    expect(dist.items).toEqual([{ value: 'software', label: 'Software', count: 30 }]);
   });
 
   it('never returns an eligible-population figure on a distribution (differencing oracle)', async () => {
@@ -496,44 +494,54 @@ describe('persona metrics — consent join, k-anonymity and suppression', () => 
     expect(countable).not.toContain('link_github');
   });
 
-  it('counts link presence from users.social_links and survives a non-object value', async () => {
+  it('counts a link platform only where the member chose to share it', async () => {
     const presence = await getPersonaLinkPresence(db, {
       ...live,
       platforms: BUILTIN_PERSONA_LINK_PLATFORMS,
     });
 
     expect(presence.available).toBe(true);
+    // 23 list AND share github; 2 more list it without sharing. Counting those
+    // two would publish 25.
     expect(presence.items).toEqual([
       { platform: 'github', label: 'GitHub', count: 20, authenticitySignal: true },
     ]);
-    // discord had 4 holders: withheld, and reported only as a bucket count.
+    // discord had 4 sharers: withheld, and reported only as a bucket count.
     expect(presence.suppressed).toBe(1);
     expect(presence.quantum).toBe(5);
   });
 
-  it('counts an audience only on a DOUBLE consent join', async () => {
-    const audience = await getAudienceCounts(db, {
-      ...live,
-      offeredPurposes: [
-        { purpose: 'profile_analytics', scopeDigest: ANALYTICS_DIGEST },
-        { purpose: 'recruiter_visibility', scopeDigest: RECRUITER_DIGEST },
-      ],
-    });
+  it('proves the unshared links exist, so the count above is the intersection', async () => {
+    // Without this the assertion above is satisfied by a fixture that simply
+    // never created the two unshared links, which would make it a test of
+    // nothing.
+    const [listed] = await db
+      .select({ n: sql<number>`count(*)::int` })
+      .from(users)
+      .where(
+        sql`jsonb_typeof(${users.socialLinks}) = 'object'
+          AND coalesce(${users.socialLinks} ->> 'github', '') <> ''`,
+      );
+    expect(listed?.n).toBe(25);
+
+    const [shared] = await db
+      .select({ n: sql<number>`count(*)::int` })
+      .from(userSharedLinks)
+      .where(eq(userSharedLinks.platform, 'github'));
+    expect(shared?.n).toBe(23);
+  });
+
+  it('counts an audience on a digest-bound consent join, minus objectors', async () => {
+    const audience = await getAudienceCounts(db, { ...live, offeredPurposes: recruiters });
 
     expect(audience.available).toBe(true);
-    expect(audience.sharingAnalytics).toEqual({ available: true, count: 30 });
-    // 10 hold both. The 3 who hold only recruiter_visibility are not counted.
+    // 10 hold a current, digest-matching grant. The revoked one, the stale one
+    // and the five objectors do not.
     expect(audience.openToRecruiters).toEqual({ available: true, count: 10 });
   });
 
-  it('reports a non-offerable purpose as such, never as a structural zero (audit B9)', async () => {
-    const audience = await getAudienceCounts(db, {
-      ...live,
-      offeredPurposes: [
-        { purpose: 'profile_analytics', scopeDigest: ANALYTICS_DIGEST },
-        { purpose: 'recruiter_visibility', scopeDigest: RECRUITER_DIGEST },
-      ],
-    });
+  it('reports a non-offered purpose as such, never as a structural zero (audit B9)', async () => {
+    const audience = await getAudienceCounts(db, { ...live, offeredPurposes: recruiters });
 
     expect(audience.openToSponsorSharing).toEqual({
       available: false,
@@ -541,18 +549,40 @@ describe('persona metrics — consent join, k-anonymity and suppression', () => 
     });
     expect(audience.openToSponsorSharing).not.toEqual({ available: true, count: 0 });
   });
+
+  it('publishes the distributions on an instance that offers no purpose at all', async () => {
+    // The operational instance from R2.3: persona on, every sharing flag off.
+    // Statistics do not wait on a purpose any more, so the field distributions
+    // are exactly what they were and only the audience payload goes dark.
+    const dist = await getPersonaFieldDistribution(db, {
+      ...live,
+      field: fieldByKey('sector'),
+      limit: 20,
+    });
+    expect(dist.available).toBe(true);
+    expect(dist.items).toEqual([{ value: 'software', label: 'Software', count: 30 }]);
+
+    const audience = await getAudienceCounts(db, { ...live, offeredPurposes: [] });
+    expect(audience.openToRecruiters).toEqual({
+      available: false,
+      reason: 'purpose_not_offered',
+    });
+    expect(audience.openToSponsorSharing).toEqual({
+      available: false,
+      reason: 'purpose_not_offered',
+    });
+  });
 });
 
 // --- Population floor -------------------------------------------------------------
 
-describe('persona metrics — population floor', () => {
+describe('persona statistics — population floor', () => {
   let db: DB;
 
   beforeAll(async () => {
     db = await createTestDB();
     const thin = await seedUsers(db, 10);
     for (const u of thin) {
-      await grant(db, u.id, 'profile_analytics', ANALYTICS_DIGEST);
       await answer(db, u.id, 'sector', 'software');
     }
   }, 120_000);
@@ -561,7 +591,7 @@ describe('persona metrics — population floor', () => {
     await closeTestDB(db);
   });
 
-  const live = { thresholds: THRESHOLDS, scopeDigest: ANALYTICS_DIGEST, source: 'live' as const };
+  const live = { thresholds: THRESHOLDS, source: 'live' as const };
 
   it('darkens the whole surface below minPopulation', async () => {
     const dist = await getPersonaFieldDistribution(db, {
@@ -579,12 +609,12 @@ describe('persona metrics — population floor', () => {
 
     const audience = await getAudienceCounts(db, {
       ...live,
-      offeredPurposes: [{ purpose: 'profile_analytics', scopeDigest: ANALYTICS_DIGEST }],
+      offeredPurposes: [{ purpose: 'recruiter_visibility', scopeDigest: RECRUITER_DIGEST }],
     });
     expect(audience).toMatchObject({ available: false, reason: 'insufficient_population' });
     // The per-purpose slot carries the real reason, not a misleading
     // "not offered" for a purpose the operator is in fact offering.
-    expect(audience.sharingAnalytics).toEqual({
+    expect(audience.openToRecruiters).toEqual({
       available: false,
       reason: 'insufficient_population',
     });
@@ -604,9 +634,9 @@ describe('persona metrics — population floor', () => {
 
 // --- Rollup and finalisation --------------------------------------------------------
 
-describe('persona metrics — rollup, finalisation and snapshot reads', () => {
+describe('persona statistics — rollup, finalisation and snapshot reads', () => {
   let db: DB;
-  let eligible: SeedUser[];
+  let counted: SeedUser[];
 
   const rollupInput = (day: string) => ({
     day,
@@ -614,35 +644,25 @@ describe('persona metrics — rollup, finalisation and snapshot reads', () => {
     platforms: BUILTIN_PERSONA_LINK_PLATFORMS,
     thresholds: THRESHOLDS,
     offeredPurposes: [
-      { purpose: 'profile_analytics' as const, scopeDigest: ANALYTICS_DIGEST },
       { purpose: 'recruiter_visibility' as const, scopeDigest: RECRUITER_DIGEST },
     ],
   });
 
-  const fromRollup = {
-    thresholds: THRESHOLDS,
-    scopeDigest: ANALYTICS_DIGEST,
-    source: 'rollup' as const,
-  };
+  const fromRollup = { thresholds: THRESHOLDS, source: 'rollup' as const };
 
   beforeAll(async () => {
     db = await createTestDB();
-    eligible = await seedUsers(db, 30);
-    for (const u of eligible) {
-      await grant(db, u.id, 'profile_analytics', ANALYTICS_DIGEST);
-      await answer(db, u.id, 'sector', 'software');
+    counted = await seedUsers(db, 30);
+    for (const u of counted) await answer(db, u.id, 'sector', 'software');
+    for (const u of counted.slice(0, 23)) await answer(db, u.id, 'interests', 'rust');
+    for (const u of counted.slice(23, 27)) await answer(db, u.id, 'interests', 'niche');
+    for (const u of counted.slice(0, 25)) await answer(db, u.id, 'industry', 'software');
+    for (const u of counted.slice(25, 29)) await answer(db, u.id, 'industry', 'aerospace');
+    for (const u of counted.slice(0, 23)) {
+      await link(db, u, 'github');
+      await share(db, u.id, 'github');
     }
-    for (const u of eligible.slice(0, 23)) await answer(db, u.id, 'interests', 'rust');
-    for (const u of eligible.slice(23, 27)) await answer(db, u.id, 'interests', 'niche');
-    for (const u of eligible.slice(0, 25)) await answer(db, u.id, 'industry', 'software');
-    for (const u of eligible.slice(25, 29)) await answer(db, u.id, 'industry', 'aerospace');
-    for (const u of eligible.slice(0, 23)) {
-      await db
-        .update(users)
-        .set({ socialLinks: { github: `https://github.com/r${u.index}` } })
-        .where(eq(users.id, u.id));
-    }
-    for (const u of eligible.slice(0, 10)) {
+    for (const u of counted.slice(0, 10)) {
       await grant(db, u.id, 'recruiter_visibility', RECRUITER_DIGEST);
     }
   }, 120_000);
@@ -787,7 +807,6 @@ describe('persona metrics — rollup, finalisation and snapshot reads', () => {
     });
     expect(audience.available).toBe(true);
     expect(audience.asOf).toBe('2026-08-12');
-    expect(audience.sharingAnalytics).toEqual({ available: true, count: 30 });
     expect(audience.openToRecruiters).toEqual({ available: true, count: 10 });
     expect(audience.openToSponsorSharing).toEqual({
       available: false,
@@ -795,14 +814,34 @@ describe('persona metrics — rollup, finalisation and snapshot reads', () => {
     });
   });
 
+  it('refuses a stored AUDIENCE count once the operator moves the scope', async () => {
+    const audience = await getAudienceCounts(db, {
+      ...fromRollup,
+      offeredPurposes: [{ purpose: 'recruiter_visibility', scopeDigest: STALE_DIGEST }],
+    });
+    // The count came from grants whose digest no longer matches, so it says
+    // nothing about who currently consents.
+    expect(audience.openToRecruiters).toEqual({ available: false, reason: 'scope_changed' });
+  });
+
+  it('keeps serving the distributions of that same day', async () => {
+    // The correction's split, asserted rather than described: a moved consent
+    // scope invalidates a count of grant holders and says nothing whatever about
+    // how many members answered "rust".
+    const dist = await getPersonaFieldDistribution(db, {
+      ...fromRollup,
+      field: fieldByKey('interests'),
+      limit: 20,
+    });
+    expect(dist.available).toBe(true);
+    expect(dist.items).toEqual([{ value: 'rust', label: 'Rust', count: 20 }]);
+  });
+
   it('a finalised day below the population floor reads as insufficient_population', async () => {
     const thin = await createTestDB();
     try {
       const few = await seedUsers(thin, 6);
-      for (const u of few) {
-        await grant(thin, u.id, 'profile_analytics', ANALYTICS_DIGEST);
-        await answer(thin, u.id, 'sector', 'software');
-      }
+      for (const u of few) await answer(thin, u.id, 'sector', 'software');
       await runPersonaRollup(thin, rollupInput('2026-08-12'));
       await runPersonaRollup(thin, rollupInput('2026-08-13'));
 
@@ -825,11 +864,33 @@ describe('persona metrics — rollup, finalisation and snapshot reads', () => {
       await closeTestDB(thin);
     }
   }, 120_000);
+
+  it('rolls up an instance that offers no purpose, and publishes it', async () => {
+    const plain = await createTestDB();
+    try {
+      const members = await seedUsers(plain, 30);
+      for (const u of members) await answer(plain, u.id, 'sector', 'software');
+      await runPersonaRollup(plain, { ...rollupInput('2026-08-12'), offeredPurposes: [] });
+      await runPersonaRollup(plain, { ...rollupInput('2026-08-13'), offeredPurposes: [] });
+
+      const dist = await getPersonaFieldDistribution(plain, {
+        ...fromRollup,
+        field: fieldByKey('sector'),
+        limit: 20,
+      });
+      // The whole day used to be written as one suppressed marker because no
+      // purpose authorised counting. There is no such gate now.
+      expect(dist.available).toBe(true);
+      expect(dist.items).toEqual([{ value: 'software', label: 'Software', count: 30 }]);
+    } finally {
+      await closeTestDB(plain);
+    }
+  }, 120_000);
 });
 
 // --- Pure helpers and the structural guarantee ------------------------------------
 
-describe('persona metrics — thresholds and day keys', () => {
+describe('persona statistics — thresholds and day keys', () => {
   it('clamps configured thresholds to the floors and never below them', () => {
     expect(resolvePersonaThresholds({ minBucket: 1, minPopulation: 2 })).toEqual({
       minBucket: METRICS_MIN_BUCKET,
@@ -857,18 +918,48 @@ describe('persona metrics — thresholds and day keys', () => {
   });
 });
 
-describe('persona metrics — the free-text table is not reachable from this module', () => {
-  it('the source contains no reference to the free-text table', () => {
-    const file = resolve(
-      dirname(fileURLToPath(import.meta.url)),
-      '../persona/metrics.ts',
-    );
-    const source = readFileSync(file, 'utf8');
+describe('persona statistics — structural guarantees, read off the source', () => {
+  const METRICS_SOURCE = resolve(
+    dirname(fileURLToPath(import.meta.url)),
+    '../persona/metrics.ts',
+  );
+
+  function readMetricsSource(): string {
+    const source = readFileSync(METRICS_SOURCE, 'utf8');
     // P7 guard: a broken path must fail, not pass green on an empty read.
     expect(source.length).toBeGreaterThan(2000);
     expect(source).toContain('getPersonaFieldDistribution');
+    return source;
+  }
 
+  it('the source contains no reference to the free-text table', () => {
+    const source = readMetricsSource();
     expect(source).not.toContain('userPersonaText');
     expect(source).not.toContain('user_persona_text');
+  });
+
+  it('every aggregate query goes through the ONE counted-user predicate', () => {
+    const source = readMetricsSource();
+
+    // One definition, so there is no second opinion about who is counted.
+    expect(source.match(/function countedUserWhere/g) ?? []).toHaveLength(1);
+    // Five call sites, named so that adding a sixth query forces a reader to
+    // look at this list rather than at a `>=` that would have swallowed it:
+    // countedPopulation, liveFieldBuckets, liveFieldSuppressedBuckets,
+    // linkPresenceCte and audienceGrantCount.
+    // The lookahead skips the declaration, `countedUserWhere(): SQL`.
+    expect(source.match(/countedUserWhere\(\)(?!:)/g) ?? []).toHaveLength(5);
+    // And the predicate really is the anti-join, not a comment about one.
+    expect(source).toContain('userStatisticsObjections');
+    expect(source).toContain('NOT EXISTS');
+  });
+
+  it('the deleted analytics purpose survives nowhere as code', () => {
+    const source = readMetricsSource();
+    // Prose explaining the deletion is deliberate and stays; a string literal
+    // is a live reference to a purpose that no longer exists.
+    expect(source).not.toContain("'profile_analytics'");
+    expect(source).not.toContain('"profile_analytics"');
+    expect(source).not.toContain('PERSONA_META_PURPOSE_NOT_OFFERED');
   });
 });

@@ -131,11 +131,29 @@ const historyHandler = historyMod.default as (event: H3Event) => Promise<unknown
 
 const fakeEvent = { method: 'PUT', path: '/api/consent/purposes' } as unknown as H3Event;
 
+/**
+ * The instance BASELINE for this suite: one papered recipient covering one
+ * purpose.
+ *
+ * It has to be the baseline now, because both surviving purposes require a
+ * declared recipient and an instance that has named none offers nothing at all.
+ * That is the makerspace case rather than a broken fixture, and it gets its own
+ * test below instead of being papered over here.
+ */
 const RECIPIENT: RecipientFixture = {
   id: 'contoso-tools',
   name: 'Contoso Tools',
   privacyPolicyUrl: 'https://contoso.example/privacy',
-  purposes: ['profile_analytics'],
+  purposes: ['sponsor_sharing'],
+  relationship: 'processor',
+};
+
+/** A SECOND recipient for the same purpose, used to move the scope digest. */
+const SECOND_RECIPIENT: RecipientFixture = {
+  id: 'acme-robotics',
+  name: 'Acme Robotics',
+  privacyPolicyUrl: 'https://acme.example/privacy',
+  purposes: ['sponsor_sharing'],
   relationship: 'processor',
 };
 
@@ -182,7 +200,10 @@ afterAll(async () => {
 });
 
 beforeEach(() => {
-  testConfig = { features: { dataSharingConsents: true } };
+  testConfig = {
+    features: { dataSharingConsents: true },
+    dataSharing: { recipients: [RECIPIENT] },
+  };
   requestBody = undefined;
   requestHeaders = { 'user-agent': 'Mozilla/5.0 (test)' };
   currentUser = null;
@@ -201,7 +222,7 @@ describe('the feature flag gate', () => {
     testConfig.features.dataSharingConsents = false;
     const user = await createTestUser(db);
     currentUser = { id: user.id };
-    requestBody = { purpose: 'profile_analytics', grant: true, scopeDigest: 'abc' };
+    requestBody = { purpose: 'sponsor_sharing', grant: true, scopeDigest: 'abc' };
     const err = await failure(putHandler(fakeEvent));
     expect(err.statusCode).toBe(404);
   });
@@ -241,10 +262,23 @@ describe('GET /api/consent/purposes', () => {
     expect(payload.scopeDigest.length).toBeLessThanOrEqual(16);
     expect(payload.policyVersion).toBe('1');
 
-    // All three purposes now have a read surface, but this instance has named
-    // no recipient, so the two that require one are not offerable and are
+    // One recipient, covering one purpose. The other is not offerable and is
     // ABSENT: not present-and-disabled, and not a structural zero (Appendix B9).
-    expect(payload.purposes.map((p) => p.id)).toEqual(['profile_analytics']);
+    expect(payload.purposes.map((p) => p.id)).toEqual(['sponsor_sharing']);
+  });
+
+  it('an instance that has named no recipient asks NOTHING', async () => {
+    // The makerspace case (plan R2.3), asserted deliberately rather than
+    // arrived at by accident. Both purposes require a declared recipient, so a
+    // default instance offers none: no card, no switch, and a client that
+    // renders a "Sharing choices" heading over this payload would be announcing
+    // recruiters to an operator who does not have any.
+    const user = await createTestUser(db);
+    currentUser = { id: user.id };
+    delete testConfig.dataSharing;
+
+    const payload = await readPurposes();
+    expect(payload.purposes).toEqual([]);
   });
 
   /**
@@ -254,7 +288,7 @@ describe('GET /api/consent/purposes', () => {
    * half: a recipient makes the choices appear, and no recipient means the
    * change is invisible.
    */
-  it('offers all three switches once a papered recipient covers the other two', async () => {
+  it('offers both switches once a papered recipient covers both', async () => {
     const user = await createTestUser(db);
     currentUser = { id: user.id };
     testConfig.dataSharing = {
@@ -272,20 +306,21 @@ describe('GET /api/consent/purposes', () => {
 
     const payload = await readPurposes();
     expect(payload.purposes.map((p) => p.id)).toEqual([
-      'profile_analytics',
       'recruiter_visibility',
       'sponsor_sharing',
     ]);
-    // Each card carries the recipient it actually discloses to, and analytics
-    // discloses to nobody, so it carries none.
+    // Every offerable purpose now discloses to somebody, by definition: there is
+    // no longer a purpose that discloses to nobody, so a card with an empty
+    // recipient list would be a card whose own sentence it cannot substantiate.
     const byId = new Map(payload.purposes.map((p) => [p.id as string, p]));
-    expect((byId.get('profile_analytics')!.recipients as unknown[]).length).toBe(0);
     expect((byId.get('recruiter_visibility')!.recipients as unknown[]).length).toBe(1);
+    expect((byId.get('sponsor_sharing')!.recipients as unknown[]).length).toBe(1);
   });
 
-  it('offers only analytics when the covering recipient is an unpapered controller', async () => {
+  it('offers NOTHING when the only covering recipient is an unpapered controller', async () => {
     // Widening the offered constant must not become a way to deploy past an
-    // undocumented onward transfer.
+    // undocumented onward transfer. With no purpose left that discloses to
+    // nobody, the refusal is now total rather than partial.
     const user = await createTestUser(db);
     currentUser = { id: user.id };
     testConfig.dataSharing = {
@@ -301,7 +336,7 @@ describe('GET /api/consent/purposes', () => {
     };
 
     const payload = await readPurposes();
-    expect(payload.purposes.map((p) => p.id)).toEqual(['profile_analytics']);
+    expect(payload.purposes).toEqual([]);
   });
 
   it('carries every field the consent card renders, with off before on', async () => {
@@ -325,13 +360,21 @@ describe('GET /api/consent/purposes', () => {
         'state',
       ].sort(),
     );
+    expect(card?.id).toBe('sponsor_sharing');
     expect(card?.legalBasis).toBe('consent');
-    expect(card?.answersAfterRevocation).toBe('kept_on_your_profile');
+    // Renamed with the visibility inversion: after it, most answers are not on
+    // a profile at all, so `kept_on_your_profile` named a place the data is not.
+    expect(card?.answersAfterRevocation).toBe('kept_in_your_account');
     expect(card?.state).toBe('absent');
     expect(card?.needsReconfirmation).toBe(false);
     expect(card?.actedAt).toBeNull();
-    // Appendix B3: the copy must disclose the profile-visibility exclusion.
-    expect(String(card?.onSummary)).toContain('While your profile is set to private');
+    // The copy says what LEAVES, to whom, and that it cannot be recalled. The
+    // old assertion looked for the counting disclosure, which is no longer this
+    // card's subject: counting is legitimate interest and is disclosed on the
+    // privacy page beside its objection.
+    expect(String(card?.onSummary)).toContain('sponsors named below');
+    expect(String(card?.revocationEffect)).toContain('cannot recall what was already shared');
+    expect(String(card?.onSummary)).not.toContain('counted');
   });
 
   it('lists only the recipients THIS purpose discloses to', async () => {
@@ -340,14 +383,23 @@ describe('GET /api/consent/purposes', () => {
     testConfig.dataSharing = {
       recipients: [
         RECIPIENT,
-        { ...RECIPIENT, id: 'acme-robotics', name: 'Acme Robotics', purposes: ['sponsor_sharing'] },
+        { ...SECOND_RECIPIENT, purposes: ['recruiter_visibility'] },
       ],
     };
 
-    const [card] = (await readPurposes()).purposes;
-    const recipients = card?.recipients as Array<{ id: string; privacyPolicyUrl: string }>;
-    expect(recipients.map((r) => r.id)).toEqual(['contoso-tools']);
-    expect(recipients[0]?.privacyPolicyUrl).toBe('https://contoso.example/privacy');
+    const byId = new Map(
+      (await readPurposes()).purposes.map((p) => [
+        p.id as string,
+        p.recipients as Array<{ id: string; privacyPolicyUrl: string }>,
+      ]),
+    );
+    expect(byId.get('sponsor_sharing')?.map((r) => r.id)).toEqual(['contoso-tools']);
+    expect(byId.get('sponsor_sharing')?.[0]?.privacyPolicyUrl).toBe(
+      'https://contoso.example/privacy',
+    );
+    // The one that matters: a sponsor named for one purpose must not appear on
+    // the other card, or the card misstates the disclosure it is asking for.
+    expect(byId.get('recruiter_visibility')?.map((r) => r.id)).toEqual(['acme-robotics']);
   });
 
   it('reports one user answer without leaking another user answer', async () => {
@@ -356,7 +408,7 @@ describe('GET /api/consent/purposes', () => {
 
     currentUser = { id: theirs.id };
     const digest = (await readPurposes()).scopeDigest;
-    requestBody = { purpose: 'profile_analytics', grant: true, scopeDigest: digest };
+    requestBody = { purpose: 'sponsor_sharing', grant: true, scopeDigest: digest };
     await putHandler(fakeEvent);
 
     currentUser = { id: mine.id };
@@ -375,7 +427,7 @@ describe('PUT /api/consent/purposes — the body contract', () => {
   it('rejects an unknown key, so a client cannot supply its own policyVersion', async () => {
     const digest = (await readPurposes()).scopeDigest;
     requestBody = {
-      purpose: 'profile_analytics',
+      purpose: 'sponsor_sharing',
       grant: true,
       scopeDigest: digest,
       policyVersion: '99',
@@ -387,7 +439,7 @@ describe('PUT /api/consent/purposes — the body contract', () => {
   it('rejects a client-supplied scopeSnapshot', async () => {
     const digest = (await readPurposes()).scopeDigest;
     requestBody = {
-      purpose: 'profile_analytics',
+      purpose: 'sponsor_sharing',
       grant: true,
       scopeDigest: digest,
       scopeSnapshot: { purposeLabel: 'anything at all' },
@@ -399,7 +451,7 @@ describe('PUT /api/consent/purposes — the body contract', () => {
   it('rejects a bulk array body: one purpose per request', async () => {
     const digest = (await readPurposes()).scopeDigest;
     requestBody = [
-      { purpose: 'profile_analytics', grant: true, scopeDigest: digest },
+      { purpose: 'sponsor_sharing', grant: true, scopeDigest: digest },
       { purpose: 'sponsor_sharing', grant: true, scopeDigest: digest },
     ];
     const err = await failure(putHandler(fakeEvent));
@@ -407,7 +459,7 @@ describe('PUT /api/consent/purposes — the body contract', () => {
   });
 
   it('rejects a missing scopeDigest rather than defaulting one', async () => {
-    requestBody = { purpose: 'profile_analytics', grant: true };
+    requestBody = { purpose: 'sponsor_sharing', grant: true };
     const err = await failure(putHandler(fakeEvent));
     expect(err.statusCode).toBe(400);
     const data = err.data as { errors?: Record<string, unknown> };
@@ -416,7 +468,7 @@ describe('PUT /api/consent/purposes — the body contract', () => {
 
   it('rejects a non-boolean grant: there is no third state', async () => {
     const digest = (await readPurposes()).scopeDigest;
-    requestBody = { purpose: 'profile_analytics', grant: 'yes', scopeDigest: digest };
+    requestBody = { purpose: 'sponsor_sharing', grant: 'yes', scopeDigest: digest };
     const err = await failure(putHandler(fakeEvent));
     expect(err.statusCode).toBe(400);
   });
@@ -430,8 +482,10 @@ describe('PUT /api/consent/purposes — the body contract', () => {
   });
 
   it('a grant for a registered but NOT offered purpose is 404', async () => {
+    // `recruiter_visibility` is in the registry and in the offered constant, but
+    // this instance has named no recipient for it, so it is not offerable here.
     const digest = (await readPurposes()).scopeDigest;
-    requestBody = { purpose: 'sponsor_sharing', grant: true, scopeDigest: digest };
+    requestBody = { purpose: 'recruiter_visibility', grant: true, scopeDigest: digest };
     const err = await failure(putHandler(fakeEvent));
     expect(err.statusCode).toBe(404);
     expect((err.data as { code: string }).code).toBe('PURPOSE_NOT_OFFERED');
@@ -444,7 +498,7 @@ describe('PUT /api/consent/purposes — the write', () => {
     currentUser = { id: user.id };
     const digest = (await readPurposes()).scopeDigest;
 
-    requestBody = { purpose: 'profile_analytics', grant: true, scopeDigest: digest };
+    requestBody = { purpose: 'sponsor_sharing', grant: true, scopeDigest: digest };
     const result = (await putHandler(fakeEvent)) as Record<string, unknown>;
 
     expect(result.ok).toBe(true);
@@ -479,7 +533,7 @@ describe('PUT /api/consent/purposes — the write', () => {
     requestHeaders['user-agent'] = 'x'.repeat(5000);
     const digest = (await readPurposes()).scopeDigest;
 
-    requestBody = { purpose: 'profile_analytics', grant: true, scopeDigest: digest };
+    requestBody = { purpose: 'sponsor_sharing', grant: true, scopeDigest: digest };
     await putHandler(fakeEvent);
 
     const rows = await currentRows(user.id);
@@ -491,9 +545,9 @@ describe('PUT /api/consent/purposes — the write', () => {
     currentUser = { id: user.id };
     const digest = (await readPurposes()).scopeDigest;
 
-    requestBody = { purpose: 'profile_analytics', grant: true, scopeDigest: digest };
+    requestBody = { purpose: 'sponsor_sharing', grant: true, scopeDigest: digest };
     await putHandler(fakeEvent);
-    requestBody = { purpose: 'profile_analytics', grant: false, scopeDigest: digest };
+    requestBody = { purpose: 'sponsor_sharing', grant: false, scopeDigest: digest };
     const result = (await putHandler(fakeEvent)) as Record<string, unknown>;
 
     expect(result.state).toBe('revoked');
@@ -524,7 +578,7 @@ describe('PUT /api/consent/purposes — the write', () => {
     const digest = (await readPurposes()).scopeDigest;
 
     for (const grant of [true, false, true]) {
-      requestBody = { purpose: 'profile_analytics', grant, scopeDigest: digest };
+      requestBody = { purpose: 'sponsor_sharing', grant, scopeDigest: digest };
       await putHandler(fakeEvent);
     }
 
@@ -537,7 +591,7 @@ describe('PUT /api/consent/purposes — the write', () => {
     currentUser = { id: user.id };
     const digest = (await readPurposes()).scopeDigest;
 
-    requestBody = { purpose: 'profile_analytics', grant: true, scopeDigest: digest };
+    requestBody = { purpose: 'sponsor_sharing', grant: true, scopeDigest: digest };
     const first = (await putHandler(fakeEvent)) as Record<string, unknown>;
     const second = (await putHandler(fakeEvent)) as Record<string, unknown>;
 
@@ -553,23 +607,15 @@ describe('PUT /api/consent/purposes — the write', () => {
     const user = await createTestUser(db);
     currentUser = { id: user.id };
     const digest = (await readPurposes()).scopeDigest;
-    requestBody = { purpose: 'profile_analytics', grant: true, scopeDigest: digest };
+    requestBody = { purpose: 'sponsor_sharing', grant: true, scopeDigest: digest };
     await putHandler(fakeEvent);
 
-    // An operator publishes a template with no aggregatable field, so
-    // `profile_analytics` is no longer offerable. A user who could not then turn
-    // it OFF would have been trapped by a config change.
-    testConfig.persona = {
-      sections: [
-        {
-          key: 'basics',
-          label: 'Basics',
-          fields: [{ key: 'bio', label: 'Bio', type: 'textarea', column: 'bio' }],
-        },
-      ],
-    };
+    // The operator removes the recipient, so `sponsor_sharing` is no longer
+    // offerable at all. A user who could not then turn it OFF would have been
+    // trapped by a config change, which is the shape Art. 7(3) forbids.
+    delete testConfig.dataSharing;
     const staleFree = (await readPurposes()).scopeDigest;
-    requestBody = { purpose: 'profile_analytics', grant: false, scopeDigest: staleFree };
+    requestBody = { purpose: 'sponsor_sharing', grant: false, scopeDigest: staleFree };
     const result = (await putHandler(fakeEvent)) as Record<string, unknown>;
     expect(result.state).toBe('revoked');
 
@@ -585,13 +631,13 @@ describe('PUT /api/consent/purposes — the 409 SCOPE_CHANGED handshake', () => 
     currentUser = { id: user.id };
 
     const before = await readPurposes();
-    requestBody = { purpose: 'profile_analytics', grant: true, scopeDigest: before.scopeDigest };
+    requestBody = { purpose: 'sponsor_sharing', grant: true, scopeDigest: before.scopeDigest };
     await putHandler(fakeEvent);
 
-    // The operator adds a recipient while the user is reading the page.
-    testConfig.dataSharing = { recipients: [RECIPIENT] };
+    // The operator adds a SECOND recipient while the user is reading the page.
+    testConfig.dataSharing = { recipients: [RECIPIENT, SECOND_RECIPIENT] };
 
-    requestBody = { purpose: 'profile_analytics', grant: true, scopeDigest: before.scopeDigest };
+    requestBody = { purpose: 'sponsor_sharing', grant: true, scopeDigest: before.scopeDigest };
     const err = await failure(putHandler(fakeEvent));
 
     expect(err.statusCode).toBe(409);
@@ -621,17 +667,15 @@ describe('PUT /api/consent/purposes — the 409 SCOPE_CHANGED handshake', () => 
 
     // The FULL new purpose list, so the settings page can re-render from the 409
     // rather than firing a second request.
-    expect(data.purposes.map((p) => p.id)).toEqual(['profile_analytics']);
-    expect(data.purposes[0]?.recipients).toHaveLength(1);
+    expect(data.purposes.map((p) => p.id)).toEqual(['sponsor_sharing']);
+    expect(data.purposes[0]?.recipients).toHaveLength(2);
     // The stored grant is now stale, so the card asks for confirmation.
     expect(data.purposes[0]?.needsReconfirmation).toBe(true);
 
     expect(data.diff.resolved).toBe(true);
     expect(data.diff.recipientsAdded).toHaveLength(1);
-    expect(data.diff.recipientsAdded[0]?.name).toBe('Contoso Tools');
-    expect(data.diff.recipientsAdded[0]?.privacyPolicyUrl).toBe(
-      'https://contoso.example/privacy',
-    );
+    expect(data.diff.recipientsAdded[0]?.name).toBe('Acme Robotics');
+    expect(data.diff.recipientsAdded[0]?.privacyPolicyUrl).toBe('https://acme.example/privacy');
     expect(data.diff.recipientsRemoved).toEqual([]);
     // Only the recipient moved; the counted fields did not.
     expect(data.diff.countedFieldsAdded).toEqual([]);
@@ -645,11 +689,11 @@ describe('PUT /api/consent/purposes — the 409 SCOPE_CHANGED handshake', () => 
     currentUser = { id: user.id };
 
     const before = await readPurposes();
-    requestBody = { purpose: 'profile_analytics', grant: false, scopeDigest: before.scopeDigest };
+    requestBody = { purpose: 'sponsor_sharing', grant: false, scopeDigest: before.scopeDigest };
     await putHandler(fakeEvent);
 
-    testConfig.dataSharing = { recipients: [RECIPIENT] };
-    requestBody = { purpose: 'profile_analytics', grant: true, scopeDigest: before.scopeDigest };
+    testConfig.dataSharing = { recipients: [RECIPIENT, SECOND_RECIPIENT] };
+    requestBody = { purpose: 'sponsor_sharing', grant: true, scopeDigest: before.scopeDigest };
     await failure(putHandler(fakeEvent));
 
     const rows = await currentRows(user.id);
@@ -663,7 +707,7 @@ describe('PUT /api/consent/purposes — the 409 SCOPE_CHANGED handshake', () => 
     const user = await createTestUser(db);
     currentUser = { id: user.id };
 
-    requestBody = { purpose: 'profile_analytics', grant: true, scopeDigest: 'ffffffff' };
+    requestBody = { purpose: 'sponsor_sharing', grant: true, scopeDigest: 'ffffffff' };
     const err = await failure(putHandler(fakeEvent));
 
     expect(err.statusCode).toBe(409);
@@ -684,7 +728,7 @@ describe('PUT /api/consent/purposes — the 409 SCOPE_CHANGED handshake', () => 
     currentUser = { id: user.id };
 
     const before = await readPurposes();
-    requestBody = { purpose: 'profile_analytics', grant: true, scopeDigest: before.scopeDigest };
+    requestBody = { purpose: 'sponsor_sharing', grant: true, scopeDigest: before.scopeDigest };
     await putHandler(fakeEvent);
 
     // The operator publishes a template with ONE aggregatable field that did not
@@ -708,9 +752,12 @@ describe('PUT /api/consent/purposes — the 409 SCOPE_CHANGED handshake', () => 
         },
       ],
     };
-    testConfig.dataSharing = { policyVersion: '2' };
+    // The recipient list is UNCHANGED: keeping it is what makes the purpose
+    // still offerable, so the write reaches the digest check and returns 409
+    // rather than 404. The digest moves on the fields and the policy version.
+    testConfig.dataSharing = { recipients: [RECIPIENT], policyVersion: '2' };
 
-    requestBody = { purpose: 'profile_analytics', grant: true, scopeDigest: before.scopeDigest };
+    requestBody = { purpose: 'sponsor_sharing', grant: true, scopeDigest: before.scopeDigest };
     const err = await failure(putHandler(fakeEvent));
     const diff = (err.data as {
       diff: {
@@ -772,7 +819,7 @@ describe('GET /api/consent/purposes/history', () => {
     const { scopeDigest } = await readPurposes();
 
     for (const grant of [true, false, true]) {
-      requestBody = { purpose: 'profile_analytics', grant, scopeDigest };
+      requestBody = { purpose: 'sponsor_sharing', grant, scopeDigest };
       await putHandler(fakeEvent);
     }
 
@@ -804,7 +851,7 @@ describe('GET /api/consent/purposes/history', () => {
     const user = await createTestUser(db);
     currentUser = { id: user.id };
     const { scopeDigest } = await readPurposes();
-    requestBody = { purpose: 'profile_analytics', grant: true, scopeDigest };
+    requestBody = { purpose: 'sponsor_sharing', grant: true, scopeDigest };
     await putHandler(fakeEvent);
 
     const payload = (await historyHandler(fakeEvent)) as HistoryPayload;
@@ -819,7 +866,7 @@ describe('GET /api/consent/purposes/history', () => {
     const [alice, bob] = await Promise.all([createTestUser(db), createTestUser(db)]);
     currentUser = { id: alice.id };
     const { scopeDigest } = await readPurposes();
-    requestBody = { purpose: 'profile_analytics', grant: true, scopeDigest };
+    requestBody = { purpose: 'sponsor_sharing', grant: true, scopeDigest };
     await putHandler(fakeEvent);
 
     currentUser = { id: bob.id };

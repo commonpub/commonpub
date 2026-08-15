@@ -13,6 +13,7 @@ import {
   purposeScopeDigest,
   renderPurposeOnSummary,
 } from '../purposes.js';
+import { PERSONA_STATISTICS } from '../statistics.js';
 
 const ALL: ProcessingPurposeId[] = [...PROCESSING_PURPOSES];
 
@@ -34,7 +35,24 @@ function recipient(overrides: Partial<DataRecipient> = {}): DataRecipient {
 describe('the purpose registry', () => {
   it('covers every declared purpose', () => {
     expect(Object.keys(PROCESSING_PURPOSE_SPECS).sort()).toEqual([...PROCESSING_PURPOSES].sort());
-    expect(PROCESSING_PURPOSES.length).toBeGreaterThanOrEqual(3);
+  });
+
+  it('is exactly the two named third-party exposures', () => {
+    // Not `length >= n`: the SET is the decision. `profile_analytics` was
+    // removed because the instance holds its own totals regardless, so a
+    // consent card for it was asking permission that would not be honoured in
+    // the refusal. Statistics live in `statistics.ts` as an objection.
+    expect([...PROCESSING_PURPOSES].sort()).toEqual(['recruiter_visibility', 'sponsor_sharing']);
+  });
+
+  it('asks about nothing except an exposure to a named third party', () => {
+    // The shape all of them share, and the reason the registry still exists.
+    // A purpose describing what this instance does with its own records would
+    // be a consent request for processing that happens either way.
+    for (const id of PROCESSING_PURPOSES) {
+      expect(PROCESSING_PURPOSE_SPECS[id].disclosedTo, id).toBe('named_recipients');
+      expect(PROCESSING_PURPOSE_SPECS[id].requiresRecipients, id).toBe(true);
+    }
   });
 
   it('keeps every id short enough for its own consent column', () => {
@@ -51,7 +69,46 @@ describe('the purpose registry', () => {
       const spec = PROCESSING_PURPOSE_SPECS[id];
       expect(spec.defaultGranted, id).toBe(false);
       expect(spec.legalBasis, id).toBe('consent');
-      expect(spec.answersAfterRevocation, id).toBe('kept_on_your_profile');
+      expect(spec.answersAfterRevocation, id).toBe('kept_in_your_account');
+    }
+  });
+
+  it('never tells a member their answers are on a profile they did not publish', () => {
+    // `showOnProfile` defaults OFF, so "your answers stay on your profile" is
+    // false for every field an operator has not opted in. A reassurance that
+    // names a place the data is not is worse than no reassurance.
+    for (const id of PROCESSING_PURPOSES) {
+      const spec = PROCESSING_PURPOSE_SPECS[id];
+      const copy = [spec.offSummary, renderPurposeOnSummary(id, FLOOR), spec.revocationEffect]
+        .join(' ')
+        .toLowerCase();
+      expect(copy, id).not.toContain('stay on your profile');
+      expect(copy, id).not.toContain('only visible on your profile');
+    }
+  });
+
+  it('says what leaves, because that is what these purposes do', () => {
+    // The old analytics copy promised "nothing about you leaves this site". It
+    // was written for counting and is exactly backwards for a purpose whose
+    // whole function is that something does leave, so no purpose may claim it.
+    for (const id of PROCESSING_PURPOSES) {
+      const spec = PROCESSING_PURPOSE_SPECS[id];
+      const copy = [spec.offSummary, renderPurposeOnSummary(id, FLOOR), spec.revocationEffect]
+        .join(' ')
+        .toLowerCase();
+      expect(copy, id).not.toContain('leaves this site');
+      expect(copy, id).not.toContain('never leaves');
+    }
+  });
+
+  it('states what turning it off cannot undo', () => {
+    // "It cannot recall what was already shared" is the honest sentence. Both
+    // purposes hand something to somebody else, and no switch reaches into
+    // their records.
+    for (const id of PROCESSING_PURPOSES) {
+      expect(PROCESSING_PURPOSE_SPECS[id].revocationEffect.toLowerCase(), id).toContain(
+        'cannot recall what was already shared',
+      );
     }
   });
 
@@ -65,30 +122,20 @@ describe('the purpose registry', () => {
     }
   });
 
-  it('discloses the profile visibility exclusion on the analytics purpose', () => {
-    // Appendix B3. The aggregation query filters on a public profile, so a user
-    // who grants this and then goes private is silently not counted. Being told
-    // "your answers are counted" with no caveat would be false.
-    expect(renderPurposeOnSummary('profile_analytics', FLOOR)).toContain(
-      'While your profile is set to private, your answers are not counted, even with this turned on.',
-    );
-  });
-
-  it('states the OPERATOR’s bucket floor, not a hardcoded five', () => {
-    // "Measure what you ship." A card that says "at least five people" on an
-    // instance running `minBucket: 25` understates the member's own protection
-    // by five times, and the stored Art. 7(1) snapshot carries the wrong number
-    // as the record of what they were shown.
-    expect(renderPurposeOnSummary('profile_analytics', FLOOR)).toContain('at least 5 people');
-    expect(renderPurposeOnSummary('profile_analytics', { ...FLOOR, minBucket: 25 })).toContain(
-      'at least 25 people',
-    );
-  });
-
-  it('says counts are rounded DOWN, which is what quantisePersonaCount does', () => {
-    // Audit B8 changed the implementation from round-to-nearest to floor. Copy
-    // that still said "rounded" described a build that no longer exists.
-    expect(renderPurposeOnSummary('profile_analytics', FLOOR)).toContain('rounded down');
+  it('never asks for consent to something this instance does anyway', () => {
+    // The correction, as an assertion. Counting is not offered here in any
+    // spelling: an id, a label or a sentence that framed group totals as a
+    // choice would be back to asking permission whose refusal changes nothing.
+    for (const id of PROCESSING_PURPOSES) {
+      const spec = PROCESSING_PURPOSE_SPECS[id];
+      expect(id, id).not.toContain('analytics');
+      const copy = [spec.label, spec.offSummary, renderPurposeOnSummary(id, FLOOR)]
+        .join(' ')
+        .toLowerCase();
+      for (const banned of ['group totals', 'community statistics', 'counted in']) {
+        expect(copy, `${id}/${banned}`).not.toContain(banned);
+      }
+    }
   });
 
   it('leaves no unsubstituted token in any rendered sentence', () => {
@@ -109,15 +156,27 @@ describe('the purpose registry', () => {
     }
   });
 
-  it('names link counting on the purpose that actually counts links', () => {
-    // `getPersonaLinkPresence` joins `user_purpose_consents` on
-    // `profile_analytics` and aggregates `users.social_links`, which is the
-    // `profile_links` data class. Consent obtained for a narrower scope than the
-    // processing performed is consent for something else.
-    expect(purposeCovers('profile_analytics', 'profile_links')).toBe(true);
-    expect(renderPurposeOnSummary('profile_analytics', FLOOR).toLowerCase()).toContain(
-      'link platforms',
-    );
+  it('names the links it sends on every purpose that sends them', () => {
+    // Consent obtained for a narrower scope than the processing performed is
+    // consent for something else. Both purposes hand a recipient the links on a
+    // profile, so both carry `profile_links` and both say so.
+    for (const id of PROCESSING_PURPOSES) {
+      expect(purposeCovers(id, 'profile_links'), id).toBe(true);
+      expect(renderPurposeOnSummary(id, FLOOR).toLowerCase(), id).toContain('link');
+    }
+  });
+
+  it('leaves every data class covered by something, so none is now dead', () => {
+    // `profile_analytics` left with two classes in its `covers`. Both are still
+    // reachable: the purposes below carry them, and `statistics.ts` declares the
+    // pair its own totals are built from. A class nothing covers is a word in a
+    // union that no sentence ever explains.
+    const covered = new Set<string>();
+    for (const id of PROCESSING_PURPOSES) {
+      for (const cls of PROCESSING_PURPOSE_SPECS[id].covers) covered.add(cls);
+    }
+    for (const cls of PERSONA_STATISTICS.covers) covered.add(cls);
+    expect([...covered].sort()).toEqual([...PERSONA_DATA_CLASSES].sort());
   });
 
   it('never claims to cover a class its copy does not mention', () => {
@@ -170,31 +229,40 @@ describe('the purpose registry', () => {
 describe('purposeIsOfferable', () => {
   const base = {
     recipients: [] as readonly DataRecipient[],
-    aggregatableFieldKeys: ['interests'] as readonly string[],
     enabledPurposes: ALL as readonly ProcessingPurposeId[],
   };
 
   it('is false for any purpose whose read surface is not enabled', () => {
     // A purpose nobody can act on is not offered, not listed on the privacy
     // page, and not returned by the consent endpoint.
-    expect(purposeIsOfferable('profile_analytics', { ...base, enabledPurposes: [] })).toBe(false);
+    expect(
+      purposeIsOfferable('recruiter_visibility', {
+        ...base,
+        enabledPurposes: [],
+        recipients: [recipient({ purposes: ['recruiter_visibility'] })],
+      }),
+    ).toBe(false);
     expect(
       purposeIsOfferable('sponsor_sharing', {
         ...base,
-        enabledPurposes: ['profile_analytics'],
+        enabledPurposes: ['recruiter_visibility'],
         recipients: [recipient()],
       }),
     ).toBe(false);
   });
 
-  it('is false for profile_analytics with no aggregatable field', () => {
-    expect(purposeIsOfferable('profile_analytics', { ...base, aggregatableFieldKeys: [] })).toBe(
-      false,
-    );
-  });
-
-  it('is true for profile_analytics once one aggregatable field exists', () => {
-    expect(purposeIsOfferable('profile_analytics', base)).toBe(true);
+  it('needs a recipient for every purpose, because every purpose sends something', () => {
+    // There is no aggregatable-field gate any more. It existed for
+    // `profile_analytics` alone, and statistics are no longer a consent
+    // question, so "nothing countable yet" can never be why a consent card is
+    // withheld. What is left is the gate that matches what these purposes do.
+    for (const id of ALL) {
+      expect(purposeIsOfferable(id, base), id).toBe(false);
+      expect(
+        purposeIsOfferable(id, { ...base, recipients: [recipient({ purposes: [id] })] }),
+        id,
+      ).toBe(true);
+    }
   });
 
   it('is false for sponsor_sharing with zero recipients', () => {

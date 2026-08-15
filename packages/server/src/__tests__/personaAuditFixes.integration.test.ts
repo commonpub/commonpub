@@ -25,6 +25,7 @@ import {
 } from '../persona/values.js';
 import {
   bandPersonaCount,
+  getAudienceCounts,
   getPersonaFieldDistribution,
   personaMetricsFields,
   resolvePersonaThresholds,
@@ -307,7 +308,7 @@ describe('section order is honoured, once, where the schema is resolved', () => 
   });
 });
 
-describe('a finalised day carries the scope it was computed under', () => {
+describe('a finalised day carries the consent scope its AUDIENCE counts came from', () => {
   let db: DB;
 
   beforeAll(async () => { db = await createTestDB(); });
@@ -331,7 +332,13 @@ describe('a finalised day carries the scope it was computed under', () => {
     },
   ];
 
-  async function seedConsentingUsers(digest: string, n: number): Promise<void> {
+  /**
+   * Thirty members with answers and NO consent row of any kind, which is the
+   * normal case now: statistics run on legitimate interest. Ten of them also
+   * grant `recruiter_visibility`, which is the one figure on a stored day that
+   * a moved scope can invalidate.
+   */
+  async function seedMembers(digest: string, n: number, granting: number): Promise<void> {
     for (let i = 0; i < n; i += 1) {
       const user = await createTestUser(db, { username: `rollup-${i}` });
       await db.update(users).set({ profileVisibility: 'public' }).where(eq(users.id, user.id));
@@ -341,9 +348,10 @@ describe('a finalised day carries the scope it was computed under', () => {
         fieldKey: 'interests',
         value: 'robotics',
       });
+      if (i >= granting) continue;
       await db.insert(userPurposeConsents).values({
         userId: user.id,
-        purpose: 'profile_analytics',
+        purpose: 'recruiter_visibility',
         state: 'granted',
         scopeDigest: digest,
         scopeSnapshot: {
@@ -361,13 +369,16 @@ describe('a finalised day carries the scope it was computed under', () => {
     }
   }
 
-  it('refuses to publish it once the operator moves the scope', async () => {
+  it('refuses to publish the audience count once the operator moves the scope', async () => {
     const config = cfg(sections);
     const scope = await currentPurposeScope(db, config, { sections: async () => sections });
-    await seedConsentingUsers(scope.digest, 30);
+    await seedMembers(scope.digest, 30, 10);
 
     const thresholds = resolvePersonaThresholds({});
     const fields = personaMetricsFields(sections);
+    const offeredPurposes = [
+      { purpose: 'recruiter_visibility' as const, scopeDigest: scope.digest },
+    ];
     const today = utcDayKey();
     const yesterday = new Date(`${today}T00:00:00.000Z`);
     yesterday.setUTCDate(yesterday.getUTCDate() - 1);
@@ -389,35 +400,45 @@ describe('a finalised day carries the scope it was computed under', () => {
       fields,
       platforms: [],
       thresholds,
-      offeredPurposes: [{ purpose: 'profile_analytics', scopeDigest: scope.digest }],
+      offeredPurposes,
     });
 
-    const live = await getPersonaFieldDistribution(db, {
+    const audience = await getAudienceCounts(db, {
       thresholds,
-      scopeDigest: scope.digest,
       source: 'rollup',
-      field: fields[0]!,
-      limit: 20,
+      offeredPurposes,
     });
-    expect(live.available).toBe(true);
-    expect(live.asOf).toBe(previous);
+    expect(audience.openToRecruiters).toEqual({ available: true, count: 10 });
+    expect(audience.asOf).toBe(previous);
 
     // The operator adds a recipient at 09:00. Every stored grant's digest now
     // differs from the live one, so by the feature's own rule every grant
-    // authorises nothing. The LIVE queries drop them the moment the digest
-    // moves; the rollup path used to keep publishing yesterday's buckets, built
-    // from those grants, for up to ~30 hours, or forever with the worker
-    // stopped.
-    const stale = await getPersonaFieldDistribution(db, {
+    // authorises nothing. The LIVE query drops them the moment the digest moves;
+    // the rollup path used to keep publishing yesterday's figure, built from
+    // those grants, for up to ~30 hours, or forever with the worker stopped.
+    const stale = await getAudienceCounts(db, {
       thresholds,
-      scopeDigest: 'moved',
+      source: 'rollup',
+      offeredPurposes: [{ purpose: 'recruiter_visibility', scopeDigest: 'moved' }],
+    });
+    expect(stale.openToRecruiters).toEqual({ available: false, reason: 'scope_changed' });
+  });
+
+  it('and keeps publishing the distributions, which no consent produced', async () => {
+    const thresholds = resolvePersonaThresholds({});
+    const fields = personaMetricsFields(sections);
+    const dist = await getPersonaFieldDistribution(db, {
+      thresholds,
       source: 'rollup',
       field: fields[0]!,
       limit: 20,
     });
-    expect(stale.available).toBe(false);
-    expect(stale.reason).toBe('scope_changed');
-    expect(stale.items).toEqual([]);
+    // The refusal above is about a count of grant holders. How many members
+    // answered "robotics" has nothing to do with any grant, and darkening it
+    // because a recipient list changed would be a statement about the data that
+    // is not true.
+    expect(dist.available).toBe(true);
+    expect(dist.items.map((i) => i.value)).toEqual(['robotics']);
   });
 
   it('stores the digest as a dimension, never as a value sentinel', async () => {
@@ -461,7 +482,6 @@ describe('a stored day is re-floored when the operator raises the floor', () => 
     // statement the payload is making.
     const raised = await getPersonaFieldDistribution(db, {
       thresholds: { minBucket: 20, minPopulation: 25 },
-      scopeDigest: digest,
       source: 'rollup',
       field,
       limit: 20,
@@ -474,7 +494,6 @@ describe('a stored day is re-floored when the operator raises the floor', () => 
   it('refuses the whole day when the population floor is raised past it', async () => {
     const raised = await getPersonaFieldDistribution(db, {
       thresholds: { minBucket: 5, minPopulation: 500 },
-      scopeDigest: 'abc123',
       source: 'rollup',
       field: {
         sectionKey: 'interests',

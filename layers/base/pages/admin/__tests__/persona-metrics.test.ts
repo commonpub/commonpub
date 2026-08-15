@@ -2,18 +2,25 @@
  * Component tests for `/admin/persona-metrics`, the operator audience dashboard.
  *
  * What this screen can get wrong is not a layout bug, it is a false statement.
- * Every number it prints has already been suppressed, floored and consent-joined
- * by the route, and the page's whole job is to keep saying so. So the assertions
- * below are about TRUTH rather than about structure:
+ * The route now applies NO k-anonymity floor (plan R3.4 phase 4), so the numbers
+ * arriving here are exact, and the page's whole job is to say which kind of
+ * number they are. So the assertions below are about TRUTH rather than about
+ * structure:
  *
- *  1. the three plan 8.5 empty states render their exact agreed copy, and they
- *     track the payload's own thresholds rather than a hardcoded five;
- *  2. `asOf` and `quantum` travel with every published count, because a number
- *     without its as-of reads as live and a number without its quantum reads as
- *     exact;
+ *  1. it renders a count the public API would suppress, and says plainly that
+ *     these totals are exact, operator-only, and floored on the public API,
+ *     tracking the payload's own configured floors rather than a hardcoded five;
+ *  2. `asOf` travels with every count, and a quantum of 1 is stated as exact
+ *     rather than as "rounded to the nearest 1", which reads as a rounding rule
+ *     where there is none;
  *  3. a purpose nobody can grant never renders as a zero;
  *  4. nothing sensitive renders when either flag is off or the permission is
  *     missing, and no request is even made.
+ *
+ * The fixture counts are deliberately below the fixture's public floor of five
+ * (3 people chose CNC, 2 list LinkedIn). Under the shipped behaviour the whole
+ * `interests` field would have been refused as `insufficient_bucket_diversity`,
+ * so several assertions here fail against the code as it was.
  *
  * Everything is asserted through the rendered DOM against the REAL route
  * contract (`layers/base/server/api/admin/persona-metrics.get.ts`), which the
@@ -68,7 +75,6 @@ type WireAudienceCount =
   | { available: false; reason: string };
 
 interface WireAudience {
-  sharingAnalytics: WireAudienceCount;
   openToRecruiters: WireAudienceCount;
   openToSponsorSharing: WireAudienceCount;
   quantum: number;
@@ -82,7 +88,7 @@ interface WireResponse {
   distribution: WireDistribution | null;
   links: WireLinks;
   audience: WireAudience | null;
-  thresholds: { minBucket: number; minPopulation: number };
+  publicThresholds: { minBucket: number; minPopulation: number };
   quantum: number;
   asOf: null;
 }
@@ -118,34 +124,33 @@ function makeResponse(overrides: Partial<WireResponse> = {}): WireResponse {
       field: 'interests',
       label: 'What are you into?',
       items: [
-        { value: 'pcb_design', label: 'PCB design', count: 20 },
-        { value: 'cnc', label: 'CNC', count: 10 },
+        { value: 'pcb_design', label: 'PCB design', count: 22 },
+        { value: 'cnc', label: 'CNC', count: 3 },
       ],
-      suppressed: 1,
-      quantum: 5,
+      suppressed: 0,
+      quantum: 1,
       available: true,
       asOf: null,
     },
     links: {
       items: [
-        { platform: 'github', label: 'GitHub', count: 25, authenticitySignal: true },
-        { platform: 'linkedin', label: 'LinkedIn', count: 10, authenticitySignal: false },
+        { platform: 'github', label: 'GitHub', count: 27, authenticitySignal: true },
+        { platform: 'linkedin', label: 'LinkedIn', count: 2, authenticitySignal: false },
       ],
       suppressed: 0,
-      quantum: 5,
+      quantum: 1,
       available: true,
       asOf: null,
     },
     audience: {
-      sharingAnalytics: { available: true, count: 40 },
-      openToRecruiters: { available: false, reason: 'purpose_not_offered' },
+      openToRecruiters: { available: true, count: 7 },
       openToSponsorSharing: { available: false, reason: 'purpose_not_offered' },
-      quantum: 5,
+      quantum: 1,
       available: true,
       asOf: null,
     },
-    thresholds: { minBucket: 5, minPopulation: 25 },
-    quantum: 5,
+    publicThresholds: { minBucket: 5, minPopulation: 25 },
+    quantum: 1,
     asOf: null,
     ...overrides,
   };
@@ -159,17 +164,16 @@ function unavailable(reason: string): Pick<WireResponse, 'distribution' | 'links
       label: 'What are you into?',
       items: [],
       suppressed: 0,
-      quantum: 5,
+      quantum: 1,
       available: false,
       reason,
       asOf: null,
     },
-    links: { items: [], suppressed: 0, quantum: 5, available: false, reason, asOf: null },
+    links: { items: [], suppressed: 0, quantum: 1, available: false, reason, asOf: null },
     audience: {
-      sharingAnalytics: { available: false, reason },
       openToRecruiters: { available: false, reason },
       openToSponsorSharing: { available: false, reason },
-      quantum: 5,
+      quantum: 1,
       available: false,
       reason,
       asOf: null,
@@ -255,70 +259,45 @@ function text(container: Element): string {
 
 // --- The three empty states ------------------------------------------------
 
-describe('/admin/persona-metrics — the plan 8.5 empty states', () => {
-  it('below the population floor, renders the agreed sentence with the payload threshold', () => {
+describe('/admin/persona-metrics — the empty states', () => {
+  it('with nobody counted at all, says so rather than showing an empty list', () => {
     responseRef.value = makeResponse(unavailable('insufficient_population'));
     const { container } = mount();
 
-    expect(text(container)).toContain(
-      'There are not enough people sharing statistics yet to show totals safely. ' +
-        'Totals appear once at least 25 people have turned sharing on.',
-    );
+    expect(text(container)).toContain('There is nobody to count on this site yet.');
   });
 
-  it('takes the population floor from the payload rather than hardcoding 25', () => {
-    // An operator who raised minPopulation must not be shown a sentence
-    // understating their own floor. The copy is derived, not declared twice.
-    responseRef.value = makeResponse({
-      ...unavailable('insufficient_population'),
-      thresholds: { minBucket: 5, minPopulation: 500 },
-    });
-    const { container } = mount();
-
-    expect(text(container)).toContain('at least 500 people have turned sharing on.');
-    expect(text(container)).not.toContain('at least 25 people have turned sharing on.');
-  });
-
-  it('with every bucket suppressed, renders the agreed sentence', () => {
-    responseRef.value = makeResponse(unavailable('insufficient_bucket_diversity'));
-    const { container } = mount();
-
-    expect(text(container)).toContain('No answer has been chosen by at least five people yet.');
-  });
-
-  it('with no answers at all, says the same thing rather than printing an empty list', () => {
-    // `available: true` with zero items is "nobody has answered", which is the
-    // same statement to an operator and must not render as blank space.
+  it('with no answers to a question, says nobody has answered it', () => {
+    // `available: true` with zero items is "nobody has answered", which must not
+    // render as blank space under a heading.
     responseRef.value = makeResponse({
       distribution: {
         field: 'interests',
         label: 'What are you into?',
         items: [],
         suppressed: 0,
-        quantum: 5,
+        quantum: 1,
         available: true,
         asOf: null,
       },
     });
     const { container } = mount();
 
-    expect(text(container)).toContain('No answer has been chosen by at least five people yet.');
+    expect(text(container)).toContain('Nobody has answered this question yet.');
   });
 
-  it('takes the bucket floor from the payload rather than hardcoding five', () => {
-    responseRef.value = makeResponse({
-      ...unavailable('insufficient_bucket_diversity'),
-      thresholds: { minBucket: 25, minPopulation: 25 },
-    });
+  it('with a class the statistics do not cover, says that rather than blaming a floor', () => {
+    responseRef.value = makeResponse(unavailable('statistics_not_covered'));
     const { container } = mount();
 
-    expect(text(container)).toContain('No answer has been chosen by at least 25 people yet.');
-    expect(text(container)).not.toContain('at least five people yet.');
+    expect(text(container)).toContain(
+      'The statistics on this site do not cover this, so nothing here is counted.',
+    );
   });
 
   it('with no finalised day, renders the agreed sentence', () => {
     // The live admin read cannot return `no_snapshot_yet` today. The branch is
-    // wired because plan 8.5 names it as one of this screen's three states, and
+    // wired because plan 8.5 names it as one of this screen's states, and
     // because the route is one word from being able to return it.
     responseRef.value = makeResponse(unavailable('no_snapshot_yet'));
     const { container } = mount();
@@ -327,41 +306,94 @@ describe('/admin/persona-metrics — the plan 8.5 empty states', () => {
       'Statistics are worked out once a day. The first set will appear after the next daily run.',
     );
   });
+});
 
-  it('renders the suppression explainer so an empty dashboard reads as working', () => {
-    responseRef.value = makeResponse(unavailable('insufficient_population'));
-    const { container } = mount();
+// --- The disclosure: unsuppressed, operator-only, floored in public ---------
 
-    expect(text(container)).toContain(
-      'Answers are only shown as totals when at least five people chose them, and totals ' +
-        'are rounded. On a small instance most answers will be hidden. That is working correctly.',
-    );
-  });
-
-  it('says in its own help text that the dashboard gets no exemption', () => {
+describe('/admin/persona-metrics — says plainly what kind of number this is', () => {
+  it('states that the totals are exact and that they are the operator\'s to read', () => {
     const { container } = mount();
     const body = text(container);
 
-    expect(body).toContain('This dashboard gets no exemption');
-    expect(body).toContain('the same consent check, the same floors and the same rounding');
-    expect(body).toContain('the agreement is with the member and not with the API');
+    expect(body).toContain('These totals are exact and nothing here is hidden or rounded.');
+    expect(body).toContain('You run this site, and every answer on this page is already yours');
+  });
+
+  it('states what the PUBLIC API does instead, in the operator\'s own configured numbers', () => {
+    const { container } = mount();
+
+    expect(text(container)).toContain(
+      'The public statistics API is different. It leaves out any answer chosen by fewer than ' +
+        '5 people, rounds every total down to a multiple of 5, and shows nothing at all below ' +
+        '25 people.',
+    );
+  });
+
+  it('takes those floors from the payload rather than hardcoding five and twenty-five', () => {
+    // An operator running minBucket: 25 must not be shown a sentence
+    // understating their own published protection. Derived, not declared twice.
+    responseRef.value = makeResponse({ publicThresholds: { minBucket: 25, minPopulation: 500 } });
+    const { container } = mount();
+    const body = text(container);
+
+    expect(body).toContain('fewer than 25 people');
+    expect(body).toContain('below 500 people');
+    expect(body).not.toContain('fewer than 5 people');
+  });
+
+  it('says objectors are counted nowhere on the page', () => {
+    // An objection is an objection to being counted at all, and an operator
+    // reading a total needs to know which population it is over.
+    const { container } = mount();
+    expect(text(container)).toContain(
+      'People who asked not to be counted are not included in any total on this page.',
+    );
+  });
+
+  /**
+   * THE CORRECTION, asserted as a number on the screen. Three people chose CNC
+   * and two list LinkedIn, both under the fixture's public floor of five. The
+   * shipped route refused the whole `interests` field for exactly this
+   * (`insufficient_bucket_diversity`, because a scalar field with a withheld
+   * bucket is refused whole), so this assertion fails against the old behaviour.
+   */
+  it('renders a count the public API would suppress', () => {
+    const { container } = mount();
+    const body = text(container);
+
+    expect(body).toContain('CNC');
+    expect(body).toContain('3 people');
+    expect(body).toContain('LinkedIn');
+    expect(body).toContain('2 people');
+  });
+
+  it('no longer claims to apply the same floors as the public API', () => {
+    // The old copy said "This dashboard gets no exemption ... the same consent
+    // check, the same floors and the same rounding as the public API". Leaving
+    // that sentence next to exact numbers would be the one false statement this
+    // screen cannot afford.
+    const body = text(mount().container).toLowerCase();
+    expect(body).not.toContain('gets no exemption');
+    expect(body).not.toContain('the same floors');
+    expect(body).not.toContain('turned sharing on');
   });
 });
 
 // --- Provenance ------------------------------------------------------------
 
 describe('/admin/persona-metrics — every count carries its as-of and its quantum', () => {
-  it('states the live reading and the rounding beside the audience, answers and links', () => {
+  it('states the live reading and calls a quantum of 1 exact, not rounded to the nearest 1', () => {
     const { container } = mount();
     const body = text(container);
 
-    // Three published surfaces, three provenance lines, each from that
-    // payload's own asOf and quantum rather than from a page-level guess.
+    // Three surfaces, three provenance lines, each from that payload's own asOf
+    // and quantum rather than from a page-level guess.
     const matches = body.match(
-      /Live reading, taken when this page loaded\. Counts are rounded down to the nearest 5\./g,
+      /Live reading, taken when this page loaded\. Counts are exact\./g,
     );
     expect(matches).not.toBeNull();
     expect(matches).toHaveLength(3);
+    expect(body).not.toContain('nearest 1.');
   });
 
   it('names a finalised day when the payload carries one, instead of calling it live', () => {
@@ -392,15 +424,10 @@ describe('/admin/persona-metrics — every count carries its as-of and its quant
       if (shows === 0) continue;
       const provenance = section.querySelector('.cpub-audience-provenance');
       expect(provenance, section.querySelector('h2')?.textContent ?? '?').not.toBeNull();
-      expect(provenance?.textContent ?? '').toMatch(/rounded down to the nearest \d+/);
+      expect(provenance?.textContent ?? '').toMatch(
+        /(rounded down to the nearest \d+|Counts are exact)/,
+      );
     }
-  });
-
-  it('calls a withheld bucket an answer and never a person', () => {
-    const { container } = mount();
-    // `suppressed` is a BUCKET count. "1 person is hidden" would be a different,
-    // false, and far more identifying statement.
-    expect(text(container)).toContain('1 answer is hidden because fewer than five people chose it.');
   });
 });
 
@@ -412,9 +439,9 @@ describe('/admin/persona-metrics — the numbers themselves', () => {
     const body = text(container);
 
     expect(body).toContain('PCB design');
-    expect(body).toContain('20 people');
+    expect(body).toContain('22 people');
     expect(body).toContain('CNC');
-    expect(body).toContain('10 people');
+    expect(body).toContain('3 people');
   });
 
   it('hides the bar from assistive technology, since the count is already text', () => {
@@ -429,7 +456,7 @@ describe('/admin/persona-metrics — the numbers themselves', () => {
     const body = text(container);
 
     expect(body).toContain('GitHub');
-    expect(body).toContain('25 people');
+    expect(body).toContain('27 people');
     expect(body).toContain('LinkedIn');
   });
 
@@ -437,10 +464,38 @@ describe('/admin/persona-metrics — the numbers themselves', () => {
     const { container } = mount();
     const body = text(container);
 
-    expect(body).toContain('Open to recruiters');
+    expect(body).toContain('Open to sharing with sponsors');
     expect(body).toContain('Not offered on this site.');
     // Word boundary, not substring: "10 people" ends in "0 people".
     expect(body).not.toMatch(/\b0 people/);
+  });
+
+  /**
+   * The audience refusals are a DIFFERENT union from the distribution ones and
+   * no longer overlap. `scope_changed` can only describe a consent count; a page
+   * that fed it to the distribution switch would fall through to a default and
+   * print a sentence about a floor that had nothing to do with it.
+   */
+  it('explains a moved scope in terms of consent, not in terms of a floor', () => {
+    const base = makeResponse();
+    responseRef.value = makeResponse({
+      audience: { ...base.audience!, available: false, reason: 'scope_changed' },
+    });
+    const { container } = mount();
+    const body = text(container);
+
+    expect(body).toContain(
+      'What is shared changed after these people agreed, so this total is not shown.',
+    );
+    expect(body).not.toContain('Nobody has answered this question yet. Open to recruiters');
+  });
+
+  it('no longer offers a row counting who agreed to be in the statistics', () => {
+    // That row counted `profile_analytics` grants. Being counted is not a
+    // consent question any more, so there is no grant to count and a row here
+    // would be a number about a decision nobody makes.
+    const body = text(mount().container).toLowerCase();
+    expect(body).not.toContain('counted in community statistics');
   });
 
   it('says nobody could opt in, rather than nobody did, when sharing consents are off', () => {
@@ -530,7 +585,7 @@ describe('/admin/persona-metrics — the numbers themselves', () => {
 
 describe('/admin/persona-metrics — gating renders nothing sensitive', () => {
   /** Every string that must never appear on a gated render. */
-  const SENSITIVE = ['PCB design', '20 people', 'GitHub', '25 people', 'What are you into?', 'Industry'];
+  const SENSITIVE = ['PCB design', '22 people', 'GitHub', '27 people', 'What are you into?', 'Industry'];
 
   function expectNothingSensitive(container: Element): void {
     const body = text(container);
@@ -589,7 +644,7 @@ describe('/admin/persona-metrics — accessibility', () => {
     const states: WireResponse[] = [
       makeResponse(),
       makeResponse(unavailable('insufficient_population')),
-      makeResponse(unavailable('insufficient_bucket_diversity')),
+      makeResponse(unavailable('statistics_not_covered')),
       makeResponse(unavailable('no_snapshot_yet')),
       makeResponse({ audience: null }),
       makeResponse({ fields: [], distribution: null }),
@@ -647,8 +702,8 @@ describe('/admin/persona-metrics — copy discipline', () => {
     expect(templateBlock.length).toBeGreaterThan(1000);
     expect(templateBlock).toContain('cpub-audience-title');
     // Positive control on the stripper: this line is in the doc comment only.
-    expect(raw).toContain('THE DASHBOARD GETS NO EXEMPTION');
-    expect(templateBlock).not.toContain('THE DASHBOARD GETS NO EXEMPTION');
+    expect(raw).toContain('THESE NUMBERS ARE EXACT');
+    expect(templateBlock).not.toContain('THESE NUMBERS ARE EXACT');
   });
 
   it('contains no em dash in user-facing copy', () => {
@@ -722,7 +777,7 @@ describe('/admin/persona-metrics — the route contract this page mirrors', () =
   });
 
   it('still returns the keys the page reads, and still takes one field at a time', () => {
-    for (const key of ['fields:', 'distribution:', 'links:', 'audience:', 'thresholds:', 'quantum:', 'asOf:']) {
+    for (const key of ['fields:', 'distribution:', 'links:', 'audience:', 'publicThresholds:', 'quantum:', 'asOf:']) {
       expect(route, key).toContain(key);
     }
     // The page's extra round trip exists because of this: one field per
@@ -733,6 +788,35 @@ describe('/admin/persona-metrics — the route contract this page mirrors', () =
     // And `asOf` is null on this route because the read is live, which is why
     // the page prints "Live reading" rather than inventing a date.
     expect(route).toContain("source: 'live'");
+  });
+
+  /**
+   * The objection is NOT something this route may opt out of.
+   *
+   * `countedUserWhere` in `metrics.ts` carries the anti-join unconditionally, so
+   * there is nothing here to switch off today. This reads the source rather than
+   * the behaviour because the failure mode is a future edit: an author who
+   * declined the k-anonymity floor for the operator will be tempted to decline
+   * the exclusion next, and those two are not the same decision. A floor
+   * protects a published output; an objection is a person saying no.
+   */
+  it('names no way to count a member who objected', () => {
+    const code = route.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^[ \t]*\/\/.*$/gm, '');
+    expect(code).toContain('export default defineEventHandler');
+    for (const forbidden of [
+      'userStatisticsObjections',
+      'user_statistics_objections',
+      'includeObjectors',
+      'setStatisticsObjection',
+      'getStatisticsObjection',
+    ]) {
+      expect(code, forbidden).not.toContain(forbidden);
+    }
+    // The ONE thing it overrides, named so the override stays visible and
+    // singular rather than becoming a bag of exemptions.
+    expect(code).toContain('OPERATOR_UNSUPPRESSED_THRESHOLDS');
+    expect(code).toContain('minBucket: 1');
+    expect(code).toContain('minPopulation: 1');
   });
 
   it('the admin nav links to this page on both flags and on audit.read', () => {

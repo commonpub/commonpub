@@ -1,8 +1,9 @@
-import { and, eq, notInArray, sql } from 'drizzle-orm';
+import { and, eq, inArray, notInArray, sql } from 'drizzle-orm';
 import {
   auditLogs,
   userPersonaAnswers,
   userPersonaText,
+  userSharedLinks,
   users,
 } from '@commonpub/schema';
 import type { CommonPubConfig } from '@commonpub/config';
@@ -45,6 +46,13 @@ import {
  * existing `updateUserProfile`, so that function stays the ONLY writer of `users`
  * columns and of `users.social_links`. There is no `user_profile_links` table in
  * v1 and this file must never grow one (plan 14.4).
+ *
+ * `user_shared_links`, written at the foot of this file, is NOT that table and
+ * the distinction is the whole reason it is safe to add. It holds no addresses:
+ * one row per (member, platform key) recording that the member agreed to hand
+ * that platform to the named recipients. The URL stays in `users.social_links`
+ * with its single writer, so revoking a share never rewrites a link and editing
+ * a link never touches a sharing decision.
  */
 
 /**
@@ -607,6 +615,123 @@ export async function setPersonaSection(
   });
 
   return { ok: true, values: await getPersonaValues(db, userId, sections) };
+}
+
+// --- Per-platform link sharing (plan R3.1 D6) -----------------------------------
+
+/**
+ * The member's per-platform link sharing choices.
+ *
+ * ROW PRESENT MEANS SHARED. There is no state column and no default value, so
+ * "not shared" is the absence of a row and the default is off by construction:
+ * a member who has never opened the control shares nothing, and no migration can
+ * turn that into sharing by editing a default. Reading is therefore just the
+ * list of platform keys, sorted so a settings form renders the same order twice.
+ *
+ * A key here can name a platform the operator has since removed from the
+ * registry. It is returned rather than filtered, because this is the member's
+ * record of what they agreed to and hiding a row they cannot then untick is how
+ * a control quietly stops meaning anything. Every surface that DISCLOSES a link
+ * intersects this list with the effective platforms anyway.
+ */
+export async function listSharedLinkPlatforms(db: DB, userId: string): Promise<string[]> {
+  const rows = await db
+    .select({ platform: userSharedLinks.platform })
+    .from(userSharedLinks)
+    .where(eq(userSharedLinks.userId, userId))
+    .orderBy(userSharedLinks.platform);
+  return rows.map((r) => r.platform);
+}
+
+export interface SetSharedLinkPlatformsArgs {
+  userId: string;
+  /** The platforms the member chooses to share. An empty list clears them all. */
+  platforms: readonly string[];
+  /**
+   * Needed to resolve the EFFECTIVE platform list, which is what makes the
+   * delete template-scoped and what an unknown key is validated against. Same
+   * reason {@link SetPersonaSectionArgs} carries it: the resolution lives in
+   * `@commonpub/server`, never in a fork's `server/utils/config.ts`.
+   */
+  config: CommonPubConfig;
+}
+
+export type SetSharedLinkPlatformsResult =
+  | { ok: true; platforms: string[] }
+  | { ok: false; error: string; platform?: string };
+
+/**
+ * Replace the member's sharing choices, in ONE transaction.
+ *
+ * TEMPLATE-SCOPED DELETE, for exactly the reason {@link setPersonaSection}
+ * scopes its delete to the section's fields rather than to the submitted keys:
+ * scoping from the payload makes "untick everything" a no-op, which is a
+ * data-subject-rights bug wearing an off-by-one costume. Here the scope is the
+ * effective platform list, so an empty submission really does clear every
+ * platform the member was shown, and a row for a platform the operator has since
+ * retired is left alone rather than silently revoked by a form that never
+ * offered it.
+ *
+ * VALIDATE THE DOMAIN, NOT THE SHAPE. An unknown platform key is a rejection
+ * here and never reaches a bind, the same rule the directory filters and the
+ * persona answers both follow.
+ *
+ * The row lock is taken for the same reason it is in `setPersonaSection`: the
+ * delete is `NOT IN (...)`, which under READ COMMITTED cannot see a row a
+ * concurrent transaction inserted after its snapshot, so two tabs saving
+ * different sets would otherwise leave their union, a set the member never
+ * chose, and here that union is a disclosure.
+ */
+export async function setSharedLinkPlatforms(
+  db: DB,
+  args: SetSharedLinkPlatformsArgs,
+): Promise<SetSharedLinkPlatformsResult> {
+  const { userId, config } = args;
+  const platforms = await effectivePersonaLinkPlatforms(db, config);
+  const templateKeys = platforms.map((p) => p.key);
+
+  const chosen = [...new Set(args.platforms.map((p) => p.trim()).filter((p) => p !== ''))].sort();
+  for (const key of chosen) {
+    if (findLinkPlatform(platforms, key) === undefined) {
+      return { ok: false, error: `"${key}" is not a link platform on this instance`, platform: key };
+    }
+  }
+
+  await db.transaction(async (tx) => {
+    await tx.select({ id: users.id }).from(users).where(eq(users.id, userId)).for('update').limit(1);
+
+    // `inArray`/`notInArray` with an empty list is `IN ()`, which is not valid
+    // SQL, so each branch is guarded rather than relying on the template never
+    // being empty. An instance with no platforms at all has nothing to clear.
+    if (templateKeys.length > 0) {
+      await tx.delete(userSharedLinks).where(
+        chosen.length > 0
+          ? and(
+            eq(userSharedLinks.userId, userId),
+            inArray(userSharedLinks.platform, templateKeys),
+            notInArray(userSharedLinks.platform, chosen),
+          )
+          : and(
+            eq(userSharedLinks.userId, userId),
+            inArray(userSharedLinks.platform, templateKeys),
+          ),
+      );
+    }
+
+    if (chosen.length > 0) {
+      // `onConflictDoNothing`, never an upsert: re-ticking a box a member has
+      // already ticked is not a new decision, and rewriting `created_at` would
+      // erase when they actually made it.
+      await tx
+        .insert(userSharedLinks)
+        .values(chosen.map((platform) => ({ userId, platform })))
+        .onConflictDoNothing({
+          target: [userSharedLinks.userId, userSharedLinks.platform],
+        });
+    }
+  });
+
+  return { ok: true, platforms: await listSharedLinkPlatforms(db, userId) };
 }
 
 // --- Retired-field handling (plan 4.6) ------------------------------------------

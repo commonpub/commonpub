@@ -3,18 +3,36 @@
  *
  * The operator-facing audience dashboard (plan 7.4, last row).
  *
- * THE ADMIN DASHBOARD GETS NO EXEMPTION. It calls the same functions, with the
- * same consent inner join, the same k-anonymity floors, the same whole-field
- * suppression and the same downward quantisation as the public API. The consent
- * is with the member, not with the API: "3 people are interested in PCB design"
- * on a 40-person instance re-identifies somebody regardless of who is looking.
+ * THIS ROUTE APPLIES NO K-ANONYMITY FLOOR, AND THAT IS THE CORRECTION (plan
+ * R3.4 phase 4). It used to apply the public API's floors, quantisation and
+ * whole-field suppression on the argument that "the consent is with the member,
+ * not with the API". That argument was written for a model in which being
+ * counted was a consent question, and it does not survive the model changing.
  *
- * The one difference is temporal, and it runs the other way. Public endpoints
- * serve a finalised UTC day, because polling a live count lets a caller watch the
- * exact moment a bucket crosses the floor from below, which identifies that one
- * person. An operator holding a session is not that caller, and an operator
- * tuning a schema needs to see the effect of a change before tomorrow, so this
- * route reads `source: 'live'` and reports `asOf: null` — a moment, not a day.
+ * Two facts decide it now. The operator is the DATA CONTROLLER: their own
+ * members' answers are theirs to read, they hold the rows, and every single
+ * answer is already reachable one profile at a time through the admin user
+ * screens. Suppression here was never access control; it prevented bulk
+ * convenience for the one party that already has access, while a determined
+ * operator read the same numbers by hand. And the numbers are now produced under
+ * legitimate interest with an objection switch rather than under a promise of
+ * anonymity to each member, so there is no sentence for an exact count to
+ * contradict.
+ *
+ * WHAT DID NOT CHANGE. Objectors are excluded, because an objection is an
+ * objection to being counted at all and not a request for coarser rounding;
+ * `countedUserWhere` in `metrics.ts` carries that anti-join and this route gets
+ * no exemption from it. Nothing here widens the PUBLIC surface: the four
+ * `/api/public/v1/metrics/persona/*` routes still resolve their thresholds from
+ * the operator's config through `personaMetricsContext`, still serve a finalised
+ * day, and are the only surface `resolvePersonaThresholds` clamps for.
+ *
+ * The temporal difference is unchanged. Public endpoints serve a finalised UTC
+ * day, because polling a live count lets a caller watch the exact moment a
+ * bucket crosses the floor from below, which identifies that one person. An
+ * operator holding a session is not that caller, and an operator tuning a schema
+ * needs to see the effect of a change before tomorrow, so this route reads
+ * `source: 'live'` and reports `asOf: null` — a moment, not a day.
  *
  * `audience` is null unless `features.dataSharingConsents` is on, because the
  * purpose grants it counts cannot be given at all while that flag is off. A hard
@@ -43,6 +61,31 @@ import { z } from 'zod';
 
 /** How many distributions one request may ask for. */
 const MAX_FIELDS_PER_REQUEST = 10;
+
+/**
+ * The floors this route applies: none that can hide anything.
+ *
+ * `minBucket: 1` means the database's `HAVING count(*) >= 1` keeps every bucket
+ * that exists, `quantisePersonaCount(n, 1)` is the identity, and the whole-field
+ * suppression that refuses a scalar field with any withheld bucket can never
+ * trigger, because nothing is withheld. `minPopulation: 1` leaves exactly one
+ * refusal in place: an instance with nobody counted at all says so rather than
+ * publishing an empty list that reads as "nobody answered".
+ *
+ * BUILT HERE RATHER THAN THROUGH `resolvePersonaThresholds`, deliberately and
+ * visibly. That function CLAMPS UP to the hard floors in `@commonpub/persona`
+ * and must keep doing so: it is what stops an operator dialling the PUBLISHED
+ * floors below the constants. This literal is the one place in the tree that
+ * declines the floors, it is reachable only behind `requirePermission('audit.read')`
+ * on the operator's own instance, and it must not be copied into any route that
+ * publishes. If you are reading this while writing a new public endpoint, you
+ * want `personaMetricsContext(...).thresholds`, which is returned below as
+ * `publicThresholds` precisely so this page can state what the public API does.
+ */
+const OPERATOR_UNSUPPRESSED_THRESHOLDS: PersonaMetricsThresholds = {
+  minBucket: 1,
+  minPopulation: 1,
+};
 
 const querySchema = z.object({
   /** One field. Kept for compatibility; prefer `fields`. */
@@ -82,14 +125,23 @@ export interface AdminPersonaMetricsField {
 
 export interface AdminPersonaMetricsResponse {
   fields: AdminPersonaMetricsField[];
-  /** Present only when `?field=` names a countable field. */
+  /** Present only when `?field=` names a countable field. Exact counts. */
   distribution: PersonaDistribution | null;
   /** One entry per key in `?fields=`, in the order requested. Empty when absent. */
   distributions: PersonaDistribution[];
   links: PersonaLinkPresence;
   audience: PersonaAudienceCounts | null;
-  thresholds: PersonaMetricsThresholds;
-  /** Published counts are floored to a multiple of this. */
+  /**
+   * The floors the PUBLIC API applies, which this route does NOT.
+   *
+   * Carried so the page can say what a caller of `/api/public/v1/metrics/persona/*`
+   * would see instead, in the operator's own configured numbers. Renamed from
+   * `thresholds` on purpose: a key called `thresholds` on a payload that applies
+   * none would be read as the floors in force here, which is the single most
+   * dangerous misreading this response can invite.
+   */
+  publicThresholds: PersonaMetricsThresholds;
+  /** Always 1 here, because these counts are exact rather than floored. */
   quantum: number;
   /** Always null here: a live read is a moment, not a finalised day. */
   asOf: null;
@@ -113,12 +165,14 @@ export default defineEventHandler(async (event): Promise<AdminPersonaMetricsResp
   const db = useDB();
   const config = useConfig();
 
-  // The SAME resolution the public routes use, deliberately: an admin screen
-  // that saw a wider field set or a looser threshold than the published API
-  // would show an operator numbers no caller can get, and the k-anonymity floor
-  // is not an access-control rule that an admin can be trusted past.
+  // The same FIELD and PLATFORM resolution the public routes use. That part has
+  // not changed and must not: an admin screen counting a field the aggregatable
+  // list excludes (sensitive, retired, drifted) would count answers the rollup
+  // never writes and no surface can serve, so the two would disagree about what
+  // the instance even asks. What this route declines is the k-anonymity FLOOR,
+  // not the field set.
   const { fields, platforms, scope, thresholds } = await personaMetricsContext(db, config);
-  const read = { thresholds, scopeDigest: scope.digest, source: 'live' } as const;
+  const read = { thresholds: OPERATOR_UNSUPPRESSED_THRESHOLDS, source: 'live' } as const;
 
   // Validate the DOMAIN, not the shape: an unknown key is a clean 400 and never
   // reaches a SQL bind. One resolution for `field` and every key in `fields`.
@@ -154,6 +208,10 @@ export default defineEventHandler(async (event): Promise<AdminPersonaMetricsResp
 
   const links = await getPersonaLinkPresence(db, { ...read, platforms });
 
+  // The audience counts keep their digest-bound consent join, because that one
+  // really is a count of grant holders: "how many members are open to
+  // recruiters" is a question about consent and stays one. Only the FLOOR is
+  // declined, which is why the digest still travels here and nowhere else.
   const audience = config.features.dataSharingConsents
     ? await getAudienceCounts(db, {
         ...read,
@@ -176,8 +234,10 @@ export default defineEventHandler(async (event): Promise<AdminPersonaMetricsResp
     distributions: resolved,
     links,
     audience,
-    thresholds,
-    quantum: thresholds.minBucket,
+    // The operator's configured floors, for the page to state as what the
+    // PUBLIC API does. Nothing in this response was computed with them.
+    publicThresholds: thresholds,
+    quantum: OPERATOR_UNSUPPRESSED_THRESHOLDS.minBucket,
     asOf: null,
   };
 });

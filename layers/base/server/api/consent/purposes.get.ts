@@ -69,7 +69,15 @@ export interface ConsentPurposeCard {
   recipients: ConsentPurposeRecipient[];
   revocationEffect: string;
   legalBasis: 'consent';
-  answersAfterRevocation: 'kept_on_your_profile';
+  /**
+   * Renamed from `kept_on_your_profile` when profile visibility inverted: a
+   * member's answers are private unless the operator opted a field in, so most
+   * of them are not on a profile at all and the old token named a place the
+   * data is not. The literal is pinned to the registry value on purpose, so a
+   * registry rename is a typecheck failure here rather than a silent token the
+   * client cannot map.
+   */
+  answersAfterRevocation: 'kept_in_your_account';
   /** `'absent'` means never acted on, which is not a stored "no". */
   state: 'granted' | 'revoked' | 'absent';
   /** True only for a stale GRANT. A revocation is never re-asked automatically. */
@@ -81,12 +89,15 @@ export interface ConsentPurposeCard {
 /**
  * A registered purpose this instance is NOT offering.
  *
- * Carried so the page can SAY so. A member reading a heading called "Sharing
- * choices" with one switch under it cannot tell whether recruiter and sponsor
- * sharing were never built or are quietly on, and the operator who asked for
- * three toggles cannot tell that two were deliberately withheld. The list is
+ * Carried so a page that already shows a sharing section can SAY so. A member
+ * reading a heading called "Sharing choices" with one switch under it cannot
+ * tell whether the other purpose was never built or is quietly on. The list is
  * derived from the registry minus the offered set, so the sentence cannot
  * outlive the deferral.
+ *
+ * It is NOT an instruction to render anything. When `purposes` is empty this
+ * list is the whole registry, and a surface that rendered it then would be
+ * announcing recruiters to an instance that has none (plan R2.3).
  */
 export interface DeferredConsentPurpose {
   id: string;
@@ -184,11 +195,12 @@ export async function buildConsentPurposesPayload(
     policyVersion: scope.policyVersion,
     purposes,
     // Derived from what this instance can ACTUALLY offer, not from the release's
-    // offered list. `OFFERED_PROCESSING_PURPOSES` now names all three purposes,
-    // so the no-argument call is structurally empty and the member on an
-    // instance that has declared no recipient would see one switch under
-    // "Sharing choices" with no sentence saying the other two are not offered
-    // here. That silence is the thing this field exists to end.
+    // offered list. `OFFERED_PROCESSING_PURPOSES` names both surviving purposes
+    // and both require a declared recipient, so on an instance that has named
+    // none this list is BOTH of them and `purposes` is empty. A client seeing
+    // that must render no sharing section at all rather than a list of things
+    // that do not happen: "recruiter sharing is off" still teaches a makerspace
+    // member that recruiters are in this software (plan R2.3).
     deferredPurposes: deferredProcessingPurposes(scope.offerablePurposes).map((d) => ({
       id: d.purpose,
       label: d.label,
