@@ -73,8 +73,24 @@ function chipStatus(page: Page): Locator {
  * this spec actually needs.
  */
 async function openPersonaEditor(page: Page): Promise<void> {
+  // The canonical path since the settings merge. `/settings/persona` still
+  // redirects here and a test below pins that, but the helper navigates
+  // directly so a broken redirect fails one named test rather than every test
+  // in this file.
+  await page.goto('/settings/profile/questions');
+  await page.waitForSelector('.cpub-questions-page', { timeout: 60_000 });
+}
+
+/**
+ * The settings merge kept `/settings/persona` as a redirect rather than renaming
+ * it, because the invitation banner links there and so did every older bookmark.
+ * Nothing else covers it now that `openPersonaEditor` navigates directly, and a
+ * silently broken redirect would strand anyone arriving from the banner.
+ */
+async function assertLegacyPersonaPathRedirects(page: Page): Promise<void> {
   await page.goto('/settings/persona');
-  await page.waitForSelector('.cpub-persona-sections', { timeout: 60_000 });
+  await page.waitForSelector('.cpub-questions-page', { timeout: 60_000 });
+  expect(new URL(page.url()).pathname).toBe('/settings/profile/questions');
 }
 
 async function openPrivacySettings(page: Page): Promise<void> {
@@ -119,6 +135,11 @@ test.describe('Persona round trip', () => {
     await member?.close();
   });
 
+  test('the old /settings/persona path still lands on the questions tab', async () => {
+    test.skip(flags.persona !== true, 'features.persona is off on this instance');
+    await assertLegacyPersonaPathRedirects(member.page);
+  });
+
   test('a chip grid saves one section, and the answers survive a reload', async () => {
     test.skip(flags.persona !== true, 'features.persona is off on this instance');
     const { page } = member;
@@ -147,7 +168,7 @@ test.describe('Persona round trip', () => {
     // THE assertion. Not "the ref updated" and not "the request was sent": a
     // fresh document, a fresh fetch, and the boxes are still ticked.
     await page.reload();
-    await page.waitForSelector('.cpub-persona-sections', { timeout: 30_000 });
+    await page.waitForSelector('.cpub-questions-page', { timeout: 30_000 });
     for (const pick of PICKED) {
       await expect(chip(page, pick.value), `${pick.value} did not survive the reload`).toBeChecked();
     }
@@ -289,7 +310,7 @@ test.describe('Persona round trip', () => {
         // The About tab itself has to be reachable before anything below means
         // anything; a click swallowed before hydration would make every
         // negative assertion pass against a page that never opened.
-        await expect(page.locator('.cpub-profile-tabpanel, .cpub-profile-about')).toBeVisible({
+        await expect(page.locator('.cpub-about-grid')).toBeVisible({
           timeout: 3000,
         });
       }).toPass({ timeout: 45_000 });
