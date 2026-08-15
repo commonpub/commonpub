@@ -4,13 +4,18 @@
 > Verify any version/flag claim before trusting it: `npm view @commonpub/<pkg> version`,
 > `curl https://<instance>/api/features`, `cargo search create-commonpub`.
 > **Current LIVE (all 3 instances):** persona **0.1.0** / config **0.39.0** / schema **0.64.0** /
-> server **2.131.0** / ui **0.16.0** / layer **0.134.0**, migrations **0046** and **0047**,
+> server **2.131.0** / ui **0.16.0** / layer **0.134.1**, migrations **0046** and **0047**,
 > **46 flags** (session 255, 2026-08-14 — persona, opt-in sharing consent, k-anonymous audience
 > analytics and the opt-in member visibility directory).
 > **All four new flags are OFF on every instance**, so nothing collects, counts or discloses until
 > an operator opts in. Verified live: commonpub.io, deveco.io and heatsynclabs.io all healthy, all
 > reporting 46 flags with the four new ones `false`, and `/api/persona` correctly 404s while off.
 > Before turning any of them on, read `docs/reference/guides/persona-schema.md`.
+> **Layer 0.134.1 is a hotfix**: every save on `/admin/features` returned 400 once an instance had
+> more than 20 flag overrides, because the page posts the whole accumulated set and the cap was a
+> literal 20 against 46 flags. **Known and still open on that screen: the per-flag "reset to default"
+> control does nothing**, because the handler merges rather than replaces and no DELETE handler
+> exists. Detail in `docs/sessions/255-handoff.md`.
 > Detail: `docs/sessions/255-handoff.md`.
 > description Show more/less toggle + `markdownToExcerpt` strips `<!--` HTML comments so a Markdown-imported
 > description header no longer leaks into homepage/list excerpts.** **Session 249 (2026-08-02/03) — production-readiness sweep
