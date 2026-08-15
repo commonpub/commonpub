@@ -364,6 +364,108 @@ and their pins move. That is acceptable: the message is only ever seen by an adm
 blocked write through the generic settings route, so it does not warrant a roll of its own. Ship it
 with whatever goes next.
 
+## The privacy-model correction (2026-08-15, PR #85)
+
+The operator read the shipped feature and found two things wrong with the MODEL, not the code. Both
+are corrected here. Plan: `docs/plans/profile-persona-information-architecture.md`, revisions 2 and 3.
+
+**1. Questions were public by default.** Persona answers rendered on `/u/:username` unless an operator
+opted a field out. Backwards: these are questions the operator asks a member, not profile content.
+Publishing them by default is exactly why "do you want to share this?" read as theatre, because the
+honest answer was "you already are". `publicOnProfile` becomes `showOnProfile`, default false.
+
+Renamed rather than default-flipped, with no alias, deliberately: `publicOnProfile: false` and
+`showOnProfile: undefined` mean the same thing but read oppositely, so keeping the name would have
+left a landmine.
+
+**2. Statistics were a consent when they should not have been.** `profile_analytics` asked a member to
+agree to counting the instance performs regardless. Asking consent for processing you would do anyway
+is a dark pattern with good intentions, and a refusal nobody honours is worse than no question. The
+purpose is deleted. Statistics run on legitimate interest with a GDPR Art 21 objection switch, and the
+six aggregate joins change from "INNER JOIN a current grant" to "exclude anyone who objected".
+
+k-anonymity is untouched but now does a DIFFERENT JOB: it stops being what protects a member from
+being counted and becomes what makes the published output genuinely anonymous. The comments say so,
+because the next reader will otherwise misjudge whether it can be relaxed.
+
+The one real consent is unchanged in shape: may named third parties find you. `recruiter_visibility`
+and `sponsor_sharing` keep their INNER JOIN with the scope digest bound in the join condition.
+
+**The case it had to satisfy.** A makerspace asking "which machines are you checked out on" has no
+recruitment or analytics ambitions. With `persona` on and the sharing flags off it must not read one
+word about recruiters, sponsors or statistics. Guarded by a word-list sweep over the rendered page.
+
+**Also in the same change:** the settings merge (Basics, Links, Experience, Questions under one
+Profile section, `/settings/persona` redirecting), per-platform link sharing, and the operator's
+unsuppressed view.
+
+**Two judgment calls made during implementation, both correct on review:**
+`dataSharingConsents` was removed from the three anonymous aggregate endpoints, because its rationale
+("every number is a count of purpose grants") stopped being true when statistics moved to legitimate
+interest; `audience` keeps it, because its numbers really are consent counts. And `/settings/privacy`
+is no longer flag-gated, because it now carries the Art 21 objection and gating it left a subject
+right reachable only by typing a URL.
+
+**Deleted, not deprecated.** All four flags are off on all three instances and nobody has consented in
+production, so there was nothing to be compatible with. Every remaining mention of the two removed
+identifiers is a comment explaining the removal.
+
+Versions: persona 0.2.0, schema 0.65.0, server 2.132.0, config 0.39.1, layer 0.135.0. Migration 0048
+adds two tables and alters nothing.
+
+## Audit of the correction, before rolling it (2026-08-15)
+
+Run against the code, not the agents' reports. Seven checks, two findings, neither blocking.
+
+**The inversion, end to end.** The field is opt-in, the public route skips anything without
+`showOnProfile === true`, no built-in sets it, and the admin checkbox writes `true | undefined` rather
+than the raw key. That last one is load-bearing: writing the key alone would have published every
+answer on every instance that enables persona.
+
+**The directory correctly does NOT gate on `showOnProfile`**, and `directory.ts:603` records that its
+absence is a decision rather than an oversight. Public display and consented disclosure to a named
+recipient are different gates; conflating them would have made every consenting member appear with no
+answers at all, since no built-in opts in. Pinned by a fixture whose comment states exactly that.
+
+**The aggregate reshape is one definition, not six.** `notObjected()` is a `NOT EXISTS` anti-join
+written as a single term "a query cannot keep half of", composed into `countedUserWhere()`, which all
+five aggregate sites use. Consent survives in exactly one place, the audience query, whose numbers
+really are counts of grants. That is better than the six parallel edits the plan sketched.
+
+**A retired purpose's stored rows are inert.** The consent read does
+`inArray(purpose, [...knownPurposes])`, so a `profile_analytics` row is never fetched and nothing
+resolves a spec from a stored id. No throw, no cleanup needed. Live holds none of these anyway.
+
+**The duplicate editors are genuinely gone.** Every profile field has exactly ONE `v-model` binding
+across the four tabs: display name, headline, location, pronouns and bio in Basics, links in Links,
+skills in Experience. Grep by filename alone shows fields in several tabs, but those are comments
+explaining which tab owns them.
+
+**The statistics objection only appears when `persona` AND `personaAnalytics` are on**
+(`privacy.vue:105`), so an instance with no persona does not get a control over processing it does not
+do.
+
+### What actually changes for a live instance with every flag off
+
+This is the deploy question, and the footprint is small:
+
+| Always-on change | Effect |
+|---|---|
+| Settings nav restructure | `/settings/profile` redirects to `/settings/profile/basics` and the form is split into Basics, Links, Experience. Affects every user on every instance. A UX change with no data change, and no field was lost. |
+| `/settings/privacy` no longer flag-gated | Now shows profile visibility, data download and account deletion to everyone. An improvement: those were previously reachable only behind a sharing flag. |
+| DSAR export | Two new keys, empty on an instance with no persona data. |
+| `packages/config` | Comments only, verified by diffing out comment lines and finding nothing. |
+
+Migration 0048 creates two tables and alters none.
+
+### Two notes carried forward, neither blocking
+
+1. **A retired purpose leaves orphan consent rows with no cleanup path.** Harmless today because live
+   holds none and the read filters them out, but if a purpose is ever retired after real grants exist,
+   those rows persist unreadable. Worth a purge if that ever happens.
+2. **The local dev database holds 46 `profile_analytics` rows** from this session's testing. Inert, but
+   clear them before further local work so they do not confuse a later reader.
+
 ## Deploy safety analysis
 
 The question a reviewer will ask is what happens to the three live instances the moment this layer is
