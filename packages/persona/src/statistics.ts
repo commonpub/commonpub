@@ -117,15 +117,22 @@ export const PERSONA_STATISTICS = {
   // platforms a member lists, so `profile_links` is in `covers` and the copy has
   // to name it or the description is narrower than the processing.
   summaryTemplate:
-    'This site counts the answers to these questions, and which link platforms you list but never the addresses, into group totals so it can see what its community is made of. No total names anyone, a total appears only once at least {minBucket} people give the same answer, and counts are rounded down. While your profile is private your answers are not counted at all.',
+    'This site counts your answers, and which link platforms you list but never the addresses, into group totals that show what its community is made of. No total names anyone: one appears only once at least {minBucket} people give the same answer, and counts are rounded down. While your profile is private your answers are not counted at all.',
+  /**
+   * Rewritten in the session-255 UX pass. The old wording opened "These are the
+   * site keeping count of its own members", which has no working subject and
+   * shipped that way, and spent 41 words saying what 30 say. Every fact is
+   * kept: not consent, happens regardless, the instrument is objection, and the
+   * objection reaches the totals rather than sitting in a preference table.
+   */
   basisNote:
-    'This is not a consent question. These are the site keeping count of its own members, so there is nothing here to agree to. What you have instead is the right to object, and objecting is honoured in the numbers themselves.',
+    'This is not a consent question: the site counts its own members either way. What you have instead is the right to object, and objecting is honoured in the numbers.',
   countedSummary: 'Right now your answers are counted in group totals. No total names you.',
   objectedSummary:
     'Right now you are left out of statistics. Your answers are not counted in any new group total.',
   objectLabel: 'Leave me out of statistics entirely',
   objectEffect:
-    'Objecting stops your answers being counted in new totals, usually within a day. Totals already published are group figures and are not recalculated, so objecting cannot take you back out of them. Your answers stay in your account and nothing else about them changes.',
+    'Objecting stops your answers being counted in new totals, usually within a day. Totals already published are not recalculated, so it cannot remove you from those. Your answers stay in your account.',
   withdrawObjectionLabel: 'Include me in statistics again',
   withdrawObjectionEffect:
     'Your answers are counted in totals from then on. Totals published while you were left out are not recalculated either.',

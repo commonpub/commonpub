@@ -313,6 +313,23 @@ const objectionUnavailable = computed<boolean>(
 const objectionBusy = ref(false);
 
 /**
+ * "What is counted" starts collapsed.
+ *
+ * NOT hiding a disclosure: everything needed to decide is on screen, which is
+ * the status, the legal basis and what objecting does. What folds away is the
+ * mechanism (which fields, the k-anonymity floor, the rounding), which is
+ * reference material a member reads once. The card was 165 words before any of
+ * it could be acted on, and a wall of text on a privacy screen is not
+ * transparency, it is where people stop reading.
+ *
+ * Consent cards do NOT get this treatment, and the difference is deliberate:
+ * a grant requires its disclosure on screen WITH the control (Art. 4(11)),
+ * while an objection is a right the member exercises against processing that
+ * is already lawful.
+ */
+const countedOpen = ref(false);
+
+/**
  * One click, in both directions, on the same control, with no confirmation step.
  *
  * The button is a BUTTON and not a `role="switch"`, deliberately. Every switch on
@@ -663,10 +680,22 @@ function historyLabel(row: ConsentHistoryRowDto): string {
         <p id="cpub-statistics-status" class="cpub-statistics-status" role="status">
           {{ objection.statusSummary }}
         </p>
+        <p class="cpub-statistics-detail">{{ objection.basisNote }}</p>
+
         <!-- Rendered by the server against this instance's own floors, so the
              number in it is this site's and not a plausible default. -->
-        <p class="cpub-statistics-detail">{{ objection.description }}</p>
-        <p class="cpub-statistics-detail">{{ objection.basisNote }}</p>
+        <button
+          type="button"
+          class="cpub-statistics-more"
+          :aria-expanded="countedOpen ? 'true' : 'false'"
+          :aria-controls="countedOpen ? 'cpub-statistics-counted' : undefined"
+          @click="countedOpen = !countedOpen"
+        >
+          {{ countedOpen ? 'Hide what is counted' : 'What is counted' }}
+        </button>
+        <p v-if="countedOpen" id="cpub-statistics-counted" class="cpub-statistics-detail">
+          {{ objection.description }}
+        </p>
 
         <p v-if="profileNotPublic" id="cpub-statistics-visibility" class="cpub-purpose-visibility">
           Your profile is not public right now, so your answers are not counted at the moment
@@ -1106,6 +1135,27 @@ function historyLabel(row: ConsentHistoryRowDto): string {
 
 /* AA target size, on the same 44px floor as the consent switch. Objecting is
    never the smaller control. */
+/* Link-weight, deliberately quieter than the objection button beside it:
+   reading is not the act. Matches `.cpub-questions-purpose-more`. */
+.cpub-statistics-more {
+  align-self: flex-start;
+  min-height: 44px;
+  padding: var(--space-2) 0;
+  border: none;
+  background: none;
+  color: var(--accent-text);
+  font-family: inherit;
+  font-size: var(--text-sm);
+  text-align: left;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.cpub-statistics-more:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 .cpub-statistics-action {
   min-height: 44px;
 }

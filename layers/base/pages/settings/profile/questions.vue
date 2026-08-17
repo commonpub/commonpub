@@ -60,11 +60,20 @@
  * STATISTICS ARE NOT A CONSENT, SO THEY ARE NOT A TOGGLE HERE
  * ---------------------------------------------------------------------------
  * Instance statistics run on legitimate interest with an objection right
- * (Art. 21), not on consent. `PERSONA_STATISTICS.basisNote` says so in the
- * registry's own words, and this page renders that note and points at Privacy,
- * where the objection is recorded. Putting an objection switch next to a
- * consent switch would present two different legal instruments as the same
- * control, which is the confusion this whole correction exists to remove.
+ * (Art. 21), not on consent.
+ *
+ * THE OBJECTION IS EXERCISABLE HERE, not merely described here. It was
+ * originally a sentence pointing at Privacy, on the reasoning that an objection
+ * control beside a consent control presents two legal instruments as one. That
+ * argues against a LAYOUT rather than against co-location, and
+ * `/settings/privacy` already disproves it by carrying both safely: the
+ * objection is a button in its own block, the grants are switches in theirs.
+ * The same separation is used here, and the two surfaces share one endpoint and
+ * one set of server-owned strings, so they cannot drift.
+ *
+ * Being counted costs zero clicks. Making the objection cost a link, a page and
+ * a hunt was the asymmetry "objecting is never harder than being counted" was
+ * written to prevent, satisfied at the control and broken across the journey.
  *
  * ---------------------------------------------------------------------------
  * ROUTES CONSUMED (each contract read before this caller was written)
@@ -535,7 +544,94 @@ function toggle(purpose: PurposeDto): void {
  * belongs on Privacy, beside the rest of the record.
  */
 const statisticsLabel = PERSONA_STATISTICS.label;
-const statisticsBasisNote = PERSONA_STATISTICS.basisNote;
+
+/**
+ * THE OBJECTION IS ON THIS PAGE, not only on Privacy.
+ *
+ * Mirrors `StatisticsObjectionPayload` in `server/api/consent/objection.get.ts`.
+ * Every sentence is the server's, read from `@commonpub/persona`; this page
+ * paraphrases none of it, exactly as `/settings/privacy` does not.
+ */
+interface StatisticsObjectionDto {
+  state: 'counted' | 'objected';
+  objected: boolean;
+  objectedAt: string | null;
+  label: string;
+  legalBasis: string;
+  description: string;
+  basisNote: string;
+  statusSummary: string;
+  objectLabel: string;
+  objectEffect: string;
+  withdrawObjectionLabel: string;
+  withdrawObjectionEffect: string;
+}
+
+/**
+ * Why the control is here as well as on Privacy, and why that is not
+ * duplication for its own sake.
+ *
+ * This is the page that asks the questions, so it is where a member thinks
+ * about whether they want to be counted. Being counted costs zero clicks; the
+ * objection previously cost reading a note, following a link, finding a block
+ * and then clicking. "Objecting is never harder than being counted" was
+ * satisfied at the control and broken across the journey.
+ *
+ * The earlier reasoning against co-location was that an objection switch beside
+ * a consent switch presents two legal instruments as one control. That argues
+ * against a LAYOUT, not against co-location, and `/settings/privacy` already
+ * disproves it: it carries both, kept apart by different treatments. The same
+ * separation is used here. This block is a BUTTON, in its own section, under
+ * its own heading, well below the sharing block, and it never sits inside a
+ * card that grants anything.
+ *
+ * Privacy stays canonical: it is the rights dashboard, next to export and
+ * erasure. Both surfaces read and write the same endpoint, and every string
+ * comes from the server, so the two cannot drift.
+ */
+const {
+  data: objectionData,
+  error: objectionError,
+  refresh: refreshObjection,
+} = await useFetch<StatisticsObjectionDto>('/api/consent/objection', {
+  immediate: statisticsEnabled.value,
+});
+
+/**
+ * Null only while the fetch is in flight or after it failed. The block renders
+ * NO control in the failure case rather than assembling one from defaults: this
+ * control's default is "counted", so a card built client-side would tell a
+ * member who has already objected that they are being counted.
+ */
+const objection = computed<StatisticsObjectionDto | null>(() => objectionData.value ?? null);
+const objectionUnavailable = computed<boolean>(
+  () => statisticsEnabled.value && objectionError.value != null,
+);
+const objectionBusy = ref(false);
+
+/** Collapsed by default: the mechanism is reference material, not the decision. */
+const countedOpen = ref(false);
+
+/**
+ * One click, both directions, same control, no confirmation step.
+ *
+ * A BUTTON and not a `role="switch"`, matching `/settings/privacy` exactly. Every
+ * switch in this feature reads "off means nothing is happening"; this control is
+ * the opposite, and a switch whose off state means "you are counted" would be
+ * read backwards by anyone who had learned the rest of the page.
+ */
+async function setObjection(objected: boolean): Promise<void> {
+  objectionBusy.value = true;
+  try {
+    await $fetch('/api/consent/objection', { method: 'PUT', body: { objected } });
+    await refreshObjection();
+    toast(objected ? 'You are left out of statistics' : 'You are counted again', 'success');
+  } catch (err: unknown) {
+    toast(extract(err), 'error');
+  } finally {
+    objectionBusy.value = false;
+  }
+}
 </script>
 
 <template>
@@ -770,9 +866,58 @@ const statisticsBasisNote = PERSONA_STATISTICS.basisNote;
         <h3 id="cpub-questions-statistics-heading" class="cpub-questions-subhead">
           {{ statisticsLabel }}
         </h3>
-        <p class="cpub-questions-note">{{ statisticsBasisNote }}</p>
+
+        <!-- Could not load is a different fact from "you are counted", and only
+             one of them is a claim about processing. No control is offered. -->
+        <p v-if="objectionUnavailable" class="cpub-questions-note" role="alert">
+          Where you stand on community statistics could not be loaded. Nothing has changed, and the
+          <NuxtLink to="/settings/privacy" class="cpub-questions-link">Privacy</NuxtLink> page has
+          the full record.
+        </p>
+
+        <template v-else-if="objection">
+          <!-- What is true right now, before anything that would change it. -->
+          <p id="cpub-questions-statistics-status" class="cpub-questions-note" role="status">
+            {{ objection.statusSummary }}
+          </p>
+          <p class="cpub-questions-note">{{ objection.basisNote }}</p>
+
+          <!-- The mechanism folds away; the decision does not. -->
+          <button
+            type="button"
+            class="cpub-questions-purpose-more"
+            :aria-expanded="countedOpen ? 'true' : 'false'"
+            :aria-controls="countedOpen ? 'cpub-questions-counted' : undefined"
+            @click="countedOpen = !countedOpen"
+          >
+            {{ countedOpen ? 'Hide what is counted' : 'What is counted' }}
+          </button>
+          <p v-if="countedOpen" id="cpub-questions-counted" class="cpub-questions-note">
+            {{ objection.description }}
+          </p>
+
+          <!-- The effect of the act, read before the act. -->
+          <p class="cpub-questions-note">
+            {{ objection.objected ? objection.withdrawObjectionEffect : objection.objectEffect }}
+          </p>
+
+          <div class="cpub-questions-purpose-actions">
+            <button
+              type="button"
+              class="cpub-btn cpub-btn-sm cpub-statistics-action"
+              aria-describedby="cpub-questions-statistics-status"
+              :disabled="objectionBusy"
+              @click="setObjection(!objection.objected)"
+            >
+              {{ objection.objected ? objection.withdrawObjectionLabel : objection.objectLabel }}
+            </button>
+          </div>
+        </template>
+
+        <!-- Still true, and still worth saying: Privacy is the rights dashboard
+             where this sits beside export and erasure. -->
         <p class="cpub-questions-note">
-          What is counted, and how to object to it, are on the
+          Your full record is on the
           <NuxtLink to="/settings/privacy" class="cpub-questions-link">Privacy</NuxtLink> page.
         </p>
       </section>

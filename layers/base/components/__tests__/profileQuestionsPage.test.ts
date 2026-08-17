@@ -242,10 +242,41 @@ const featureOn = ref(true);
 const consentsOn = ref(false);
 const analyticsOn = ref(false);
 
-const useFetch = vi.fn((url: string, _opts?: Record<string, unknown>) =>
-  (url === '/api/consent/purposes'
-    ? { data: consentRef, pending: ref(false), refresh: refreshConsent }
-    : { data: personaRef, pending: ref(false), refresh: refreshPersona }));
+/**
+ * The statistics objection, as `GET /api/consent/objection` returns it. The
+ * strings are the registry's, so a copy edit in `@commonpub/persona` cannot
+ * leave this fixture asserting text the product no longer says.
+ */
+const objectionRef = ref<Record<string, unknown> | null>({
+  state: 'counted',
+  objected: false,
+  objectedAt: null,
+  label: PERSONA_STATISTICS.label,
+  legalBasis: PERSONA_STATISTICS.legalBasis,
+  description: 'Counted into group totals, and no total names anyone.',
+  basisNote: PERSONA_STATISTICS.basisNote,
+  statusSummary: PERSONA_STATISTICS.countedSummary,
+  objectLabel: PERSONA_STATISTICS.objectLabel,
+  objectEffect: PERSONA_STATISTICS.objectEffect,
+  withdrawObjectionLabel: PERSONA_STATISTICS.withdrawObjectionLabel,
+  withdrawObjectionEffect: PERSONA_STATISTICS.withdrawObjectionEffect,
+});
+const objectionError = ref<unknown>(null);
+const refreshObjection = vi.fn(async () => {});
+
+const useFetch = vi.fn((url: string, _opts?: Record<string, unknown>) => {
+  if (url === '/api/consent/purposes') {
+    return { data: consentRef, pending: ref(false), refresh: refreshConsent };
+  }
+  // The objection edge returns an `error` ref, and the page READS it. A mock
+  // without one makes `objectionError.value` throw during setup, which fails
+  // the whole render rather than the assertion, and reads as five unrelated
+  // tests breaking at once.
+  if (url === '/api/consent/objection') {
+    return { data: objectionRef, error: objectionError, pending: ref(false), refresh: refreshObjection };
+  }
+  return { data: personaRef, pending: ref(false), refresh: refreshPersona };
+});
 
 Object.assign(globalThis, {
   definePageMeta: () => {},
@@ -733,17 +764,62 @@ describe('/settings/profile/questions', () => {
       analyticsOn.value = true;
     });
 
-    it('renders the registry basis note and no control of any kind', async () => {
+    it('renders the basis note AND an objection that can be exercised here', async () => {
+      // CHANGED DELIBERATELY. This test used to assert "no control of any kind"
+      // on the reasoning that an objection control beside a consent control
+      // presents two legal instruments as one. That argues against a LAYOUT,
+      // and `/settings/privacy` already carries both safely by giving them
+      // different treatments. Being counted costs zero clicks; making the
+      // objection cost a link and a hunt broke "objecting is never harder than
+      // being counted" across the journey while satisfying it at the control.
       const { container } = await mount();
       const stats = container.querySelector<HTMLElement>('.cpub-questions-statistics')!;
       expect(stats).not.toBeNull();
       expect(stats.textContent).toContain(PERSONA_STATISTICS.label);
       expect(stats.textContent).toContain(PERSONA_STATISTICS.basisNote);
-      // An objection is not a consent and is not presented as one: no switch
-      // here, and no switch anywhere on the page while sharing is unconfigured.
+
+      // The act is available from this page.
+      const action = stats.querySelector<HTMLElement>('.cpub-statistics-action');
+      expect(action, 'the objection must be exercisable here, not just described').not.toBeNull();
+      expect(action!.textContent).toContain(PERSONA_STATISTICS.objectLabel);
+      // What it does is on screen BEFORE the control that does it.
+      expect(stats.textContent).toContain(PERSONA_STATISTICS.objectEffect);
+
+      // An objection is still not a consent and is still not presented as one:
+      // a button, never a switch, here or anywhere on this page.
       expect(stats.querySelectorAll('[role="switch"]')).toHaveLength(0);
       expect(container.querySelectorAll('[role="switch"]')).toHaveLength(0);
+      // Privacy stays canonical, so the route to the full record survives.
       expect(stats.querySelector('a[href="/settings/privacy"]')).not.toBeNull();
+    });
+
+    it('folds the mechanism away but never the decision', async () => {
+      // The card was 165 words before anything could be acted on. What is
+      // counted, the k-anonymity floor and the rounding are reference material;
+      // the status, the basis and the effect of objecting are the decision.
+      const { container } = await mount();
+      const stats = container.querySelector<HTMLElement>('.cpub-questions-statistics')!;
+      const description = 'Counted into group totals, and no total names anyone.';
+      expect(stats.textContent).not.toContain(description);
+
+      const more = stats.querySelector<HTMLElement>('.cpub-questions-purpose-more')!;
+      expect(more, 'the disclosure toggle must exist').not.toBeNull();
+      expect(more.getAttribute('aria-expanded')).toBe('false');
+      await fireEvent.click(more);
+      expect(stats.textContent).toContain(description);
+      expect(more.getAttribute('aria-expanded')).toBe('true');
+    });
+
+    it('records the objection against the endpoint, with no persona write', async () => {
+      const { container } = await mount();
+      const action = container.querySelector<HTMLElement>('.cpub-statistics-action')!;
+      await fireEvent.click(action);
+      const puts = $fetch.mock.calls.filter((c) => c[0] === '/api/consent/objection');
+      expect(puts).toHaveLength(1);
+      expect((puts[0]![1] as Record<string, unknown>).method).toBe('PUT');
+      expect((puts[0]![1] as Record<string, unknown>).body).toEqual({ objected: true });
+      // Anti-bundling, the other way round: objecting writes no answers.
+      expect($fetch.mock.calls.filter((c) => String(c[0]).startsWith('/api/persona'))).toHaveLength(0);
     });
 
     it('says nothing about sharing while only the statistics flag is on', async () => {
