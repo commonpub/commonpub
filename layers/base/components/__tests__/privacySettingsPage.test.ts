@@ -538,7 +538,13 @@ describe('/settings/privacy community statistics', () => {
     // The one sentence that made this a consent question is gone in both
     // directions: nothing here is agreed to, and nothing claims counting stays
     // put because you allowed it.
-    expect(text).toContain('there is nothing here to agree to');
+    //
+    // Asserted against the registry rather than against a fragment of one
+    // phrasing. The old assertion pinned the literal "there is nothing here to
+    // agree to" and broke on a copy edit while the property it guards, that the
+    // basis note is the one on screen, still held.
+    expect(text).toContain(PERSONA_STATISTICS.basisNote);
+    expect(PERSONA_STATISTICS.legalBasis).not.toBe('consent');
   });
 
   it('defaults to INCLUDED, and the control opts out', async () => {
@@ -583,10 +589,25 @@ describe('/settings/privacy community statistics', () => {
 
   it('renders the server-substituted floor and never a raw copy token', async () => {
     const { container } = await mount();
+
+    // "What is counted" is collapsed by default now: the mechanism is reference
+    // material, the decision is not. The substitution still has to be correct
+    // when it is opened, and a raw token must never reach the page in either
+    // state, so both are checked.
+    expect(readable(container)).not.toMatch(/\{[a-zA-Z]+\}/);
+
+    const more = container.querySelector<HTMLElement>('.cpub-statistics-more')!;
+    expect(more, 'the what-is-counted toggle must exist').not.toBeNull();
+    expect(more.getAttribute('aria-expanded')).toBe('false');
+    await fireEvent.click(more);
+    await settle();
+
     const text = readable(container);
     expect(text).toContain(renderStatisticsSummary(FLOORS).replace(/\s+/g, ' '));
     expect(text).not.toMatch(/\{[a-zA-Z]+\}/);
-    // The floor in the sentence is the one this instance was told to use.
+    // The floor in the sentence is the one this instance was told to use, and
+    // it is a FLOOR: "at least" is load-bearing, not filler. Dropping it once
+    // turned a k-anonymity threshold into an exact count.
     expect(text).toContain('at least 5 people give the same answer');
   });
 

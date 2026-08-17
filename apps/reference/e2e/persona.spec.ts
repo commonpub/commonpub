@@ -295,6 +295,57 @@ test.describe('Persona round trip', () => {
     expect((await serverObjection()).objected, 'the withdrawal reached the server').toBe(false);
   });
 
+  // Placed AFTER the withdraw test on purpose: this file is a serial round trip
+  // on one account, and this test starts from "not objected". Between the
+  // object and withdraw tests it inherited the objected state and failed.
+  test('the objection can be exercised from the About you tab, not only from Privacy', async () => {
+    test.skip(flags.persona !== true, 'features.persona is off on this instance');
+    test.skip(flags.personaAnalytics !== true, 'features.personaAnalytics is off on this instance');
+    const { page } = member;
+
+    // The page that ASKS the questions is where a member thinks about whether
+    // they want to be counted. Being counted costs zero clicks; the objection
+    // used to cost a note, a link, a hunt and then a click.
+    await openPersonaEditor(page);
+
+    const stats = page.locator('.cpub-questions-statistics');
+    await expect(stats, 'the statistics block renders on the questions tab').toBeVisible();
+
+    // The mechanism is folded away; the decision is not.
+    const counted = stats.locator('.cpub-questions-purpose-more');
+    await expect(counted).toHaveAttribute('aria-expanded', 'false');
+    await counted.click();
+    await expect(counted).toHaveAttribute('aria-expanded', 'true');
+
+    // A button, never a switch: an objection is not a consent and must not be
+    // dressed as one, here or on Privacy.
+    await expect(stats.locator('[role="switch"]')).toHaveCount(0);
+    const objectButton = stats.locator('.cpub-statistics-action');
+    await expect(objectButton).toHaveText(/leave me out|do not count/i);
+
+    await objectButton.click();
+    await expect(
+      objectButton,
+      'the control has to flip with the recorded row, not with the click',
+    ).toHaveText(/count me|include me/i, { timeout: 20_000 });
+
+    const row = await serverObjection();
+    expect(row.objected, 'the objection recorded from this tab reached the server').toBe(true);
+
+    // Both surfaces read one endpoint, so Privacy must agree without being told.
+    await openPrivacySettings(page);
+    await expect(
+      page.locator('.cpub-statistics-action'),
+      'the two surfaces cannot disagree about a single stored objection',
+    ).toHaveText(/count me|include me/i);
+
+    // Put it back, so this test leaves the account as it found it.
+    await page.locator('.cpub-statistics-action').click();
+    await expect(page.locator('.cpub-statistics-action')).toHaveText(/leave me out|do not count/i, {
+      timeout: 20_000,
+    });
+  });
+
   test('answers are PRIVATE on the public profile until a field opts in', async ({ page: stranger }) => {
     test.skip(flags.persona !== true, 'features.persona is off on this instance');
 

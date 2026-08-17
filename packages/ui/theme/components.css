@@ -354,8 +354,17 @@
 :root {
   /* THE chip-grid track floor. `repeat(auto-fill, minmax(var(--cpub-chip-min), 1fr))`
      is the whole responsive story: one token moves every chip grid from four
-     narrow columns to two wide ones, and at 390px it lands on two. Not a media
-     query, so a fork changing it does not have to restate the breakpoints. */
+     narrow columns to two wide ones. Not a media query, so a fork changing it
+     does not have to restate the breakpoints. */
+  /* Measured, because the comment above used to claim "at 390px it lands on
+     two" and it does not: the grid is 276px wide inside the page and card
+     padding on a 390px phone, so two 10rem tracks plus the gap (336px) cannot
+     fit and it lands on ONE.
+     That is left alone deliberately. Forcing two columns needs a ~7rem floor,
+     which gives 130px tracks, and the real labels ("AI and machine learning",
+     "Game development") wrap to three lines in that width. One clean column of
+     full-width rows is the better phone layout for long labels, and the height
+     it costs is inherent to having 17 options. */
   --cpub-chip-min: 10rem;
   --cpub-chip-gap: var(--space-2);
 
@@ -453,13 +462,18 @@
   line-height: var(--leading-snug);
 }
 
+/* The run-up to Save was `--space-4` of margin PLUS `--space-4` of padding on
+   top of the last field's own `--space-4` bottom margin. On a spacious theme
+   that is ~96px of empty column with a rule floating in the middle of it, which
+   reads as an empty bordered box rather than as a divider before an action.
+   The rule stays; the dead space around it does not. */
 .cpub-persona-section-actions {
   display: flex;
   align-items: center;
   gap: var(--space-2);
   flex-wrap: wrap;
-  margin-top: var(--space-4);
-  padding-top: var(--space-4);
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
   border-top: var(--border-width-default) solid var(--border2);
 }
 
