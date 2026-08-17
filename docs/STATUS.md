@@ -35,6 +35,15 @@
 > shipping a copy change. Direction doc for where this goes next:
 > `docs/plans/persona-perfect-form.md`.
 >
+> **Operator gotcha, found on deveco and true of every instance:** any
+> `runtimeConfig.public.*` key can be overridden by an environment variable on the deployed box
+> (`siteDescription` -> `NUXT_PUBLIC_SITE_DESCRIPTION`), and that override lives in no repo file.
+> deveco's was set in `/opt/deveco/.env`, beat the repo, and fed NodeInfo, so the instance
+> introduced itself to the fediverse with a string nobody could find in git. **When a repo copy
+> change does not appear on a site, read the served `__NUXT__.config.public` blob before doubting
+> the deploy** — it shows the value that actually won. deveco's is now retired (commented out, with
+> `/opt/deveco/.env.bak.20260817-063834` for rollback), so the description ships with a deploy.
+>
 > **Layer 0.135.1 (2026-08-15) is the persona UX pass.** A browser pass found six different gaps
 > between sibling blocks on one page (32/44/56/57/77/92px) with no rule setting them: the pages lay
 > out with flex `gap` and never reset the UA default `p { margin-block: 1em }`, and flex does not

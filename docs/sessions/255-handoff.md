@@ -741,3 +741,127 @@ in `package.json` and in both lockfiles, the Docker builds run frozen installs t
 mismatch, deveco's consumer CI passed against 0.135.1 specifically, all three Deploy Production runs
 succeeded, and all three instances answer healthy at 45 flags. Opening `/settings/privacy` on deveco
 while signed in is the one step that would close the loop.
+
+
+---
+
+# Layer 0.136.1 — the objection moves, and the copy is halved (2026-08-17)
+
+Two things the operator caught that the previous pass had missed, plus a release
+defect caught mid-roll that would have made the whole thing invisible.
+
+## What was missed, and why
+
+**The objection control.** The Q1 audit recommended duplicating the statistics
+objection onto the About you tab and called it "a contained change". The UX pass
+that followed was built from the *visual* review, so the objection never made the
+list and fell into the gap between two turns. It is now a button in its own block
+on the questions tab, well away from the sharing block.
+
+The original argument against co-location was that an objection control beside a
+consent control presents two legal instruments as one. That argues against a
+LAYOUT, not against co-location, and `/settings/privacy` already carried both
+safely. Privacy stays canonical, next to export and erasure. Both surfaces read
+and write one endpoint and render one set of server-owned strings, and an e2e
+round trip objects from About you then asserts Privacy agrees without being told.
+
+**The wordiness, at its source.** The previous pass cut restatements AROUND the
+prose and left the prose, because the registry copy had been ruled untouchable.
+That was wrong: `purposes.ts` says in its own comment that the copy IS the
+product, and the statistics card was 165 words before a member could act.
+
+- `basisNote` 41w -> 30w, and it now opens with a working subject. "These are
+  the site keeping count of its own members" had none, and shipped.
+- `objectEffect` 44w -> 32w, honest limitation intact.
+- `summaryTemplate` tightened, **with "at least" restored**: dropping it turned a
+  k-anonymity floor into an exact count, and the route test caught it.
+- "What is counted" now folds behind a toggle on both surfaces. Status, basis and
+  the effect of objecting stay visible; the mechanism is reference material.
+  Consent cards deliberately do NOT get this treatment, because a grant needs its
+  disclosure on screen WITH the control and an objection does not.
+
+Measured: statistics card **165 -> 84 words**, `/settings/privacy` **258 -> 173**.
+Copy is not part of the scope digest, so none of it lapsed a grant.
+
+## THE RELEASE DEFECT: an exact-pin cascade
+
+Caught while rolling, after persona 0.2.1 and layer 0.136.0 were already
+published. The consumer lockfile resolved **two copies of persona**:
+
+```
+node_modules/@commonpub/layer/node_modules/@commonpub/persona  0.2.1
+node_modules/@commonpub/persona                                0.2.0   <- from server
+```
+
+`pnpm publish` converts `workspace:*` into an **exact** pin, so
+`@commonpub/server@2.132.0` permanently pins `persona@0.2.0`. And
+`layers/base/server/api/consent/objection.get.ts` imports `PERSONA_STATISTICS`
+and `renderStatisticsSummary` from **`@commonpub/server`**, not from
+`@commonpub/persona`. The API would have kept serving the old 41-word basis note
+while only the heading came from the new package: **the entire copy rewrite would
+have shipped and been invisible.**
+
+Fixed by republishing up the graph, `persona -> server -> layer`, with no source
+change in server or layer. Those versions exist so the pins move. Verified both
+forks now resolve a single persona 0.2.1 before opening either PR.
+
+**Rule for next time:** when a leaf package's CONTENT changes, republish every
+package that pins it, transitively, and check DISTINCT versions in the fork
+lockfile BEFORE the PR. Nothing in the monorepo can catch this, because there
+everything is `workspace:*` and always consistent.
+
+Two smaller traps from the same roll: `npm view` reported the layer live while
+`npm pack` still answered `notarget`, so poll on the operation you need; and the
+first tarball check greped an **empty directory** and reported "0 matches",
+which is a clean-looking false negative. Assert the extracted file count first.
+
+## Shipped
+
+persona **0.2.1** / ui **0.16.1** / server **2.132.1** / layer **0.136.1**. No
+migration. Full monorepo test run, typecheck, lint, persona e2e 8/8 including the
+new round trip, production build, and browser measurement at 1440px and 390px.
+CI e2e 169 passed / 12 skipped / 1 flaky, which accounts for all 182 chromium
+tests and is one fewer flake than the standing baseline.
+
+## A judgement reversed by measurement
+
+The previous pass flagged the mobile chip column as a defect. Measured properly,
+the grid is 276px wide, so two columns needs a ~7rem floor giving 130px tracks,
+and real labels ("AI and machine learning") wrap to three lines. One clean column
+of full-width rows is the better phone layout. The change was **reverted**, and
+the misleading comment claiming "at 390px it lands on two" was corrected with the
+measurement rather than left to mislead the next reader.
+
+## Direction doc
+
+`docs/plans/persona-perfect-form.md`, written from actual research (EDPB
+deceptive-pattern taxonomy, contextual integrity, WP29 layered notices,
+ISO/IEC TS 27560 consent receipts, k-anonymity vs differential privacy at small
+N, collective data governance). Its sharpest conclusion against today's build:
+**we are defending against the wrong adversary.** k-anonymity protects against a
+stranger with an auxiliary dataset, not against the person who knows 40 of your
+50 members, and on a makerspace that person IS the reader. Also proposes retiring
+the completeness meter, which is a progress bar pointed at disclosure however
+carefully it is stripped of score and streak.
+
+---
+
+# Operational lesson from deveco, applies to every instance
+
+deveco's copy was changed in the repo and the site kept showing the old text. The
+cause was not the build: `runtimeConfig.public.siteDescription` was **overridden
+by an environment variable on the deployed instance**
+(`NUXT_PUBLIC_SITE_DESCRIPTION`), set in `/opt/deveco/.env` and present in no
+repo file. It also fed NodeInfo, so the instance was introducing itself to the
+fediverse with a string nobody could find in git.
+
+**Any `runtimeConfig.public.*` key can be silently overridden this way on a
+deployed instance.** When a repo copy change does not appear, read the served
+`__NUXT__.config.public` blob before doubting the deploy: it shows the value that
+actually won.
+
+Retired rather than deleted, with a local backup verified byte-identical by
+SHA-256 and a server-side `.env.bak.<timestamp>` for in-place rollback. The
+override is commented out with a note pointing at the repo, so the description
+now changes with a deploy instead of beating it. Proof the edit was surgical:
+key names diffed before and after, 28 -> 27 keys, that one removal only.
