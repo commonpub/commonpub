@@ -3,8 +3,8 @@
 > **Living doc — your "come back later" reference.** Snapshot updated 2026-08-15 (through session 255).
 > Verify any version/flag claim before trusting it: `npm view @commonpub/<pkg> version`,
 > `curl https://<instance>/api/features`, `cargo search create-commonpub`.
-> **Current LIVE (all 3 instances):** persona **0.2.0** / config **0.39.1** / schema **0.65.0** /
-> server **2.132.0** / ui **0.16.0** / layer **0.135.1**, migrations **0046**, **0047** and **0048**,
+> **Current LIVE (all 3 instances):** persona **0.2.1** / config **0.39.1** / schema **0.65.0** /
+> server **2.132.1** / ui **0.16.1** / layer **0.136.1**, migrations **0046**, **0047** and **0048**,
 > **46 flags** (session 255, rolled 2026-08-15 — persona, opt-in sharing consent, k-anonymous audience
 > analytics and the opt-in member visibility directory).
 >
@@ -25,6 +25,15 @@
 > instance where this release changes live behaviour: members previously uncounted without a
 > `profile_analytics` grant are now counted in k-anonymous aggregates unless they object.
 > Before turning any of them on, read `docs/reference/guides/persona-schema.md`.
+>
+> **Layer 0.136.1 (2026-08-17)** makes the statistics objection exercisable from the About you tab
+> rather than only from Privacy, and cuts the statistics disclosure from 165 to 84 words with
+> "what is counted" folded behind a toggle. **Release note worth keeping:** `@commonpub/server`
+> pins `@commonpub/persona` EXACTLY, and the objection route reads its copy from the server
+> package, so persona 0.2.1 alone left the API serving the old prose. server 2.132.1 and layer
+> 0.136.1 exist so the pins move. Check for a single persona version in a fork's lockfile before
+> shipping a copy change. Direction doc for where this goes next:
+> `docs/plans/persona-perfect-form.md`.
 >
 > **Layer 0.135.1 (2026-08-15) is the persona UX pass.** A browser pass found six different gaps
 > between sibling blocks on one page (32/44/56/57/77/92px) with no rule setting them: the pages lay
