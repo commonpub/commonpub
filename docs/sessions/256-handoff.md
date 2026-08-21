@@ -2,9 +2,20 @@
 
 Contest funnel, conditional form fields, two audit rounds, four security fixes.
 
-**Nothing is rolled.** Everything is uncommitted in the working tree on `main`.
-Local package versions equal the published ones, so the roll starts with a
-`chore(release)` commit.
+**ROLLED AND LIVE on all three instances, 2026-08-21.** schema 0.66.0, config
+0.40.0, protocol 0.15.2, auth 0.13.1, editor 0.17.2, explainer 0.8.2, learning
+0.5.3, test-utils 0.5.17, server 2.133.0, layer 0.137.0. **47 flags.** No
+migration. Verified on each instance, not from a workflow badge.
+
+The cascade was derived from the dependency graph after confirming on the
+registry that `workspace:*` publishes as an EXACT pin — so protocol, auth,
+editor, explainer and learning were republished purely to refresh pins, with no
+source change. Skipping them would have left consumers resolving two copies of
+schema.
+
+The prerelease gate earned its place: layer went out as `0.137.0-rc.1` under
+`next`, the deveco fork's CI verified the published artifact, and only then was
+it promoted.
 
 Detail: `256-contest-funnel-and-conditional-fields.md`. Design:
 `docs/plans/conditional-form-fields.md`. Audits:
@@ -151,10 +162,14 @@ and repin.
    their stage-submission form vanishes, and the proposal form reappears inviting
    a duplicate entry. deveco has 2 today, but that changes fast now the proposal
    form is live.
-4. **Fix the 7 failing persona metrics tests.** Verified to be a real logic
-   defect, not test-data pollution: they fail identically against an empty
-   database. Affects k-anonymity re-flooring and finalised-day reads. deveco has
-   the persona flags ON.
+4. **Fix the 7 failing persona metrics tests — CI on `main` is red because of
+   them.** Established by re-running `main`'s own CI at the unchanged commit
+   `e4694a97`: green on 2026-08-17, red today with the identical 7. So it is
+   neither this release nor test-data pollution. The tests are date-anchored
+   (`'2026-08-12'`, finalised-day reads), so the fixtures appear to age out of a
+   roughly week-wide window — a time bomb in the tests. deveco has the persona
+   flags ON, so the underlying behaviour is worth checking too, not just the
+   fixtures.
 5. From round 2, unfixed: OAuth aside, `sitemap.xml` publishes `members`/`private`
    profile URLs, RSS emits raw C0 control characters (one bad title makes the whole
    feed a fatal parse error), and lesson slugs are unique per module but resolved

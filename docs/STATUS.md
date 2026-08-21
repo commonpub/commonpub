@@ -2,10 +2,28 @@
 
 > **Living doc — your "come back later" reference.** Snapshot updated 2026-08-21 (through session 256).
 >
-> **Session 256 is BUILT AND NOT ROLLED.** Everything below about live versions is still accurate,
-> because nothing has been published. The working tree carries conditional form fields, the contest
-> funnel fixes, a tag-balancing sanitizer, four security fixes and the cover-image notice; flags go
-> **46 → 47** on the roll and there is **no migration**. Start at `docs/sessions/256-handoff.md`.
+> **Session 256 is ROLLED AND LIVE on all three instances (2026-08-21).** schema **0.66.0** /
+> config **0.40.0** / protocol **0.15.2** / auth **0.13.1** / editor **0.17.2** / explainer **0.8.2** /
+> learning **0.5.3** / test-utils **0.5.17** / server **2.133.0** / layer **0.137.0**. **47 flags**
+> (new: `contestConditionalFields`, default ON). **No migration.** Verified on each instance rather
+> than from a green workflow: commonpub.io, deveco.io and heatsynclabs.io all report health ok and
+> 47 flags, and deveco's `/api/image-proxy` now returns its neutralizing CSP.
+>
+> The release followed the prerelease pattern: layer published as `0.137.0-rc.1` under `next`,
+> verified green on the deveco fork's CI (the only place the PUBLISHED layer is typechecked), then
+> promoted. Start at `docs/sessions/256-handoff.md`.
+>
+> **Confirmed fixed in production:** deveco's contest page previously leaked 3 unclosed `<div>`s from
+> its truncated rules body, which made Vue abandon hydration of that subtree and freeze the Entries
+> tab in its SSR state — a registered entrant was told to register and never saw Submit Entry. The
+> live page now balances at 472 open / 472 close.
+>
+> **CI is RED on `main` and it is not from this release.** 7 persona metrics tests fail
+> (`personaMetrics` + `personaAuditFixes`). Proven by re-running `main`'s own CI at the unchanged
+> commit `e4694a97`: it was green on 2026-08-17 and fails today with the identical 7. The tests are
+> date-anchored (`'2026-08-12'`, finalised-day reads), so the fixtures appear to age out of a window
+> roughly a week wide. A time bomb in the tests, not a regression — but it needs fixing, and deveco
+> has the persona flags ON.
 >
 > **Two live things that need an operator, not a deploy.** deveco's Official Rules are truncated at
 > exactly 50,000 characters mid-word AND carry 31 unresolved `[CONFIRM: …]` placeholders — including
