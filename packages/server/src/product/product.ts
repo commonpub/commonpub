@@ -449,7 +449,17 @@ export async function removeContentProduct(
 export async function listContentProducts(
   db: DB,
   contentId: string,
+  viewerId?: string,
 ): Promise<ContentProductItem[]> {
+  // Gate on the CONTENT's visibility, not just its id. This joined
+  // content_products -> products by contentId alone, so a draft or private
+  // project's bill of materials — every linked product's name, slug, image,
+  // quantity, role and notes — was readable by anyone who had the id, while every
+  // sibling operation on the same content required auth and ownership.
+  //
+  // Enforced HERE rather than in the route so every caller inherits it;
+  // `listProductContent` already applies the same predicate in the other
+  // direction. Omitting `viewerId` yields the anonymous view (published + public).
   const rows = await db
     .select({
       cp: contentProducts,
@@ -462,7 +472,8 @@ export async function listContentProducts(
     })
     .from(contentProducts)
     .innerJoin(products, eq(contentProducts.productId, products.id))
-    .where(eq(contentProducts.contentId, contentId))
+    .innerJoin(contentItems, eq(contentProducts.contentId, contentItems.id))
+    .where(and(eq(contentProducts.contentId, contentId), visibleContentWhere(viewerId)))
     .orderBy(contentProducts.sortOrder);
 
   return rows.map((row) => ({

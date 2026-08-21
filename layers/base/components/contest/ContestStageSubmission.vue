@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { ContestStage, ContestStageSubmission } from '@commonpub/schema';
-import { blockingFields, buildSubmissionPayload } from '../../utils/contestSubmission';
+import { blockingFields, buildSubmissionPayload, visibleTemplateFields } from '../../utils/contestSubmission';
 
 // Per-stage artifact form: an entrant with an entry fills the CURRENT
 // submission stage's template fields (a proposal, a prototype's links, ...).
@@ -53,6 +53,9 @@ watch([existing, template], () => {
 const dirty = computed(() =>
   template.value.some((f) => (values.value[f.key] ?? '') !== (existing.value?.fields[f.key] ?? '')),
 );
+// Conditional display (P7) — same resolver as the registration + proposal forms.
+const shownFields = computed(() => visibleTemplateFields(template.value, values.value));
+
 const missingRequired = computed(() => blockingFields(template.value, values.value));
 
 const saving = ref(false);
@@ -105,7 +108,7 @@ function submittedAtLabel(iso: string): string {
     </div>
 
     <ContestSubmissionField
-      v-for="f in template"
+      v-for="f in shownFields"
       :key="f.key"
       :field="f"
       v-model="values[f.key]"

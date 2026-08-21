@@ -28,6 +28,7 @@ export interface FeatureFlags {
   /** Private contest file/signature attachments (P0). Gates the private-storage
    *  upload path + the file/signature registration field types. Default OFF. */
   contestPrivateFiles: boolean;
+  contestConditionalFields: boolean;
   /** Automatic contest deadline reminder emails to registered participants.
    *  Default OFF; inert unless emailNotifications is also on. */
   contestReminders: boolean;
@@ -125,6 +126,7 @@ let hydrated = false;
 export const DEFAULT_FLAGS: FeatureFlags = {
   content: true, social: true, hubs: true, docs: true, video: true,
   contests: false, contestStageSubmissions: true, contestProposals: false, contestPii: false, contestPrivateFiles: false,
+  contestConditionalFields: true,
   contestReminders: false, contestEmailEditor: false, contestSignup: true,
   contestEntryRequiresRegistration: true,
   contestActionBar: true,
@@ -240,6 +242,7 @@ export function useFeatures() {
     contestStageSubmissions: computed(() => flags.value.contestStageSubmissions),
     contestProposals: computed(() => flags.value.contestProposals),
     contestPii: computed(() => flags.value.contestPii),
+    contestConditionalFields: computed(() => flags.value.contestConditionalFields),
     contestReminders: computed(() => flags.value.contestReminders),
     contestEmailEditor: computed(() => flags.value.contestEmailEditor),
     contestSignup: computed(() => flags.value.contestSignup),

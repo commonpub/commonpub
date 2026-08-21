@@ -442,14 +442,31 @@ export async function submitContestProposal(db: DB, args: SubmitProposalArgs): P
   if (!fileCheck.ok) return fail(fileCheck.error);
   const { artifact, pii, agreements } = validated.result;
 
-  // Per-user entry cap (mirrors submitContestEntry).
-  if (contest.maxEntriesPerUser != null) {
-    const existing = await countRows(
-      db,
-      contestEntries,
-      and(eq(contestEntries.contestId, contestId), eq(contestEntries.userId, userId)),
+  // Per-user entry cap. The proposal path defaults to ONE entry when the contest
+  // sets no explicit cap, because that is what the rest of the feature already
+  // assumes: `ContestProposalForm` renders only while the entrant has no entry,
+  // and submitting routes them into the draft it created to develop further.
+  //
+  // Without this the assumption lived only on the client, and `myEntries` is
+  // derived from an entries fetch the server caps at 20 — so a double submit, or
+  // any contest past 20 entries, minted a second entry AND a second orphan draft
+  // project. Demonstrated against a replica of a live contest, where
+  // `maxEntriesPerUser` is null.
+  //
+  // An operator who genuinely wants several proposals per entrant says so with
+  // `maxEntriesPerUser`, which still wins.
+  const proposalCap = contest.maxEntriesPerUser ?? 1;
+  const existing = await countRows(
+    db,
+    contestEntries,
+    and(eq(contestEntries.contestId, contestId), eq(contestEntries.userId, userId)),
+  );
+  if (existing >= proposalCap) {
+    return fail(
+      proposalCap === 1
+        ? 'You have already entered this contest. Edit your existing entry instead of submitting a new one.'
+        : 'You have reached the entry limit for this contest',
     );
-    if (existing >= contest.maxEntriesPerUser) return fail('You have reached the entry limit for this contest');
   }
 
   // Pick the placeholder content type: the contest's first eligible type when

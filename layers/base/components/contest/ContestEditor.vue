@@ -71,7 +71,7 @@ const {
   description, descriptionFormat, rules, rulesFormat, prizesDescription, prizesDescriptionFormat,
   bannerUrl, coverImageUrl, bannerMeta, coverMeta, coverPlacement, startDate, endDate, judgingEndDate, communityVotingEnabled,
   judgingVisibility, eligibleContentTypes, maxEntriesPerUser, visibility, visibleToRoles,
-  showPrizes, prizes, criteria, stages, currentStageId, registrationTemplate, registrationMode, emailCopy, setEmailCopy,
+  showPrizes, prizes, criteria, stages, currentStageId, registrationTemplate, persistedRegistrationKeys, persistedStageTemplateKeys, registrationMode, emailCopy, setEmailCopy,
   saving, formDirty, dateError, canSubmit, slugify, toggleType, toggleRole, addPrize, removePrize, prizeLabel, save,
 } = editor;
 
@@ -576,6 +576,7 @@ const reviewStages = computed(() => (contest.value?.stages ?? []).filter((s) => 
               <ContestStagesEditor
                 v-model="stages"
                 v-model:current-stage-id="currentStageId"
+                :locked-keys-by-stage="persistedStageTemplateKeys"
                 :start-date="startDate"
                 :end-date="endDate"
                 :judging-end-date="judgingEndDate"
@@ -608,6 +609,7 @@ const reviewStages = computed(() => (contest.value?.stages ?? []).filter((s) => 
                 <div class="cpub-ce-reg-editor">
                   <FormTemplateEditor
                     v-model:template="registrationTemplate"
+                    :locked-keys="persistedRegistrationKeys"
                     :active-index="activeRegField"
                     enable-markdown
                     label="Registration form"

@@ -548,7 +548,10 @@ describe('OAuth2 server integration', () => {
       }
     });
 
-    it('is idempotent — returns existing credentials for same domain', async () => {
+    // The endpoint is unauthenticated, so `instanceDomain` is attacker-supplied.
+    // It used to be an idempotency key that returned the existing client_secret,
+    // which handed anyone who could name a peer instance that peer's credentials.
+    it('refuses a repeat registration instead of returning the existing secret', async () => {
       const first = await processDynamicRegistration(db, {
         clientName: 'Same Domain',
         redirectUris: ['https://idempotent.example.com/callback'],
@@ -561,11 +564,33 @@ describe('OAuth2 server integration', () => {
         redirectUris: ['https://idempotent.example.com/callback'],
         instanceDomain: 'idempotent.example.com',
       });
-      expect('clientId' in second).toBe(true);
 
-      if ('clientId' in first && 'clientId' in second) {
-        expect(second.clientId).toBe(first.clientId);
+      expect('clientId' in second).toBe(false);
+      expect('clientSecret' in second).toBe(false);
+      if ('error' in second) {
+        expect(second.error).toBe('invalid_client_metadata');
+        // The refusal has to tell an honest caller how to recover.
+        expect(second.errorDescription).toMatch(/administrator/i);
       }
+    });
+
+    it('never leaks a registered client secret to a second caller', async () => {
+      const mine = await processDynamicRegistration(db, {
+        clientName: 'Victim Instance',
+        redirectUris: ['https://victim.example.com/callback'],
+        instanceDomain: 'victim.example.com',
+      });
+      expect('clientSecret' in mine).toBe(true);
+      const secret = 'clientSecret' in mine ? mine.clientSecret : '';
+      expect(secret.length).toBeGreaterThan(0);
+
+      // An unrelated caller naming the same domain gets nothing back.
+      const attacker = await processDynamicRegistration(db, {
+        clientName: 'Attacker',
+        redirectUris: ['https://attacker.example.com/callback'],
+        instanceDomain: 'victim.example.com',
+      });
+      expect(JSON.stringify(attacker)).not.toContain(secret);
     });
 
     it('rejects missing clientName', async () => {

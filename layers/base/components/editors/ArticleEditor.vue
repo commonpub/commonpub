@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { COVER_IMAGE_AI_NOTICE } from '../../utils/coverImageNotice';
 import { BlockCanvas, EditorBlocks, EditorSection, EditorTagInput, EditorVisibility, type BlockEditor, type BlockTypeGroup } from '@commonpub/editor/vue';
 
 const props = defineProps<{
@@ -493,6 +494,7 @@ const canvasMaxWidth = computed(() => {
               </div>
             </template>
           </div>
+          <p class="cpub-ae-cover-notice">{{ COVER_IMAGE_AI_NOTICE }}</p>
         </EditorSection>
 
         <!-- Banner Image -->
@@ -567,6 +569,7 @@ const canvasMaxWidth = computed(() => {
 </template>
 
 <style scoped>
+.cpub-ae-cover-notice { font-size: var(--text-xs); color: var(--text-dim); line-height: var(--leading-normal); margin: var(--space-2) 0 0; }
 .cpub-ae-shell { display: flex; flex: 1; overflow: hidden; }
 
 /* Left panel */

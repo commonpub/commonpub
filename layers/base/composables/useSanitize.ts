@@ -67,6 +67,111 @@ function escapeAttrValue(value: string): string {
 }
 
 /** Sanitize HTML for safe rendering via v-html */
+/**
+ * Elements that never have a closing tag, so they must not go on the open stack.
+ * `source`/`col` are here for the same reason even though authors often write
+ * them with an explicit close.
+ */
+const VOID_ELEMENTS = new Set([
+  'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input',
+  'link', 'meta', 'param', 'source', 'track', 'wbr',
+]);
+
+/**
+ * Close every tag the author left open, and drop every close tag that matches
+ * nothing. Runs LAST, on already-allowlisted output, for BOTH sanitizers.
+ *
+ * This exists because both sanitizers are string transforms, not parsers, so
+ * unbalanced input passes straight through into `v-html` — and the browser's own
+ * parser then repairs it by relocating nodes past the container. On a
+ * server-rendered page that relocation is exactly a hydration mismatch: Vue finds
+ * an element with more children than its client vdom has, gives up on that
+ * subtree, and every warning after it is unreliable.
+ *
+ * The same gap guards remote federated content, which is why `sanitizeBlockHtml`
+ * balances too: an unbalanced remote post can otherwise close the card it was
+ * rendered into and restructure the page around it.
+ *
+ * Found live: a contest's `rules` body stored at exactly the 50,000-character cap
+ * and cut mid-tag, leaving three unclosed `<div>` and one unclosed `<p>`. Every
+ * load of that contest page reported three hydration mismatches; an otherwise
+ * identical contest without the unbalanced body reported none.
+ *
+ * The repair is deliberately the same on both sides — pure string work, no DOM —
+ * because a balancer that behaved differently in Node and in the browser would
+ * cause the very mismatch it is here to prevent.
+ */
+/**
+ * Elements the HTML parser closes automatically when a peer opens.
+ *
+ * `<p>a<p>b` is legal HTML5: the parser ends the first paragraph at the second.
+ * A balancer that assumed strict nesting produced `<p>a<p>b</p></p>`, and since
+ * the stray `</p>` has no `p` in button scope the parser answers it by inserting
+ * an EMPTY paragraph — so every unclosed `<p>` in the source grew a blank one at
+ * the end of the container. That is the exact shape this balancer was written
+ * for (the truncated contest rules ended inside an unclosed `<p>`), so getting
+ * it wrong defeated the fix.
+ *
+ * Each key lists the tags whose opening implies its end.
+ */
+const IMPLIED_END_TAGS: Record<string, ReadonlySet<string>> = {
+  p: new Set(['p', 'div', 'section', 'article', 'aside', 'header', 'footer', 'main', 'nav',
+    'figure', 'blockquote', 'pre', 'ul', 'ol', 'dl', 'table', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'address', 'hr']),
+  li: new Set(['li']),
+  dt: new Set(['dt', 'dd']),
+  dd: new Set(['dt', 'dd']),
+  td: new Set(['td', 'th', 'tr']),
+  th: new Set(['td', 'th', 'tr']),
+  tr: new Set(['tr']),
+  option: new Set(['option']),
+  thead: new Set(['tbody', 'tfoot']),
+  tbody: new Set(['tbody', 'tfoot']),
+};
+
+function balanceTags(html: string): string {
+  const open: string[] = [];
+  let out = '';
+  let last = 0;
+  const tagRe = /<(\/?)([a-zA-Z][a-zA-Z0-9:-]*)\b[^>]*?(\/?)>/g;
+  let m: RegExpExecArray | null;
+
+  while ((m = tagRe.exec(html)) !== null) {
+    const [full, slash, rawTag, selfClose] = m;
+    const tag = rawTag!.toLowerCase();
+    out += html.slice(last, m.index);
+    last = m.index + full.length;
+
+    if (slash) {
+      const at = open.lastIndexOf(tag);
+      // A close tag matching nothing open is dropped: emitting it would let the
+      // browser close one of OUR wrappers instead.
+      if (at === -1) continue;
+      // Close anything opened inside it first, innermost out, so the output
+      // nests properly rather than interleaving.
+      for (let i = open.length - 1; i > at; i--) out += `</${open[i]}>`;
+      open.length = at;
+      out += full;
+      continue;
+    }
+
+    // Close any implicitly-ended peer before opening this one, so the output
+    // nests the way the parser will actually read it.
+    while (open.length) {
+      const top = open[open.length - 1]!;
+      if (!IMPLIED_END_TAGS[top]?.has(tag)) break;
+      out += `</${top}>`;
+      open.pop();
+    }
+
+    out += full;
+    if (!selfClose && !VOID_ELEMENTS.has(tag)) open.push(tag);
+  }
+
+  out += html.slice(last);
+  for (let i = open.length - 1; i >= 0; i--) out += `</${open[i]}>`;
+  return out;
+}
+
 export function sanitizeBlockHtml(html: string): string {
   if (!html || typeof html !== 'string') return '';
 
@@ -112,7 +217,7 @@ export function sanitizeBlockHtml(html: string): string {
     return `<${tag}${attrsStr}${selfClose}>`;
   });
 
-  return result;
+  return balanceTags(result);
 }
 
 // ---------------------------------------------------------------------------
@@ -266,7 +371,7 @@ export function sanitizeRichHtml(html: string, opts: SanitizeRichOptions = {}): 
     return `<${rawTag}${attrsStr}${selfClose}>`;
   });
 
-  return result;
+  return balanceTags(result);
 }
 
 /** Composable wrapper for template use */

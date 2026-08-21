@@ -15,9 +15,14 @@
  *
  * Modifiers inside (…): a type keyword (text/textarea/number/date/select/radio/
  * checkbox/email/tel/url/agreement/address/file/signature or an alias), plus any of
- * `required`, `pii`, `max=N` (maxLength), `accept=…` (file mime), `size=N` (maxSizeKb).
+ * `required`, `pii`, `max=N` (maxLength), `accept=…` (file mime), `size=N` (maxSizeKb),
+ * and `show=key:a|b` — conditional display, i.e. only show this field while the
+ * EARLIER field with machine key `key` answers `a` or `b` (`true`/`false` for a
+ * checkbox). Values are pipe-separated because commas already split modifiers.
+ * A section heading may carry the same spec: `## Organization (show=is_us:true)`,
+ * which gates the whole section.
  */
-import type { FormField } from '@commonpub/schema';
+import { isConditionSourceField, type FormField } from '@commonpub/schema';
 import { fieldKeyFromLabel } from './contestStages';
 
 type FieldType = FormField['type'];
@@ -111,8 +116,18 @@ export function registrationMarkdownToTemplate(md: string): ParseResult {
     const heading = trimmed.match(/^#{1,6}\s+(.*)$/);
     if (heading && indent === 0) {
       flushTerms();
-      const label = heading[1].trim();
+      // A section may carry a trailing `(show=key:value)` so a whole block can be
+      // gated in the DSL, matching what the builder offers on a section card.
+      let label = heading[1].trim();
+      let sectionShow: FormField['showWhen'];
+      const spec = label.match(/\(\s*show\s*=\s*([^)]*)\)\s*$/i);
+      if (spec) {
+        const parsed = parseShowSpec(spec[1]);
+        if (parsed) { sectionShow = parsed; label = label.slice(0, spec.index).trim(); }
+        else errors.push(`Line ${ln}: could not read "show=${spec[1]}" on section "${label}".`);
+      }
       current = { key: uniqueKey(label), label, type: 'section', required: false };
+      if (sectionShow) current.showWhen = sectionShow;
       fields.push(current);
       currentIsSectionHeading = true;
       return;
@@ -174,6 +189,32 @@ export function registrationMarkdownToTemplate(md: string): ParseResult {
       errors.push(`Agreement "${f.label}" terms are ${f.terms.length} characters; the maximum is 20000.`);
     }
   }
+  // Conditions: mirror the server's cross-field rules so a bad `show=` fails at
+  // import naming the field, rather than as an opaque PUT 400 after the operator
+  // has already replaced their form.
+  fields.forEach((f, i) => {
+    const cond = f.showWhen;
+    if (!cond) return;
+    const at = fields.findIndex((c) => c.key === cond.field);
+    if (at === -1) {
+      errors.push(`Field "${f.label}" uses show=${cond.field}, but no field has that key.`);
+      return;
+    }
+    if (at >= i) {
+      errors.push(`Field "${f.label}" uses show=${cond.field}, which must appear ABOVE it in the form.`);
+      return;
+    }
+    const source = fields[at]!;
+    if (!isConditionSourceField(source)) {
+      errors.push(`Field "${f.label}" uses show=${cond.field}, but "${source.label}" is a ${source.type} field. Only a dropdown, radio group or checkbox can drive a condition.`);
+      return;
+    }
+    const allowed = source.type === 'checkbox' ? ['true', 'false'] : (source.options ?? []).map((o) => o.value);
+    const unknown = cond.equals.filter((v) => !allowed.includes(v));
+    if (unknown.length) {
+      errors.push(`Field "${f.label}" is shown for ${unknown.join(', ')}, which "${source.label}" can never answer (it allows ${allowed.join(', ') || 'nothing yet'}).`);
+    }
+  });
   return { fields, errors };
 }
 
@@ -183,7 +224,7 @@ function isSpecLike(content: string): boolean {
   return content
     .split(',')
     .map((s) => s.trim())
-    .some((t) => !!resolveType(t) || /^(required|pii|private)$/i.test(t) || /^(max|accept|size)\s*=/i.test(t));
+    .some((t) => !!resolveType(t) || /^(required|pii|private)$/i.test(t) || /^(max|accept|size|show)\s*=/i.test(t));
 }
 
 /** Split a spec on commas, re-joining `accept=` value fragments (mime `a/b` or bare
@@ -220,12 +261,20 @@ function parseFieldLine(text: string, ln: number, errors: string[]): FormField |
   let maxLength: number | undefined;
   let accept: string | undefined;
   let maxSizeKb: number | undefined;
+  let showWhen: FormField['showWhen'];
   for (const token of specTokens(spec)) {
     const asType = resolveType(token);
     if (asType) { type = asType; continue; }
     const lower = token.toLowerCase();
     if (lower === 'required') { required = true; continue; }
     if (lower === 'pii' || lower === 'private') { pii = true; continue; }
+    const showKv = token.match(/^show\s*=\s*(.+)$/i);
+    if (showKv) {
+      const parsed = parseShowSpec(showKv[1]);
+      if (parsed) showWhen = parsed;
+      else errors.push(`Line ${ln}: could not read "show=${showKv[1]}" (expected show=field_key:value or show=field_key:a|b).`);
+      continue;
+    }
     const kv = token.match(/^(max|accept|size)\s*=\s*(.+)$/i);
     if (kv) {
       const k = kv[1].toLowerCase();
@@ -260,6 +309,7 @@ function parseFieldLine(text: string, ln: number, errors: string[]): FormField |
   if (maxLength) field.maxLength = maxLength;
   if (accept) field.accept = accept;
   if (maxSizeKb) field.maxSizeKb = maxSizeKb;
+  if (showWhen) field.showWhen = showWhen;
   if (type === 'agreement') field.mustAccept = true;
   if ((type === 'select' || type === 'radio') && optsPart.trim()) {
     const parsed = optsPart.split(',').map((o) => {
@@ -275,10 +325,25 @@ function parseFieldLine(text: string, ln: number, errors: string[]): FormField |
   return field;
 }
 
+/** `field_key:a|b` → a condition. Values are pipe-separated (commas split modifiers). */
+function parseShowSpec(raw: string): FormField['showWhen'] {
+  const colon = raw.indexOf(':');
+  if (colon < 1) return undefined;
+  const field = raw.slice(0, colon).trim();
+  if (!/^[a-z0-9_]{1,40}$/.test(field)) return undefined;
+  const equals = raw.slice(colon + 1).split('|').map((v) => v.trim()).filter(Boolean);
+  return equals.length ? { field, equals } : undefined;
+}
+
 function clampInt(raw: string, min: number, max: number): number | undefined {
   const n = parseInt(raw, 10);
   if (!Number.isFinite(n)) return undefined;
   return Math.min(Math.max(n, min), max);
+}
+
+/** A condition as its DSL modifier: `show=field_key:a|b`. */
+function showSpec(cond: NonNullable<FormField['showWhen']>): string {
+  return `show=${cond.field}:${cond.equals.join('|')}`;
 }
 
 /** Serialize a FormField[] back into the DSL (round-trips with the parser). */
@@ -286,7 +351,7 @@ export function templateToRegistrationMarkdown(fields: FormField[]): string {
   const out: string[] = [];
   for (const f of fields) {
     if (f.type === 'section') {
-      out.push(`\n## ${f.label}`);
+      out.push(`\n## ${f.label}${f.showWhen ? ` (${showSpec(f.showWhen)})` : ''}`);
       if (f.help) out.push(f.help);
       continue;
     }
@@ -295,6 +360,7 @@ export function templateToRegistrationMarkdown(fields: FormField[]): string {
     if (f.maxLength) mods.push(`max=${f.maxLength}`);
     if (f.accept) mods.push(`accept=${f.accept.replace(/,/g, '|')}`);
     if (f.maxSizeKb) mods.push(`size=${f.maxSizeKb}`);
+    if (f.showWhen) mods.push(showSpec(f.showWhen));
     // Escape a trailing `*` in the label so it round-trips as a literal, not the
     // required marker (the parser un-escapes `\*`).
     const escLabel = f.label.replace(/\*$/, '\\*');

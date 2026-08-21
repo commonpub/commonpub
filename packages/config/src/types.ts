@@ -46,6 +46,14 @@ export interface FeatureFlags {
    */
   contestPrivateFiles: boolean;
   /**
+   * Offer per-field conditional display ("show only when…") in the form builder.
+   * Mirrors `contestPii`: the flag controls what the BUILDER offers, never how a
+   * stored condition behaves. A saved `showWhen` is always honoured, because a
+   * flag flip that stopped hiding fields would resurrect required questions the
+   * entrant was never shown and block every submission.
+   */
+  contestConditionalFields: boolean;
+  /**
    * Automatic contest deadline reminder emails to registered participants
    * (7 days / 48 hours / 24 hours / 1 hour before the deadline). Default OFF.
    * Inert unless this AND emailNotifications are both on. No effect unless

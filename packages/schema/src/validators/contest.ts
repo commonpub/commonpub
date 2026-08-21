@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { optionalUrl } from './_shared.js';
+import { CONDITION_SOURCE_TYPES } from '../contest.js';
 import {
   contestStatusEnum,
   contestVisibilityEnum,
@@ -140,9 +141,31 @@ export type SubmissionTemplateFieldType = (typeof SUBMISSION_TEMPLATE_FIELD_TYPE
 
 /** One choice of a `select` template field. */
 export const submissionTemplateOptionSchema = z.object({
-  value: z.string().min(1).max(120),
-  label: z.string().min(1).max(120),
+  // Trimmed on the way in. `visibleFormFieldKeys` trims a submitted answer before
+  // comparing it, so an untrimmed stored option value would validate as a
+  // conditional-display target and then never match one — the dependent field
+  // hidden forever with nothing on either surface saying why.
+  value: z.string().trim().min(1).max(120),
+  label: z.string().trim().min(1).max(120),
 });
+
+/**
+ * A conditional-display rule (P7): show this field only while an EARLIER
+ * `select`/`radio`/`checkbox` field holds one of `equals`.
+ *
+ * The cross-field rules (the named field exists, is earlier, is a legal source
+ * type, and every `equals` value is one the source can actually produce) cannot
+ * be checked from inside one field, so they live in `templateConditionRules`,
+ * applied to the whole array. Checking only the shape here would let a template
+ * save a condition that can never be true — a field permanently invisible, or
+ * permanently required and unfillable.
+ */
+export const formFieldConditionSchema = z.object({
+  field: z.string().min(1).max(40).regex(/^[a-z0-9_]+$/, 'Lowercase letters, numbers and underscores only'),
+  // Trimmed for the same reason as an option value: compared against a trimmed answer.
+  equals: z.array(z.string().trim().max(120)).min(1).max(50),
+});
+export type FormFieldConditionInput = z.infer<typeof formFieldConditionSchema>;
 
 // One field of a `submission` stage's artifact template (per-stage submissions).
 // `key` is the stable machine key in `stageSubmissions.fields`.
@@ -161,6 +184,8 @@ export const submissionTemplateFieldSchema = z
     maxSizeKb: z.number().int().min(1).max(100 * 1024).optional(),
     /** `select`-only: the allowed options. Required (non-empty) for `select`. */
     options: z.array(submissionTemplateOptionSchema).max(50).optional(),
+    /** Conditional display (P7). Cross-field validity is enforced array-wide. */
+    showWhen: formFieldConditionSchema.optional(),
     /**
      * Personal data flag. When true the field's value is stored in
      * `contest_entry_private_fields` (never the public `stageSubmissions`
@@ -203,13 +228,14 @@ export const contestStageSchema = z.object({
   advanceCount: z.number().int().min(1).max(100000).optional(),
   // Submission stages: the per-stage artifact template — fields the entrant
   // fills for THIS stage (proposal vs prototype). Keys must be unique.
-  submissionTemplate: z
-    .array(submissionTemplateFieldSchema)
-    .max(50)
-    .refine((fields) => new Set(fields.map((f) => f.key)).size === fields.length, {
-      message: 'Template field keys must be unique',
-    })
-    .optional(),
+  submissionTemplate: applyTemplateConditionRules(
+    z
+      .array(submissionTemplateFieldSchema)
+      .max(50)
+      .refine((fields) => new Set(fields.map((f) => f.key)).size === fields.length, {
+        message: 'Template field keys must be unique',
+      }),
+  ).optional(),
   // Submission stages (Phase 4): how an entry is created for this stage.
   // `attach` (default) = the entrant attaches a pre-existing PUBLISHED content
   // item. `proposal` = the entrant submits the form and the server creates a
@@ -263,14 +289,66 @@ export const STAKEHOLDER_ROLES = ['reviewer', 'editor'] as const;
 export const stakeholderRoleSchema = z.enum(STAKEHOLDER_ROLES);
 export type StakeholderRole = (typeof STAKEHOLDER_ROLES)[number];
 
+/**
+ * The cross-field rules for `showWhen`, applied to a whole template array.
+ *
+ * Shared by the stage `submissionTemplate` and the contest `registrationTemplate`
+ * so the two cannot diverge: a condition legal on one form and rejected on the
+ * other would be a trap, since both arrays are the same `FormField[]` and the
+ * same builder authors them.
+ *
+ * Rejects, with the offending field's path so the editor can point at it:
+ * - a condition naming a key that is not in the template;
+ * - a condition naming a LATER field, or the field itself. Earlier-only is what
+ *   makes a cycle unrepresentable and lets visibility resolve in one pass;
+ * - a source that is not `select`/`radio`/`checkbox`;
+ * - for a choice source, an `equals` value that is not one of its option values
+ *   (a stale value left behind after an option was renamed hides the dependent
+ *   field forever, and nothing on either surface says why);
+ * - for a checkbox source, anything other than `'true'`/`'false'`.
+ */
+export function applyTemplateConditionRules<T extends z.ZodTypeAny>(schema: T): T {
+  return schema.superRefine((fields: unknown, ctx: z.RefinementCtx) => {
+    const list = fields as SubmissionTemplateFieldInput[];
+    const indexByKey = new Map(list.map((f, i) => [f.key, i]));
+    list.forEach((field, i) => {
+      const cond = field.showWhen;
+      if (!cond) return;
+      const at = indexByKey.get(cond.field);
+      const bad = (message: string): void => {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message, path: [i, 'showWhen', 'field'] });
+      };
+      if (at === undefined) return bad(`"${field.label}" is shown when "${cond.field}" matches, but no field has that key`);
+      if (at >= i) return bad(`"${field.label}" can only depend on a field ABOVE it in the form`);
+      const source = list[at]!;
+      if (!CONDITION_SOURCE_TYPES.includes(source.type)) {
+        return bad(`"${field.label}" can only depend on a dropdown, radio group or checkbox. "${source.label}" is a ${source.type} field`);
+      }
+      const allowed = source.type === 'checkbox'
+        ? ['true', 'false']
+        : (source.options ?? []).map((o) => o.value);
+      const unknown = cond.equals.filter((v) => !allowed.includes(v));
+      if (unknown.length) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `"${field.label}" is shown for ${unknown.map((v) => `"${v}"`).join(', ')}, which "${source.label}" can never be`,
+          path: [i, 'showWhen', 'equals'],
+        });
+      }
+    });
+  }) as unknown as T;
+}
+
 // Operator-defined registration form (P1/P4). Same field validator + array bounds
 // as a stage submissionTemplate (FormField is the same shape); keys must be unique.
-export const registrationTemplateSchema = z
-  .array(submissionTemplateFieldSchema)
-  .max(50)
-  .refine((fields) => new Set(fields.map((f) => f.key)).size === fields.length, {
-    message: 'Template field keys must be unique',
-  });
+export const registrationTemplateSchema = applyTemplateConditionRules(
+  z
+    .array(submissionTemplateFieldSchema)
+    .max(50)
+    .refine((fields) => new Set(fields.map((f) => f.key)).size === fields.length, {
+      message: 'Template field keys must be unique',
+    }),
+);
 export const registrationModeSchema = z.enum(['light', 'combined']);
 
 export const createContestSchema = z

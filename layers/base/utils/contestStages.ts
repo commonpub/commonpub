@@ -1,4 +1,4 @@
-import type { ContestStage, ContestSubmissionTemplateField } from '@commonpub/schema';
+import { isConditionSourceField, type ContestStage, type ContestSubmissionTemplateField, type FormFieldCondition } from '@commonpub/schema';
 
 // Client mirror of the pure stage helpers in @commonpub/server `contest.ts`
 // (synthesizeStages / normalizeStages / currentStage). Deliberately duplicated —
@@ -152,15 +152,119 @@ export function templateFieldSet(t: TemplateField[], fi: number, patch: Partial<
  * organizer edited by hand is left alone — once entrants have submitted, keys
  * are what artifact values hang off, so they must stay stable.
  */
-export function templateFieldLabelChanged(t: TemplateField[], fi: number, label: string): TemplateField[] {
+export function templateFieldLabelChanged(
+  t: TemplateField[],
+  fi: number,
+  label: string,
+  lockedKeys?: ReadonlySet<string>,
+): TemplateField[] {
   const field = t[fi];
   if (!field) return t;
-  const tracksLabel = !field.key || field.key === fieldKeyFromLabel(field.label);
-  return templateFieldSet(t, fi, tracksLabel ? { label, key: fieldKeyFromLabel(label) } : { label });
+  // A key that has already been SAVED is what every stored answer, private-field
+  // entry and agreement acceptance hangs off, so it must survive a label edit.
+  // Without this, fixing a typo in "Repositry URL" rewrites the key and orphans
+  // every registrant's answer to that question — silently, with the old rows
+  // still in the jsonb under a key nothing reads any more.
+  //
+  // Keys stay label-tracking for fields ADDED in this editing session, which is
+  // where that behaviour is wanted (type the label, get a sensible key).
+  const locked = lockedKeys?.has(field.key) === true;
+  const tracksLabel = !locked && (!field.key || field.key === fieldKeyFromLabel(field.label));
+  if (!tracksLabel) return templateFieldSet(t, fi, { label });
+  const nextKey = fieldKeyFromLabel(label);
+  const withLabel = templateFieldSet(t, fi, { label, key: nextKey });
+  if (nextKey === field.key) return withLabel;
+  // The key moved with the label, so every condition pointing at the OLD key has
+  // to move with it. Without this, typing one more character into a source
+  // field's label silently orphans each dependent — the repair pass would then
+  // delete the very rules the operator just wrote, and nothing would say why.
+  return withLabel.map((f, idx) =>
+    idx !== fi && f.showWhen?.field === field.key ? { ...f, showWhen: { ...f.showWhen, field: nextKey } } : f,
+  );
+}
+
+/**
+ * Re-establish the `showWhen` invariants after ANY structural edit, dropping
+ * whatever can no longer hold.
+ *
+ * Every builder op that can invalidate a condition routes through this, because
+ * the alternative is a save that fails Zod with an error about a field the
+ * operator was not editing. Deleting the "Are you a US entity?" checkbox, moving
+ * it below the upload that depends on it, or retyping it to free text each leave
+ * a condition that can never be satisfied — a field permanently invisible, or a
+ * required field the entrant can never reach.
+ *
+ * It repairs rather than refuses on purpose: the operator's intent (delete this
+ * field) is unambiguous, and the dependent field reverting to always-shown is the
+ * safe direction. Silently keeping a broken rule is what hides data.
+ *
+ * Drops a condition when the source is missing, is at or after the dependent, or
+ * is no longer a legal source type; prunes `equals` values the source can no
+ * longer produce, and drops the whole condition when that empties it.
+ */
+export function templateConditionsRepaired(t: TemplateField[]): TemplateField[] {
+  const indexByKey = new Map(t.map((f, i) => [f.key, i]));
+  let changed = false;
+  const next = t.map((field, i) => {
+    const cond = field.showWhen;
+    if (!cond) return field;
+    const at = indexByKey.get(cond.field);
+    const source = at === undefined ? undefined : t[at];
+    if (at === undefined || at >= i || !source || !isConditionSourceField(source)) {
+      changed = true;
+      const { showWhen: _dropped, ...rest } = field;
+      return rest as TemplateField;
+    }
+    const allowed = source.type === 'checkbox' ? ['true', 'false'] : (source.options ?? []).map((o) => o.value);
+    const equals = cond.equals.filter((v) => allowed.includes(v));
+    if (equals.length === cond.equals.length) return field;
+    changed = true;
+    if (!equals.length) {
+      const { showWhen: _dropped, ...rest } = field;
+      return rest as TemplateField;
+    }
+    return { ...field, showWhen: { ...cond, equals } };
+  });
+  return changed ? next : t;
+}
+
+/** Set or clear one field's condition. Clearing deletes the key outright rather
+ *  than storing `undefined`, so the saved jsonb has no empty rule in it. */
+export function templateFieldConditionSet(
+  t: TemplateField[],
+  fi: number,
+  cond: FormFieldCondition | null,
+): TemplateField[] {
+  const field = t[fi];
+  if (!field) return t;
+  if (!cond) {
+    const { showWhen: _dropped, ...rest } = field;
+    return t.map((f, idx) => (idx === fi ? (rest as TemplateField) : f));
+  }
+  return templateFieldSet(t, fi, { showWhen: cond });
+}
+
+/**
+ * The fields ABOVE `fi` that may key its condition: a closed-answer type with at
+ * least one thing to match on. Exported so the builder offers exactly what the
+ * validator accepts.
+ */
+export function conditionSourcesFor(t: TemplateField[], fi: number): TemplateField[] {
+  return t
+    .slice(0, Math.max(0, fi))
+    .filter((f) => isConditionSourceField(f) && (f.type === 'checkbox' || (f.options ?? []).some((o) => o.value)));
+}
+
+/** The values a source field can produce, as {value,label} pairs for the builder. */
+export function conditionValueChoices(source: TemplateField): Array<{ value: string; label: string }> {
+  if (source.type === 'checkbox') {
+    return [{ value: 'true', label: 'Checked' }, { value: 'false', label: 'Not checked' }];
+  }
+  return (source.options ?? []).filter((o) => o.value).map((o) => ({ value: o.value, label: o.label || o.value }));
 }
 
 export function templateFieldRemoved(t: TemplateField[], fi: number): TemplateField[] {
-  return t.filter((_, idx) => idx !== fi);
+  return templateConditionsRepaired(t.filter((_, idx) => idx !== fi));
 }
 
 /** Move a field from index `fi` by `delta` (±1), clamped. Returns a new array
@@ -171,7 +275,7 @@ export function templateFieldMoved(t: TemplateField[], fi: number, delta: number
   const next = t.slice();
   const [moved] = next.splice(fi, 1);
   next.splice(to, 0, moved!);
-  return next;
+  return templateConditionsRepaired(next);
 }
 
 /**
@@ -196,7 +300,9 @@ export function templateFieldTypeChanged(t: TemplateField[], fi: number, type: F
     patch.mustAccept = undefined;
   }
   if (type === 'address') patch.pii = true;
-  return templateFieldSet(t, fi, patch);
+  // Retyping a field can strip its ability to be a condition source (or, for a
+  // choice type, reset its options), so dependents are repaired in the same step.
+  return templateConditionsRepaired(templateFieldSet(t, fi, patch));
 }
 
 export function templateOptionAdded(t: TemplateField[], fi: number): TemplateField[] {
@@ -214,13 +320,13 @@ export function templateOptionSet(
   const field = t[fi];
   if (!field) return t;
   const options = (field.options ?? []).map((o, idx) => (idx === oi ? { ...o, ...patch } : o));
-  return templateFieldSet(t, fi, { options });
+  return templateConditionsRepaired(templateFieldSet(t, fi, { options }));
 }
 
 export function templateOptionRemoved(t: TemplateField[], fi: number, oi: number): TemplateField[] {
   const field = t[fi];
   if (!field) return t;
-  return templateFieldSet(t, fi, { options: (field.options ?? []).filter((_, idx) => idx !== oi) });
+  return templateConditionsRepaired(templateFieldSet(t, fi, { options: (field.options ?? []).filter((_, idx) => idx !== oi) }));
 }
 
 // ─── Stage-indexed wrappers (delegate to the array-level ops above) ───
@@ -237,9 +343,15 @@ export function withTemplateFieldSet(stages: ContestStage[], i: number, fi: numb
   return withTemplate(stages, i, templateFieldSet(stages[i]?.submissionTemplate ?? [], fi, patch));
 }
 
-export function withTemplateFieldLabelChanged(stages: ContestStage[], i: number, fi: number, label: string): ContestStage[] {
+export function withTemplateFieldLabelChanged(
+  stages: ContestStage[],
+  i: number,
+  fi: number,
+  label: string,
+  lockedKeys?: ReadonlySet<string>,
+): ContestStage[] {
   if (!stages[i]?.submissionTemplate?.[fi]) return stages;
-  return withTemplate(stages, i, templateFieldLabelChanged(stages[i]!.submissionTemplate!, fi, label));
+  return withTemplate(stages, i, templateFieldLabelChanged(stages[i]!.submissionTemplate!, fi, label, lockedKeys));
 }
 
 export function withTemplateFieldRemoved(stages: ContestStage[], i: number, fi: number): ContestStage[] {

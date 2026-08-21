@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { COVER_IMAGE_AI_NOTICE } from '../../utils/coverImageNotice';
 import { BlockCanvas, EditorBlocks, EditorSection, EditorTagInput, EditorVisibility, type BlockEditor, type BlockTypeGroup } from '@commonpub/editor/vue';
 
 const props = defineProps<{
@@ -268,6 +269,7 @@ const blockCount = computed(() => props.blockEditor.blocks.value.length);
               </div>
             </template>
           </div>
+          <p class="cpub-pe-cover-notice">{{ COVER_IMAGE_AI_NOTICE }}</p>
 
           <!-- Title -->
           <textarea
@@ -413,6 +415,7 @@ const blockCount = computed(() => props.blockEditor.blocks.value.length);
 </template>
 
 <style scoped>
+.cpub-pe-cover-notice { font-size: var(--text-xs); color: var(--text-dim); line-height: var(--leading-normal); margin: var(--space-2) 0 0; }
 .cpub-pe-shell { display: flex; flex: 1; overflow: hidden; }
 .cpub-pe-library { width: 220px; flex-shrink: 0; background: var(--surface); border-right: var(--border-width-default) solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
 .cpub-pe-center { flex: 1; display: flex; flex-direction: column; overflow: hidden; }

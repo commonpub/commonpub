@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { COVER_IMAGE_AI_NOTICE } from '../utils/coverImageNotice';
 const props = defineProps<{
   modelValue: string;
   purpose: 'avatar' | 'banner' | 'cover';
@@ -110,6 +111,8 @@ function clearImage(): void {
     </div>
 
     <span v-if="hint && !error" class="cpub-img-hint">{{ hint }}</span>
+    <!-- Cover images only. Avatars and hub banners are a separate decision. -->
+    <span v-if="purpose === 'cover'" class="cpub-img-notice">{{ COVER_IMAGE_AI_NOTICE }}</span>
     <span v-if="error" class="cpub-img-error">{{ error }}</span>
 
     <ClientOnly>
@@ -236,6 +239,14 @@ function clearImage(): void {
   padding: 0;
 }
 .cpub-img-remove:hover { text-decoration: underline; }
+
+.cpub-img-notice {
+  display: block;
+  font-size: var(--text-xs);
+  color: var(--text-dim);
+  line-height: var(--leading-normal);
+  margin-top: var(--space-1);
+}
 
 .cpub-img-hint {
   font-size: 0.6875rem;

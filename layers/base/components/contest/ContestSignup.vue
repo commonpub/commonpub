@@ -14,6 +14,9 @@ const props = defineProps<{
   savedFields?: Record<string, string> | null;
   /** In-flight register/unregister request (disables controls). */
   registering?: boolean;
+  /** Whether the viewer already has an entry in this contest. Drives the
+   *  "registered, but nothing submitted yet" nudge. */
+  hasEntry?: boolean;
 }>();
 
 // Public registration count, read from the SSR'd contest DTO rather than taken
@@ -40,6 +43,21 @@ const canRegister = computed(() => REGISTERABLE.includes(status.value));
 // Log in and land IN the registration form. See ContestHero.vue's loginLink.
 const loginLink = computed(() => `/auth/login?redirect=/contests/${props.contest?.slug ?? ''}/register`);
 const registerLink = computed(() => `/contests/${props.contest?.slug ?? ''}/register`);
+
+/**
+ * Does registering, on its own, enter you?
+ *
+ * `combined` creates a `contest_entries` row with the registration. `light` (the
+ * default, and what every live contest uses) does NOT: registration is a
+ * participant record, and the entry is a separate act.
+ *
+ * This distinction is why the copy below is mode-aware. It used to promise
+ * "Registering enters you into the contest" unconditionally, which is false on a
+ * `light` contest, and false in the way that costs entries: a maker registers,
+ * reads that they are entered, and never submits anything.
+ */
+const entersOnRegister = computed(() => props.contest?.registrationMode === 'combined');
+const entriesLink = computed(() => `/contests/${props.contest?.slug ?? ''}?tab=entries`);
 
 const isFull = computed(() => props.tier === 'full');
 const isReminders = computed(() => props.tier === 'reminders');
@@ -196,7 +214,11 @@ watch(isFull, (full) => { if (full) modalOpen.value = false; });
       <NuxtLink :to="loginLink" class="cpub-btn cpub-btn-primary cpub-su-btn">
         <i class="fa-solid fa-right-to-bracket"></i> Log in to register
       </NuxtLink>
-      <p class="cpub-su-hint">Registering enters you into the contest and gets you every update. You can also just follow it for deadline reminders.</p>
+      <p class="cpub-su-hint">
+        <template v-if="entersOnRegister">Registering enters you into the contest and gets you every update.</template>
+        <template v-else>Registering signs you up and gets you every update. Submitting your project is a separate step, once you are registered.</template>
+        You can also just follow it for deadline reminders.
+      </p>
     </template>
 
     <!-- AUTHENTICATED, NOT REGISTERED: the two-tier choice -->
@@ -219,7 +241,11 @@ watch(isFull, (full) => { if (full) modalOpen.value = false; });
       >
         <i class="fa-solid fa-bell"></i> Follow this contest
       </button>
-      <p class="cpub-su-hint">Register to enter + get every update. Not ready to enter? Follow to get deadline reminders and be counted among those following.</p>
+      <p class="cpub-su-hint">
+        <template v-if="entersOnRegister">Register to enter and get every update.</template>
+        <template v-else>Register first, then submit your project from the Entries tab. Registering alone does not enter you.</template>
+        Not ready to enter? Follow to get deadline reminders and be counted among those following.
+      </p>
     </template>
 
     <!-- REGISTERED (either tier): confirmation + what's next -->
@@ -230,6 +256,18 @@ watch(isFull, (full) => { if (full) modalOpen.value = false; });
       </p>
 
       <p v-if="whatsNext" class="cpub-su-next">{{ whatsNext }}</p>
+
+      <!-- The step people were missing. A `full` registrant on a `light` contest
+           is signed up and has submitted NOTHING, and until now the card said
+           "You're registered" and stopped there. Name the next action and link
+           straight to it. -->
+      <div v-if="isFull && !entersOnRegister && !hasEntry && status === 'active'" class="cpub-su-nextstep">
+        <p class="cpub-su-nextstep-title"><i class="fa-solid fa-arrow-right"></i> Next: submit your project</p>
+        <p class="cpub-su-nextstep-body">You are registered, but you have not entered a project yet. Registering does not enter you on its own.</p>
+        <NuxtLink :to="entriesLink" class="cpub-btn cpub-btn-primary cpub-su-btn">
+          <i class="fa-solid fa-upload"></i> Submit your project
+        </NuxtLink>
+      </div>
 
       <!-- Reminders-only: offer the upgrade to full participation -->
       <template v-if="isReminders && canRegister">
@@ -285,6 +323,7 @@ watch(isFull, (full) => { if (full) modalOpen.value = false; });
           :template="registrationTemplate"
           :saved-fields="savedFields"
           :registering="registering"
+          :already-registered="isFull"
           id-prefix="cpub-su-reg"
           :save-label="isFull ? 'Save details' : 'Register'"
           @save="onModalSave"
@@ -315,6 +354,11 @@ watch(isFull, (full) => { if (full) modalOpen.value = false; });
 .cpub-su-state { display: flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 700; margin: 0 0 8px; }
 .cpub-su-state-full { color: var(--green-text); }
 .cpub-su-state-rem { color: var(--accent-text); }
+
+.cpub-su-nextstep { border: var(--border-width-default) solid var(--accent-border); background: var(--accent-bg); padding: 10px 12px; margin: 0 0 12px; }
+.cpub-su-nextstep-title { display: flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 700; color: var(--accent-text); margin: 0 0 4px; }
+.cpub-su-nextstep-body { font-size: 11px; color: var(--text-dim); line-height: 1.5; margin: 0 0 10px; }
+.cpub-su-nextstep .cpub-su-btn { margin-bottom: 0; }
 
 .cpub-su-next { font-size: 12px; color: var(--text-dim); line-height: 1.6; margin: 0 0 12px; }
 

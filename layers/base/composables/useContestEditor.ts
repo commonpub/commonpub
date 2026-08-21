@@ -145,6 +145,8 @@ export interface UseContestEditor {
   currentStageId: Ref<string | null>;
   /** Operator-defined registration form (P4) + mode. */
   registrationTemplate: Ref<FormField[]>;
+  persistedRegistrationKeys: Ref<string[]>;
+  persistedStageTemplateKeys: Ref<Record<string, string[]>>;
   registrationMode: Ref<'light' | 'combined'>;
   emailCopy: Ref<ContestEmailCopyForm>;
   /** True once the organizer-only email copy has been fetched into `emailCopy`;
@@ -222,6 +224,20 @@ export function useContestEditor(opts: UseContestEditorOptions): UseContestEdito
   const criteria = ref<ContestCriterionRow[]>([]);
   const stages = ref<ContestStage[]>([]);
   const registrationTemplate = ref<FormField[]>([]);
+  /**
+   * Registration-template keys as they arrived from the server. A saved key is
+   * what every stored answer, private-field entry and agreement acceptance hangs
+   * off, so the builder must not regenerate it from a label edit. Fields added
+   * in this session are absent here and keep tracking their label.
+   */
+  const persistedRegistrationKeys = ref<string[]>([]);
+  /**
+   * The same protection for each STAGE's submission template, keyed by stage id.
+   * Round-2 audit finding: the key lock was wired only to the registration
+   * builder, so a label edit on a stage form still regenerated the key and
+   * orphaned every entrant's stored artifact answer under it.
+   */
+  const persistedStageTemplateKeys = ref<Record<string, string[]>>({});
   const registrationMode = ref<'light' | 'combined'>('light');
   const currentStageId = ref<string | null>(null);
   const emailCopy = ref<ContestEmailCopyForm>({ confirmationSubject: '', confirmationIntro: '', confirmationBlocks: [], reminderSubject: '', reminderIntro: '', reminderBlocks: [] });
@@ -307,8 +323,12 @@ export function useContestEditor(opts: UseContestEditorOptions): UseContestEdito
     visibleToRoles.value = [...(c.visibleToRoles ?? [])];
     showPrizes.value = c.showPrizes !== false;
     stages.value = Array.isArray(c.stages) ? [...c.stages] : [];
+    persistedStageTemplateKeys.value = Object.fromEntries(
+      stages.value.map((st) => [st.id, (st.submissionTemplate ?? []).map((f) => f.key).filter(Boolean)]),
+    );
     currentStageId.value = c.currentStageId ?? null;
     registrationTemplate.value = Array.isArray(c.registrationTemplate) ? [...c.registrationTemplate] : [];
+    persistedRegistrationKeys.value = registrationTemplate.value.map((f) => f.key).filter(Boolean);
     registrationMode.value = c.registrationMode === 'combined' ? 'combined' : 'light';
     prizesDescription.value = c.prizesDescription ?? '';
     prizes.value = (c.prizes ?? []).map((p) => ({
@@ -500,7 +520,7 @@ export function useContestEditor(opts: UseContestEditorOptions): UseContestEdito
     rules, descriptionFormat, rulesFormat, prizesDescriptionFormat, bannerUrl, coverImageUrl, bannerMeta, coverMeta, coverPlacement, startDate,
     endDate, judgingEndDate, communityVotingEnabled, judgingVisibility, eligibleContentTypes, maxEntriesPerUser,
     visibility, visibleToRoles, showPrizes, prizesDescription, prizes, criteria, stages, currentStageId,
-    registrationTemplate, registrationMode,
+    registrationTemplate, persistedRegistrationKeys, persistedStageTemplateKeys, registrationMode,
     emailCopy, emailCopyLoaded,
     saving, formDirty, dateError, canSubmit,
     slugify: slugifyContest, toggleType, toggleRole, addPrize, removePrize, prizeLabel,

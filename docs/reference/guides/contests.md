@@ -250,6 +250,15 @@ submitContestProposal(db, {contestId, stageId, fields, userId, ip}):
 returns { entryId, projectSlug }  ──▶ client routes to the project editor
 ```
 
+**One proposal per entrant by default.** `submitContestProposal` treats a contest
+with no `maxEntriesPerUser` as a cap of **1**, because the rest of the feature
+already assumes it: `ContestProposalForm` renders only while the entrant has no
+entry, and submitting routes them into the draft it just created. That assumption
+used to live only on the client, and `myEntries` derives from an entries fetch the
+server caps at 20 — so a double submit, or any contest past 20 entries, minted a
+duplicate entry and a second orphan draft. An explicit `maxEntriesPerUser` still
+wins, and the check runs before `createContent` so a refusal leaves nothing behind.
+
 The published-only gate that `submitContestEntry` enforces is **relaxed only** for
 proposal-mode stages (a draft placeholder is a valid entry there). The
 `stageSubmissions` artifact records only the **non-PII, non-agreement** fields.
@@ -273,6 +282,49 @@ three buckets so PII and consent never reach the public artifact:
 | `date` | date input | `YYYY-MM-DD` + parseable | artifact (or PII if `pii`) |
 | `agreement` | terms box + accept checkbox | required/`mustAccept` ⇒ must accept | **agreement** (never artifact) |
 | `address` | structured subform (line1/line2/city/region/postal/country) | JSON object | **PII** (auto, JSON-encoded) |
+
+### Conditional display (`showWhen`)
+
+Any field, or a whole `section`, can be shown only while an **earlier**
+`select`/`radio`/`checkbox` field holds one of a listed set of values.
+
+```ts
+interface FormFieldCondition { field: string; equals: string[] }
+interface FormField { /* … */ showWhen?: FormFieldCondition }
+```
+
+**Hidden means hidden everywhere**: not rendered, not required, and nothing
+stored. `visibleFormFieldKeys` (`@commonpub/schema`) is the single source of
+truth, called by the renderer, the client required-gate, the payload builder and
+`validateSubmissionFields`. A second implementation is how a field gets hidden on
+screen and still demanded by the server.
+
+Rules, enforced by `applyTemplateConditionRules` on write:
+
+- the source must appear **earlier** in the template (so a cycle is
+  unrepresentable, and visibility resolves in one forward pass);
+- the source must be `select`, `radio` or `checkbox` (a closed answer set);
+- `equals` holds **stored values** (an option's `value`, or `'true'`/`'false'`
+  for a checkbox), never labels, so relabelling never breaks a rule;
+- a `section` rule gates the header and every field down to the **next section**;
+  an unconditional section reopens the gate, and a field's own rule is ANDed with
+  its section's;
+- an answer belonging to a hidden field is not an answer, so hiding cascades.
+
+Gated by `features.contestConditionalFields` (default **on**), which controls what
+the BUILDER offers — mirroring `contestPii`. A stored rule is always honoured:
+turning the flag off must never resurrect a hidden required field mid-contest.
+
+The markdown DSL round-trips rules as `show=key:a|b`, on fields and on section
+headings. Full design: `docs/plans/conditional-form-fields.md`.
+
+**Field keys are frozen once saved.** A machine `key` is what every stored
+answer, private-field row and agreement acceptance hangs off, so the builder no
+longer regenerates it from a label edit for any field that came from the server
+(`lockedKeys`, threaded to both the registration builder and each stage's
+template). Keys added in the current editing session still track their label.
+Markdown import carries saved keys across by label match and names anything that
+would be orphaned in its confirm dialog.
 
 - `pii: true` (auto for `address`) routes a field's value to
   `contest_entry_private_fields`, never the public `stageSubmissions`.
@@ -590,6 +642,7 @@ The **Entries** tab is submission-mode aware:
 | `features.contestStageSubmissions` | ON | Per-stage submission templates + artifact form. Inert until a template exists. |
 | `features.contestProposals` | OFF | Proposal `submissionMode` + the proposal form + `POST /proposal`. |
 | `features.contestPii` | OFF | Offering PII field types (agreement/address/`pii` toggle) in the builder. Access to stored PII is always gated by `contest.pii`. |
+| `features.contestConditionalFields` | ON | Offering `showWhen` rules in the form builder. A stored rule is always honoured regardless. |
 
 All declared end-to-end: `config/types.ts` + `config/schema.ts`,
 `nuxt.config.ts` `runtimeConfig.public.features` (env-propagation),

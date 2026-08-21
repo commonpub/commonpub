@@ -724,6 +724,7 @@ async function withdrawEntry(entryId: string): Promise<void> {
           :tier="registrationTier"
           :saved-fields="registrationFields"
           :registering="registering"
+          :has-entry="myEntries.length > 0"
           @copy-link="copyLink"
           @register="register"
           @unregister="unregister"

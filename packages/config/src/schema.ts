@@ -50,6 +50,10 @@ export const featureFlagsSchema = z.object({
   // same reach they already have over all registrants/PII, by RBAC design). Default
   // OFF. Inert unless `contestPii` is on (file/signature are personal-data types).
   contestPrivateFiles: z.boolean().default(false),
+  // Conditional form fields. Default ON: the builder affordance is additive and
+  // the feature is inert until an operator actually authors a condition, matching
+  // `contestStageSubmissions` rather than the data-collecting flags.
+  contestConditionalFields: z.boolean().default(true),
   // Automatic contest deadline reminder emails to registered participants.
   // Default OFF; the reminder sweep is inert unless this AND emailNotifications
   // are on (the outbox worker only drains when emailNotifications is on).
