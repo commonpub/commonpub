@@ -396,7 +396,20 @@ export async function listOAuthClients(
 
 /**
  * Process a dynamic OAuth client registration request.
- * Idempotent: if a client already exists for this domain, returns existing credentials.
+ *
+ * The endpoint is deliberately unauthenticated, for zero-friction
+ * instance-to-instance setup. That makes `instance_domain` an ATTACKER-SUPPLIED
+ * string, and it used to be treated as an idempotency key: a repeat registration
+ * for an already-registered domain returned that client's existing
+ * `client_secret`. Nothing proved the caller controlled the domain, so anyone who
+ * could name a peer instance could ask for its credentials and impersonate it in
+ * the token exchange.
+ *
+ * So a repeat registration is now refused rather than answered. The cost is that
+ * an instance which loses its secret can no longer silently re-acquire it — that
+ * needs an operator, which is the correct place for the decision. Issuing a fresh
+ * secret automatically would be worse: an attacker could then invalidate the real
+ * peer's credentials at will and receive the replacement.
  */
 export async function processDynamicRegistration(
   db: DB,
@@ -413,7 +426,13 @@ export async function processDynamicRegistration(
     .limit(1);
 
   if (existing) {
-    return { clientId: existing.clientId, clientSecret: existing.clientSecret };
+    return {
+      error: 'invalid_client_metadata',
+      errorDescription:
+        `A client is already registered for ${request.instanceDomain}. `
+        + 'Credentials are issued once and are never returned again. If they were lost, '
+        + 'ask an administrator of this instance to remove the existing client so it can be re-registered.',
+    };
   }
 
   // Register new client

@@ -1,12 +1,19 @@
-import { isRequiredFormField, type ContestSubmissionTemplateField } from '@commonpub/schema';
+import {
+  isRequiredFormField,
+  visibleFormFieldKeys,
+  FORM_ACCEPTANCE_VALUES,
+  type ContestSubmissionTemplateField,
+} from '@commonpub/schema';
 
 // Client-side helpers for the entrant submission form (the per-stage artifact
 // form + the proposal form share these). The SERVER (validateSubmissionFields)
 // is the authoritative validator; these only drive UX (required gating, the
 // payload shape) so the two surfaces behave identically.
 
-/** Markers a checkbox/agreement value counts as accepted/checked. */
-const TRUTHY = new Set(['true', 'on', '1', 'yes', 'accepted', 'checked']);
+// Markers a checkbox/agreement value counts as accepted/checked. Imported rather
+// than re-declared so this surface, the server validator and conditional-field
+// evaluation all agree on what "checked" means.
+const TRUTHY = FORM_ACCEPTANCE_VALUES;
 
 /**
  * Coerce a live form value to the string these helpers (and the wire contract)
@@ -80,7 +87,23 @@ export function blockingFieldKeys(
   template: ContestSubmissionTemplateField[],
   values: Record<string, string>,
 ): string[] {
-  return template.filter((f) => isRequiredFormField(f) && !isFieldFilled(f, values[f.key])).map((f) => f.key);
+  const visible = visibleFormFieldKeys(template, values);
+  return template
+    .filter((f) => visible.has(f.key) && isRequiredFormField(f) && !isFieldFilled(f, values[f.key]))
+    .map((f) => f.key);
+}
+
+/**
+ * The fields to RENDER right now, in template order. Wraps the shared
+ * `visibleFormFieldKeys` so every entrant-facing form filters through one call
+ * and none of them hand-rolls the conditional logic.
+ */
+export function visibleTemplateFields(
+  template: ContestSubmissionTemplateField[],
+  values: Record<string, string>,
+): ContestSubmissionTemplateField[] {
+  const visible = visibleFormFieldKeys(template, values);
+  return template.filter((f) => visible.has(f.key));
 }
 
 /** As `blockingFieldKeys`, but the human labels (for the entrant-facing summary). */
@@ -102,7 +125,12 @@ export function buildSubmissionPayload(
   values: Record<string, string>,
 ): Record<string, string> {
   const out: Record<string, string> = {};
+  // Never send an answer to a field the entrant cannot currently see. The server
+  // drops it anyway (same `visibleFormFieldKeys` call), but sending it would put
+  // a stale answer on the wire and make the two surfaces look like they disagree.
+  const visible = visibleFormFieldKeys(template, values);
   for (const f of template) {
+    if (!visible.has(f.key)) continue;
     const raw = asText(values[f.key]).trim();
     if (f.type === 'checkbox' || f.type === 'agreement') {
       // Only send a positive marker (the server treats absent as not-accepted).

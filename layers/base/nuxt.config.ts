@@ -110,6 +110,7 @@ export default defineNuxtConfig({
         contestProposals: false,
         contestPii: false,
         contestPrivateFiles: false,
+        contestConditionalFields: true,
         contestSignup: true,
         contestEntryRequiresRegistration: true,
         contestReminders: false,

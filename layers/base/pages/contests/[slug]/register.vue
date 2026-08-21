@@ -76,6 +76,7 @@ async function onSave(fields: Record<string, string>): Promise<void> {
         :template="template"
         :saved-fields="savedFields"
         :registering="registering"
+        :already-registered="alreadyFull"
         id-prefix="cpub-regpage"
         :save-label="alreadyFull ? 'Save details' : 'Complete registration'"
         @save="onSave"

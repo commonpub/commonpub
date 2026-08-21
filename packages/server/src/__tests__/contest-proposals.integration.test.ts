@@ -319,8 +319,44 @@ describe('contest proposals (form-first)', () => {
     const afterFirst = await countUserContent(db, entrant.id);
     const second = await submitContestProposal(db, { contestId: contest.id, stageId: 'prop', fields: goodForm(), userId: entrant.id });
     expect(second.ok).toBe(false);
-    if (!second.ok) expect(second.error).toMatch(/limit/i);
+    // A cap of one is phrased as "already entered" rather than "limit reached":
+    // it tells the entrant what to do instead, which is edit the entry they have.
+    if (!second.ok) expect(second.error).toMatch(/already entered/i);
     expect(await countUserContent(db, entrant.id)).toBe(afterFirst); // cap checked before createContent
+  });
+
+  // The UI has always assumed one proposal per entrant — ContestProposalForm
+  // renders only while `myEntries` is empty — but that gate is client-side and
+  // `myEntries` comes from an entries fetch the server caps at 20. With no
+  // explicit `maxEntriesPerUser` the server accepted a second proposal, minting a
+  // duplicate entry AND a second orphan draft. Demonstrated on a replica of a
+  // live contest, where the cap is null.
+  it('defaults to ONE proposal per entrant when the contest sets no cap', async () => {
+    const contest = await createContest(db, proposalContestInput('nocap'));
+    expect(contest.maxEntriesPerUser ?? null).toBeNull();
+    await transitionContestStatus(db, contest.id, organizerId, 'active');
+    const entrant = await createTestUser(db, { username: `prop-nocap-${Date.now()}` });
+
+    expect((await submitContestProposal(db, { contestId: contest.id, stageId: 'prop', fields: goodForm(), userId: entrant.id })).ok).toBe(true);
+    const afterFirst = await countUserContent(db, entrant.id);
+
+    const second = await submitContestProposal(db, { contestId: contest.id, stageId: 'prop', fields: goodForm(), userId: entrant.id });
+    expect(second.ok).toBe(false);
+    if (!second.ok) expect(second.error).toMatch(/already entered/i);
+    // And no second draft project was created on the way to refusing.
+    expect(await countUserContent(db, entrant.id)).toBe(afterFirst);
+  });
+
+  it('an explicit maxEntriesPerUser still wins over the default of one', async () => {
+    const contest = await createContest(db, proposalContestInput('cap2', { maxEntriesPerUser: 2 }));
+    await transitionContestStatus(db, contest.id, organizerId, 'active');
+    const entrant = await createTestUser(db, { username: `prop-cap2-${Date.now()}` });
+
+    expect((await submitContestProposal(db, { contestId: contest.id, stageId: 'prop', fields: goodForm(), userId: entrant.id })).ok).toBe(true);
+    expect((await submitContestProposal(db, { contestId: contest.id, stageId: 'prop', fields: goodForm(), userId: entrant.id })).ok).toBe(true);
+    const third = await submitContestProposal(db, { contestId: contest.id, stageId: 'prop', fields: goodForm(), userId: entrant.id });
+    expect(third.ok).toBe(false);
+    if (!third.ok) expect(third.error).toMatch(/limit/i);
   });
 
   it('withdraw archives a pristine proposal placeholder draft (no orphan stub)', async () => {

@@ -14,7 +14,7 @@
  * `enableIntro`. agreement/address types + the per-field PII toggle are gated behind
  * `features.contestPii` (rule #2); PII *access* is always gated server-side.
  */
-import type { FormField } from '@commonpub/schema';
+import type { FormField, FormFieldCondition } from '@commonpub/schema';
 import { markdownToBlockTuples, blockTuplesToMarkdown, type BlockTuple } from '@commonpub/editor';
 import {
   availableFieldPresets,
@@ -46,7 +46,14 @@ const props = withDefaults(defineProps<{
    * change); the registration builder syncs it with its live preview.
    */
   activeIndex?: number;
-}>(), { enableIntro: false, enableMarkdown: false, label: 'Form', hint: '', activeIndex: -1 });
+  /**
+   * Field keys that have already been SAVED, and must therefore never be
+   * regenerated from a label edit — they are what stored answers hang off. The
+   * parent snapshots these when it hydrates the template; keys added in this
+   * session are absent and keep tracking their label.
+   */
+  lockedKeys?: string[];
+}>(), { enableIntro: false, enableMarkdown: false, label: 'Form', hint: '', activeIndex: -1, lockedKeys: () => [] });
 
 const emit = defineEmits<{
   'update:template': [template: FormField[]];
@@ -77,6 +84,10 @@ const { features } = useFeatures();
 const piiEnabled = computed(() => features.value.contestPii === true);
 // Private file/signature uploads (P6) require the private-storage path.
 const privateFilesEnabled = computed(() => features.value.contestPrivateFiles === true);
+// Conditional display (P7). Like `contestPii`, the flag governs what the BUILDER
+// OFFERS; a stored condition is always honoured by the forms and the server, so
+// turning this off never resurrects a hidden required field mid-contest.
+const conditionsEnabled = computed(() => features.value.contestConditionalFields === true);
 
 // Grouped, described type picker (rule: PII/file types gated).
 const FIELD_TYPE_GROUPS = computed<Array<{ group: string; types: FieldType[] }>>(() => {
@@ -173,14 +184,60 @@ function loadCurrentMarkdown(): void {
   markdownText.value = templateToRegistrationMarkdown(props.template);
   markdownErrors.value = [];
 }
+/**
+ * Re-attach saved keys to imported fields.
+ *
+ * The DSL carries labels, not keys, so an import recomputes every key from its
+ * label — which silently orphans every stored answer under the old key, and did
+ * so straight past the key lock. Matching on label restores the key for fields
+ * the operator did not rename; anything genuinely new keeps its derived key.
+ */
+function withPreservedKeys(fields: FormField[]): FormField[] {
+  const savedByLabel = new Map<string, string>();
+  for (const f of props.template) {
+    if (!f.key || !lockedKeySet.value.has(f.key)) continue;
+    const label = f.label.trim().toLowerCase();
+    // A duplicate label cannot be matched unambiguously, so decline to guess.
+    savedByLabel.set(label, savedByLabel.has(label) ? '' : f.key);
+  }
+  const used = new Set<string>();
+  // imported key -> restored saved key, for the condition rewrite below.
+  const renamed = new Map<string, string>();
+  const rekeyed = fields.map((f) => {
+    const saved = savedByLabel.get(f.label.trim().toLowerCase());
+    if (!saved || used.has(saved)) return f;
+    used.add(saved);
+    if (f.key && f.key !== saved) renamed.set(f.key, saved);
+    return { ...f, key: saved };
+  });
+  if (!renamed.size) return rekeyed;
+  // Carry every condition to the restored key. The DSL names fields by label, so
+  // a hand-written `show=` points at the key the PARSER derived; restoring the
+  // saved key underneath it would orphan the rule, and the repair pass would then
+  // delete it without a word. Same move `templateFieldLabelChanged` makes.
+  return rekeyed.map((f) => {
+    const target = f.showWhen && renamed.get(f.showWhen.field);
+    return target ? { ...f, showWhen: { ...f.showWhen!, field: target } } : f;
+  });
+}
+
 function importMarkdown(): void {
-  const { fields, errors } = registrationMarkdownToTemplate(markdownText.value);
+  const { fields: parsed, errors } = registrationMarkdownToTemplate(markdownText.value);
   markdownErrors.value = errors;
   if (errors.length) return; // block on problems; the operator fixes + re-imports
+  const fields = templateConditionsRepaired(withPreservedKeys(parsed));
+  // Name the answers that will be orphaned, rather than reporting only a count of
+  // fields: replacing a form whose keys have answers behind them is the risky part.
+  const orphaned = props.template.filter(
+    (f) => f.key && lockedKeySet.value.has(f.key) && !fields.some((n) => n.key === f.key),
+  );
+  const warning = orphaned.length
+    ? `\n\n${orphaned.length} saved field(s) will no longer match existing answers: ${orphaned.map((f) => f.label || f.key).join(', ')}.`
+    : '';
   if (
     props.template.length &&
     typeof window !== 'undefined' &&
-    !window.confirm(`Replace the current ${props.template.length} field(s) with ${fields.length} field(s) from markdown?`)
+    !window.confirm(`Replace the current ${props.template.length} field(s) with ${fields.length} field(s) from markdown?${warning}`)
   ) {
     return;
   }
@@ -189,8 +246,9 @@ function importMarkdown(): void {
 }
 
 // ─── Per-field edits (delegate to the pure array ops) ───
+const lockedKeySet = computed(() => new Set(props.lockedKeys));
 function labelInput(fi: number, e: Event): void {
-  emit('update:template', templateFieldLabelChanged(props.template, fi, (e.target as HTMLInputElement).value));
+  emit('update:template', templateFieldLabelChanged(props.template, fi, (e.target as HTMLInputElement).value, lockedKeySet.value));
 }
 function setField(fi: number, patch: Partial<FormField>): void {
   emit('update:template', templateFieldSet(props.template, fi, patch));
@@ -210,6 +268,44 @@ function setOption(fi: number, oi: number, patch: Partial<{ value: string; label
 function removeOption(fi: number, oi: number): void {
   emit('update:template', templateOptionRemoved(props.template, fi, oi));
 }
+// ─── Conditional display: "show this field only when…" ───
+/** Eligible sources for field `fi` (closed-answer types ABOVE it). */
+function sourcesFor(fi: number): FormField[] {
+  return conditionSourcesFor(props.template, fi);
+}
+/** The values a source can produce, as builder choices. A thin local wrapper so
+ *  the TEMPLATE binds a component-scope function rather than depending on an
+ *  auto-import resolving through the render context, which it does not. */
+function valueChoicesFor(source: FormField): Array<{ value: string; label: string }> {
+  return conditionValueChoices(source);
+}
+/** The field a condition points at, if it is still resolvable. */
+function sourceOf(field: FormField): FormField | undefined {
+  return field.showWhen ? props.template.find((f) => f.key === field.showWhen!.field) : undefined;
+}
+function setCondition(fi: number, cond: FormFieldCondition | null): void {
+  emit('update:template', templateFieldConditionSet(props.template, fi, cond));
+}
+/** Turn the rule on (seeding the first eligible source) or off. */
+function toggleCondition(fi: number, on: boolean): void {
+  if (!on) return setCondition(fi, null);
+  const first = sourcesFor(fi)[0];
+  if (!first) return;
+  setCondition(fi, { field: first.key, equals: [] });
+}
+/** Re-point a rule at a different source; the old values cannot survive the move. */
+function setConditionSource(fi: number, key: string): void {
+  setCondition(fi, { field: key, equals: [] });
+}
+/** Check / uncheck one value of the rule. Emptying it removes the rule, because a
+ *  rule matching nothing would hide the field forever with no way back. */
+function toggleConditionValue(fi: number, value: string, on: boolean): void {
+  const cond = props.template[fi]?.showWhen;
+  if (!cond) return;
+  const equals = on ? [...new Set([...cond.equals, value])] : cond.equals.filter((v) => v !== value);
+  setCondition(fi, equals.length ? { ...cond, equals } : null);
+}
+
 function setMaxLength(fi: number, raw: string): void {
   const n = parseInt(raw, 10);
   setField(fi, { maxLength: Number.isFinite(n) && n > 0 ? Math.min(n, 4000) : undefined });
@@ -392,6 +488,55 @@ function toggleIntro(): void {
           A signed name is personal data, stored privately. Visible only to staff with PII access and the entrant.
         </p>
 
+        <!-- Conditional display (P7): show this field only when an EARLIER
+             closed-answer field matches. Offered only when there IS such a field
+             above, so the control never appears where it cannot be used. -->
+        <div v-if="conditionsEnabled && sourcesFor(fi).length" class="cpub-fte-cond">
+          <label class="cpub-fte-req">
+            <input
+              type="checkbox"
+              :checked="!!tf.showWhen"
+              :aria-label="`Field ${fi + 1}: only show when another answer matches`"
+              @change="toggleCondition(fi, ($event.target as HTMLInputElement).checked)"
+            />
+            <span>{{ tf.type === 'section' ? 'Only show this section when…' : 'Only show this field when…' }}</span>
+          </label>
+
+          <div v-if="tf.showWhen" class="cpub-fte-cond-body">
+            <label class="cpub-fte-cond-row">
+              <span class="cpub-form-hint">Depends on</span>
+              <select
+                :value="tf.showWhen.field"
+                class="cpub-form-input"
+                :aria-label="`Field ${fi + 1} condition source`"
+                @change="setConditionSource(fi, ($event.target as HTMLSelectElement).value)"
+              >
+                <option v-for="src in sourcesFor(fi)" :key="src.key" :value="src.key">
+                  {{ src.label || src.key }}
+                </option>
+              </select>
+            </label>
+
+            <fieldset v-if="sourceOf(tf)" class="cpub-fte-cond-values">
+              <legend class="cpub-form-hint">Shown when the answer is</legend>
+              <label v-for="choice in valueChoicesFor(sourceOf(tf)!)" :key="choice.value" class="cpub-fte-req">
+                <input
+                  type="checkbox"
+                  :checked="tf.showWhen.equals.includes(choice.value)"
+                  @change="toggleConditionValue(fi, choice.value, ($event.target as HTMLInputElement).checked)"
+                />
+                <span>{{ choice.label }}</span>
+              </label>
+            </fieldset>
+
+            <p class="cpub-form-hint cpub-fte-note">
+              While hidden, this {{ tf.type === 'section' ? 'section and the fields under it are' : 'field is' }}
+              not shown, not required, and nothing is stored for it.
+              <template v-if="tf.type === 'section'"> The rule covers every field down to the next section.</template>
+            </p>
+          </div>
+        </div>
+
         <!-- PII toggle. Hidden for types that are ALWAYS/DEFAULT personal data
              (address, file, signature — see @commonpub/schema isFormFieldPii), where
              the opt-in would be a no-op; and for non-answer types (agreement/section). -->
@@ -462,6 +607,12 @@ function toggleIntro(): void {
 .cpub-fte-req { display: inline-flex; align-items: center; gap: var(--space-1); font-size: var(--text-label); font-family: var(--font-mono); text-transform: uppercase; letter-spacing: var(--tracking-wide); color: var(--text-faint); cursor: pointer; flex-shrink: 0; }
 .cpub-fte-req input { width: 13px; height: 13px; flex-shrink: 0; }
 .cpub-fte-help { margin-top: var(--space-2); font-size: var(--text-xs); }
+.cpub-fte-cond { display: flex; flex-direction: column; gap: var(--space-2); margin-top: var(--space-2); padding-top: var(--space-2); border-top: var(--border-width-default) solid var(--border2); }
+.cpub-fte-cond-body { display: flex; flex-direction: column; gap: var(--space-2); padding-left: var(--space-4); }
+.cpub-fte-cond-row { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
+.cpub-fte-cond-row select { flex: 1 1 200px; min-width: 0; }
+.cpub-fte-cond-values { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-4); border: none; padding: 0; margin: 0; min-width: 0; }
+.cpub-fte-cond-values legend { padding: 0; margin-bottom: var(--space-1); }
 .cpub-fte-note { margin: var(--space-1) 0 0; }
 .cpub-fte-maxlen { display: flex; align-items: center; gap: var(--space-2); margin-top: var(--space-2); font-size: var(--text-label); font-family: var(--font-mono); text-transform: uppercase; letter-spacing: var(--tracking-wide); color: var(--text-faint); }
 .cpub-fte-maxlen .cpub-form-input { width: 90px; }

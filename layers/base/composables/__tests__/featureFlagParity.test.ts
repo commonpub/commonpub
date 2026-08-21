@@ -41,7 +41,7 @@ const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../../../..')
  * This constant is the only place the number is written. Read it; do not
  * restate it in an assertion.
  */
-const MIN_FLAGS = 46;
+const MIN_FLAGS = 47;
 
 /**
  * Every flag that gates a persona surface. All default false, in all three

@@ -5,6 +5,7 @@
 import { eq, and, sql, isNull } from 'drizzle-orm';
 import { emitHook } from '../hooks.js';
 import {
+
   activities,
   followRelationships,
   mirrorRequests,
@@ -39,6 +40,22 @@ import {
   matchHubPostUri,
   findAnnouncedObjectUri,
 } from './inboxParsing.js';
+
+/**
+ * Bounds on an inbound federated direct message.
+ *
+ * `to` and `content` both arrive from a remote instance with no prior
+ * relationship to this one, and both were consumed verbatim: the recipient list
+ * was iterated with no cap or dedupe, and the body written to `messages.body`,
+ * an unbounded `text` column. One signed POST could therefore mint thousands of
+ * full-size rows.
+ *
+ * `MAX_DM_BODY_CHARS` matches `sendMessageSchema`'s cap
+ * (packages/schema/src/validators/messaging.ts) so a remote sender is held to the
+ * same limit as the local compose box.
+ */
+const MAX_DM_RECIPIENTS = 20;
+const MAX_DM_BODY_CHARS = 10_000;
 
 /** Resolve a remote actor's display name from cache, falling back to URI username segment */
 async function resolveRemoteActorName(db: DB, actorUri: string): Promise<string> {
@@ -518,7 +535,17 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
         const { findOrCreateConversation, sendMessage } = await import('../messaging/messaging.js');
         const { users: usersTable } = await import('@commonpub/schema');
 
-        for (const recipientUri of toField) {
+        // Bound the fan-out. `to` is remote-controlled and was iterated verbatim,
+        // so ONE signed POST from an actor with no relationship to this instance
+        // could name the same local user thousands of times and mint a full-size
+        // message row for each. Dedupe first (a repeated URI is not a second
+        // recipient), then cap: a real direct message has a handful of
+        // recipients, and anything past the cap is dropped rather than the whole
+        // activity rejected, so a sloppy-but-honest sender still delivers.
+        const recipients = [...new Set(toField.filter((u): u is string => typeof u === 'string'))]
+          .slice(0, MAX_DM_RECIPIENTS);
+
+        for (const recipientUri of recipients) {
           // Check if this is a local user
           try {
             const recipientUrl = new URL(recipientUri);
@@ -536,7 +563,12 @@ export function createInboxHandlers(opts: InboxHandlerOptions): InboxCallbacks {
                   // The remote actor's identity is embedded in the message prefix
                   try {
                     const conv = await findOrCreateConversation(db, [localUser.id]);
-                    const content = typeof object.content === 'string' ? sanitizeHtml(object.content) : '';
+                    // Same cap the local send route enforces. `messages.body` is
+                    // an unbounded `text` column, so without this a remote sender
+                    // faces no limit the local UI is held to.
+                    const content = typeof object.content === 'string'
+                      ? sanitizeHtml(object.content).slice(0, MAX_DM_BODY_CHARS)
+                      : '';
                     if (content) {
                       // Resolve remote actor display name for better UX
                       let senderLabel = actorUri;

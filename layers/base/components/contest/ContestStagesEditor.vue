@@ -21,6 +21,13 @@ const props = defineProps<{
   startDate: string;
   endDate: string;
   judgingEndDate?: string | null;
+  /**
+   * Per-stage submission-template keys that came from the server, keyed by stage
+   * id. Frozen against label-edit rekeying, because a stored artifact answer
+   * hangs off the key. Absent for stages added in this session, whose keys should
+   * still track their label.
+   */
+  lockedKeysByStage?: Record<string, string[]>;
 }>();
 
 // Whole-array reassign on every edit (pure ops); keeps the parent v-model reactive.
@@ -93,6 +100,7 @@ const missingSubmission = computed(() => stages.value.length > 0 && !stages.valu
           :stage="stage"
           :index="i"
           :is-current="currentId === stage.id"
+          :locked-keys="props.lockedKeysByStage?.[stage.id] ?? []"
           :is-first="i === 0"
           :is-last="i === stages.length - 1"
           @patch="setField(i, $event)"

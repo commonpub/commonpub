@@ -1,6 +1,27 @@
 # CommonPub — Status & Operator Runbook
 
-> **Living doc — your "come back later" reference.** Snapshot updated 2026-08-15 (through session 255).
+> **Living doc — your "come back later" reference.** Snapshot updated 2026-08-21 (through session 256).
+>
+> **Session 256 is BUILT AND NOT ROLLED.** Everything below about live versions is still accurate,
+> because nothing has been published. The working tree carries conditional form fields, the contest
+> funnel fixes, a tag-balancing sanitizer, four security fixes and the cover-image notice; flags go
+> **46 → 47** on the roll and there is **no migration**. Start at `docs/sessions/256-handoff.md`.
+>
+> **Two live things that need an operator, not a deploy.** deveco's Official Rules are truncated at
+> exactly 50,000 characters mid-word AND carry 31 unresolved `[CONFIRM: …]` placeholders — including
+> the proposal submission deadline — in a document 19 registrants have accepted; the full text exceeds
+> `CONTEST_RICH_TEXT_MAX`, so it needs a decision (docs page / shorten / raise the cap). And on any
+> contest page a **registered** entrant is served "Register for this contest" in the SSR'd HTML,
+> because `registrationTier` seeds `null` and `mustRegisterFirst` is therefore true for everyone
+> server-side. That is the reported "people don't know how to submit", served by the server; the fix
+> is one pending-state rule across all 23 `server: false` sites and is deliberately still open.
+>
+> **Two audit rounds ran in session 256** (`docs/reviews/platform-audit-2026-08-21.md` and
+> `platform-audit-round-2-2026-08-21.md`): 227 raw findings, 175 confirmed, no P0. Round 2 targeted
+> what round 1's completeness critic said it had missed — `packages/protocol/`, the upload pipeline,
+> the write surface, the RBAC resolver, feeds/SEO, migrations, and the untouched product subsystems.
+>
+> Snapshot below is unchanged from session 255.
 > Verify any version/flag claim before trusting it: `npm view @commonpub/<pkg> version`,
 > `curl https://<instance>/api/features`, `cargo search create-commonpub`.
 > **Current LIVE (all 3 instances):** persona **0.2.1** / config **0.39.1** / schema **0.65.0** /

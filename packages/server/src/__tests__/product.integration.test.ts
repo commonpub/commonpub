@@ -105,11 +105,27 @@ describe('product integration', () => {
       notes: 'Main board',
     });
 
-    const products = await listContentProducts(db, content.id);
+    const products = await listContentProducts(db, content.id, userId);
     expect(products.length).toBeGreaterThanOrEqual(1);
     const linked = products.find((p) => p.productId === product.id);
     expect(linked).toBeDefined();
     expect(linked!.quantity).toBe(2);
+  });
+
+  // The BOM is gated on the CONTENT's visibility. Before this, the join was by
+  // contentId alone, so a draft or private project's parts list — names, slugs,
+  // images, quantities, roles, notes — was readable by anyone holding the id.
+  it('does not expose a draft project\'s BOM to an anonymous caller', async () => {
+    const product = await createProduct(db, userId, hubId, { name: 'Secret Board' });
+    const content = await createContent(db, userId, { type: 'project', title: 'Unpublished Project' });
+    await addContentProduct(db, content.id, { productId: product.id, quantity: 1 });
+
+    // The author still sees it.
+    expect((await listContentProducts(db, content.id, userId)).length).toBeGreaterThanOrEqual(1);
+
+    // Anonymous, and a different signed-in user, do not.
+    expect(await listContentProducts(db, content.id)).toEqual([]);
+    expect(await listContentProducts(db, content.id, '00000000-0000-4000-8000-000000000000')).toEqual([]);
   });
 
   it('removes product from content', async () => {
@@ -125,7 +141,7 @@ describe('product integration', () => {
     await addContentProduct(db, content.id, { productId: product.id });
     await removeContentProduct(db, content.id, product.id);
 
-    const products = await listContentProducts(db, content.id);
+    const products = await listContentProducts(db, content.id, userId);
     const found = products.find((p) => p.productId === product.id);
     expect(found).toBeUndefined();
   });
@@ -145,7 +161,7 @@ describe('product integration', () => {
       { productId: p2.id, quantity: 3 },
     ]);
 
-    let products = await listContentProducts(db, content.id);
+    let products = await listContentProducts(db, content.id, userId);
     expect(products.length).toBe(2);
 
     // Second sync — only keep p2
@@ -153,7 +169,7 @@ describe('product integration', () => {
       { productId: p2.id, quantity: 5 },
     ]);
 
-    products = await listContentProducts(db, content.id);
+    products = await listContentProducts(db, content.id, userId);
     expect(products.length).toBe(1);
     expect(products[0]!.productId).toBe(p2.id);
   });

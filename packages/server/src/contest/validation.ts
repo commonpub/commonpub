@@ -1,14 +1,17 @@
 import { createHash } from 'node:crypto';
 import type { ContestSubmissionTemplateField } from '@commonpub/schema';
-import { isFormFieldPii } from '@commonpub/schema';
+import { isFormFieldPii, visibleFormFieldKeys, FORM_ACCEPTANCE_VALUES } from '@commonpub/schema';
 import type { AgreementAcceptanceInput, PartitionedSubmission } from './types.js';
 
 // Pure submission-form validation + partition. No DB access — exhaustively
 // unit-testable. The DB writers (recordPrivateAndAgreements, submitStageArtifact,
 // submitContestProposal) live in submissions.ts and consume these.
 
-/** Truthy markers an `agreement`/`checkbox` value is "accepted/checked". */
-const ACCEPTANCE_VALUES = new Set(['true', 'on', '1', 'yes', 'accepted', 'checked']);
+// Truthy markers an `agreement`/`checkbox` value is "accepted/checked".
+// Imported, not re-declared: conditional-field evaluation compares the same
+// markers, and a second copy is how a checkbox reads as checked on one surface
+// and unchecked on the other.
+const ACCEPTANCE_VALUES = FORM_ACCEPTANCE_VALUES;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // Personal-data partition test. Delegates to the SINGLE SOURCE OF TRUTH in
@@ -53,7 +56,20 @@ export function validateSubmissionFields(
   const pii: Record<string, string> = {};
   const agreements: AgreementAcceptanceInput[] = [];
 
+  // Conditional display (P7). Resolve ONCE, from the submitted answers, using the
+  // same `visibleFormFieldKeys` the renderer and the client gate use. A hidden
+  // field is not required and its answer is not stored — the entrant was never
+  // shown it, so demanding it would be unfillable and storing it would keep a
+  // stale answer from before they changed the controlling choice.
+  //
+  // Evaluating against the SUBMITTED values (not a server-side notion of the
+  // "true" answers) is deliberate and is the only coherent option: the entrant's
+  // own answers are what determined what they saw. It is also why a condition may
+  // only name an earlier field of a closed type — see FormFieldCondition.
+  const visible = visibleFormFieldKeys(template, values);
+
   for (const field of template) {
+    if (!visible.has(field.key)) continue;
     // Section headers are display-only (title + help) — no value, nothing to
     // validate or store. A stray value under a section key is rejected by the
     // unknown-key guard above only if the key isn't in the template; a section's

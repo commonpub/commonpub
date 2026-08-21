@@ -1,7 +1,7 @@
 import { getHubBySlug, getHubActorUri, getHubPostNoteUri } from '@commonpub/server';
 import { AP_CONTEXT, AP_PUBLIC, escapeHtmlForAP } from '@commonpub/protocol';
 import { hubPosts, users } from '@commonpub/schema';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 
 /**
  * Middleware: serve ActivityPub Note JSON-LD for hub post URIs.
@@ -53,7 +53,11 @@ export default defineEventHandler(async (event) => {
     })
     .from(hubPosts)
     .innerJoin(users, eq(hubPosts.authorId, users.id))
-    .where(eq(hubPosts.id, postId))
+    // Scope the row to the hub whose privacy we just checked. Without the hubId
+    // predicate the authorization decision is made about one hub and the data is
+    // read from another, so a post belonging to a PRIVATE hub is served
+    // unauthenticated whenever its id is requested under any public hub's slug.
+    .where(and(eq(hubPosts.id, postId), eq(hubPosts.hubId, hub.id)))
     .limit(1);
 
   if (!post) return;

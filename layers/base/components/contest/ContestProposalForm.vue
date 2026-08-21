@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { ContestStage } from '@commonpub/schema';
-import { blockingFields, buildSubmissionPayload } from '../../utils/contestSubmission';
+import { blockingFields, buildSubmissionPayload, visibleTemplateFields } from '../../utils/contestSubmission';
 
 // Form-first proposal entry (Phase 4). For a current, proposal-mode submission
 // stage: the entrant fills the stage form and the server creates a DRAFT
@@ -27,6 +27,10 @@ watch(template, (t) => {
   for (const f of t) next[f.key] = '';
   values.value = next;
 }, { immediate: true });
+
+// Conditional display (P7) — the shared resolver, so the form shows exactly the
+// fields the server will demand and store.
+const shownFields = computed(() => visibleTemplateFields(template.value, values.value));
 
 const missingRequired = computed(() => blockingFields(template.value, values.value));
 const submitting = ref(false);
@@ -64,7 +68,7 @@ async function submit(): Promise<void> {
     <p class="cpub-proposal-desc">Submitting creates a draft project you can develop for later rounds. You can edit it any time.</p>
 
     <ContestSubmissionField
-      v-for="f in template"
+      v-for="f in shownFields"
       :key="f.key"
       :field="f"
       v-model="values[f.key]"

@@ -94,6 +94,31 @@ export interface ContestStage {
 }
 
 /**
+ * A conditional-display rule on a form field (P7): show this field only while
+ * ANOTHER field in the same template holds one of `equals`.
+ *
+ * Deliberately narrow, and each constraint earns its place:
+ * - ONE controlling field, not a boolean tree. An operator authoring a
+ *   registration form reasons about "show the shipping block to hardware
+ *   entrants"; nested and/or was not worth the builder UI or the failure modes.
+ * - The controlling field must appear EARLIER in the template. That makes a
+ *   cycle unrepresentable rather than merely rejected, and lets visibility
+ *   resolve in a single forward pass.
+ * - The controlling field must be `select`, `radio` or `checkbox` — types with a
+ *   closed, enumerable answer set the builder can offer as checkboxes. Matching
+ *   on free text would silently break on a typo or a trailing space.
+ *
+ * `equals` holds STORED values (an option's `value`, or `'true'`/`'false'` for a
+ * checkbox), never labels, so relabelling an option never breaks a condition.
+ */
+export interface FormFieldCondition {
+  /** `key` of an earlier `select`/`radio`/`checkbox` field in the same template. */
+  field: string;
+  /** Stored values that reveal this field. Non-empty. */
+  equals: string[];
+}
+
+/**
  * One field of a `submission` stage's artifact template. Phase 4 widened the
  * type set; `agreement` and `address` (and any field with `pii: true`) are
  * partitioned out of the public `stageSubmissions.fields` artifact at submit
@@ -133,6 +158,12 @@ export interface ContestSubmissionTemplateField {
   /** `file`-only: max upload size in KB, enforced in the DB-backed post-validation
    *  (bounded by the storage adapter's `contest` purpose cap regardless). */
   maxSizeKb?: number;
+  /**
+   * Conditional display (P7). Omitted ⇒ always shown. When present, the field is
+   * rendered, required-checked and STORED only while the condition holds; see
+   * `visibleFormFieldKeys`, which is the single source of truth for both sides.
+   */
+  showWhen?: FormFieldCondition;
   /** `select`/`radio`-only: the allowed options. */
   options?: Array<{ value: string; label: string }>;
   /** Personal data — stored in `contest_entry_private_fields`, not the artifact. Forced true for `address`. */
@@ -186,6 +217,89 @@ export function isRequiredFormField(f: Pick<FormField, 'type' | 'required' | 'mu
   if (f.type === 'section') return false;
   if (f.type === 'agreement') return f.required === true || f.mustAccept !== false;
   return f.required === true;
+}
+
+/**
+ * The markers a `checkbox`/`agreement` answer counts as checked/accepted.
+ *
+ * Lives here because THREE places need the same answer and had grown their own
+ * copy: the server validator, the client form helpers, and now conditional-field
+ * evaluation. A fourth copy is how a condition starts matching on one surface and
+ * not the other.
+ */
+export const FORM_ACCEPTANCE_VALUES: ReadonlySet<string> = new Set([
+  'true', 'on', '1', 'yes', 'accepted', 'checked',
+]);
+
+/** Whether a raw answer counts as checked/accepted. */
+export function isFormAcceptanceValue(value: string | undefined | null): boolean {
+  return FORM_ACCEPTANCE_VALUES.has((value ?? '').trim().toLowerCase());
+}
+
+/**
+ * SINGLE SOURCE OF TRUTH for "which fields of this template are currently shown",
+ * given the answers so far. The renderer, the client required-gate, the payload
+ * builder and the server's validate-and-partition all call THIS — a second
+ * implementation is how a field gets hidden on screen but still demanded by the
+ * server, or demanded on screen but dropped by the server.
+ *
+ * Resolution is one forward pass, which is sound because a condition may only
+ * name an EARLIER field (enforced by `registrationTemplateSchema`):
+ *
+ * - a `section` carrying `showWhen` gates ITSELF and every following field up to
+ *   the next section, so an operator can hide a whole block with one rule;
+ * - a section WITHOUT `showWhen` reopens the gate;
+ * - a field's own `showWhen` is ANDed with its section's gate;
+ * - an answer belonging to a HIDDEN field is not an answer. A condition keyed on
+ *   a hidden field is therefore unsatisfied, and hiding cascades rather than
+ *   resurrecting a grandchild whose parent went away.
+ *
+ * A `showWhen` naming a missing or later field never matches — the validator
+ * rejects that template on write, so this is the read-side belt for rows stored
+ * before the rule existed.
+ */
+export function visibleFormFieldKeys(
+  template: ReadonlyArray<Pick<FormField, 'key' | 'type' | 'showWhen'>>,
+  values: Readonly<Record<string, string | undefined>>,
+): Set<string> {
+  const visible = new Set<string>();
+  const byKey = new Map(template.map((f) => [f.key, f]));
+  // The gate contributed by the enclosing section: true until a section says otherwise.
+  let sectionOpen = true;
+
+  const satisfied = (cond: FormFieldCondition): boolean => {
+    const source = byKey.get(cond.field);
+    // Unknown key, or a controlling field that is itself hidden ⇒ no answer.
+    if (!source || !visible.has(cond.field)) return false;
+    const raw = (values[cond.field] ?? '').trim();
+    if (source.type === 'checkbox') {
+      return cond.equals.includes(isFormAcceptanceValue(raw) ? 'true' : 'false');
+    }
+    return cond.equals.includes(raw);
+  };
+
+  for (const field of template) {
+    if (field.type === 'section') {
+      sectionOpen = field.showWhen ? satisfied(field.showWhen) : true;
+      if (sectionOpen) visible.add(field.key);
+      continue;
+    }
+    const shown = sectionOpen && (field.showWhen ? satisfied(field.showWhen) : true);
+    if (shown) visible.add(field.key);
+  }
+  return visible;
+}
+
+/**
+ * Field types whose answer set is closed enough to key a condition on. Exported
+ * so the builder offers exactly what the validator accepts, rather than the two
+ * drifting into an operator saving a condition the UI let them build.
+ */
+export const CONDITION_SOURCE_TYPES: ReadonlyArray<FormField['type']> = ['select', 'radio', 'checkbox'];
+
+/** Whether a field may be named as the source of another field's `showWhen`. */
+export function isConditionSourceField(f: Pick<FormField, 'type'>): boolean {
+  return CONDITION_SOURCE_TYPES.includes(f.type);
 }
 
 /** Any field in the template requires an answer (⇒ the registration form is mandatory). */

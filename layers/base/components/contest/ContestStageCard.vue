@@ -17,6 +17,8 @@ const props = defineProps<{
   isCurrent: boolean;
   isFirst: boolean;
   isLast: boolean;
+  /** Server-supplied template keys for THIS stage; never regenerated from a label. */
+  lockedKeys?: string[];
 }>();
 
 const emit = defineEmits<{
@@ -32,6 +34,13 @@ const KINDS: ContestStage['kind'][] = ['submission', 'review', 'interim', 'resul
 const { features } = useFeatures();
 const templatesEnabled = computed(() => features.value.contestStageSubmissions !== false);
 const proposalsEnabled = computed(() => features.value.contestProposals === true);
+/** Proposal mode with an empty form: the configuration that turns the proposal
+ *  path off without saying so. */
+const proposalFormEmpty = computed(
+  () => props.stage.kind === 'submission'
+    && props.stage.submissionMode === 'proposal'
+    && (props.stage.submissionTemplate?.length ?? 0) === 0,
+);
 
 function setField(patch: Partial<ContestStage>): void {
   emit('patch', patch);
@@ -155,12 +164,23 @@ function onInstructionsUpdate(blocks: BlockTuple[]): void {
         <option value="proposal">Proposal form (creates a draft project)</option>
       </select>
       <p class="cpub-form-hint" style="margin: 4px 0;">Proposal mode lets entrants apply with just this form. The server creates a draft project they develop for later rounds.</p>
+      <!-- Proposal mode with no fields silently disables the whole proposal path:
+           the public page requires a non-empty template before it renders the
+           form, so entrants see only "attach a published project" and nothing
+           tells anyone why. Say so here, where it can be fixed. -->
+      <p v-if="proposalFormEmpty" class="cpub-stage-warn" role="status">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        This stage is set to proposal mode but its submission form has no fields yet, so entrants
+        cannot submit a proposal. They will only see the option to attach an already published
+        project. Add at least one field below.
+      </p>
     </div>
 
     <!-- Per-stage submission template (submission stages): the artifact fields
          entrants fill for THIS stage (proposal vs prototype). -->
     <FormTemplateEditor
       v-if="stage.kind === 'submission' && templatesEnabled"
+      :locked-keys="lockedKeys ?? []"
       :template="stage.submissionTemplate ?? []"
       :instructions="(stage.instructionsBlocks as BlockTuple[] | undefined)"
       enable-intro
@@ -206,4 +226,5 @@ function onInstructionsUpdate(blocks: BlockTuple[]): void {
 .cpub-stage-kind-help i { color: var(--accent); margin-top: 2px; flex-shrink: 0; }
 .cpub-stage-criteria { border: var(--border-width-default) dashed var(--border2); padding: 10px; margin-top: 4px; background: var(--surface); }
 .cpub-stage-advn { max-width: 320px; }
+.cpub-stage-warn { display: flex; align-items: baseline; gap: var(--space-2); font-size: var(--text-xs); line-height: var(--leading-normal); color: var(--yellow-text); border: var(--border-width-default) solid var(--yellow-border); background: var(--yellow-bg); padding: var(--space-2) var(--space-3); margin: var(--space-2) 0 0; }
 </style>

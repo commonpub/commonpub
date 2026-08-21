@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { ContestSubmissionTemplateField } from '@commonpub/schema';
+import { isRequiredFormField, type ContestSubmissionTemplateField } from '@commonpub/schema';
 import { ADDRESS_SUBFIELDS, parseAddress, serializeAddress, isChecked } from '../../utils/contestSubmission';
 
 // One entrant-facing control for a submission-template field. Renders the right
@@ -12,12 +12,35 @@ const props = withDefaults(defineProps<{
   field: ContestSubmissionTemplateField;
   /** Unique id prefix so multiple forms on a page don't collide. */
   idPrefix?: string;
-}>(), { idPrefix: 'cpub-subfield' });
+  /**
+   * The field is required and currently unanswered, and the form has decided to
+   * SAY so. Drives `aria-invalid` and points `aria-describedby` at the error
+   * text, so the message reaches assistive tech instead of being a red sibling
+   * paragraph the input never references.
+   *
+   * The error ELEMENT is owned by the parent form (it knows when to reveal it);
+   * this component only derives its id, which is why `errorId` is computed from
+   * `fieldId` rather than passed in. `ContestRegistrationForm` renders a
+   * `<p :id="`${idPrefix}-${field.key}-error`">` and a test pins the two ids
+   * together — if they ever drift, the description silently points at nothing.
+   */
+  invalid?: boolean;
+}>(), { idPrefix: 'cpub-subfield', invalid: false });
 
 const model = defineModel<string>({ default: '' });
 
 const fieldId = computed(() => `${props.idPrefix}-${props.field.key}`);
 const helpId = computed(() => (props.field.help ? `${fieldId.value}-help` : undefined));
+const errorId = computed(() => `${fieldId.value}-error`);
+/** Help text and, while invalid, the error message. Space-separated per ARIA. */
+const describedBy = computed(() => {
+  const ids = [helpId.value, props.invalid ? errorId.value : undefined].filter(Boolean);
+  return ids.length ? ids.join(' ') : undefined;
+});
+/** `aria-invalid` only while actually invalid — the attribute is absent otherwise. */
+const invalidAttr = computed(() => (props.invalid ? 'true' : undefined));
+/** Required in the shared sense (an agreement is required via mustAccept too). */
+const requiredAttr = computed(() => (isRequiredFormField(props.field) ? 'true' : undefined));
 
 // Address: a parsed view-model re-serialized back into the string model on edit.
 const address = computed(() => parseAddress(model.value));
@@ -86,7 +109,9 @@ function clearFile(): void {
         <input
           type="checkbox"
           :checked="checked"
-          :aria-describedby="helpId"
+          :aria-describedby="describedBy"
+          :aria-invalid="invalidAttr"
+          :aria-required="requiredAttr"
           @change="setChecked(($event.target as HTMLInputElement).checked)"
         />
         <span>I accept{{ field.required || field.mustAccept !== false ? ' (required)' : '' }}</span>
@@ -100,7 +125,9 @@ function clearFile(): void {
           :id="fieldId"
           type="checkbox"
           :checked="checked"
-          :aria-describedby="helpId"
+          :aria-describedby="describedBy"
+          :aria-invalid="invalidAttr"
+          :aria-required="requiredAttr"
           @change="setChecked(($event.target as HTMLInputElement).checked)"
         />
         <span>{{ field.label }} <span v-if="field.required" class="cpub-subfield-req" aria-hidden="true">*</span></span>
@@ -131,7 +158,7 @@ function clearFile(): void {
       <span :id="fieldId" class="cpub-subfield-label">
         {{ field.label }} <span v-if="field.required" class="cpub-subfield-req" aria-hidden="true">*</span>
       </span>
-      <div class="cpub-subfield-radios" role="radiogroup" :aria-labelledby="fieldId" :aria-describedby="helpId">
+      <div class="cpub-subfield-radios" role="radiogroup" :aria-labelledby="fieldId" :aria-describedby="describedBy" :aria-invalid="invalidAttr" :aria-required="requiredAttr">
         <label v-for="o in (field.options ?? [])" :key="o.value" class="cpub-subfield-radio">
           <input
             type="radio"
@@ -156,7 +183,9 @@ function clearFile(): void {
         class="cpub-sr-only"
         :accept="field.accept || undefined"
         :aria-label="field.label"
-        :aria-describedby="helpId"
+        :aria-describedby="describedBy"
+        :aria-invalid="invalidAttr"
+        :aria-required="requiredAttr"
         @change="onFilePick"
       />
       <div class="cpub-subfield-file">
@@ -186,14 +215,18 @@ function clearFile(): void {
         class="cpub-subfield-input cpub-subfield-textarea"
         rows="4"
         :maxlength="field.maxLength ?? 4000"
-        :aria-describedby="helpId"
+        :aria-describedby="describedBy"
+        :aria-invalid="invalidAttr"
+        :aria-required="requiredAttr"
       ></textarea>
       <select
         v-else-if="field.type === 'select'"
         :id="fieldId"
         v-model="model"
         class="cpub-subfield-input"
-        :aria-describedby="helpId"
+        :aria-describedby="describedBy"
+        :aria-invalid="invalidAttr"
+        :aria-required="requiredAttr"
       >
         <option value="" disabled>Choose…</option>
         <option v-for="o in (field.options ?? [])" :key="o.value" :value="o.value">{{ o.label }}</option>
@@ -211,7 +244,9 @@ function clearFile(): void {
         :value="model"
         class="cpub-subfield-input"
         :maxlength="field.maxLength ?? 4000"
-        :aria-describedby="helpId"
+        :aria-describedby="describedBy"
+        :aria-invalid="invalidAttr"
+        :aria-required="requiredAttr"
         @input="model = ($event.target as HTMLInputElement).value"
       />
       <input
@@ -224,7 +259,9 @@ function clearFile(): void {
         :maxlength="field.maxLength ?? 4000"
         :placeholder="field.type === 'url' ? 'https://' : field.type === 'signature' ? 'Type your full name to sign' : undefined"
         :inputmode="field.type === 'tel' ? 'tel' : undefined"
-        :aria-describedby="helpId"
+        :aria-describedby="describedBy"
+        :aria-invalid="invalidAttr"
+        :aria-required="requiredAttr"
       />
     </template>
 

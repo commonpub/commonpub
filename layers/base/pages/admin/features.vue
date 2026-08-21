@@ -27,6 +27,7 @@ const flagMeta: Record<string, { label: string; description: string; icon: strin
   contestStageSubmissions: { label: 'Contest Stage Submissions', description: 'Per-stage submission forms for multi-round contests', icon: 'fa-solid fa-file-pen' },
   contestProposals: { label: 'Contest Proposals', description: 'Form-first proposal entries with a draft placeholder project', icon: 'fa-solid fa-clipboard-list' },
   contestPii: { label: 'Contest PII Fields', description: 'Offer personal-data fields (email, address) in submission forms', icon: 'fa-solid fa-user-shield' },
+  contestConditionalFields: { label: 'Conditional Form Fields', description: 'Offer "show this field only when…" rules in the contest form builder', icon: 'fa-solid fa-code-branch' },
   contestReminders: { label: 'Contest Deadline Reminders', description: 'Automatic deadline reminder emails to registered participants (needs Email Notifications)', icon: 'fa-solid fa-bell' },
   contestActionBar: { label: 'Contest Action Bar', description: 'Persistent Register/Submit bar at the bottom of narrow screens, where the sidebar sits far below the fold', icon: 'fa-solid fa-mobile-screen-button' },
   emailVerification: { label: 'Email Verification', description: 'Mail a confirmation link on signup and nag with a banner until confirmed. Never blocks sign-in, so nobody is locked out. Needs a real mail transport', icon: 'fa-solid fa-envelope-circle-check' },

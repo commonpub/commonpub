@@ -20,6 +20,8 @@ const props = defineProps<{
   savedFields?: Record<string, string> | null;
   /** In-flight register/unregister request (disables the toggle). */
   registering?: boolean;
+  /** Whether the viewer already has an entry (drives the "now submit" nudge). */
+  hasEntry?: boolean;
 }>();
 
 // Public registration count, from the SSR'd contest DTO. The `registrantCount`
@@ -163,6 +165,7 @@ function statusClass(status: string): string {
       :tier="tier"
       :saved-fields="savedFields"
       :registering="registering"
+      :has-entry="hasEntry"
       @register="(payload) => emit('register', payload)"
       @unregister="emit('unregister')"
     />
