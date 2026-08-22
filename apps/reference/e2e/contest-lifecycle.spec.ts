@@ -95,9 +95,15 @@ async function heroCtas(page: Page): Promise<string[]> {
   // The viewer's own registration state is fetched client-side (server:false),
   // so the CTA settles a beat after paint.
   await page.waitForTimeout(1200);
-  return page.$$eval('.cpub-hero-cta a, .cpub-hero-cta button', (els) =>
-    els.map((e) => (e.textContent ?? '').replace(/\s+/g, ' ').trim()),
-  );
+  // `allTextContents()` over a locator, NOT `$$eval`: the CTA settling can race
+  // a client-side navigation, and `$$eval` resolves its handles once, so it dies
+  // with "Execution context was destroyed" instead of retrying. A locator
+  // re-resolves, which is the difference between a flake and a result. This
+  // failed the whole serial suite, so every test after it went unrun.
+  const labels = await page
+    .locator('.cpub-hero-cta a, .cpub-hero-cta button')
+    .allTextContents();
+  return labels.map((t) => t.replace(/\s+/g, ' ').trim());
 }
 
 test.describe('Contest lifecycle', () => {
@@ -244,7 +250,20 @@ test.describe('Contest lifecycle', () => {
     await page.waitForSelector('.cpub-regform', { timeout: 30_000 });
     await page.waitForTimeout(1000);
 
-    await expect(page.locator('.cpub-regform-save'), 'save is blocked until required fields are met').toBeDisabled();
+    // Save is deliberately NOT disabled by missing answers. A greyed-out button
+    // at the foot of a form, with nothing saying which answer is missing, is
+    // precisely what entrants reported as "it does nothing" — the funnel problem
+    // this session set out to fix. Clicking while incomplete reveals the
+    // missing-answer summary and emits nothing.
+    await expect(
+      page.locator('.cpub-regform-save'),
+      'save stays clickable so the form can explain itself',
+    ).toBeEnabled();
+    await page.locator('.cpub-regform-save').click();
+    await expect(
+      page.locator('.cpub-regform-summary'),
+      'clicking while incomplete lists what is still needed',
+    ).toBeVisible();
 
     await page.fill('#cpub-regpage-team', 'Night Shift');
     await page.fill('#cpub-regpage-size', '4');                       // number: must stay a string on the wire

@@ -347,3 +347,128 @@ the PREVIOUS deploy, which was already green, and it reported success for a buil
 that did not contain the change. The served CSS is what caught it. Match the run
 to the merge commit's SHA before believing a deploy, and check the artifact, not
 the workflow's colour.
+
+---
+
+# Addendum 2: post-roll audit
+
+Everything below was found by auditing the session's own work after it shipped.
+
+## CI on main was red, and it was not the persona tests
+
+After the persona date fix, CI stayed red. The obvious reading was that the fix
+had not worked. It had: **2138 server tests passed, zero failed.** The job still
+exited 1, on a vitest `Unhandled Errors` block:
+
+```
+Uncaught Exception: error: terminating connection due to administrator command
+(57P01), originating in src/__tests__/concurrency.integration.test.ts
+```
+
+`createRealTestDB().cleanup()` ends the pool and then drops the throwaway
+database `WITH (FORCE)`, which terminates any connection that outlived
+`pool.end()`. `pg` raises that on the pool's behalf as an `'error'` event, and
+**an `'error'` event with no listener is an uncaught exception**, which vitest
+treats as a run failure regardless of test results. On a loaded CI runner the
+race is wide enough to fire reliably; locally it never did.
+
+None of the four pools in `helpers/realpgdb.ts` had a listener. They do now. The
+long-lived one distinguishes teardown (expected, dropped) from anything earlier
+(logged rather than swallowed, since an idle-client error mid-suite is real
+signal). Corroborating evidence: leaked `cc_test_*` databases on the local dev
+Postgres, which is the same teardown not finishing.
+
+The lesson is narrow and worth keeping: **a green test count is not a green
+run.** Read the exit reason, not the summary line.
+
+## A live privacy leak in sitemap.xml
+
+`users.profileVisibility` is a real setting (`public` / `members` / `private`).
+`sitemap.xml` filtered on `users.status = 'active'` **alone**, so a member who
+set their profile to members-only or private still had their profile URL handed
+to crawlers. Live on all three instances until this fix.
+
+What makes it a clean example: the correct predicate already existed in two
+places and both were right. `publicApi/serializers.ts:isPublicUser` checks
+`deletedAt === null && profileVisibility === 'public'`, and
+`public/v1/users/index.get.ts` carries the same three conditions.
+`persona/directory.ts` gates on it too. The sitemap was the one enumeration that
+drifted from a predicate everyone else shared.
+
+Checked and correct, so this was a single site and not a class:
+`public/v1/users/index.get.ts`, `public/v1/users/[username].get.ts`,
+`persona/directory.ts`. `public/v1/instance.get.ts` counts active users for
+instance stats, which is an aggregate rather than an enumeration of identities,
+and was left alone.
+
+## The scroll-trap class, measured rather than assumed
+
+Having fixed the mobile menu, I enumerated every full-viewport fixed overlay in
+the layer and `@commonpub/ui` (37 candidates) and checked whether each has a
+scrollable inner panel.
+
+- **Genuinely broken, fixed:** `.cpub-mobile-menu` and deveco's
+  `.de-mobile-menu` (already shipped).
+- **Real but minor, fixed, ships with the next release:**
+  `PublishErrorsModal`. Its overlay centres the card with `align-items: center`
+  and has no overflow, and the card had no height cap, so a card taller than the
+  viewport is clipped at *both* ends with nothing to scroll, including the
+  "Got it" button, and a phone has no Escape key to fall back on. The validator
+  emits at most 5 short messages, so a portrait phone clears it comfortably;
+  landscape, or messages wrapping to two lines, is where it bites.
+- **Checked, already correct:** `ContentPicker`, `ImportUrlModal`,
+  `AdminLayoutsHelpOverlay`, `MarkdownImportDialog`, `ui/Dialog`,
+  `MirrorDetailModal`, `MirrorRequestApproveModal`, `ProductEditModal`,
+  `ShareToHubModal`, `ContestSignup`, `HubProjects`, the contest submit overlay
+  and the docs settings overlay. All cap the panel and scroll it.
+- **Bounded content, cannot overflow:** `ImageCropperModal`,
+  `RemoteFollowDialog`, `TermsReacceptanceGate`,
+  `AdminLayoutsConflictModal`, and the messages new-conversation dialog (its
+  only list is recipient chips the user adds themselves). I flagged the last
+  one on a first pass and it does not hold up.
+
+## XML validity in both feeds
+
+`sitemap.xml` and `feed.xml` each carry their own copy of `escapeXml`, and
+neither stripped C0 control characters. XML 1.0 permits only #x9, #xA, #xD and
+#x20 upward, and a control character is illegal **even written as a numeric
+reference**, so one stray character in a title makes the whole document
+malformed and readers reject the entire feed rather than skipping that item.
+Both copies now strip them, and the guard asserts the two implementations stay
+byte-identical.
+
+## Dependency ranges: better-auth really was the only one
+
+Audited every schema-coupled dependency across all packages.
+
+| dep | range | verdict |
+| --- | --- | --- |
+| `better-auth` | was `^1.2.0`, now `~1.6.29` | the one real hazard, fixed |
+| `drizzle-orm` | `^0.45.1` everywhere | safe: caret on 0.x cannot cross a minor |
+| `drizzle-kit` | `^0.31.10` | same |
+| `@electric-sql/pglite` | `^0.3.16` | same |
+| `pg` | `^8.13.0` | a driver, not schema-coupled |
+
+Worth noting **why** the others are safe: not by intent, but because caret on a
+`0.x` version is already minor-locked. If drizzle-orm ever ships 1.0, `^1.x`
+becomes exactly as dangerous as `^1.2.0` was for better-auth.
+
+## Calendar-fused fixtures beyond persona
+
+`PERSONA_SNAPSHOT_MAX_AGE_DAYS` is the only staleness window in the codebase, so
+the two persona suites were the only ones that could rot that way, and they are
+fixed. Scanning every test fixture for a date literal combined with a live clock
+turned up two more with **future** dates:
+
+- `contest-combined-mode.integration.test.ts` and
+  `contest-registration-template.integration.test.ts` both build a contest with
+  `endDate: 2026-12-01`.
+
+Neither is broken today and neither asserts on an open/closed window (they set
+`status` explicitly, and contest status is stored rather than derived), so this
+is latent, not live. Recording the date so that if CI turns red in early
+December the answer is one line away rather than a day of misdiagnosis.
+
+The good pattern already exists in `contest/reminders.ts`: `ctx.now ?? new
+Date()`, an injectable clock, which is what makes those suites immune.
+

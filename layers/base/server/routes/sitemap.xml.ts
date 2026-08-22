@@ -1,9 +1,19 @@
-import { and, eq } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import { contentItems, users } from '@commonpub/schema';
 import { listHubs, listPaths } from '@commonpub/server';
 
+/**
+ * XML 1.0 permits only #x9, #xA, #xD and #x20 upward. A C0 control character is
+ * illegal EVEN ESCAPED as a numeric reference, so a title carrying one (paste
+ * from a PDF, a stray \x0b) makes the whole document malformed and every reader
+ * rejects the feed rather than skipping the item. Strip before escaping.
+ *
+ * Kept byte-identical to the copy in the sibling route and pinned by
+ * `__tests__/xml-escape.test.ts`, so the two cannot drift.
+ */
 function escapeXml(str: string): string {
   return str
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '')
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
@@ -30,14 +40,27 @@ export default defineEventHandler(async (event) => {
     // published to crawlers (P-1b). The hub list inherits the listHubs privacy fix.
     .where(and(eq(contentItems.status, 'published'), eq(contentItems.visibility, 'public')));
 
-  // Users with public profiles
+  // Users with public profiles.
+  //
+  // `profileVisibility` is a real setting ('public' | 'members' | 'private') and
+  // this route used to filter on `status` ALONE, so a member who set their
+  // profile to members-only or private still had their profile URL handed to
+  // crawlers. The public API gates on exactly the predicate below (see
+  // `publicApi/serializers.ts:isPublicUser` and `users/index.get.ts`); this was
+  // the one enumeration that drifted from it.
   const publicUsers = await db
     .select({
       username: users.username,
       updatedAt: users.updatedAt,
     })
     .from(users)
-    .where(eq(users.status, 'active'));
+    .where(
+      and(
+        isNull(users.deletedAt),
+        eq(users.profileVisibility, 'public'),
+        eq(users.status, 'active'),
+      ),
+    );
 
   // Hubs
   const { items: hubs } = await listHubs(db, { limit: 100 });
