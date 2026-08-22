@@ -17,6 +17,20 @@ export interface AuthEmailSender {
  */
 export type OnUserCreated = (user: { id: string; email: string; username?: string | null; displayName?: string | null }) => Promise<void> | void;
 
+/**
+ * NOTE ON THE `better-auth` RANGE (package.json): it is `~1.6.29`, deliberately
+ * narrow, and must not be widened without checking the adapter's schema
+ * expectations first.
+ *
+ * better-auth's Drizzle adapter asserts that every field it knows about exists
+ * on our tables, so a MINOR bump can hard-break authentication. 1.7.0 began
+ * requiring an `account.issuer` column that `@commonpub/schema` does not
+ * declare; with the previous `^1.2.0` range a routine lockfile regeneration
+ * floated 1.6.29 -> 1.7.1 and every signup returned 500 before the user row was
+ * written, on both consumer forks simultaneously.
+ *
+ * Crossing to 1.7.x therefore needs a schema migration first, not just a bump.
+ */
 export function createAuth({ config, db, secret, baseURL, trustedOrigins, emailSender, onUserCreated }: CreateAuthOptions & { emailSender?: AuthEmailSender; onUserCreated?: OnUserCreated }) {
   const plugins = [username()];
 

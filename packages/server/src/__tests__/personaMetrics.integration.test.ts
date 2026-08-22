@@ -32,6 +32,7 @@ import {
   resolvePersonaThresholds,
   runPersonaRollup,
   previousUtcDay,
+  utcDayKey,
   PERSONA_SUPPRESSED_DIMENSION,
   personaFieldMetric,
   type PersonaMetricsField,
@@ -262,6 +263,22 @@ const EXCLUSION_CASES: ExclusionCase[] = [
 ];
 
 // --- The main suite --------------------------------------------------------------
+
+/**
+ * Day keys are anchored to the CURRENT UTC day rather than written as literals.
+ *
+ * `snapshotIsUsable` refuses a finalised day older than
+ * `PERSONA_SNAPSHOT_MAX_AGE_DAYS` (7). A hardcoded fixture date therefore makes
+ * this suite pass for about a week after it is written and then fail every day
+ * after that, on a commit nobody touched: the failure looks like a regression
+ * in the rollup and is actually the calendar. Anchoring keeps the two days one
+ * apart and permanently inside the window.
+ *
+ * Both are in the past, so a run that straddles UTC midnight only ages the
+ * snapshot from one day to two, which is still well inside the window.
+ */
+const DAY_TWO = previousUtcDay(utcDayKey());
+const DAY_ONE = previousUtcDay(DAY_TWO);
 
 describe('persona statistics — the objection anti-join, k-anonymity and suppression', () => {
   let db: DB;
@@ -687,14 +704,14 @@ describe('persona statistics — rollup, finalisation and snapshot reads', () =>
 
     const audience = await getAudienceCounts(db, {
       ...fromRollup,
-      offeredPurposes: rollupInput('2026-08-12').offeredPurposes,
+      offeredPurposes: rollupInput(DAY_ONE).offeredPurposes,
     });
     expect(audience).toMatchObject({ available: false, reason: 'no_snapshot_yet', asOf: null });
   });
 
   it('writes today unfinalised and finalises nothing on the first run', async () => {
-    const result = await runPersonaRollup(db, rollupInput('2026-08-12'));
-    expect(result.day).toBe('2026-08-12');
+    const result = await runPersonaRollup(db, rollupInput(DAY_ONE));
+    expect(result.day).toBe(DAY_ONE);
     expect(result.rowsWritten).toBeGreaterThan(0);
     // There is no yesterday to close: the plan says write nothing rather than
     // invent a day the instance was not running for.
@@ -703,28 +720,28 @@ describe('persona statistics — rollup, finalisation and snapshot reads', () =>
   });
 
   it('is idempotent for the same day', async () => {
-    const before = await runPersonaRollup(db, rollupInput('2026-08-12'));
+    const before = await runPersonaRollup(db, rollupInput(DAY_ONE));
     const [row] = await db
       .select({ n: sql<number>`count(*)::int` })
       .from(personaMetricsDaily)
-      .where(eq(personaMetricsDaily.day, '2026-08-12'));
+      .where(eq(personaMetricsDaily.day, DAY_ONE));
     expect(row?.n).toBe(before.rowsWritten);
   });
 
   it('finalises yesterday on the next run', async () => {
-    const result = await runPersonaRollup(db, rollupInput('2026-08-13'));
-    expect(result.finalisedDay).toBe('2026-08-12');
+    const result = await runPersonaRollup(db, rollupInput(DAY_TWO));
+    expect(result.finalisedDay).toBe(DAY_ONE);
     expect(result.finalisedRows).toBeGreaterThan(0);
 
     const snapshot = await latestFinalisedSnapshot(db);
-    expect(snapshot?.day).toBe('2026-08-12');
+    expect(snapshot?.day).toBe(DAY_ONE);
     expect(snapshot?.populationSuppressed).toBe(false);
     expect(snapshot?.population).toBe(30);
   });
 
   it('does not re-finalise a day that is already final', async () => {
-    // Running 2026-08-13 again finds yesterday already final and leaves it alone.
-    const result = await runPersonaRollup(db, rollupInput('2026-08-13'));
+    // Running DAY_TWO again finds yesterday already final and leaves it alone.
+    const result = await runPersonaRollup(db, rollupInput(DAY_TWO));
     expect(result.finalisedDay).toBeNull();
     expect(result.finalisedRows).toBe(0);
   });
@@ -738,7 +755,7 @@ describe('persona statistics — rollup, finalisation and snapshot reads', () =>
         suppressed: personaMetricsDaily.suppressed,
       })
       .from(personaMetricsDaily)
-      .where(eq(personaMetricsDaily.day, '2026-08-12'));
+      .where(eq(personaMetricsDaily.day, DAY_ONE));
 
     expect(rows.length).toBeGreaterThanOrEqual(4);
     for (const r of rows) {
@@ -758,7 +775,7 @@ describe('persona statistics — rollup, finalisation and snapshot reads', () =>
       .from(personaMetricsDaily)
       .where(
         and(
-          eq(personaMetricsDaily.day, '2026-08-12'),
+          eq(personaMetricsDaily.day, DAY_ONE),
           eq(personaMetricsDaily.metric, personaFieldMetric('industry')),
         ),
       );
@@ -776,7 +793,7 @@ describe('persona statistics — rollup, finalisation and snapshot reads', () =>
       limit: 20,
     });
     expect(dist.available).toBe(true);
-    expect(dist.asOf).toBe('2026-08-12');
+    expect(dist.asOf).toBe(DAY_ONE);
     expect(dist.items).toEqual([{ value: 'rust', label: 'Rust', count: 20 }]);
     expect(dist.suppressed).toBe(1);
 
@@ -788,7 +805,7 @@ describe('persona statistics — rollup, finalisation and snapshot reads', () =>
     expect(scalar).toMatchObject({
       available: false,
       reason: 'insufficient_bucket_diversity',
-      asOf: '2026-08-12',
+      asOf: DAY_ONE,
     });
 
     const presence = await getPersonaLinkPresence(db, {
@@ -796,17 +813,17 @@ describe('persona statistics — rollup, finalisation and snapshot reads', () =>
       platforms: BUILTIN_PERSONA_LINK_PLATFORMS,
     });
     expect(presence.available).toBe(true);
-    expect(presence.asOf).toBe('2026-08-12');
+    expect(presence.asOf).toBe(DAY_ONE);
     expect(presence.items).toEqual([
       { platform: 'github', label: 'GitHub', count: 20, authenticitySignal: true },
     ]);
 
     const audience = await getAudienceCounts(db, {
       ...fromRollup,
-      offeredPurposes: rollupInput('2026-08-13').offeredPurposes,
+      offeredPurposes: rollupInput(DAY_TWO).offeredPurposes,
     });
     expect(audience.available).toBe(true);
-    expect(audience.asOf).toBe('2026-08-12');
+    expect(audience.asOf).toBe(DAY_ONE);
     expect(audience.openToRecruiters).toEqual({ available: true, count: 10 });
     expect(audience.openToSponsorSharing).toEqual({
       available: false,
@@ -842,8 +859,8 @@ describe('persona statistics — rollup, finalisation and snapshot reads', () =>
     try {
       const few = await seedUsers(thin, 6);
       for (const u of few) await answer(thin, u.id, 'sector', 'software');
-      await runPersonaRollup(thin, rollupInput('2026-08-12'));
-      await runPersonaRollup(thin, rollupInput('2026-08-13'));
+      await runPersonaRollup(thin, rollupInput(DAY_ONE));
+      await runPersonaRollup(thin, rollupInput(DAY_TWO));
 
       const snapshot = await latestFinalisedSnapshot(thin);
       expect(snapshot?.populationSuppressed).toBe(true);
@@ -858,7 +875,7 @@ describe('persona statistics — rollup, finalisation and snapshot reads', () =>
       expect(dist).toMatchObject({
         available: false,
         reason: 'insufficient_population',
-        asOf: '2026-08-12',
+        asOf: DAY_ONE,
       });
     } finally {
       await closeTestDB(thin);
@@ -870,8 +887,8 @@ describe('persona statistics — rollup, finalisation and snapshot reads', () =>
     try {
       const members = await seedUsers(plain, 30);
       for (const u of members) await answer(plain, u.id, 'sector', 'software');
-      await runPersonaRollup(plain, { ...rollupInput('2026-08-12'), offeredPurposes: [] });
-      await runPersonaRollup(plain, { ...rollupInput('2026-08-13'), offeredPurposes: [] });
+      await runPersonaRollup(plain, { ...rollupInput(DAY_ONE), offeredPurposes: [] });
+      await runPersonaRollup(plain, { ...rollupInput(DAY_TWO), offeredPurposes: [] });
 
       const dist = await getPersonaFieldDistribution(plain, {
         ...fromRollup,
@@ -911,6 +928,8 @@ describe('persona statistics — thresholds and day keys', () => {
   });
 
   it('walks UTC days backwards across a month and a year boundary', () => {
+    // Literal on BOTH sides on purpose: this is the arithmetic under test, not
+    // a fixture, so it must not be expressed in terms of the helper it pins.
     expect(previousUtcDay('2026-08-12')).toBe('2026-08-11');
     expect(previousUtcDay('2026-08-01')).toBe('2026-07-31');
     expect(previousUtcDay('2026-01-01')).toBe('2025-12-31');

@@ -1,6 +1,6 @@
 {
   "name": "@commonpub/auth",
-  "version": "0.13.1",
+  "version": "0.13.2",
   "type": "module",
   "description": "Better Auth wrapper with AP actor SSO and role guards for CommonPub",
   "license": "AGPL-3.0-or-later",
@@ -52,7 +52,7 @@
     "@commonpub/config": "workspace:*",
     "@commonpub/protocol": "workspace:*",
     "@commonpub/schema": "workspace:*",
-    "better-auth": "^1.2.0",
+    "better-auth": "~1.6.29",
     "drizzle-orm": "^0.45.1"
   },
   "devDependencies": {

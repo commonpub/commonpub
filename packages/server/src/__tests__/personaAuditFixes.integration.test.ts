@@ -30,6 +30,7 @@ import {
   personaMetricsFields,
   resolvePersonaThresholds,
   runPersonaRollup,
+  previousUtcDay,
   utcDayKey,
 } from '../persona/metrics.js';
 import { currentPurposeScope } from '../persona/consent.js';
@@ -460,7 +461,10 @@ describe('a stored day is re-floored when the operator raises the floor', () => 
   afterAll(async () => { await closeTestDB(db); });
 
   it('rather than serving a 5 under a payload that declares a quantum of 20', async () => {
-    const day = '2026-08-11';
+    // Anchored to yesterday, not a literal: a finalised day older than
+    // PERSONA_SNAPSHOT_MAX_AGE_DAYS stops being served, which would age this
+    // test out about a week after it was written.
+    const day = previousUtcDay(utcDayKey());
     const digest = 'abc123';
     await db.insert(personaMetricsDaily).values([
       { day, metric: 'persona.meta', dimension: 'population', value: 100, suppressed: false, final: true },
