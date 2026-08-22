@@ -453,7 +453,25 @@ const userUsername = computed(() => user.value?.username ?? '');
 .cpub-dropdown-item--mobile { display: none; }
 
 .cpub-mobile-toggle { display: none; width: 32px; height: 32px; background: none; border: var(--border-width-default) solid transparent; color: var(--text-dim); font-size: 16px; cursor: pointer; align-items: center; justify-content: center; }
-.cpub-mobile-menu { display: none; position: fixed; inset: 0; top: var(--cpub-topbar-height, 48px); z-index: 99; background: var(--color-surface-overlay-light); }
+/* The open menu is a SCROLL CONTAINER, not just an overlay.
+   It is `position: fixed; inset: 0`, so its height is the viewport and content
+   past the fold has nothing to scroll: it is unreachable, not merely hidden.
+   The nav already exceeds that height whenever the config has a few dropdown
+   sections (they flatten to label + children here) and the visitor is signed
+   in, which adds Create/Dashboard/Messages/Notifications. Measured signed in on
+   a 375x667 phone: 802px of menu in 619px of space, with Fediverse, Search,
+   Create and Dashboard unreachable.
+   `overscroll-behavior: contain` keeps a scroll gesture that reaches the end
+   from chaining to the page behind the overlay. `dvh` is used where supported
+   so the last item does not sit under mobile browser chrome. */
+.cpub-mobile-menu {
+  display: none; position: fixed; inset: 0; top: var(--cpub-topbar-height, 48px);
+  z-index: 99; background: var(--color-surface-overlay-light);
+  overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain;
+}
+@supports (height: 100dvh) {
+  .cpub-mobile-menu { height: calc(100dvh - var(--cpub-topbar-height, 48px)); }
+}
 :deep(.cpub-mobile-nav) { background: var(--surface); border-bottom: var(--border-width-default) solid var(--border); padding: 8px 0; display: flex; flex-direction: column; box-shadow: var(--shadow-md); -webkit-backdrop-filter: var(--surface-backdrop, none); backdrop-filter: var(--surface-backdrop, none); }
 :deep(.cpub-mobile-link) { display: flex; align-items: center; gap: 10px; padding: 10px 20px; font-size: 13px; color: var(--text-dim); text-decoration: none; transition: background 0.1s; }
 :deep(.cpub-mobile-link:hover) { background: var(--surface2); color: var(--text); }
