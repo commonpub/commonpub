@@ -198,8 +198,9 @@ Not removed, since deleting rows is destructive and it is your database:
 - contest `resilient-america-local` (a copy of deveco's, 3 registrations, 2 entries)
 - 6 test accounts matching `%1787%@example.com`, `fresh+%`, `dev+%`
 
-Independently, session 255's persona rows are what make the persona suites fail
-locally: `DELETE FROM user_purpose_consents; DELETE FROM user_persona_answers;`.
+~~Independently, session 255's persona rows are what make the persona suites fail
+locally.~~ **That was wrong, and is now fixed.** See "The persona suites were
+not failing because of your database" below.
 
 ## Two things worth carrying forward
 
@@ -215,3 +216,113 @@ enumeration with a wiring guard.
 the first time it produced a confident false report of a broken control. Probe it
 (attach a `pointerdown` listener and assert the event arrives) before trusting a
 "this button does nothing" observation.
+
+---
+
+# Addendum: after the roll
+
+## The signup outage, and what caused it
+
+Shortly after the 0.137.0 roll, signup returned **500 on deveco.io and
+heatsynclabs.io** while commonpub.io was fine. The user row was never written,
+so both new and existing accounts looked broken.
+
+Root cause, reproduced locally against an `npm install` tree:
+
+```
+[Better Auth]: The field "issuer" does not exist in the "account" Drizzle schema.
+```
+
+`@commonpub/auth` declared `better-auth: "^1.2.0"`. Regenerating the forks'
+lockfiles during the pin bump floated better-auth **1.6.29 -> 1.7.1**, and 1.7.1
+expects an `account.issuer` column that `@commonpub/schema` does not declare.
+better-auth's Drizzle adapter asserts that every field it knows about exists on
+our tables, so a MINOR bump can hard-break authentication.
+
+**commonpub.io escaped only because it builds from the pnpm workspace** rather
+than from npm. That is the discriminator worth remembering: the forks consume
+*published* packages, and the production Dockerfile builds them with
+`npm install` against `package-lock.json`, not the pnpm lockfile CI uses.
+
+Fixed in two layers:
+
+- Immediate, in both forks: `overrides` + `pnpm.overrides` pinning
+  `better-auth: "1.6.29"`.
+- Upstream, so it cannot recur: `@commonpub/auth@0.13.2` narrows the range to
+  **`~1.6.29`**, which still takes patches but cannot cross to 1.7.x. The
+  reasoning is recorded next to `createAuth` so a future bump does not have to
+  rediscover it. Crossing to 1.7.x needs a schema migration first.
+
+All three instances verified after the fix: signup 200, session cookie set,
+`/api/me` 200, and `emailVerified: false` on a working session, which is the
+behaviour the operator asked for (an unverified account can still sign in).
+
+## The persona suites were not failing because of your database
+
+The earlier note in this handoff blamed session 255's leftover rows. **That was
+wrong.** Settled by re-running main's own CI at unchanged commit `e4694a97`:
+green on 17 Aug, red on 21 Aug with the identical 7 failures. Nothing about the
+code changed between those runs; the calendar did.
+
+`snapshotIsUsable` refuses a finalised day older than
+`PERSONA_SNAPSHOT_MAX_AGE_DAYS` (7). The fixtures hardcoded `2026-08-12` and
+`2026-08-13`, so the suite passed for about a week after it was written and then
+failed every day after that. Day keys are now derived from the current UTC day.
+
+The month/year boundary test keeps its literals on purpose: there the arithmetic
+is the subject, not the fixture, so expressing it via the helper it pins would
+make it vacuous.
+
+Scanned for the same rot class elsewhere. `PERSONA_SNAPSHOT_MAX_AGE_DAYS` is the
+only staleness window in the codebase, and the two other persona-adjacent
+fixtures (`persona-public-routes.test.ts`, `admin/persona-metrics.test.ts`) feed
+mocked dates that never reach the gate, so they cannot rot the same way.
+
+## The mobile menu could not be scrolled
+
+`.cpub-mobile-menu` is `position: fixed; inset: 0`, which caps its height at the
+viewport, and it declared no `overflow`. Every row past the fold was
+**unreachable by any gesture**, not merely hidden.
+
+The nav gets there easily: `MobileNavRenderer` flattens each dropdown into a
+section label plus its children, and signing in appends Create, Dashboard,
+Messages and Notifications. Measured signed in against the reference config:
+
+| viewport | content | space | result |
+| --- | --- | --- | --- |
+| 375x667 | 802px | 619px | Fediverse, Search, Create, Dashboard unreachable |
+| 360x640 | 802px | 592px | worse |
+| 390x844 | 802px | 796px | overflows by 6px |
+
+Fixed in the layer (`0.137.2`) and, separately, in deveco's `layouts/default.vue`
+fork, which has its own `.de-mobile-menu` with 44px rows under a 60px bar and so
+bites sooner. `overscroll-behavior: contain` stops a gesture that reaches the end
+from scrolling the page behind the overlay; the `dvh` height keeps the last row
+clear of mobile browser chrome.
+
+Verified at all three sizes: the menu scrolls, the last row comes into view, and
+the page behind does not move. Pinned by
+`layers/base/layouts/__tests__/mobileMenuScroll.test.ts`, which is source-level
+because the defect lives in the layout's own `<style>` block, which a mounted
+component test never applies.
+
+**The avatar dropdown was checked and is fine** at these sizes: it fits on
+screen with no clipping.
+
+## Open follow-ups
+
+- **`@commonpub/docs@0.6.3` pins stale `@commonpub/config@0.12.0` and
+  `@commonpub/schema@0.16.0`.** Visible as duplicate versions in the forks'
+  lockfiles. Pre-existing, not from this session, and docs works today, but it
+  is the exact split-brain the exact-pin cascade rule warns about: npm consumers
+  get two copies while the workspace never sees it. Republishing docs cascades
+  another layer publish, so it was not done mid-deploy.
+- **Test accounts created on production during diagnosis** and not removed
+  (deleting is destructive and they are the operator's instances):
+  `authprobe+1787358990729@example.com` (commonpub.io),
+  `authprobe+1787360201472@example.com` (deveco.io),
+  `authprobe+1787360573552@example.com` (heatsynclabs.io).
+- The deveco contest items in the section above are still outstanding on the
+  operator's side: Required on *Focus Area*, the duplicate `approach` question,
+  the leading-space labels, and the Official Rules truncated at 50,000 chars
+  with 31 `[CONFIRM: ...]` placeholders including the proposal deadline.
