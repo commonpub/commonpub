@@ -505,16 +505,20 @@ serial, so that flake took every test after it down as "did not run". All 9 pass
 
 Ordered by who has to do it and how much it matters.
 
-## Needs a release (code is on main, not yet published)
+## ~~Needs a release~~ ROLLED as layer 0.137.3
 
-| item | where | note |
+Shipped rather than left on main, because the sitemap one was a live leak.
+
+| item | where | status |
 | --- | --- | --- |
-| sitemap privacy fix | `server/routes/sitemap.xml.ts` | **live leak until rolled**; non-public profiles are in the sitemap on all three instances right now |
-| XML control-char strip | `sitemap.xml.ts`, `feed.xml.ts` | malformed feed if any title carries a control character |
-| publish-errors modal cap | `PublishErrorsModal.vue` | landscape / wrapped-text only |
+| sitemap privacy fix | `server/routes/sitemap.xml.ts` | live on all three |
+| XML control-char strip | `sitemap.xml.ts`, `feed.xml.ts` | live on all three |
+| publish-errors modal cap | `PublishErrorsModal.vue` | live on all three |
 
-These are all layer-only changes, so one `@commonpub/layer` patch plus the usual
-three deploys. The sitemap one is the reason not to sit on it.
+Verified after deploy: `sitemap.xml` and `feed.xml` 200 on all three
+(11 / 201 / 25 URLs), mobile-menu scroll rule still served, health ok, signup
+200. CI was fully green first, **including e2e**, for the first time this
+session.
 
 ## Decisions for the operator
 
