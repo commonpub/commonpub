@@ -472,3 +472,112 @@ December the answer is one line away rather than a day of misdiagnosis.
 The good pattern already exists in `contest/reminders.ts`: `ctx.now ?? new
 Date()`, an injectable clock, which is what makes those suites immune.
 
+## A red gate hid a red gate hid a stale test
+
+Worth reading as one story, because each layer masked the next:
+
+1. The persona fixtures rotted against the 7-day snapshot window, so `check`
+   went red on the calendar.
+2. Fixing that left `check` red on the pg teardown race, with **zero failing
+   tests** — a fact I misread twice before reading the exit reason instead of
+   the summary line.
+3. `e2e` has `needs: check`, so through both of those it was **skipped**. Fixing
+   `check` is what finally ran it, and it immediately caught a `toBeDisabled()`
+   assertion contradicting a deliberate change made earlier this same session:
+   removing the disabled-save gate from the registration form, which is the
+   funnel fix ("a greyed button that does not say why is what people report as
+   'it does nothing'"). The unit tests covered the new behaviour; the e2e test
+   still pinned the old one and had no chance to say so.
+
+Two things to carry forward. **A skipped job is not a passing job** — while
+`check` is red, nothing downstream of it is being verified, and work merges with
+a whole tier of coverage silently absent. And **`pnpm audit` in this workflow is
+`continue-on-error: true`**: it prints `##[error]` and a 171-vulnerability
+summary on every run without failing anything. It cost time twice this session
+to rediscover that, because it looks exactly like a failure in the log.
+
+Also unstuck `heroCtas` in the same spec: it used `$$eval`, which resolves its
+handles once and dies with "Execution context was destroyed" when the CTA
+settling races a client-side navigation. A locator re-resolves. The suite is
+serial, so that flake took every test after it down as "did not run". All 9 pass.
+
+# What remains
+
+Ordered by who has to do it and how much it matters.
+
+## Needs a release (code is on main, not yet published)
+
+| item | where | note |
+| --- | --- | --- |
+| sitemap privacy fix | `server/routes/sitemap.xml.ts` | **live leak until rolled**; non-public profiles are in the sitemap on all three instances right now |
+| XML control-char strip | `sitemap.xml.ts`, `feed.xml.ts` | malformed feed if any title carries a control character |
+| publish-errors modal cap | `PublishErrorsModal.vue` | landscape / wrapped-text only |
+
+These are all layer-only changes, so one `@commonpub/layer` patch plus the usual
+three deploys. The sitemap one is the reason not to sit on it.
+
+## Decisions for the operator
+
+- **The forks pin `better-auth: "1.6.29"` exactly via `overrides`, and the
+  workspace now resolves 1.6.30.** Upstream `~1.6.29` already prevents the 1.7.x
+  break, so the overrides no longer add protection and instead **block patch
+  releases** from reaching deveco and heatsynclabs. Recommendation: drop both
+  overrides at the next fork touch and let `~1.6.29` do the work. Not urgent,
+  but it is the kind of thing that quietly matters when a security patch lands.
+- **`@commonpub/docs@0.6.3` pins stale `@commonpub/config@0.12.0` and
+  `@commonpub/schema@0.16.0`**, visible as duplicate versions in both forks'
+  lockfiles. Pre-existing, docs works today, and republishing cascades another
+  layer publish. Worth clearing deliberately rather than during a deploy.
+- **`pnpm audit` reports 171 advisories** (6 critical, 76 high), all transitive
+  through dev and build tooling (`@stryker-mutator/core > ajv > fast-uri`,
+  `nuxt > ... > @mapbox/node-pre-gyp > tar`). The step is `continue-on-error`, so
+  it has been reporting into a void. Either triage it or make it fail on a
+  curated allowlist, but leaving a permanently-red-looking step in the log has
+  already cost time twice.
+
+## Still on the operator's side, deveco contest
+
+Unchanged from the earlier section, none of it code:
+
+- re-tick **Required** on *Focus Area* (lost in the re-add)
+- the duplicate question (`approach` and `your_technical_approach_including_hardwa`)
+- 7 labels carrying a leading space from pasting
+- **the Official Rules**: truncated at 50,000 characters, and 31
+  `[CONFIRM: ...]` placeholders remain, including the proposal deadline
+
+## Latent, with a date on it
+
+`contest-combined-mode.integration.test.ts` and
+`contest-registration-template.integration.test.ts` both build a contest ending
+**2026-12-01**. Neither asserts on an open/closed window today, so neither is
+broken; if CI turns red in early December, start here rather than assuming a
+regression. The fix pattern already exists in `contest/reminders.ts`:
+`ctx.now ?? new Date()`.
+
+## Cruft
+
+Nothing here was deleted, since it is all destructive and all on the operator's
+machines and instances.
+
+- Production test accounts from diagnosis: `authprobe+1787358990729@…`
+  (commonpub.io), `authprobe+1787360201472@…` (deveco.io),
+  `authprobe+1787360573552@…` (heatsynclabs.io), plus one
+  `authprobe+1787364…@…` per instance from the final verification pass.
+- Local dev DB: contest `resilient-america-local` and `rac-shipped`, accounts
+  matching `%1787%@example.com`, `fresh+%`, `dev+%`, `mob…@example.com`,
+  `reach…@example.com`, `ba630_…@example.com`.
+- Local Postgres: scratch databases `fork_repro`, `cpub_v2`, `cpub_tz`, and
+  leaked `cc_test_*` databases from the teardown race (harmless, and they will
+  stop accumulating now that the race is handled).
+
+## Earlier round-2 findings, re-verified
+
+Checked rather than inherited:
+
+- **Contest entries fetch has no limit — CLOSED.** The route caps at 100 and
+  `normalizePagination` supplies a default. This was fixed at some point and the
+  note was stale.
+- **Sitemap publishing private profiles — CONFIRMED, fixed above.**
+- **RSS control characters — CONFIRMED, fixed above.**
+- **`server: false` zero-seed across ~23 sites — still open**, not re-audited
+  this session. It is a pattern sweep rather than a single defect.
