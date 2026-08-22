@@ -321,8 +321,29 @@ screen with no clipping.
   (deleting is destructive and they are the operator's instances):
   `authprobe+1787358990729@example.com` (commonpub.io),
   `authprobe+1787360201472@example.com` (deveco.io),
-  `authprobe+1787360573552@example.com` (heatsynclabs.io).
+  `authprobe+1787360573552@example.com` (heatsynclabs.io), plus one
+  `authprobe+1787364...@example.com` per instance from the final verification
+  pass, and `ba630_...@example.com` on the local dev DB.
 - The deveco contest items in the section above are still outstanding on the
   operator's side: Required on *Focus Area*, the duplicate `approach` question,
   the leading-space labels, and the Official Rules truncated at 50,000 chars
   with 31 `[CONFIRM: ...]` placeholders including the proposal deadline.
+
+## Final state, verified live on all three
+
+| | commonpub.io | deveco.io | heatsynclabs.io |
+| --- | --- | --- | --- |
+| mobile menu scrolls | yes | yes | yes |
+| flags | 47 | 47 | 47 |
+| health | ok | ok | ok |
+| signup / session / sign-in | 200 | 200 | 200 |
+
+Shipped: `@commonpub/auth@0.13.2`, `@commonpub/server@2.133.1`,
+`@commonpub/layer@0.137.2`.
+
+One thing to carry forward from the roll itself: **the first deveco verification
+polled the wrong workflow run.** Listing runs immediately after a merge returns
+the PREVIOUS deploy, which was already green, and it reported success for a build
+that did not contain the change. The served CSS is what caught it. Match the run
+to the merge commit's SHA before believing a deploy, and check the artifact, not
+the workflow's colour.
