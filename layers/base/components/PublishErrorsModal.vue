@@ -45,12 +45,21 @@ useFocusTrap(dialogRef, () => props.show, () => emit('dismiss'));
   padding: 24px;
 }
 
+/* Capped and scrollable: the overlay centres this card with `align-items:
+   center` and has no overflow of its own, so a card taller than the viewport
+   would be clipped at BOTH ends with nothing to scroll — including the "Got it"
+   button, and a phone has no Escape key to fall back on. Five short errors clear
+   a portrait phone comfortably; landscape, or long messages wrapping to two
+   lines each, is where it bites. Capping the card keeps the centring valid. */
 .cpub-publish-errors-card {
   background: var(--surface);
   border: var(--border-width-default) solid var(--border);
   padding: 28px;
   max-width: 420px;
   width: 100%;
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
   box-shadow: var(--shadow-md);
   -webkit-backdrop-filter: var(--surface-backdrop, none);
   backdrop-filter: var(--surface-backdrop, none);
@@ -117,5 +126,10 @@ useFocusTrap(dialogRef, () => props.show, () => emit('dismiss'));
 .cpub-publish-errors-btn:hover {
   box-shadow: none;
   transform: translate(2px, 2px);
+}
+
+@supports (max-height: 100dvh) {
+  /* The overlay's padding is 24px on each side. */
+  .cpub-publish-errors-card { max-height: calc(100dvh - 48px); }
 }
 </style>

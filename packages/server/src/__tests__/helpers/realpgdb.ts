@@ -44,6 +44,7 @@ let cachedReachable: boolean | undefined;
 export async function realPgReachable(): Promise<boolean> {
   if (cachedReachable !== undefined) return cachedReachable;
   const pool = new Pool({ connectionString: PG_URL, max: 1, connectionTimeoutMillis: 2000 });
+  pool.on('error', () => {});
   try {
     await pool.query('SELECT 1');
     cachedReachable = true;
@@ -86,6 +87,7 @@ export async function createRealTestDB(): Promise<RealTestDb> {
 
   // CREATE DATABASE runs in autocommit (not inside a tx) on the configured DB.
   const admin = new Pool({ connectionString: PG_URL, max: 1 });
+  admin.on('error', () => {});
   try {
     await admin.query(`CREATE DATABASE "${dbName}"`);
   } finally {
@@ -93,12 +95,31 @@ export async function createRealTestDB(): Promise<RealTestDb> {
   }
 
   const pool = new Pool({ connectionString: urlForDb(dbName), max: 10 });
+
+  // An 'error' event with no listener is an UNCAUGHT EXCEPTION, and vitest fails
+  // the whole run on one of those even when every test passed. `pg` raises this
+  // event on the pool's behalf for idle clients, and cleanup below drops the
+  // database `WITH (FORCE)`, which terminates any connection that outlived
+  // `pool.end()` with `57P01 terminating connection due to administrator
+  // command`. That race is wide enough on a loaded CI runner to fire reliably:
+  // it turned a run of 2138 passing server tests red.
+  //
+  // Teardown noise is dropped; anything before teardown is surfaced rather than
+  // swallowed, since an idle-client error mid-suite is a real signal.
+  let closing = false;
+  pool.on('error', (err: Error) => {
+    if (closing) return;
+    console.error(`[realpgdb:${dbName}] unexpected pool error`, err);
+  });
+
   const db = drizzle(pool, { schema });
   await migrate(db, { migrationsFolder: MIGRATIONS_FOLDER });
 
   const cleanup = async (): Promise<void> => {
+    closing = true;
     await pool.end().catch(() => {});
     const dropper = new Pool({ connectionString: PG_URL, max: 1 });
+    dropper.on('error', () => {});
     try {
       // FORCE terminates any lingering connections (PG 13+).
       await dropper.query(`DROP DATABASE IF EXISTS "${dbName}" WITH (FORCE)`);
