@@ -43,7 +43,7 @@ by scanning, not by listing them.** Both guards written this session do that —
 `db-pool-error.test.ts` walks it for every `new Pool(` — so a sixth copy added
 tomorrow fails a test instead of shipping.
 
-## Fixed (needs a release)
+## Fixed — released 2026-08-27, live on all three instances
 
 **1. Stored XSS in the live explainer render path — and, after the self-audit, the
 package's other sanitizer too.**
@@ -328,49 +328,77 @@ lower fan-out. This reproduces the hazard `ci.yml:71-77` documents in its own co
 at the same `--concurrency=50%` CI uses. Recorded as L-12; those three suites want a
 higher timeout or serial execution.
 
-## The release call — decided 2026-08-27
+## The release — SHIPPED 2026-08-27
 
-Asked to decide, with the constraint "ensure no degradation". **Decision: do not ship
-today.** Not deferred for permission — deferred because the constraint cannot currently
-be met on the instance that matters most. Reasoning, so it can be overridden knowingly:
+Reversing the call recorded earlier the same day. That earlier entry said "do not ship
+today", on the reasoning that "ensure no degradation" cannot be honoured on an instance
+whose health check can neither pass nor fail. Told to check how this is normally done
+and ship once certain it was safe, the answer was to **make the unverifiable step
+verifiable first**, then ship. Both happened. All three instances are live and were
+verified behaviourally, not by deploy colour.
 
-**1. Publishing alone reaches nothing.** Verified rather than assumed:
-`deploy.yml` builds commonpub.io with `docker build` **from the monorepo**, so a
-publish never touches it — a *merge to main* does. deveco and heatsync build with
-`npm install` against a **committed `package-lock.json`**, so a new npm version does
-not reach them until their lockfile is regenerated. There is no "publish and watch"
-option; each instance needs a separate deliberate act.
+**Published, in dependency order** (the graph is `explainer → learning → server → layer`;
+my first note said `explainer → server → layer`, which is wrong — `learning` sits in
+between and its exact pin would have dangled):
 
-**2. The one step that reaches deveco cannot be verified.** deveco has 147 users and a
-live contest, and its post-deploy health check `curl -sf http://localhost:3000/`
-runs on the HOST while the app only `expose`s that port (never publishes it), and ends
-in `|| echo ::warning::`. It can neither pass nor fail (P1-10). Its deploy also lacks
-`set -o pipefail`, so a failed migration reports success (P1-11), and its CI verifies a
-dependency tree 151 packages different from the one its Dockerfile builds (P1-15).
-**"Ensure no degradation" requires being able to detect degradation**, and on deveco I
-cannot.
+| package | version | why it moved |
+| --- | --- | --- |
+| `@commonpub/explainer` | **0.9.0** | the fix, plus two new exports (`isSafeUrl`, `decodeForSchemeCheck`) — a minor, not a patch |
+| `@commonpub/learning` | **0.5.4** | exact-pin cascade only |
+| `@commonpub/server` | **2.133.2** | exact-pin cascade only |
+| `@commonpub/layer` | **0.137.4** | pool listener + `escapeXml`, plus the cascade |
 
-**3. Nothing is bleeding.** All three instances are healthy, 47 flags, homepage 200,
-checked immediately before and after this decision. F-1's XSS needs an attacker to
-craft an explainer, F-2 needs a database failover, F-3 needs a C0 character in a feed
-title. The cost of waiting a day is low; the cost of an unverifiable deploy onto a live
-contest is not.
+`0.137.4-rc.1` is still on the `next` tag. It was the verification vehicle, not a
+mistake; leaving it costs nothing and documents the gate.
 
-### The order I would ship in
+### The gate that made this safe
 
-1. **Make deveco's deploy verifiable first** — two small edits to
-   `deveco-io/.github/workflows/deploy-prod.yml`: run the smoke check *inside* the
-   container as `deploy.yml:124` already does, and add `set -o pipefail`. Strictly
-   safer; it can only turn silent failures into loud ones.
-2. **Merge the three fixes to `main`** → commonpub.io deploys, and its
-   `scripts/smoke.mjs` runs inside the container and exits non-zero on a bad route, so
-   that one IS verifiable. Full gate is green (68/68, 7,898 tests) as of this session.
-3. **Then publish** `@commonpub/explainer` as a **minor** (it gains two exports,
-   `isSafeUrl` and `decodeForSchemeCheck`), cascade `server` and `layer` for the exact
-   pins, regenerate both forks' lockfiles, and deploy them — now with a health check
-   that can actually fail.
+Memory says the fork's CI is the only thing that typechecks the *published* `.d.ts`
+surface, and that a prerelease tag is how you find that out without moving `latest`.
+Followed literally:
 
-Step 2 is safe to do today. Steps 1 and 3 want the operator's hand on them.
+1. Published everything to **`--tag next`** first, so `latest` did not move.
+2. Opened deveco **PR #32** pinned to `0.137.4-rc.1`. Its `Build & Typecheck` passed
+   (2m54s) against the real published tarballs.
+3. Only then promoted the four packages to `latest`, and opened the real pin bumps.
+
+PR #32 was closed after it served its purpose. Had it failed, `latest` would never have
+moved and no fork would have seen a broken layer.
+
+### Order shipped, and what each was verified by
+
+1. **commonpub.io** — merged `81712f9b`, then `36e341cb` for the version bumps. Deploy
+   success. Verified: health `ok/ok`, all four XML routes 200 and parse as XML.
+2. **deveco.io** — PR #33 → `84cb0753`. CI green, deploy success. Verified below.
+3. **heatsync** — PR #37 → `f165b291`. It has **no CI at all**, so merging is deploying;
+   sequenced last, after deveco had already proven the same layer version in production.
+   Deploy success, then re-verified: health `ok/ok`, `/feed.xml`, `/sitemap.xml`,
+   `/api/users/moheeb/feed.xml`, `/api/hubs/sewing-group/feed.xml` all 200 and parse.
+
+**A correction on that last one.** I first reported heatsync's four routes green while
+its deploy was still `in_progress` — that check hit the *old* container and proved
+nothing about the new build. The numbers above are the re-run after the swap completed.
+
+Both forks needed **both** lockfiles bumped, per memory: `package-lock.json` (what the
+Dockerfile builds from) and `pnpm-lock.yaml` (what CI frozen-installs). A third
+correction: that memory said deveco's `package-lock.json` was gitignored. It is
+**tracked**. Following the stale note would have left CI verifying one dependency tree
+while the image built another — exactly P1-15. The memory file is fixed.
+
+### What is now true that was not
+
+The three production-reachable defects from `docs/reviews/2026-08-23-full-audit.md` are
+live-fixed on all three instances:
+
+- the stored XSS in `section.module`, which any registered user could reach;
+- the Postgres pool with no `'error'` listener, which turned a failover into a crashed
+  Nitro process;
+- the three RSS routes emitting C0 characters that feed readers reject.
+
+**Not fixed, and still true:** deveco's post-deploy health check still runs on the host
+against a port the container only `expose`s, still ends in `|| echo ::warning::`, and
+its deploy script still lacks `set -o pipefail` (P1-10, P1-11). This roll worked around
+that by verifying deveco by hand from outside. The next one should not have to.
 
 ## deveco.io copy change (separate from the audit)
 
@@ -406,10 +434,16 @@ not, so the wording change resolves most of that tension — but the banner and 
 footer now describe the same relationship in two different words, and that is a
 deliberate call rather than an oversight.
 
-**Uncommitted.** It is a working-tree change only. Note that deveco's
-`deploy-prod.yml` triggers on push to `main` with no test gate and a post-deploy
-health check that cannot fail (P1-10, P1-16), so pushing this publishes it
-immediately.
+**Live** as of 2026-08-27, in `84cb0753` (PR #33), which also carried the
+`0.137.4` pin bump. Confirmed on the production page by its real Vue scope attribute
+(`data-v-ee83d523`), not by an injected fragment — an earlier contrast measurement in
+this same session was wrong precisely because injected HTML loses that scope and picks
+up browser-default link colour.
+
+**It is not independently revertable.** I said in the PR that the banner would land as
+its own commit so it could be backed out without touching the layer pin. deveco squashes
+on merge, per repo convention, so it did not. Reverting the banner is a one-line edit to
+`layouts/default.vue:94`, not a `git revert`.
 
 ## What the local run left on your machine
 

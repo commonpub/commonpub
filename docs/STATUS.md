@@ -4,9 +4,9 @@
 > full-repository audit found the previous header wrong on **27 of 38** present-tense
 > state claims, and self-contradictory 40 lines apart. Everything below the first `---`
 > is **historical session narrative** and has NOT been re-verified; read it as a log, not
-> as current state. Only this header is warranted current as of 2026-08-23.
+> as current state. Only this header is warranted current as of 2026-08-27.
 
-## Verified current state — 2026-08-23
+## Verified current state — 2026-08-27
 
 Every figure here was taken from the registry, `gh`, or a live request on the date above.
 Re-check before trusting it: `npm view @commonpub/<pkg> version`,
@@ -14,37 +14,57 @@ Re-check before trusting it: `npm view @commonpub/<pkg> version`,
 
 **Published (all match the working tree):** schema **0.66.0** · config **0.40.0** ·
 protocol **0.15.2** · auth **0.13.2** · ui **0.16.1** · editor **0.17.2** ·
-explainer **0.8.2** · learning **0.5.3** · infra **0.21.0** · server **2.133.1** ·
+explainer **0.9.0** · learning **0.5.4** · infra **0.21.0** · server **2.133.2** ·
 docs **0.6.3** · test-utils **0.5.17** · persona **0.2.1** · theme-studio **0.7.0** ·
-layer **0.137.3** · `create-commonpub` **0.5.29** (crates.io).
+layer **0.137.4** · `create-commonpub` **0.5.29** (crates.io).
+`@commonpub/layer` also carries **0.137.4-rc.1** on the `next` tag — the prerelease that
+verified the fork typecheck before `latest` moved. Harmless; leave it.
 
-**Live:** all three instances healthy, migrations through **0048**, **47 flags** each.
-Flags ON by operator choice: commonpub.io **29**, deveco.io **43**, heatsynclabs.io **21**.
+**Live:** all three instances healthy, migrations through **0048**, **47 flags** each,
+all three on **layer 0.137.4** as of 2026-08-27. Flags ON by operator choice:
+commonpub.io **29**, deveco.io **43**, heatsynclabs.io **21**.
 
-**CI on `main` is GREEN**, including `e2e` — verified per job on run `32550077002`
-(`rust`, `check (22)`, `e2e` all success), not from a badge. The previous header's
-"CI is RED on main" was true when written and is no longer.
+**CI on `main` is GREEN**, including `e2e` — verified per job on run `33131511119`
+(`rust`, `check (22)`, `e2e` all success), not from a badge. Check the jobs, never the
+badge: `e2e` has `needs: check`, so a red gate makes it *skip* while the run still
+reports a single tidy failure.
 
 ## Read this before the next release
 
 `docs/reviews/2026-08-23-full-audit.md` is a full-repository audit: 131 verified
-findings, 26 of them reachable in production. **Three defects were fixed on `main` and
-are NOT yet published** — see "Release required" in that report:
+findings, 26 of them reachable in production. **The three production-reachable defects
+it found are now fixed and LIVE on all three instances** (rolled 2026-08-27, session 257
+handoff has the detail):
 
-| fixed | what it was |
+| shipped in | what it was |
 | --- | --- |
-| `@commonpub/explainer` | a **stored XSS** reachable by any registered user: `section.module` is not sanitised on write and the render-time sanitizer was defeated by 8 encodings |
-| `@commonpub/layer` | the **production Postgres pool had no `'error'` listener**, so a backend restart or failover crashed the whole Nitro process |
-| `@commonpub/layer` | **three live RSS routes** emitted XML that readers reject outright (C0 control characters) |
+| `@commonpub/explainer` 0.9.0 | a **stored XSS** reachable by any registered user: `section.module` is not sanitised on write and the render-time sanitizer was defeated by 8 encodings |
+| `@commonpub/layer` 0.137.4 | the **production Postgres pool had no `'error'` listener**, so a backend restart or failover crashed the whole Nitro process |
+| `@commonpub/layer` 0.137.4 | **three live RSS routes** emitted XML that readers reject outright (C0 control characters) |
+
+The other 23 production-reachable findings are still open. Start from that report, not
+from this list.
+
+**How the roll was made safe, worth repeating.** Publish to `--tag next` first, open a
+throwaway PR in a fork pinned to the prerelease, and only promote to `latest` once the
+fork's `Build & Typecheck` passes — the fork's CI is the only thing that typechecks the
+*published* `.d.ts` surface. Cascade order is `explainer → learning → server → layer`
+(`learning` is easy to miss and its exact pin dangles without it), and both forks need
+**both** lockfiles bumped: `package-lock.json` is what the Dockerfile builds from,
+`pnpm-lock.yaml` is what CI frozen-installs. Both are tracked in both forks.
 
 The audit's central finding is a repeating shape rather than any one bug: **a fix lands
 on the instance that was noticed, and a guard is written that pins that instance, while
-the rest of the class ships.** `escapeXml` was fixed in 2 of 5 copies; the pg-pool crash
-was fixed in the 4 test pools and not the production one; `profileVisibility` was fixed
-in the sitemap and is still absent from ~13 other public read paths; the ContentCard
-timezone fix was never generalised to the 45 other files that render un-gated dates.
-Both guards written on 2026-08-23 **discover** their targets by scanning instead of
-listing them, which is the pattern to copy.
+the rest of the class ships.** `escapeXml` had been fixed in 2 of 5 copies; the pg-pool
+crash in the 4 test pools and not the production one — both of those are now closed. Two
+instances of the shape are **still open**: `profileVisibility` was fixed in the sitemap
+and is still absent from ~13 other public read paths, and the ContentCard timezone fix
+was never generalised to the 45 other files that render un-gated dates.
+
+The guards written for the closed two **discover** their targets by scanning the tree
+rather than listing them, which is the pattern to copy — one of them was rewritten
+mid-session because the first draft scanned only the directory whose bug prompted it,
+which is the very defect it existed to catch.
 
 ## The five things most worth an operator's attention
 
