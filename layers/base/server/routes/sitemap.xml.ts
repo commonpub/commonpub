@@ -12,13 +12,18 @@ import { listHubs, listPaths } from '@commonpub/server';
  * `__tests__/xml-escape.test.ts`, so the two cannot drift.
  */
 function escapeXml(str: string): string {
-  return str
-    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&apos;');
+  return (
+    str
+      // The control characters ARE the subject: this range is exactly what XML
+      // 1.0 forbids, so `no-control-regex` is inverted here.
+      // eslint-disable-next-line no-control-regex
+      .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&apos;')
+  );
 }
 
 export default defineEventHandler(async (event) => {
