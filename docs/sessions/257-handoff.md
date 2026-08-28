@@ -459,16 +459,87 @@ whenever you like:
 - `.turbo/cache` was removed (20 GB) — the next turbo run rebuilds instead of
   restoring, so expect one slow build.
 
-**Not touched:** the default dev database, the two pre-existing `nuxt dev --port 3001`
-servers from an earlier session (they are still running and still sharing
-`apps/reference/.nuxt`, which is what caused a mid-run restart — worth cleaning up), and
-all three live instances.
+**Not touched:** the default dev database and all three live instances' data.
+
+The two pre-existing `nuxt dev --port 3001` servers from an earlier session — which
+shared `apps/reference/.nuxt` and caused a mid-run restart — are **gone** as of
+2026-08-27; `ps` shows no `nuxt dev` or `nitro` process on the machine.
 
 ## What I did not check
 
 No authenticated flows on production; no writes to any instance; the
 `profileVisibility != 'public'` path could not be exercised because no such row
-exists anywhere; the 49 migrations were not replayed; `.vue` linting could not be run
-because the plugin is not installed; the 79 `useLazyFetch` sites were counted but not
+exists anywhere; `.vue` linting could not be run because the plugin is not installed; the 79 `useLazyFetch` sites were counted but not
 classified; contrast was measured on homepages in two themes, not every page in all
 seven.
+
+## Close-out — 2026-08-28
+
+Everything this session opened is closed. Final state, each line taken from a command
+rather than from an earlier line of this document:
+
+**CI on `main` is green per job on all three of this session's commits.** Checked
+job-by-job, never by badge — `e2e` has `needs: check`, so a red gate makes it *skip*
+while the run still shows a single tidy failure:
+
+```
+81712f9b  rust ok  check (22) ok  e2e ok   the three fixes
+36e341cb  rust ok  check (22) ok  e2e ok   the version bumps
+9a65b091  rust ok  check (22) ok  e2e ok   the docs
+```
+
+**All three instances healthy** on the last poll (`{"status":"ok","checks":
+{"database":"ok"}}`), all on layer 0.137.4, 47 flags each, migrations through 0048.
+
+**Nothing left running.** No `nuxt dev` or `nitro` process; the audit databases at :5433
+are the only residue and the drop command is two sections up.
+
+**Memory written:** `project_session_257_audit_and_roll` and a new feedback file,
+`feedback_verify_after_swap_not_during_deploy`. One existing memory was **corrected**:
+it claimed deveco's `package-lock.json` was gitignored. It is tracked. Acting on the
+stale note would have left CI verifying one dependency tree while the Dockerfile built
+another — which is P1-15, a finding from this same audit.
+
+### If you do one thing next, do this one
+
+Make deveco's deploy able to fail. `deveco-io/.github/workflows/deploy-prod.yml` curls
+`http://localhost:3000/` **on the host**, against a port the container only `expose`s
+and never publishes, and ends in `|| echo ::warning::`. It cannot pass and it cannot
+fail. The script also lacks `set -o pipefail`, so a failed migration reports success
+(P1-10, P1-11).
+
+Two small edits: run the smoke check *inside* the container the way the monorepo's
+`deploy.yml:124` already does, and add `set -o pipefail`. Strictly safer — it can only
+turn silent failures into loud ones. It is why today's deveco verification had to be
+done by hand from outside, against a live instance with 147 users, and why the earlier
+"do not ship" call in this file was reasonable at the time. Fixing it removes that
+objection permanently.
+
+### The 28 still-open production-reachable findings
+
+The report counts its 3 fixed entries **separately** from its 28 P1s, so shipping the
+fixes did not reduce that number — all 28 remain open. They are in
+`docs/reviews/2026-08-23-full-audit.md`; start there, not from this file. The three with
+the shortest path to harm:
+
+1. **`profileVisibility` does not work** on ~13 public read paths, including the
+   ActivityPub actor and WebFinger, while `settings/privacy.vue` promises it does. No
+   instance has a non-public row yet, so nothing has leaked — this is a race between
+   the fix and the first member who trusts the setting.
+2. **The crates.io publish token enters the Docker build context.** `.dockerignore`
+   does not exclude `.secrets/cargo-registry-token`, so it is baked into a build-stage
+   layer. Rotate it.
+3. **Unauthenticated callers get members' `emailNotifications` preferences** from
+   `/api/users/<name>`. **Re-verified 2026-08-28**, after the roll: the field is present
+   for every profile on deveco and heatsync, and two deveco members have a populated one
+   readable with no credentials at all —
+
+   ```
+   GET https://deveco.io/api/users/keenan
+     {"likes":true,"digest":"none","follows":true,"comments":true,"mentions":true}
+   GET https://deveco.io/api/users/mtorres
+     {"likes":false,"digest":"none","follows":false,"comments":false,"mentions":false}
+   ```
+
+   Sampled 12 profiles per instance; the rest are `null` (never configured), which is
+   why a spot check of one or two profiles reads as harmless. It is not.

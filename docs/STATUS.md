@@ -31,10 +31,11 @@ reports a single tidy failure.
 
 ## Read this before the next release
 
-`docs/reviews/2026-08-23-full-audit.md` is a full-repository audit: 131 verified
-findings, 26 of them reachable in production. **The three production-reachable defects
-it found are now fixed and LIVE on all three instances** (rolled 2026-08-27, session 257
-handoff has the detail):
+`docs/reviews/2026-08-23-full-audit.md` is a full-repository audit. Its own tally:
+**3 fixed, 28 P1 (reachable in production), 68 P2, ~50 P3 grouped rather than
+enumerated, 3 suspected, 15 verified-correct.** 99 of those carry an ID you can grep
+for (`F-n`, `P1-n`, `P2-n`). **The three fixed ones are now LIVE on all three
+instances** (rolled 2026-08-27; session 257's handoff has the detail):
 
 | shipped in | what it was |
 | --- | --- |
@@ -42,8 +43,9 @@ handoff has the detail):
 | `@commonpub/layer` 0.137.4 | the **production Postgres pool had no `'error'` listener**, so a backend restart or failover crashed the whole Nitro process |
 | `@commonpub/layer` 0.137.4 | **three live RSS routes** emitted XML that readers reject outright (C0 control characters) |
 
-The other 23 production-reachable findings are still open. Start from that report, not
-from this list.
+**All 28 P1s are still open** — they are counted separately from the 3 fixed, so
+shipping the fixes did not reduce that number. Start from the report, not from this
+list.
 
 **How the roll was made safe, worth repeating.** Publish to `--tag next` first, open a
 throwaway PR in a fork pinned to the prerelease, and only promote to `latest` once the
