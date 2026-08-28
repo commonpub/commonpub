@@ -1,3 +1,5 @@
+import { isSafeUrl } from '@commonpub/explainer';
+
 /**
  * HTML sanitizer for v-html bindings.
  *
@@ -21,23 +23,37 @@ const ALLOWED_ATTRS = new Set([
   'id', 'width', 'height', 'loading',
 ]);
 
+/** Attributes whose value is a URL and must therefore be scheme-checked, not just allow-listed. */
+const URL_ATTRS = new Set(['href', 'src']);
+
 export function sanitizeHtml(html: string): string {
   if (!html) return '';
 
-  // Strip script tags and event handlers
+  // Strip script/style elements with their contents, and inline event handlers.
+  // Note the `on*` strip runs BEFORE the attribute allow-list so a handler on an
+  // otherwise-allowed tag is gone regardless of quoting.
   let clean = html
     .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
     .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '')
-    .replace(/\bon\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, '')
-    .replace(/javascript\s*:/gi, '');
+    .replace(/\bon\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, '');
 
   // Strip disallowed tags but keep content
   clean = clean.replace(/<\/?([a-z][a-z0-9]*)\b[^>]*>/gi, (match, tag: string) => {
     if (ALLOWED_TAGS.has(tag.toLowerCase())) {
-      // Strip disallowed attributes from allowed tags
-      return match.replace(/\s([a-z][a-z0-9-]*)\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, (attrMatch, attr: string) => {
-        return ALLOWED_ATTRS.has(attr.toLowerCase()) ? attrMatch : '';
-      });
+      // Strip disallowed attributes from allowed tags, and drop any URL-bearing
+      // attribute whose scheme is not on the allowlist.
+      return match.replace(
+        /\s([a-z][a-z0-9-]*)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/gi,
+        (attrMatch, attr: string, dq?: string, sq?: string, uq?: string) => {
+          const name = attr.toLowerCase();
+          if (!ALLOWED_ATTRS.has(name)) return '';
+          if (URL_ATTRS.has(name)) {
+            const value = dq ?? sq ?? uq ?? '';
+            if (!isSafeUrl(value)) return '';
+          }
+          return attrMatch;
+        },
+      );
     }
     return '';
   });

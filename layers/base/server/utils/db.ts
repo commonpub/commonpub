@@ -28,6 +28,24 @@ export function useDB(): DB {
     idleTimeoutMillis: 30_000,
     connectionTimeoutMillis: 5_000,
   });
+
+  // An 'error' event with NO listener is an uncaught exception in Node, and
+  // `pg.Pool` raises one on behalf of an IDLE client whenever the backend closes
+  // the connection underneath it — a Postgres restart, a failover, a
+  // `pg_terminate_backend`, an idle-connection reaper, or a network blip. Without
+  // this listener any of those takes the whole Nitro process down, mid-request,
+  // for every visitor.
+  //
+  // Session 256 diagnosed exactly this mechanism when it turned a run of 2,138
+  // PASSING server tests red, and fixed it in the four pools of the TEST helper
+  // (`packages/server/src/__tests__/helpers/realpgdb.ts`). This pool — the only
+  // one that serves production — was left without one. Logging rather than
+  // swallowing: a pool error is real signal, and the pool recovers by discarding
+  // the client and opening a new one on the next checkout.
+  pool.on('error', (err: Error) => {
+    console.error('[db] idle client error (connection discarded, pool continues)', err);
+  });
+
   db = drizzle(pool, { schema });
 
   return db;

@@ -38,6 +38,9 @@ export type {
 // Type guard + helpers
 export { isExplainerDocument, resolveThemePreset, resolveThemeOverrides, createEmptyDocument } from './types.js';
 
+// URL-scheme gate shared by every sanitizer in this package (see urlSafety.ts).
+export { isSafeUrl, decodeForSchemeCheck } from './urlSafety.js';
+
 // Schemas
 export {
   textSectionSchema,

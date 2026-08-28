@@ -1,5 +1,6 @@
 import type { BlockTuple } from '@commonpub/editor';
 import type { ExplainerSection, QuizQuestion, InteractiveControl } from '../types.js';
+import { isSafeUrl } from '../urlSafety.js';
 
 /** Escape HTML special characters */
 function escapeHtml(text: string): string {
@@ -20,6 +21,9 @@ const ALLOWED_TAGS = new Set([
 
 const ALLOWED_ATTRS = new Set(['href', 'target', 'rel', 'class']);
 
+/** Attributes whose value is a URL and must be scheme-checked, not merely allow-listed. */
+const URL_ATTRS = new Set(['href', 'src']);
+
 /**
  * Sanitize TipTap HTML — strip disallowed tags and attributes.
  * Defense-in-depth: content is also sanitized on write, but the export
@@ -31,18 +35,28 @@ export function sanitizeRichHtml(html: string): string {
   let sanitized = html.replace(/<(script|style|iframe|object|embed|svg|noscript|template)[\s>][\s\S]*?<\/\1>/gi, '');
   // Strip event handler attributes (on*)
   sanitized = sanitized.replace(/\s+on\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]*)/gi, '');
-  // Neutralize javascript:/vbscript: URLs in href/src — quoted OR unquoted (audit session 204)
-  sanitized = sanitized.replace(/(href|src)\s*=\s*(?:"\s*(?:javascript|vbscript):[^"]*"|'\s*(?:javascript|vbscript):[^']*'|(?:javascript|vbscript):[^\s>]*)/gi, '$1="#"');
-  // Strip disallowed tags (keep content, remove the tag itself)
+  // Strip disallowed tags (keep content, remove the tag itself), and within an
+  // allowed tag strip disallowed attributes AND any URL-bearing attribute whose
+  // scheme is not on the allowlist.
+  //
+  // The scheme check lives HERE, inside the tag pass, rather than as a separate
+  // whole-document regex. The earlier version ran `/(href|src)\s*=…/g` over the
+  // entire string, which also matched `href=` appearing in ordinary prose or inside
+  // some other attribute's value and rewrote it — so a paragraph explaining
+  // `href=data:text/html` got mangled. Doing it per-tag means text content is never
+  // touched, and it matches how `vue/utils/sanitize.ts` does the same job.
   sanitized = sanitized.replace(/<\/?([a-zA-Z][a-zA-Z0-9]*)\b[^>]*>/g, (match, tagName: string) => {
     const tag = tagName.toLowerCase();
-    if (ALLOWED_TAGS.has(tag)) {
-      // Strip disallowed attributes from allowed tags
-      return match.replace(/\s+([a-zA-Z-]+)\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]*)/g, (attrMatch, attrName: string) => {
-        return ALLOWED_ATTRS.has(attrName.toLowerCase()) ? attrMatch : '';
-      });
-    }
-    return ''; // Strip the tag entirely
+    if (!ALLOWED_TAGS.has(tag)) return ''; // strip the tag entirely
+    return match.replace(
+      /\s+([a-zA-Z-]+)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]*))/g,
+      (attrMatch, attrName: string, dq?: string, sq?: string, uq?: string) => {
+        const name = attrName.toLowerCase();
+        if (!ALLOWED_ATTRS.has(name)) return '';
+        if (URL_ATTRS.has(name) && !isSafeUrl(dq ?? sq ?? uq ?? '')) return '';
+        return attrMatch;
+      },
+    );
   });
   return sanitized;
 }

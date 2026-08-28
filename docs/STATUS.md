@@ -1,120 +1,91 @@
 # CommonPub — Status & Operator Runbook
 
-> **Living doc — your "come back later" reference.** Snapshot updated 2026-08-21 (through session 256).
->
-> **Session 256 is ROLLED AND LIVE on all three instances (2026-08-21).** schema **0.66.0** /
-> config **0.40.0** / protocol **0.15.2** / auth **0.13.1** / editor **0.17.2** / explainer **0.8.2** /
-> learning **0.5.3** / test-utils **0.5.17** / server **2.133.0** / layer **0.137.0**. **47 flags**
-> (new: `contestConditionalFields`, default ON). **No migration.** Verified on each instance rather
-> than from a green workflow: commonpub.io, deveco.io and heatsynclabs.io all report health ok and
-> 47 flags, and deveco's `/api/image-proxy` now returns its neutralizing CSP.
->
-> The release followed the prerelease pattern: layer published as `0.137.0-rc.1` under `next`,
-> verified green on the deveco fork's CI (the only place the PUBLISHED layer is typechecked), then
-> promoted. Start at `docs/sessions/256-handoff.md`.
->
-> **Confirmed fixed in production:** deveco's contest page previously leaked 3 unclosed `<div>`s from
-> its truncated rules body, which made Vue abandon hydration of that subtree and freeze the Entries
-> tab in its SSR state — a registered entrant was told to register and never saw Submit Entry. The
-> live page now balances at 472 open / 472 close.
->
-> **CI is RED on `main` and it is not from this release.** 7 persona metrics tests fail
-> (`personaMetrics` + `personaAuditFixes`). Proven by re-running `main`'s own CI at the unchanged
-> commit `e4694a97`: it was green on 2026-08-17 and fails today with the identical 7. The tests are
-> date-anchored (`'2026-08-12'`, finalised-day reads), so the fixtures appear to age out of a window
-> roughly a week wide. A time bomb in the tests, not a regression — but it needs fixing, and deveco
-> has the persona flags ON.
->
-> **Two live things that need an operator, not a deploy.** deveco's Official Rules are truncated at
-> exactly 50,000 characters mid-word AND carry 31 unresolved `[CONFIRM: …]` placeholders — including
-> the proposal submission deadline — in a document 19 registrants have accepted; the full text exceeds
-> `CONTEST_RICH_TEXT_MAX`, so it needs a decision (docs page / shorten / raise the cap). And on any
-> contest page a **registered** entrant is served "Register for this contest" in the SSR'd HTML,
-> because `registrationTier` seeds `null` and `mustRegisterFirst` is therefore true for everyone
-> server-side. That is the reported "people don't know how to submit", served by the server; the fix
-> is one pending-state rule across all 23 `server: false` sites and is deliberately still open.
->
-> **Two audit rounds ran in session 256** (`docs/reviews/platform-audit-2026-08-21.md` and
-> `platform-audit-round-2-2026-08-21.md`): 227 raw findings, 175 confirmed, no P0. Round 2 targeted
-> what round 1's completeness critic said it had missed — `packages/protocol/`, the upload pipeline,
-> the write surface, the RBAC resolver, feeds/SEO, migrations, and the untouched product subsystems.
->
-> Snapshot below is unchanged from session 255.
-> Verify any version/flag claim before trusting it: `npm view @commonpub/<pkg> version`,
-> `curl https://<instance>/api/features`, `cargo search create-commonpub`.
-> **Current LIVE (all 3 instances):** persona **0.2.1** / config **0.39.1** / schema **0.65.0** /
-> server **2.132.1** / ui **0.16.1** / layer **0.136.1**, migrations **0046**, **0047** and **0048**,
-> **46 flags** (session 255, rolled 2026-08-15 — persona, opt-in sharing consent, k-anonymous audience
-> analytics and the opt-in member visibility directory).
->
-> **Layer 0.135.0 corrects the privacy model, and the correction is the point of the release.**
-> Profile data is public by intent; persona *questions* are not. So: answers are private by default
-> (no field ships `showOnProfile: true`), aggregate statistics run on legitimate interest with an
-> Art 21 objection rather than pretending to be consent, and the member's actual choice is about
-> **third-party exposure** — being named in a recruiter or sponsor search — not about being counted.
-> An instance can therefore ask custom questions with no recruitment or analytics use at all.
-> Breaking rename `publicOnProfile` → `showOnProfile` with **no alias**, deliberately: an unrecognised
-> key fails closed to "not shown", which is the safe direction for a visibility flag.
-> Migration 0048 adds `user_shared_links` + `user_statistics_objections` and ALTERs nothing existing.
->
-> **The four persona flags ship `false`, but flag state is per-instance and lives in the DB.**
-> Verified live 2026-08-15: all three healthy, all reporting 46 flags, all three carrying migration
-> 0048. commonpub.io and heatsynclabs.io have all four `false`. **deveco.io has all four ON** — an
-> operator override saved via `/admin/features`, not a shipped default. deveco is therefore the one
-> instance where this release changes live behaviour: members previously uncounted without a
-> `profile_analytics` grant are now counted in k-anonymous aggregates unless they object.
-> Before turning any of them on, read `docs/reference/guides/persona-schema.md`.
->
-> **Layer 0.136.1 (2026-08-17)** makes the statistics objection exercisable from the About you tab
-> rather than only from Privacy, and cuts the statistics disclosure from 165 to 84 words with
-> "what is counted" folded behind a toggle. **Release note worth keeping:** `@commonpub/server`
-> pins `@commonpub/persona` EXACTLY, and the objection route reads its copy from the server
-> package, so persona 0.2.1 alone left the API serving the old prose. server 2.132.1 and layer
-> 0.136.1 exist so the pins move. Check for a single persona version in a fork's lockfile before
-> shipping a copy change. Direction doc for where this goes next:
-> `docs/plans/persona-perfect-form.md`.
->
-> **Operator gotcha, found on deveco and true of every instance:** any
-> `runtimeConfig.public.*` key can be overridden by an environment variable on the deployed box
-> (`siteDescription` -> `NUXT_PUBLIC_SITE_DESCRIPTION`), and that override lives in no repo file.
-> deveco's was set in `/opt/deveco/.env`, beat the repo, and fed NodeInfo, so the instance
-> introduced itself to the fediverse with a string nobody could find in git. **When a repo copy
-> change does not appear on a site, read the served `__NUXT__.config.public` blob before doubting
-> the deploy** — it shows the value that actually won. deveco's is now retired (commented out, with
-> `/opt/deveco/.env.bak.20260817-063834` for rollback), so the description ships with a deploy.
->
-> **Layer 0.135.1 (2026-08-15) is the persona UX pass.** A browser pass found six different gaps
-> between sibling blocks on one page (32/44/56/57/77/92px) with no rule setting them: the pages lay
-> out with flex `gap` and never reset the UA default `p { margin-block: 1em }`, and flex does not
-> collapse margins, so every gap was `gap + 1em + 1em` varying with each element's font-size. Fixed
-> on both member pages and on `/admin/persona`, which carried the same defect 53 times. Type now
-> resolves through the theme tokens instead of 30 hardcoded pixel sizes, and the measure is capped
-> at 52ch (measured, not assumed: `1ch` is ~0.63em in this face, so 65ch rendered ~78 characters).
-> **The wider extent is recorded rather than fixed: 1,907 hardcoded pixel font-sizes across 223
-> layer `.vue` files.** That is a house-wide convention and its own piece of work.
-> **Layer 0.134.1 is a hotfix**: every save on `/admin/features` returned 400 once an instance had
-> more than 20 flag overrides, because the page posts the whole accumulated set and the cap was a
-> literal 20 against 46 flags. **Known and still open on that screen: the per-flag "reset to default"
-> control does nothing**, because the handler merges rather than replaces and no DELETE handler
-> exists. Detail in `docs/sessions/255-handoff.md`.
-> Detail: `docs/sessions/255-handoff.md`.
-> description Show more/less toggle + `markdownToExcerpt` strips `<!--` HTML comments so a Markdown-imported
-> description header no longer leaks into homepage/list excerpts.** **Session 249 (2026-08-02/03) — production-readiness sweep
-> before the deveco contest launch: rolled the upload-OOM guard (deveco Caddyfile 128MB catch-all cap +
-> app-side Content-Length 413) + `advanceContestStage` FOR-UPDATE lock + `safeHref` belts on contest URL
-> sinks + `/api/health` DB readiness probe. Full-lifecycle contest E2E 44/44. See
-> `docs/sessions/249-production-readiness-sweep.md`.** Deploy Production is green; **CI shows red only because of a
-> long-standing pre-existing `e2e` (Playwright) failure** — a stale `/auth/register` submit-enabled assertion
-> red on every commit since ≥2026-07-17, NOT from recent work; the gating `check` job (typecheck/lint/unit)
-> is green. Fixing that e2e test is an open item.
-> **⚠️ A real contest goes LIVE on deveco.io 2026-08-03 with real traffic.** deveco has ALL contest flags +
-> `emailNotifications`/`emailUnverified`/`contestReminders`/`contestEmailEditor` ON (more complete than
-> commonpub.io, which has reminders/emailEditor OFF). **Next session is a production-readiness sweep** —
-> `docs/sessions/249-kickoff.md`.
-> Companion docs: **`docs/ROADMAP.md`** (prioritized remaining work), **production-readiness sweep kickoff
-> `docs/sessions/249-kickoff.md`**, the session-246 audit `docs/reviews/production-readiness-audit-2026-07-23.md`
-> (batch-2 P2s still open), scalability memory `project_pagination_scalability.md`, contest guide
-> `docs/reference/guides/contests.md`.
+> **Living doc — your "come back later" reference.** Header rewritten 2026-08-23 after a
+> full-repository audit found the previous header wrong on **27 of 38** present-tense
+> state claims, and self-contradictory 40 lines apart. Everything below the first `---`
+> is **historical session narrative** and has NOT been re-verified; read it as a log, not
+> as current state. Only this header is warranted current as of 2026-08-23.
+
+## Verified current state — 2026-08-23
+
+Every figure here was taken from the registry, `gh`, or a live request on the date above.
+Re-check before trusting it: `npm view @commonpub/<pkg> version`,
+`curl https://<instance>/api/features`, `gh run list --branch main`.
+
+**Published (all match the working tree):** schema **0.66.0** · config **0.40.0** ·
+protocol **0.15.2** · auth **0.13.2** · ui **0.16.1** · editor **0.17.2** ·
+explainer **0.8.2** · learning **0.5.3** · infra **0.21.0** · server **2.133.1** ·
+docs **0.6.3** · test-utils **0.5.17** · persona **0.2.1** · theme-studio **0.7.0** ·
+layer **0.137.3** · `create-commonpub` **0.5.29** (crates.io).
+
+**Live:** all three instances healthy, migrations through **0048**, **47 flags** each.
+Flags ON by operator choice: commonpub.io **29**, deveco.io **43**, heatsynclabs.io **21**.
+
+**CI on `main` is GREEN**, including `e2e` — verified per job on run `32550077002`
+(`rust`, `check (22)`, `e2e` all success), not from a badge. The previous header's
+"CI is RED on main" was true when written and is no longer.
+
+## Read this before the next release
+
+`docs/reviews/2026-08-23-full-audit.md` is a full-repository audit: 131 verified
+findings, 26 of them reachable in production. **Three defects were fixed on `main` and
+are NOT yet published** — see "Release required" in that report:
+
+| fixed | what it was |
+| --- | --- |
+| `@commonpub/explainer` | a **stored XSS** reachable by any registered user: `section.module` is not sanitised on write and the render-time sanitizer was defeated by 8 encodings |
+| `@commonpub/layer` | the **production Postgres pool had no `'error'` listener**, so a backend restart or failover crashed the whole Nitro process |
+| `@commonpub/layer` | **three live RSS routes** emitted XML that readers reject outright (C0 control characters) |
+
+The audit's central finding is a repeating shape rather than any one bug: **a fix lands
+on the instance that was noticed, and a guard is written that pins that instance, while
+the rest of the class ships.** `escapeXml` was fixed in 2 of 5 copies; the pg-pool crash
+was fixed in the 4 test pools and not the production one; `profileVisibility` was fixed
+in the sitemap and is still absent from ~13 other public read paths; the ContentCard
+timezone fix was never generalised to the 45 other files that render un-gated dates.
+Both guards written on 2026-08-23 **discover** their targets by scanning instead of
+listing them, which is the pattern to copy.
+
+## The five things most worth an operator's attention
+
+1. **Rotate the crates.io publish token.** `.dockerignore` does not exclude
+   `.secrets/cargo-registry-token`, so it enters the Docker build context and is baked
+   into a build-stage layer.
+2. **`profileVisibility` does not work.** The setting is offered in
+   `settings/privacy.vue` with the words "Only people signed in to this site can see
+   your profile", and ~13 public read paths ignore it — including the ActivityPub actor,
+   WebFinger, people search and the profile page's own API. Suspension also does not
+   hide a profile. No instance currently has a non-public row, so nothing has leaked
+   yet.
+3. **Turn on compression.** `deploy/Caddyfile` and deveco's have no `encode` directive;
+   heatsync's does. Measured: deveco's contest page is **514 KB** on the wire and
+   **102 KB** gzipped, its homepage 235 KB → 42 KB. One line, two files, ~5×.
+4. **Unauthenticated callers get members' private email-notification preferences.**
+   `curl https://deveco.io/api/users/<name>` returns `emailNotifications` for anyone who
+   has configured them. Verified live.
+5. **Neither fork gates its deploy on anything.** heatsynclabs.io has no CI workflow at
+   all; deveco's deploy has no `needs:`, its post-deploy health check has never passed
+   and cannot fail the deploy, and it lacks `set -o pipefail` so a failed migration
+   reports success. The monorepo's own deploy is gated on typecheck and lint but not
+   tests — three commits have shipped with a red CI at the same SHA.
+
+## Standing gotchas worth keeping
+
+- **Any `runtimeConfig.public.*` key can be overridden by an env var on the box**, and
+  that override lives in no repo file. When a copy change does not appear on a site,
+  read the served `__NUXT__.config.public` before doubting the deploy.
+- **`workspace:*` publishes as an EXACT pin.** Anything above a bumped package must be
+  republished or consumers resolve two copies. Both production images currently carry
+  `@commonpub/schema` **0.16.0 and 0.66.0**, because published `@commonpub/docs@0.6.3`
+  still declares pins the source removed without a version bump.
+- **`pnpm audit` in CI is `continue-on-error`** and prints `##[error]` on every green
+  run. It is not a failure.
+- **`e2e` has `needs: check`**, so a red `check` silently skips it — it did not run on 5
+  of the last 20 runs. A skipped job is not a passing job.
+- **The layer is not linted and no `.vue` file anywhere is**, so a lint error can and
+  did ship green.
+
+---
 
 ---
 

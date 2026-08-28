@@ -1,12 +1,28 @@
 import { listContent, getUserByUsername } from '@commonpub/server';
 
+/**
+ * XML 1.0 permits only #x9, #xA, #xD and #x20 upward. A C0 control character is
+ * illegal EVEN ESCAPED as a numeric reference, so a title carrying one (paste
+ * from a PDF, a stray \x0b) makes the whole document malformed and every reader
+ * rejects the feed rather than skipping the item. Strip before escaping.
+ *
+ * Kept byte-identical to the copies in the sibling XML routes and pinned by
+ * `layers/base/server/routes/__tests__/xml-escape.test.ts`, so the five cannot
+ * drift.
+ */
 function escapeXml(str: string): string {
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&apos;');
+  return (
+    str
+      // The control characters ARE the subject: this range is exactly what XML
+      // 1.0 forbids, so `no-control-regex` is inverted here.
+      // eslint-disable-next-line no-control-regex
+      .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&apos;')
+  );
 }
 
 export default defineEventHandler(async (event) => {
