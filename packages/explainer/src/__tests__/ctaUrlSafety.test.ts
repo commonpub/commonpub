@@ -25,6 +25,8 @@
  * which documents the same trade-off).
  */
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { generateExplainerHtml } from '../export/htmlExporter';
 import { isSafeUrl } from '../urlSafety';
 import type { ExplainerDocument, ExportOptions } from '../types';
@@ -120,9 +122,6 @@ describe('the gate the CTA uses is the package-wide one', () => {
 });
 
 function readExporterSource(): string {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const { readFileSync } = require('node:fs') as typeof import('node:fs');
-  const { resolve } = require('node:path') as typeof import('node:path');
   return readFileSync(resolve(__dirname, '..', 'export', 'htmlExporter.ts'), 'utf8');
 }
 
@@ -156,9 +155,6 @@ describe('the Vue viewer binds the gated href, not the raw url', () => {
 });
 
 function readRendererSource(): string {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const { readFileSync } = require('node:fs') as typeof import('node:fs');
-  const { resolve } = require('node:path') as typeof import('node:path');
   return readFileSync(
     resolve(__dirname, '..', '..', 'vue', 'components', 'viewer', 'ConclusionRenderer.vue'),
     'utf8',

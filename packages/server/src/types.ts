@@ -133,13 +133,21 @@ export interface UserProfile {
     description: string;
   }> | null;
   pronouns: string | null;
-  emailNotifications: {
-    digest?: 'daily' | 'weekly' | 'none';
-    likes?: boolean;
-    comments?: boolean;
-    follows?: boolean;
-    mentions?: boolean;
-  } | null;
+  /*
+   * `emailNotifications` is deliberately NOT here.
+   *
+   * This type is what `/api/users/:username` returns, and that route has no
+   * `requireAuth` -- it reads the viewer opportunistically, only to compute a
+   * follow flag. So every field on this interface is a field disclosed to
+   * strangers, and a member's notification preferences were being disclosed
+   * live: `curl https://deveco.io/api/users/<name>` returned the whole object,
+   * digest cadence included, to anyone. The JSONB column also carries an
+   * `unsubscribedAll` key that is not in any TS type, so the cast that produced
+   * this field published that too.
+   *
+   * The owner's own copy is added by `layers/base/server/api/profile.get.ts`,
+   * the same way and for the same reason `profileVisibility` is.
+   */
   createdAt: Date;
   followerCount: number;
   followingCount: number;

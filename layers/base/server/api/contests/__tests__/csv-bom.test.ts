@@ -13,7 +13,7 @@
  * Nothing in the repo asserted it, `eslint` had never seen these files (the
  * layer had no lint script), and any editor, formatter, or well-meaning
  * "strip invisible characters" pass would have deleted it silently. The
- * escaped form `﻿` produces the identical byte sequence and is visible
+ * escaped form (a backslash-u escape) produces the identical byte sequence and is visible
  * in a diff.
  *
  * It DISCOVERS the routes by scanning for the CSV content type rather than
@@ -58,11 +58,11 @@ describe('CSV export routes', () => {
   it.each(csvRoutes.map((r) => [r.path.replace(SERVER_ROOT, 'server'), r.src] as const))(
     '%s emits a UTF-8 BOM, written as an escape',
     (_label, src) => {
-      // The escape, spelled out. Matches `﻿` in any case.
+      // The escape, spelled out. Case-insensitive.
       expect(src, 'no \\uFEFF escape found before the CSV body').toMatch(/\\u\{?0*FEFF\}?/i);
       // And not the raw character, which is invisible and silently strippable.
       expect(
-        src.includes('﻿'),
+        src.includes('\uFEFF'),
         'contains a LITERAL U+FEFF; write it as the escape \\uFEFF instead so it survives formatting and shows up in a diff',
       ).toBe(false);
     },

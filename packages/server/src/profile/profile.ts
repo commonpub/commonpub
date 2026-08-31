@@ -97,7 +97,6 @@ export async function getUserByUsername(db: DB, username: string): Promise<UserP
     skills: (user.skills as string[]) ?? null,
     experience: (user.experience as UserProfile['experience']) ?? null,
     pronouns: user.pronouns ?? null,
-    emailNotifications: (user.emailNotifications as UserProfile['emailNotifications']) ?? null,
     createdAt: user.createdAt,
     followerCount,
     followingCount,
@@ -208,6 +207,45 @@ export interface ProfilePrivacySettings {
 }
 
 /** Reads {@link ProfilePrivacySettings} for one user. Owner-only by contract: the caller must have authenticated as `userId`. */
+/** A member's own email notification preferences. Owner-only by construction. */
+export interface OwnEmailNotificationPrefs {
+  digest?: 'daily' | 'weekly' | 'none';
+  likes?: boolean;
+  comments?: boolean;
+  follows?: boolean;
+  mentions?: boolean;
+}
+
+/**
+ * Read the viewer's OWN notification preferences.
+ *
+ * Separate from `getUserByUsername` on purpose: that function feeds the
+ * unauthenticated `/api/users/:username` route, so anything it returns is
+ * public. Preferences are not. See the note on `UserProfile` in `types.ts`.
+ */
+export async function getOwnEmailNotificationPrefs(
+  db: DB,
+  userId: string,
+): Promise<OwnEmailNotificationPrefs | null> {
+  const rows = await db
+    .select({ emailNotifications: users.emailNotifications })
+    .from(users)
+    .where(and(eq(users.id, userId), isNull(users.deletedAt)))
+    .limit(1);
+  const raw = rows[0]?.emailNotifications;
+  if (!raw || typeof raw !== 'object') return null;
+  // Only the documented keys. The column also holds `unsubscribedAll`, which is
+  // an internal broadcast-suppression flag, not a user-facing preference.
+  const p = raw as Record<string, unknown>;
+  return {
+    digest: p.digest as OwnEmailNotificationPrefs['digest'],
+    likes: p.likes as boolean | undefined,
+    comments: p.comments as boolean | undefined,
+    follows: p.follows as boolean | undefined,
+    mentions: p.mentions as boolean | undefined,
+  };
+}
+
 export async function getProfilePrivacySettings(
   db: DB,
   userId: string,
