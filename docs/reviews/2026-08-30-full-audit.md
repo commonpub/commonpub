@@ -484,9 +484,82 @@ finding from the previous audit.
 
 ---
 
-## Release status
+## The outage this roll caused, and what it proves
 
-**Nothing has been published or deployed.** What reaches production, and how:
+**deveco.io served 500 on every SSR page for about twelve minutes on 2026-08-31.**
+`/api/health` and the feeds kept answering throughout, and the deploy reported success.
+
+Three copies of Vue in the npm tree:
+
+```
+node_modules/vue                          3.5.34   <- the app
+node_modules/nuxt/node_modules/vue        3.5.42   <- the renderer
+node_modules/@nuxt/nitro-server/.../vue   3.5.42
+```
+
+deveco's root declares `vue: ^3.4.0`, locked at 3.5.34. nuxt 3.21.11 requires
+`^3.5.40`, which 3.5.34 does not satisfy, so npm **nested** a second copy rather than
+upgrading the first. Two Vue runtimes in one process makes every `renderToString` throw,
+while API routes -- which never touch Vue -- keep serving. That asymmetry is why nothing
+looked wrong from outside.
+
+### It is P1-15, and this report re-verified P1-15 hours earlier
+
+deveco's CI runs `pnpm install --frozen-lockfile` against `pnpm-lock.yaml`. Its Dockerfile
+runs `npm install` against `package-lock.json`. **Two resolvers, two trees.** pnpm hoisted
+one vue and CI went green; npm nested three and production broke. The finding that says
+exactly this was re-confirmed in the same session that then walked into it.
+
+### Two mistakes worth naming
+
+**Two independent changes in one deploy.** The nuxt security bump and the layer upgrade
+went out together, so the outage could not be attributed to either until the lockfiles
+were diffed afterwards. The retry ships them separately.
+
+**A green fork CI was treated as sufficient.** This report's own text says that CI only
+typechecks the published `.d.ts` surface. It does not run the app, and it does not build
+the tree that ships.
+
+### What now exists that did not
+
+- `scripts/check-single-vue.mjs` in **both** forks, failing the build when
+  `package-lock.json` resolves more than one `vue` or `@vue/server-renderer`. It reads the
+  **npm** lockfile specifically -- the tree that ships, not the pnpm tree CI builds -- and
+  runs before the install so a later failure cannot mask it. On heatsync, which has no CI
+  at all, it runs inside `deploy.yml` before the Docker build, which is the only gate
+  between merge and production there.
+- Mutation-tested three ways: it fails on the exact lockfile that caused the outage and
+  names all three copies, it refuses to pass on a truncated lockfile, and it passes on a
+  good one.
+- A pre-deploy routine that **builds the npm tree and RUNS the server**, probing SSR
+  routes. A build passing is not a page rendering, and that gap is precisely what shipped.
+
+**Fix for the duplication:** raise the ROOT `vue` range so one copy satisfies every
+consumer. An `overrides.vue` entry does not work while a direct dependency on vue exists
+-- npm rejects it with `EOVERRIDE`.
+
+## Release status — SHIPPED 2026-08-31
+
+All of it is live. Published to `latest`: protocol **0.15.3**, auth **0.13.3**, explainer
+**0.9.1**, learning **0.5.5**, server **2.134.0**, layer **0.137.5**, gated by publishing
+to `--tag next` first and letting deveco's CI typecheck the real tarballs before `latest`
+moved.
+
+Verified against each live instance after its swap, never during a deploy:
+
+| | commonpub.io | deveco.io | heatsynclabs.io |
+| --- | --- | --- | --- |
+| explainer CTA XSS gate | live | live | live |
+| twelve `safeHref` wraps | live | live | live |
+| `emailNotifications` off the public DTO | live | live | live |
+| nuxt out of the RCE range (3.21.11) | live | live | live |
+| duplicate-vue guard | n/a (pnpm workspace) | CI step | inside `deploy.yml` |
+
+The forks were rolled in **two steps each** -- layer first, then nuxt with the vue raise
+-- after the combined attempt caused the outage described above. Every step was built AND
+RUN locally against the npm tree with SSR probed before its PR opened.
+
+_Original plan, kept for the record:_
 
 | change | reaches production via |
 | --- | --- |

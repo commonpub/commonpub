@@ -3,6 +3,59 @@
 Full report: `docs/reviews/2026-08-30-full-audit.md`.
 Previous: `docs/sessions/257-handoff.md`, `docs/reviews/2026-08-23-full-audit.md`.
 
+## Roll status at handoff (2026-08-31)
+
+**Published to `latest`:** protocol 0.15.3, auth 0.13.3, explainer 0.9.1, learning 0.5.5,
+server 2.134.0, layer 0.137.5. Gated by publishing to `--tag next` first and letting
+deveco's CI typecheck the real tarballs before `latest` moved.
+
+**commonpub.io** builds from source and has everything: the XSS gates, the privacy fix,
+and nuxt 3.21.11.
+
+**deveco.io** was rolled in TWO steps after a combined attempt caused an outage (see
+below). Both are live and verified after their swaps: all 7 routes 200, the
+`emailNotifications` leak closed, the banner intact, both feeds parsing, and nuxt now
+3.21.11.
+
+**heatsynclabs.io** followed last with the same two steps, because it has no CI at all --
+merging there IS deploying, so a local build-and-run was the only gate besides the new
+one below. Step 1 verified live; step 2 shipped after a local build + run + SSR probe.
+
+Every step was verified against the live instance AFTER its swap, never during the
+deploy. A 200 mid-deploy is the old container answering.
+
+**A guard now exists in both forks:** `scripts/check-single-vue.mjs` fails the build when
+`package-lock.json` resolves more than one `vue` or `@vue/server-renderer`. On deveco it
+is a CI step; on heatsync it runs inside `deploy.yml` before the Docker build.
+
+### The outage, because the mechanism generalises
+
+Rolling nuxt and the layer together took **every SSR page on deveco.io to 500 for about
+twelve minutes**, while `/api/health` and the feeds kept serving and the deploy reported
+success.
+
+Three copies of Vue in the npm tree. The root declared `vue: ^3.4.0`, locked at 3.5.34;
+nuxt 3.21.11 requires `^3.5.40`, so npm **nested** 3.5.42 under `nuxt` and
+`@nuxt/nitro-server` rather than upgrading the first. Two Vue runtimes makes every
+`renderToString` throw; API routes never touch Vue, which is why nothing looked wrong.
+
+**CI could not have caught it.** deveco's CI installs with **pnpm** from `pnpm-lock.yaml`;
+its Dockerfile installs with **npm** from `package-lock.json`. Two resolvers, two trees.
+That is P1-15, and this session re-verified P1-15 hours before walking into it.
+
+Two mistakes worth carrying forward: two independent changes went out in one deploy, so
+the cause could not be attributed until the lockfiles were diffed; and a green fork CI was
+treated as sufficient when this repo's own audit says it only typechecks the published
+`.d.ts` surface. It does not run the app.
+
+The retry ships nuxt and layer separately, and every step is now built AND RUN locally
+against the npm tree with SSR probed before the PR opens. **A build passing is not a page
+rendering.**
+
+Note in passing: heatsync's Dependabot PR #22 (nuxt 3.21.10) handles this correctly -- it
+raises the vue requirement alongside nuxt and resolves to a single copy. Dependabot got
+the coupling right where I did not.
+
 ## Read this first
 
 **All three production instances are running a Nuxt inside an unauthenticated RCE

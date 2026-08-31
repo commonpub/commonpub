@@ -13,15 +13,15 @@ Re-check before trusting it: `npm view @commonpub/<pkg> version`,
 `curl https://<instance>/api/features`, `gh run list --branch main`.
 
 **Published (all match the working tree):** schema **0.66.0** · config **0.40.0** ·
-protocol **0.15.2** · auth **0.13.2** · ui **0.16.1** · editor **0.17.2** ·
-explainer **0.9.0** · learning **0.5.4** · infra **0.21.0** · server **2.133.2** ·
+protocol **0.15.3** · auth **0.13.3** · ui **0.16.1** · editor **0.17.2** ·
+explainer **0.9.1** · learning **0.5.5** · infra **0.21.0** · server **2.134.0** ·
 docs **0.6.3** · test-utils **0.5.17** · persona **0.2.1** · theme-studio **0.7.0** ·
-layer **0.137.4** · `create-commonpub` **0.5.29** (crates.io).
+layer **0.137.5** · `create-commonpub` **0.5.29** (crates.io).
 `@commonpub/layer` also carries **0.137.4-rc.1** on the `next` tag — the prerelease that
 verified the fork typecheck before `latest` moved. Harmless; leave it.
 
 **Live:** all three instances healthy, migrations through **0048**, **47 flags** each,
-all three on **layer 0.137.4** as of 2026-08-27. Flags ON by operator choice:
+all three on **layer 0.137.5** and **nuxt 3.21.11** as of 2026-08-31. Flags ON by operator choice:
 commonpub.io **29**, deveco.io **43**, heatsynclabs.io **21**.
 
 **CI on `main` is GREEN**, including `e2e` — verified per job on run `33131511119`
@@ -29,7 +29,7 @@ commonpub.io **29**, deveco.io **43**, heatsynclabs.io **21**.
 badge: `e2e` has `needs: check`, so a red gate makes it *skip* while the run still
 reports a single tidy failure.
 
-## URGENT — all three instances run a Nuxt with an unauthenticated RCE advisory
+## Resolved 2026-08-31 — the Nuxt RCE, on all three instances
 
 ```
 [high] nuxt >=3.4.0 <3.21.10   patched >=3.21.10
@@ -37,22 +37,33 @@ reports a single tidy failure.
   in Nuxt Server Island Props
 ```
 
-Both forks' `package-lock.json` — the file their Dockerfile builds from — resolve **nuxt
-3.21.5**, and `GET /__nuxt_island/x.json` answers **204** on all three instances, so the
-affected endpoint is anonymously reachable. Three further unauthenticated highs sit in the
-same range.
+All three instances now run **nuxt 3.21.11**. `pnpm audit` reports zero nuxt and zero
+undici advisories in the workspace; repo totals went 6 critical / 76 high to 3 / 51, and
+the remainder is dominated by devDependencies that never enter the image.
 
-**The monorepo is fixed** (2026-08-30): `^3.16.0` already permitted the patch, so a
-lockfile re-resolve took nuxt to **3.21.11** and undici to **7.29.0**. `pnpm audit` now
-reports zero advisories for both; repo totals went 6 critical / 76 high → 3 / 51, and the
-remainder is mostly devDependencies that never enter the image.
+**A caution for the next fork dependency bump.** Rolling nuxt and the layer together took
+every SSR page on deveco.io to 500 for about twelve minutes. The root declared
+`vue: ^3.4.0`, locked at 3.5.34; nuxt 3.21.11 requires `^3.5.40`, so npm **nested** a
+second Vue under `nuxt` and `@nuxt/nitro-server` rather than upgrading the first. Two Vue
+runtimes makes every `renderToString` throw, while `/api/health` and the feeds keep
+serving -- which is why the deploy reported success.
 
-**The forks are NOT fixed.** Each needs `nuxt` re-resolved to `>=3.21.10` in **both**
-lockfiles and a deploy. deveco's two lockfiles currently disagree about nuxt (3.21.2 vs
-3.21.5), which is P1-15 visible in the wild.
+Fork CI could not have caught it: **CI installs with pnpm, the Dockerfile installs with
+npm.** Two resolvers, two trees. That is P1-15.
 
-`sharp` is separately still on 0.34.5 with four libvips CVEs fixed in 0.35.0; `^0.34.5`
-cannot cross that minor, so it needs a hand-edited range.
+Both forks now carry `scripts/check-single-vue.mjs`, which fails the build when
+`package-lock.json` resolves more than one `vue` or `@vue/server-renderer`. It reads the
+npm lockfile specifically and runs before the install; on heatsync, which has no CI, it
+runs inside `deploy.yml` before the Docker build. Note its scope: it guards those two
+packages, not duplicate dependencies in general.
+
+`sharp` is still on 0.34.5 with four libvips CVEs fixed in 0.35.0. `^0.34.5` cannot cross
+that minor, so it needs a hand-edited range and its own verification -- it is the native
+module that processes every upload.
+
+**Before any future fork bump that moves nuxt or vue:** raise the root `vue` range with
+it, regenerate BOTH lockfiles, run the guard, and then build AND RUN the npm tree locally
+and probe an SSR route. A build passing is not a page rendering.
 
 ## Read this before the next release
 
