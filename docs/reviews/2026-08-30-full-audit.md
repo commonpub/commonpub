@@ -172,6 +172,33 @@ from all 24 `docs/plans/`". There are **41** plan files now, six of which postda
 entirely — the persona, member-directory and conditional-field work all shipped without
 ever appearing in it. Its header now says what it actually covers.
 
+### F-6 — Twelve unguarded external hrefs
+
+`layers/base/utils/safeUrl.ts` says in its own header that "every external link binds
+through `safeHref`". Twelve did not.
+
+The worst, `pages/authorize_interaction.vue:109`, bound the raw **`?uri=` query
+parameter** straight into an anchor: `/authorize_interaction?uri=javascript:...` rendered
+a working, clickable script URL. The page requires a session, so it needs a logged-in
+victim rather than a passing stranger, but it is reflected and it is one click. Seven more
+were fed by **remote instances** through the federated-hub pages (`hub.url` x5,
+`m.actorUri`, `post.objectUri`) plus `mirror/[id].vue`, and three by content authors
+through `ProjectView` — whose downloads `file.url` is guarded correctly by
+`BlockDownloadsView` two directories away.
+
+Not wrapped, and recorded with reasons: `safeHref` collapses anything non-http(s) to
+`'#'`, so applying it to the operator-configured nav would break internal routing rather
+than secure it. `SectionCta`'s `btn.href` is admin-authored and may legitimately be an
+internal path — it needs a scheme denylist rather than an http-only allowlist, and is
+filed rather than guessed at.
+
+### F-7 — nuxt and undici moved off their advisories
+
+Detailed under the new-findings section below. `nuxt` 3.21.2 → **3.21.11**, `undici`
+7.24.7 → **7.29.0**, both within their already-declared ranges; floors raised so a fresh
+install cannot resolve backwards. Build 17/17, typecheck 30/30, lint 31/31 on the bumped
+tree.
+
 ---
 
 ## Re-verification of all 28 open P1s
@@ -303,6 +330,128 @@ visitor. Recorded so nobody re-opens it.
 
 ---
 
+## New defects, from eight dimensions the previous audit never covered
+
+Eight finders, then an independent agent per finding instructed to refute it.
+**76 raw findings; 37 survived refutation**, of which 19 are P1.
+
+Coverage caveat, stated because it changes how much weight these carry: **five refutation
+agents died on transient API errors**, in the federation-inbound, input-validation,
+data-integrity and docs-accuracy dimensions. Findings from those dimensions were verified
+by their finder but not adversarially challenged. Everything I re-checked by hand is
+marked below.
+
+| dimension | raw | survived |
+| --- | --- | --- |
+| authz | 5 | 2 |
+| enumerated-fields | 11 | 4 |
+| input-validation | 8 | 4 |
+| federation-inbound | 15 | 6 |
+| data-integrity | 9 | 7 |
+| secrets-logging | 5 | 3 |
+| deps-supply-chain | 8 | 5 |
+| docs-accuracy | 15 | 6 |
+
+### The one that outranks everything else in this report
+
+**All three production instances run a Nuxt carrying an unauthenticated RCE advisory.**
+Verified three independent ways rather than relayed:
+
+```
+[high] nuxt >=3.4.0 <3.21.10   patched >=3.21.10
+  Nuxt: Server-Side Remote Code Execution via Runtime Template Injection
+  in Nuxt Server Island Props
+```
+
+- Both forks' `package-lock.json` — the file their Dockerfile actually builds from —
+  resolve **nuxt 3.21.5**. The workspace was on **3.21.2**.
+- `GET /__nuxt_island/x.json` returns **204 on all three instances**: the affected
+  endpoint is anonymously reachable in production.
+- Three further unauthenticated highs sit in the same range: OOM via unbounded `v-for`
+  expansion in island rendering, CPU exhaustion parsing and hashing the island body
+  *before* hash validation, and unauthorized component instantiation via island props.
+
+In the monorepo this was cheap, because `^3.16.0` already permitted the fix: a lockfile
+re-resolve took nuxt to **3.21.11** and undici to **7.29.0**, and `pnpm audit` then
+reports **zero nuxt and zero undici advisories**, with the repo-wide totals falling from
+6 critical / 76 high to 3 / 51. The declared floors were raised to match, so a fresh
+install cannot resolve backwards into the vulnerable range.
+
+**The forks are not fixed by that.** They install independently and still resolve 3.21.5.
+
+Two dependency items were left alone deliberately. `sharp ^0.34.5` carries four libvips
+CVEs fixed in 0.35.0, and a caret on a `0.x` range can never cross that minor — it needs
+a hand edit, and it is the native module that processes every member upload, so it wants
+its own change and its own verification. And most of the remaining criticals
+(`@nuxt/devtools`, `vitest`, `simple-git`) are devDependencies that never enter the
+production image.
+
+### Independently re-checked by hand
+
+- **`/api/search?difficulty=<non-enum>` returns 500 anonymously on all three instances.**
+  Reproduced with a plain GET. A type-valid string is bound to a pgEnum column; the
+  sibling route validates the same enum family. This is the "validate the DOMAIN, not the
+  shape" class the previous audit already recorded.
+- **One claim did NOT reproduce and is not carried forward.** The unbounded-`OFFSET`
+  bigint overflow returns **400**, not 500, on all three instances — that path is already
+  clamped. Reported here so nobody re-files it.
+
+### The rest of the P1s
+
+| reachable by | fixable | finding |
+| --- | --- | --- |
+| anonymous | yes | Password-reset email skips the `isEmailDeliverable()` guard its sibling has: on the shipped-default console sink, an anonymous request prints a workin... |
+| anonymous | design call | Any ActivityPub actor can publish into the instance's public federated timeline — no follow, no mirror, no moderation gate |
+| anonymous | yes | Inbound activity ids are not bound to the signer's host, and the dedup claim is permanent — any peer can pre-claim and permanently blackhole another p... |
+| anonymous | yes | Anonymous 500 on all three production instances: /api/search?difficulty=<non-enum> binds an unvalidated string to the `difficulty` pgEnum |
+| anonymous | yes | Anonymous 500: /api/events/{slug}/attendees?status=<non-enum> — the sibling route validates the same enum family, this one casts |
+| anonymous | yes | Anonymous 500 across all three instances: unbounded OFFSET overflows Postgres bigint — the existing clamp guards only the lower end |
+| anonymous | yes | Anonymous slug oracle: /{type}/{slug} 301-redirects on ANY content row regardless of status or visibility, leaking the author's username and the real ... |
+| anonymous | yes | All three production instances ship Nuxt inside the range of an unauthenticated server-island RCE advisory, and the /__nuxt_island endpoint is anonymo... |
+| anonymous | yes | commonpub.io ships undici 7.24.7 in the federation SSRF fetch path — 4 high + 4 moderate/low advisories that both forks are already patched against |
+| any-member | yes | Reflected DOM XSS: /authorize_interaction binds the raw ?uri= query parameter to :href with no scheme guard |
+| any-member | yes | ProjectView renders the downloads block's files[].url without safeHref, while BlockDownloadsView guards the identical data |
+| any-member | design call | Any member self-deleting their account hard-deletes every hub, contest, docs site, learning path, product and event they created — with all other memb... |
+| any-member | yes | Deleting a moderator's account silently lifts every ban they issued, and deleting an admin erases their entire audit trail |
+| any-member | yes | sharp 0.34.5 (4 libvips CVEs, fixed in 0.35.0) processes every member upload on all three instances, and the caret range can never reach the fix |
+| operator-only | yes | docs/deployment.md instructs 17 bare env-var names the running app never reads — a self-hoster following it gets a container that refuses to boot |
+| operator-only | yes | The documented database backup and restore commands name a container and two volumes that exist nowhere — the backup silently produces an empty archiv... |
+| operator-only | yes | Option 1 (Single Droplet) cannot be followed: droplet-setup.sh leaves /opt/commonpub empty, and deploy/docker-compose.prod.yml references an image not... |
+| operator-only | yes | The scaffolded-site quickstart runs the wrong migration command: `npx drizzle-kit migrate` points at an empty ./drizzle directory, so a new instance b... |
+| operator-only | yes | Every doc that enumerates FEATURE_* env vars is short by 27 keys, and three of them name flags as having "no env key" that do have one |
+
+
+### P2s worth pulling forward
+
+34 of the surviving findings are P2. These are the ones whose shape matters beyond the
+individual bug:
+
+- **The hand-enumerated field list, quantified.** `sanitizeExplainerDocument` cleans **6
+  of the 18** author-supplied fields the `ExplainerDocument` schema allows. Separately,
+  the outbound federation serializer names **7 of 18**, so federated explainers silently
+  lose their asides, modules, CTA and footer. Same defect shape, opposite direction: one
+  under-sanitises, the other under-serialises, and both are lists somebody has to
+  remember to extend.
+- **A SUSPECTED finding from the previous audit is now CONFIRMED**: outbound federation
+  emits a `javascript:` href from video and embed blocks.
+- **Write endpoints skip the read gate that their siblings apply.** `like`, `bookmark`,
+  `build`, `view` and `report` operate on any content id, while `comment`, `fork`,
+  `hub-share` and `event-RSVP` all check visibility first — and the code says why, in a
+  comment on the gated path. A like on an unpublished item then federates that item's
+  canonical URL off the instance. Bounded to P2 only because content ids are v4 UUIDs and
+  therefore not enumerable.
+- **Soft-delete is enforced on every read path and no action path.** like, boost, reply,
+  join and post all operate on deleted rows.
+- **Three package READMEs document APIs that do not exist** — `protocol` (nine of nine
+  code examples use a signature the package has never had), `auth` (a role hierarchy with
+  every level number wrong), and `learning` (an API shape never exported). These are the
+  files a new contributor reads first.
+- **Two READMEs point a contributor at the wrong file for declaring a feature flag** —
+  which is precisely the failure `featureFlagParity.test.ts` exists to catch in code, now
+  reproduced in prose.
+
+---
+
 ## What this session got wrong
 
 Recorded because the pattern is the point, and because a report that only lists other
@@ -337,44 +486,46 @@ finding from the previous audit.
 
 ## Release status
 
-**Nothing has been published or deployed.** Two of the fixes above change published
-package source and therefore do not reach production until someone rolls them:
+**Nothing has been published or deployed.** What reaches production, and how:
 
-| package | change | reaches production via |
-| --- | --- | --- |
-| `@commonpub/explainer` | F-1, the CTA scheme gate | version bump + republish + fork pin bump |
-| `@commonpub/server` | F-2, `emailNotifications` off the public DTO | same, then `@commonpub/layer` |
+| change | reaches production via |
+| --- | --- |
+| F-1 explainer CTA gate | version bump + republish `@commonpub/explainer`, then the cascade |
+| F-2 `emailNotifications` off the public DTO | `@commonpub/server`, then `@commonpub/layer` |
+| F-6 twelve `safeHref` wraps | `@commonpub/layer` |
+| F-7 nuxt / undici | the monorepo image rebuilds on merge; **the forks need their own lockfile bump** |
+| F-3 `.dockerignore` | applies at the next image build, no release needed |
+| F-4 lint, F-5 docs | developer-facing, no release needed |
 
-`@commonpub/layer` also changed (the `/api/profile` owner-only field, the BOM escapes, the
-lint fixes). Because `workspace:*` publishes as an exact pin, the cascade is
+Because `workspace:*` publishes as an exact pin, the package cascade is
 `explainer → learning → server → layer`, and both forks need **both** lockfiles bumped.
 
-The other three fixes are repo-local and take effect without a release: the
-`.dockerignore` change applies at the next image build, and the lint and documentation
-changes are developer-facing.
-
-**The `emailNotifications` leak is live on deveco.io and heatsynclabs.io right now.** It
-was reproduced against production during this session.
+**Two of these are live defects right now**: the `emailNotifications` leak was reproduced
+against deveco.io during this session, and all three instances are running the vulnerable
+Nuxt.
 
 ## What I would do next, in order
 
-1. **Rotate the crates.io publish token** (F-3). Independent of any release, and the only
-   item here where the exposure already happened.
-2. **Roll the two package fixes.** Follow the prerelease gate that worked in session 257:
-   publish to `--tag next`, prove it against a fork's CI, then promote. The
-   `emailNotifications` leak is the reason not to sit on this.
-3. **Make deveco's deploy able to fail** (P1-10, P1-11). Its post-deploy check curls a
+1. **Nuxt.** All three instances are inside an unauthenticated RCE advisory range with the
+   affected endpoint reachable. The monorepo half is done and green; the forks need
+   `nuxt` re-resolved to `>=3.21.10` in **both** of their lockfiles and a deploy. This
+   outranks everything else here.
+2. **Rotate the crates.io publish token** (F-3). Independent of any release, and the only
+   item where the exposure has already happened rather than being merely possible.
+3. **Roll the package fixes** — F-1, F-2, F-6. Follow the prerelease gate that worked in
+   session 257: publish to `--tag next`, prove it against a fork's CI, then promote.
+4. **`sharp`** to `>=0.35.0`. Needs a hand-edited range because a caret on `0.x` cannot
+   cross a minor, and it is the native module in the upload path, so it deserves its own
+   change rather than riding along with something else.
+5. **Make deveco's deploy able to fail** (P1-10, P1-11). Its post-deploy check curls a
    port the container only `expose`s and ends in `|| echo ::warning::`; the deploy log
-   from 2026-08-28 prints "Health check failed" and the job still succeeds. Two small
-   edits, strictly safer, and they turn every future roll from hand-verified into
-   self-verifying.
-4. **`profileVisibility`** (P1-1). The setting is offered in the UI with the words "Only
-   people signed in to this site can see your profile" and is honoured on 7 of at least 35
-   relevant paths. No instance has a non-public row yet, so this is a race between the fix
-   and the first member who trusts the setting. It needs a shared predicate and a scanning
-   guard, not 28 individual edits.
-5. **The test gate** (N-1). Everything above is harder to land confidently while `pnpm
-   test` fails for reasons unrelated to the change under test.
+   from 2026-08-28 prints "Health check failed" and the job still succeeds.
+6. **`profileVisibility`** (P1-1). Honoured on 7 of at least 35 relevant paths, against a
+   UI that promises otherwise. No instance has a non-public row yet, so this is a race
+   between the fix and the first member who trusts the setting. It needs a shared
+   predicate and a scanning guard, not 28 individual edits.
+7. **The test gate** (N-1). Everything above lands more safely once `pnpm test` stops
+   failing for reasons unrelated to the change under test.
 
 ## Left alone deliberately
 

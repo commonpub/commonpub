@@ -4,9 +4,9 @@
 > full-repository audit found the previous header wrong on **27 of 38** present-tense
 > state claims, and self-contradictory 40 lines apart. Everything below the first `---`
 > is **historical session narrative** and has NOT been re-verified; read it as a log, not
-> as current state. Only this header is warranted current as of 2026-08-27.
+> as current state. Only this header is warranted current as of 2026-08-30.
 
-## Verified current state — 2026-08-27
+## Verified current state — 2026-08-30
 
 Every figure here was taken from the registry, `gh`, or a live request on the date above.
 Re-check before trusting it: `npm view @commonpub/<pkg> version`,
@@ -29,6 +29,31 @@ commonpub.io **29**, deveco.io **43**, heatsynclabs.io **21**.
 badge: `e2e` has `needs: check`, so a red gate makes it *skip* while the run still
 reports a single tidy failure.
 
+## URGENT — all three instances run a Nuxt with an unauthenticated RCE advisory
+
+```
+[high] nuxt >=3.4.0 <3.21.10   patched >=3.21.10
+  Server-Side Remote Code Execution via Runtime Template Injection
+  in Nuxt Server Island Props
+```
+
+Both forks' `package-lock.json` — the file their Dockerfile builds from — resolve **nuxt
+3.21.5**, and `GET /__nuxt_island/x.json` answers **204** on all three instances, so the
+affected endpoint is anonymously reachable. Three further unauthenticated highs sit in the
+same range.
+
+**The monorepo is fixed** (2026-08-30): `^3.16.0` already permitted the patch, so a
+lockfile re-resolve took nuxt to **3.21.11** and undici to **7.29.0**. `pnpm audit` now
+reports zero advisories for both; repo totals went 6 critical / 76 high → 3 / 51, and the
+remainder is mostly devDependencies that never enter the image.
+
+**The forks are NOT fixed.** Each needs `nuxt` re-resolved to `>=3.21.10` in **both**
+lockfiles and a deploy. deveco's two lockfiles currently disagree about nuxt (3.21.2 vs
+3.21.5), which is P1-15 visible in the wild.
+
+`sharp` is separately still on 0.34.5 with four libvips CVEs fixed in 0.35.0; `^0.34.5`
+cannot cross that minor, so it needs a hand-edited range.
+
 ## Read this before the next release
 
 `docs/reviews/2026-08-23-full-audit.md` is a full-repository audit. Its own tally:
@@ -44,8 +69,15 @@ instances** (rolled 2026-08-27; session 257's handoff has the detail):
 | `@commonpub/layer` 0.137.4 | **three live RSS routes** emitted XML that readers reject outright (C0 control characters) |
 
 **All 28 P1s are still open** — they are counted separately from the 3 fixed, so
-shipping the fixes did not reduce that number. Start from the report, not from this
-list.
+shipping the fixes did not reduce that number. Start from the report, not from this list.
+
+**A second audit ran on 2026-08-30**: `docs/reviews/2026-08-30-full-audit.md`. It
+re-verified all 28 of those from scratch (**25 still real, 2 mis-stated, 1 fixed**) and
+found 76 new candidates across eight uncovered dimensions, 37 of which survived
+adversarial refutation. Seven fixes landed, **none of them published or deployed** — see
+that report's Release Status table for what reaches production how. Two are live defects:
+the Nuxt version above, and an unauthenticated `emailNotifications` leak reproduced
+against deveco.io.
 
 **How the roll was made safe, worth repeating.** Publish to `--tag next` first, open a
 throwaway PR in a fork pinned to the prerelease, and only promote to `latest` once the
