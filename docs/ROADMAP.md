@@ -1,8 +1,17 @@
 # CommonPub — Roadmap (prioritized remaining work)
 
-> The single source of truth for **what's left and in what order**, consolidated from the
-> session-228 audit of all 24 `docs/plans/`. Companion: `docs/STATUS.md` (where things stand +
-> how to release/deploy). Snapshot 2026-06-26.
+> **Ordered backlog, consolidated from the session-228 audit of the 24 `docs/plans/` that
+> existed then. Snapshot 2026-06-26; last edited 2026-07-24.**
+>
+> It is NOT currently a complete source of truth, and saying so is the point: there are now
+> **41** plan files, and six of them postdate this document entirely (`contest-cta-metrics-
+> and-analytics`, `member-visibility-directory`, `persona-customization-and-audience-
+> analytics`, `profile-persona-information-architecture`, `persona-perfect-form`,
+> `conditional-form-fields`). The work in those shipped without ever appearing here.
+>
+> Companion: `docs/STATUS.md` (where things stand + how to release/deploy) and
+> `docs/reviews/2026-08-23-full-audit.md` (28 open production-reachable findings, which this
+> roadmap predates and does not rank).
 >
 > **Context:** both major recent initiatives — the **email/communications overhaul** and **GDPR
 > consent** (Phases 1+2 + server enforcement) — are COMPLETE and live on all 3 instances. Almost

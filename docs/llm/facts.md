@@ -12,7 +12,7 @@ Condensed, high-signal. Load this before touching code.
 ## Topology
 
 ```
-apps/{reference, shell}  →  layers/base (@commonpub/layer)  →  packages/* (12 npm packages)
+apps/{reference, shell}  →  layers/base (@commonpub/layer)  →  packages/* (14 npm packages)
 tools/create-commonpub   Rust CLI
 tools/worker             delivery monitoring utilities
 deploy/                  Docker, Caddyfile, DO app-spec
@@ -20,15 +20,17 @@ docs/                    human docs, ADRs, session logs
 codebase-analysis/       raw inventory (generated — trust over older docs)
 ```
 
-12 packages on npm as `@commonpub/*`:
-schema, server, config, protocol, auth, ui, editor, explainer, learning, docs, infra, test-utils.
+14 packages on npm as `@commonpub/*`:
+schema, server, config, protocol, auth, ui, editor, explainer, learning, docs, infra,
+test-utils, theme-studio, persona.
 
-## Latest published versions (refreshed session 224, 2026-06-24 — defer to `docs/STATUS.md` for LIVE)
+## Latest published versions (refreshed session 258, 2026-08-30 — defer to `docs/STATUS.md` for LIVE)
 
-- schema 0.48.0, server 2.92.0, config 0.23.0, layer 0.86.5
-- ui 0.13.1, theme-studio 0.6.1, protocol 0.14.0, editor 0.9.0, explainer 0.8.0
-- learning 0.5.2, docs 0.6.3, auth 0.8.0, infra 0.9.0, test-utils 0.5.8
-- create-commonpub 0.5.18 (crates.io — `cargo install create-commonpub`)
+- schema 0.66.0, server 2.133.2, config 0.40.0, layer 0.137.4
+- ui 0.16.1, theme-studio 0.7.0, protocol 0.15.2, editor 0.17.2, explainer 0.9.0
+- learning 0.5.4, docs 0.6.3, auth 0.13.2, infra 0.21.0, test-utils 0.5.17
+- persona 0.2.1
+- create-commonpub 0.5.29 (crates.io — `cargo install create-commonpub`)
 - (Always `npm view @commonpub/<pkg> version` / `cargo search` before trusting this — it drifts.)
 - Theme has readable `--*-text` tokens (session 224): each vivid semantic
   (`--green/--yellow/--red/--teal/--purple/--pink/--accent`) color-mixed toward
@@ -37,7 +39,7 @@ schema, server, config, protocol, auth, ui, editor, explainer, learning, docs, i
 
 All three instances (commonpub.io / deveco.io / heatsynclabs.io) are LIVE + healthy.
 commonpub.io builds from the workspace `main`; deveco.io + heatsynclabs.io pin the npm layer
-at `^0.86.4` (rolled in lockstep; verify with `npm view`). deveco registers its brand theme pair
+at `^0.137.4` (rolled in lockstep; verify with `npm view`). deveco registers its brand theme pair
 (`deveco`/`deveco-dark`) + `config.defaultTheme: 'deveco'` — no longer riding the stoa
 fallback (session 196).
 deveco keeps a CUSTOM `layouts/default.vue` + `pages/index.vue` (its nav is now
@@ -51,7 +53,10 @@ of past flag state drifts (see session 149's "live-active state correction").
 ## Database
 
 - PostgreSQL 16 + Drizzle.
-- **92 tables, 46 enums. 28 migrations (0000–0027).** (sessions 203-204, commonpub.io only: +`processed_activities`/`digest_runs` tables, `content_items`/`hub_posts`.`remote_like_count` column; 0026 `remote_like_count`+backfill, 0027 hot-read composite indexes + the 2 dedup/claim tables. npm unchanged → deveco/heatsync still effectively 0025.) Full list: `codebase-analysis/02-schema-inventory.md`. 0014 = `mirror_requests` (consent-based push, session 185), 0015 = `registry_instances` + `registry_instance_status` enum (instance directory, session 186), 0016 = `contests.cover_image_url` (session 188), 0017 = `contest_status` +draft/+paused & `contests.show_prizes` (session 189), 0018 = `contests.stages`/`current_stage_id` (session 189), 0019 = `contest_entries.stage_state` (session 189), 0020 = `metrics_daily` (public-API time-series rollups, session 190), 0021 = `contest_entries.stage_submissions` (session 194), 0022 = `contests.content_format` + `contest_content_format` enum (session 197, now DEPRECATED/inert), 0023 = per-field `description_format`/`rules_format`/`prizes_description_format` (session 197), 0024 = `content_status` +`scheduled` & `content_items.scheduled_at` (scheduled publishing, session 199), 0025 = `contest_stakeholders.role` (`reviewer`|`editor`) + RBAC system-role/permission/user_role seed (session 201). Layout-engine tables (`layouts`, `layout_rows`, `layout_sections`, `layout_versions`) added in migration 0005 — instance-local, never federate. Migration 0012 (session 179) adds two PARTIAL composite indexes `idx_content_items_feed_recency` `(published_at DESC NULLS LAST, id DESC)` + `idx_content_items_feed_popular` `(view_count DESC, id DESC)` over `WHERE status='published' AND deleted_at IS NULL` — they back the keyset feed. NULLS placement is matched syntactically by the planner, so the index spells `id DESC NULLS FIRST`; `pushSchema` (PGlite test harness) SKIPS partial indexes (test creates DDL itself).
+- **110 tables, 50 enums. 49 migrations (0000–0048).** _(counts re-measured 2026-08-30;
+  the per-migration narrative below stops at 0027 and has not been extended — read it as
+  history, and `packages/schema/migrations/` as the list.)_ Formerly: **92 tables, 46 enums,
+  28 migrations (0000–0027).** (sessions 203-204, commonpub.io only: +`processed_activities`/`digest_runs` tables, `content_items`/`hub_posts`.`remote_like_count` column; 0026 `remote_like_count`+backfill, 0027 hot-read composite indexes + the 2 dedup/claim tables. npm unchanged → deveco/heatsync still effectively 0025.) Full list: `codebase-analysis/02-schema-inventory.md`. 0014 = `mirror_requests` (consent-based push, session 185), 0015 = `registry_instances` + `registry_instance_status` enum (instance directory, session 186), 0016 = `contests.cover_image_url` (session 188), 0017 = `contest_status` +draft/+paused & `contests.show_prizes` (session 189), 0018 = `contests.stages`/`current_stage_id` (session 189), 0019 = `contest_entries.stage_state` (session 189), 0020 = `metrics_daily` (public-API time-series rollups, session 190), 0021 = `contest_entries.stage_submissions` (session 194), 0022 = `contests.content_format` + `contest_content_format` enum (session 197, now DEPRECATED/inert), 0023 = per-field `description_format`/`rules_format`/`prizes_description_format` (session 197), 0024 = `content_status` +`scheduled` & `content_items.scheduled_at` (scheduled publishing, session 199), 0025 = `contest_stakeholders.role` (`reviewer`|`editor`) + RBAC system-role/permission/user_role seed (session 201). Layout-engine tables (`layouts`, `layout_rows`, `layout_sections`, `layout_versions`) added in migration 0005 — instance-local, never federate. Migration 0012 (session 179) adds two PARTIAL composite indexes `idx_content_items_feed_recency` `(published_at DESC NULLS LAST, id DESC)` + `idx_content_items_feed_popular` `(view_count DESC, id DESC)` over `WHERE status='published' AND deleted_at IS NULL` — they back the keyset feed. NULLS placement is matched syntactically by the planner, so the index spells `id DESC NULLS FIRST`; `pushSchema` (PGlite test harness) SKIPS partial indexes (test creates DDL itself).
 - Domains: auth, content, social, messaging, hubs, products, learning, docs, videos, contests, events, voting, federation, admin, files.
 - Soft delete on: users, contentItems, hubs, federatedContent, federatedHubPosts.
 - Denormalized counters pervasive (voteScore, entryCount, attendeeCount, memberCount, likeCount, etc.).
