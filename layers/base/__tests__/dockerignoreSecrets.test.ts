@@ -32,8 +32,23 @@ import { resolve, dirname, join, relative, sep } from 'node:path';
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
 const DOCKERIGNORE = join(repoRoot, '.dockerignore');
 
-/** Floor, not the count. Four credential paths exist today. */
-const MIN_CREDENTIALS = 4;
+/**
+ * There is deliberately NO floor on the number of credentials found.
+ *
+ * An earlier version of this file asserted `creds.length >= 4`, and it broke CI
+ * the first time it ran there. Every credential this guard was written for --
+ * `.secrets/`, `secrets/`, `apps/reference/.env` -- is gitignored, so a fresh
+ * checkout contains none of them and the floor asserted the state of one
+ * developer's working copy rather than anything about the code.
+ *
+ * The floor was there to stop a vacuous pass: a walker that silently returns
+ * nothing would otherwise satisfy "every credential is excluded". That concern
+ * is real, so it is now handled by asserting the WALKER works -- it must find
+ * the repo's own package.json and a plausible number of files -- and by
+ * checking the exclusion rules against SYNTHETIC paths that are present in
+ * every environment. What is left over, the scan of real files, is then a
+ * bonus check that costs nothing when the tree happens to be clean.
+ */
 
 /** Directory names whose entire contents are credentials by convention. */
 const SECRET_DIRS = new Set(['secrets', '.secrets']);
@@ -51,7 +66,15 @@ const KEY_FILE = /\.(pem|p12|pfx)$|^id_(rsa|ed25519)(\.|$)/;
  * exists to hold shut. Deriving the class narrowly is how it got missed twice.
  */
 const ENV_FILE = /^\.env(\..*)?$/;
-const ENV_SAMPLE = /^\.env\.example$/;
+/**
+ * Any `.example` dotenv is documentation, not a credential -- `.env.example`
+ * and `deploy/.env.prod.example` alike. An earlier version anchored on
+ * `.env.example` exactly and therefore classified the deploy sample as a
+ * secret. It happened to be excluded anyway (`deploy/` is ignored wholesale),
+ * so the mistake showed up only as a wrong COUNT, which is the sort of thing a
+ * floor assertion turns into a CI failure and a scan turns into nothing at all.
+ */
+const ENV_SAMPLE = /\.example$/;
 
 const SKIP_DIRS = new Set(['node_modules', '.git', 'dist', '.nuxt', '.output', '.turbo', 'coverage', 'target']);
 
@@ -159,14 +182,39 @@ describe('.dockerignore keeps credentials out of the build context', () => {
 
   const creds = credentialPaths();
 
-  it('found the credentials it means to check', () => {
-    expect(
-      creds.length,
-      `scanned the repo and found ${creds.length} credential paths`,
-    ).toBeGreaterThanOrEqual(MIN_CREDENTIALS);
+  it('the walker actually walked the repo', () => {
+    // The anti-vacuity check. If this passes, an empty `creds` means the tree
+    // really has no credential files, not that the scan silently failed.
+    const all = walk(repoRoot);
+    expect(all.length, 'walk() found almost nothing; the scan is broken').toBeGreaterThan(200);
+    expect(all).toContain('package.json');
   });
 
-  it('excludes every one of them', () => {
+  it('excludes credential paths that are not present in a clean checkout', () => {
+    // These are gitignored, so CI never sees them, but they are exactly what
+    // this guard exists for. Checking them as literals means the rules are
+    // verified in EVERY environment rather than only on a machine that happens
+    // to hold the real secrets.
+    for (const p of [
+      '.secrets/cargo-registry-token',
+      'secrets/CPUB_FED_TOKEN_KEYS.md',
+      'apps/reference/.env',
+      'apps/reference/.env.local',
+      'packages/anything/secrets/token',
+      'deploy/server.pem',
+      'test-site/.env',
+    ]) {
+      expect(isExcluded(p), `${p} would be COPIED into the image by \`COPY . .\``).toBe(true);
+    }
+  });
+
+  it('does not mistake a documented sample for a credential', () => {
+    for (const sample of ['apps/reference/.env.example', 'deploy/.env.prod.example']) {
+      expect(ENV_SAMPLE.test(sample.split('/').pop()!), `${sample} is documentation`).toBe(true);
+    }
+  });
+
+  it('excludes every credential that IS present in this checkout', () => {
     const leaked = creds.filter((p) => !isExcluded(p));
     expect(
       leaked,
