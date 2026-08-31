@@ -25,6 +25,15 @@ secrets/
 .secrets/
 **/secrets/
 **/.secrets/
+# `.env*` at the top of this file matches ONLY the repo root. apps/reference/.env
+# carries NUXT_AUTH_SECRET and NUXT_DATABASE_URL and was still being copied in
+# after the first pass of this fix -- the very trap described above, missed once
+# more by deriving the class too narrowly. Nested forms, explicitly:
+**/.env
+**/.env.*
+!**/.env.example
+# A scaffolded throwaway app; never belongs in the image, and carries its own .env.
+test-site/
 *.pem
 **/*.pem
 *.p12

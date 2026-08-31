@@ -32,13 +32,26 @@ import { resolve, dirname, join, relative, sep } from 'node:path';
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
 const DOCKERIGNORE = join(repoRoot, '.dockerignore');
 
-/** Floor, not the count. Two credential files exist today. */
-const MIN_CREDENTIALS = 2;
+/** Floor, not the count. Four credential paths exist today. */
+const MIN_CREDENTIALS = 4;
 
 /** Directory names whose entire contents are credentials by convention. */
 const SECRET_DIRS = new Set(['secrets', '.secrets']);
 /** Extensions that are private key material wherever they appear. */
 const KEY_FILE = /\.(pem|p12|pfx)$|^id_(rsa|ed25519)(\.|$)/;
+/**
+ * A dotenv file at ANY depth. `.env.example` is the documented sample and is
+ * meant to ship.
+ *
+ * This clause is here because the first version of this guard did not have it,
+ * and consequently passed while `apps/reference/.env` -- carrying
+ * NUXT_AUTH_SECRET and NUXT_DATABASE_URL -- was still being copied into the
+ * image. The rule `.env*` at the top of .dockerignore covers only the repo
+ * root, which is the same "reads as general, is not" trap this whole file
+ * exists to hold shut. Deriving the class narrowly is how it got missed twice.
+ */
+const ENV_FILE = /^\.env(\..*)?$/;
+const ENV_SAMPLE = /^\.env\.example$/;
 
 const SKIP_DIRS = new Set(['node_modules', '.git', 'dist', '.nuxt', '.output', '.turbo', 'coverage', 'target']);
 
@@ -59,7 +72,9 @@ function credentialPaths(): string[] {
   return walk(repoRoot).filter((rel) => {
     const parts = rel.split('/');
     if (parts.some((seg) => SECRET_DIRS.has(seg))) return true;
-    return KEY_FILE.test(parts[parts.length - 1]!);
+    const base = parts[parts.length - 1]!;
+    if (ENV_FILE.test(base) && !ENV_SAMPLE.test(base)) return true;
+    return KEY_FILE.test(base);
   });
 }
 
@@ -70,7 +85,8 @@ function credentialPaths(): string[] {
  */
 function dockerMatches(pattern: string, path: string): boolean {
   let p = pattern.trim();
-  if (!p || p.startsWith('#') || p.startsWith('!')) return false;
+  if (!p || p.startsWith('#')) return false;
+  if (p.startsWith('!')) p = p.slice(1);
 
   let anyDepth = false;
   if (p.startsWith('**/')) { anyDepth = true; p = p.slice(3); }
@@ -87,14 +103,28 @@ function dockerMatches(pattern: string, path: string): boolean {
 const patterns = readFileSync(DOCKERIGNORE, 'utf8')
   .split('\n').map((l) => l.trim()).filter((l) => l && !l.startsWith('#'));
 
+/**
+ * LAST match wins, and a leading `!` re-includes. That is Docker's rule, not
+ * gitignore-by-analogy: an earlier draft of this helper used `.some()` and
+ * therefore reported `apps/reference/.env.example` as excluded, contradicting
+ * what the real `docker build` did with the same file. The empirical result is
+ * the authority here; this function was corrected to match it.
+ */
 function isExcluded(path: string): boolean {
-  return patterns.some((pat) => dockerMatches(pat, path));
+  let excluded = false;
+  for (const pat of patterns) {
+    if (!dockerMatches(pat, path)) continue;
+    excluded = !pat.trim().startsWith('!');
+  }
+  return excluded;
 }
 
 describe('the matcher matches what Docker actually did', () => {
   // Verified by running `docker build` against a throwaway context carrying
   // this repo's real .dockerignore. These are observations, not assumptions.
   it('excludes what Docker excluded', () => {
+    expect(dockerMatches('**/.env', 'apps/reference/.env')).toBe(true);
+    expect(dockerMatches('**/.env.*', 'apps/reference/.env.local')).toBe(true);
     expect(dockerMatches('*.md', 'README.md')).toBe(true);
     expect(dockerMatches('docs/', 'docs/thing.md')).toBe(true);
     expect(dockerMatches('secrets/', 'secrets/CPUB_FED_TOKEN_KEYS.md')).toBe(true);
@@ -106,8 +136,18 @@ describe('the matcher matches what Docker actually did', () => {
     // The exact trap: `*.md` did NOT exclude the nested credential.
     expect(dockerMatches('*.md', 'secrets/CPUB_FED_TOKEN_KEYS.md')).toBe(false);
     expect(dockerMatches('.env*', '.secrets/cargo-registry-token')).toBe(false);
+    // The second half of the same trap: the ROOT-anchored rule never reached
+    // the nested dotenv, which is why the guard needed the `**/` forms.
+    expect(dockerMatches('.env*', 'apps/reference/.env')).toBe(false);
     expect(dockerMatches('*.md', 'index.js')).toBe(false);
     expect(dockerMatches('node_modules', 'package.json')).toBe(false);
+  });
+
+  it('honours a `!` re-include as the last matching rule', () => {
+    // Observed: the real docker build KEPT apps/reference/.env.example while
+    // dropping apps/reference/.env, under these very rules.
+    expect(isExcluded('apps/reference/.env')).toBe(true);
+    expect(isExcluded('apps/reference/.env.example')).toBe(false);
   });
 });
 
@@ -132,6 +172,10 @@ describe('.dockerignore keeps credentials out of the build context', () => {
       leaked,
       `these would be COPIED into the image by \`COPY . .\`: ${leaked.join(', ')}`,
     ).toEqual([]);
+  });
+
+  it('keeps the documented sample, which is meant to ship', () => {
+    expect(isExcluded('apps/reference/.env.example')).toBe(false);
   });
 
   it('still lets the build read what it needs', () => {
