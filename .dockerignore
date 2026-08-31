@@ -10,3 +10,28 @@ deploy/
 *.md
 !package.json
 .turbo
+
+# Credentials must never enter the build context. `COPY . .` in the Dockerfile
+# copies whatever is left after this file is applied, so anything not excluded
+# here is sent to the daemon and lands in a build-stage layer.
+#
+# These need their own rules: `.env*` matches only the root `.env` family, and
+# `*.md` matches only ROOT-level markdown -- Docker patterns are matched against
+# the whole path and `*` does not cross a `/`. Verified empirically against a
+# throwaway context: before these lines, both `.secrets/cargo-registry-token`
+# and `secrets/CPUB_FED_TOKEN_KEYS.md` were copied in, while `README.md` and
+# `docs/thing.md` were correctly excluded.
+secrets/
+.secrets/
+**/secrets/
+**/.secrets/
+*.pem
+**/*.pem
+*.p12
+**/*.p12
+*.pfx
+**/*.pfx
+id_rsa
+id_ed25519
+**/id_rsa
+**/id_ed25519
