@@ -21,7 +21,7 @@
     "@commonpub/server": "workspace:*",
     "drizzle-kit": "^0.31.10",
     "drizzle-orm": "^0.45.1",
-    "nuxt": "^3.16.0",
+    "nuxt": "^3.21.11",
     "vue": "^3.4.0",
     "vue-router": "^4.3.0",
     "zod": "^4.3.6"
