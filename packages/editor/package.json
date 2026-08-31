@@ -47,7 +47,7 @@
     "build": "tsc",
     "dev": "tsc --watch",
     "test": "vitest run",
-    "lint": "eslint src/",
+    "lint": "eslint src/ vue/",
     "typecheck": "tsc --noEmit",
     "playground": "vite --config playground/vite.config.ts",
     "clean": "rm -rf dist",

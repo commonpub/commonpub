@@ -34,5 +34,5 @@ export default defineEventHandler(async (event): Promise<string> => {
   setHeader(event, 'Content-Type', 'text/csv; charset=utf-8');
   setHeader(event, 'Content-Disposition', `attachment; filename="${result.filename}"`);
   setHeader(event, 'Cache-Control', 'no-store');
-  return `﻿${result.csv}`;
+  return `\uFEFF${result.csv}`;
 });

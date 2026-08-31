@@ -18,6 +18,12 @@ const emit = defineEmits<{
 
 const contentId = computed(() => props.targetId);
 const contentType = computed(() => props.targetType);
+// `likeCount` below deliberately shadows the prop of the same name. The prop is
+// the SSR seed; this one is the live count the composable owns, and the `watch`
+// further down feeds the prop into it via setInitialState. Template bindings
+// resolve setup bindings before props, so the template reads the live one, which
+// is the intent. Renaming either half would be a behaviour change, not a fix.
+// eslint-disable-next-line vue/no-dupe-keys
 const { liked, bookmarked, likeCount, toggleLike, toggleBookmark, share, setInitialState } = useEngagement({ contentId, contentType });
 const { isAuthenticated } = useAuth();
 const showHubModal = ref(false);

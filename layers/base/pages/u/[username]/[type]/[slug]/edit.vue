@@ -71,7 +71,7 @@ const projectTemplate: [string, Record<string, unknown>][] = [
   ['buildStep', { stepNumber: 3, title: 'Verify', time: '', children: [['paragraph', { html: '<p>Add as many steps as needed. Each step should be a clear, actionable phase.</p>' }]] }],
   ['heading', { text: 'Testing & Verification', level: 2 }],
   ['paragraph', { html: '<p>Tell the reader how to confirm it works. Describe expected output or show what success looks like. Mention common pitfalls briefly if relevant.</p>' }],
-  ['heading', { text: "What\'s Next?!", level: 2 }],
+  ['heading', { text: "What's Next?!", level: 2 }],
   ['paragraph', { html: '<p>Summarize what was accomplished in 2–3 sentences. Suggest ideas for extending or remixing the project. Keep the tone forward-looking and inspiring.</p>' }],
   ['heading', { text: 'Community', level: 2 }],
   ['paragraph', { html: '<p>Invite readers to share their results. Link to relevant community spaces. Close with genuine enthusiasm: "We\'d love to see what you build!"</p>' }],

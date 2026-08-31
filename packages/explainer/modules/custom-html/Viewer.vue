@@ -1,4 +1,18 @@
 <script setup lang="ts">
+/* eslint-disable no-useless-escape -- see the note below; the escape is load-bearing */
+/*
+ * The backslash before the closing script tag in the srcdoc template literal
+ * below is load-bearing, not decoration. This is a single-file component: an
+ * UNESCAPED closing script tag inside that literal would terminate THIS block
+ * and break the parse. (Writing one out in this very comment does the same
+ * thing, which is why it is described in words here rather than shown.)
+ *
+ * The escape sits inside a template literal, where a line comment would become
+ * string content, so the disable has to be file-scoped rather than local. It
+ * must also be the first thing in its comment: ESLint does not detect a
+ * directive that starts after a leading `*`, which is why this is two comments
+ * and not one.
+ */
 import { ref, computed, watch, onMounted } from 'vue';
 
 const props = defineProps<{ content: Record<string, unknown> }>();

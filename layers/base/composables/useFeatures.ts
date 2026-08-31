@@ -213,7 +213,7 @@ export function useFeatures() {
   // On client, fetch dynamic features once to pick up DB overrides
   if (import.meta.client && !hydrated) {
     hydrated = true;
-    ($fetch as Function)('/api/features')
+    ($fetch as (url: string) => Promise<Partial<FeatureFlags>>)('/api/features')
       .then((dynamic: Partial<FeatureFlags>) => {
         if (dynamic && typeof dynamic === 'object') {
           // Deep-merge `identity` so a server response that omits some

@@ -29,7 +29,8 @@
   },
   "scripts": {
     "test": "vitest run",
-    "prepublishOnly": "node scripts/bundle-theme.mjs"
+    "prepublishOnly": "node scripts/bundle-theme.mjs",
+    "lint": "eslint app.vue error.vue components layouts pages plugins middleware composables utils sections server types"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1010.0",

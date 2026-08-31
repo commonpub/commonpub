@@ -39,5 +39,5 @@ export default defineEventHandler(async (event): Promise<string> => {
   // The export can carry PII columns — never cache it anywhere.
   setHeader(event, 'Cache-Control', 'no-store');
   // UTF-8 BOM so Excel detects the encoding.
-  return `﻿${result.csv}`;
+  return `\uFEFF${result.csv}`;
 });

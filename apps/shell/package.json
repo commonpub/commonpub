@@ -10,7 +10,8 @@
     "typecheck": "nuxt typecheck",
     "clean": "rm -rf .nuxt .output",
     "db:migrate": "drizzle-kit migrate",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "lint": "eslint ."
   },
   "dependencies": {
     "@commonpub/config": "workspace:*",

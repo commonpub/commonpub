@@ -306,8 +306,14 @@ function moveSection(section: LayoutSection, direction: 'up' | 'down'): void {
     return;
   }
   const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
+  // Deliberate: the parent owns `row` and WATCHES this same array, so splicing in
+  // place is what drives the watcher -> auto-save path that drag-drop also uses
+  // (see moveSection's header comment above). Reworking this to emit upward is a
+  // real refactor of the layout editor's data flow, not a lint fix.
+  // eslint-disable-next-line vue/no-mutating-props
   const [moved] = props.row.sections.splice(idx, 1);
   if (!moved) return;
+  // eslint-disable-next-line vue/no-mutating-props -- same deliberate in-place splice as above
   props.row.sections.splice(targetIdx, 0, moved);
   announcer.announce(narrateReordered(moved.type, idx, targetIdx, total));
   // Phase 3b/B: keyboard reorder records to undo too, so Cmd+Z works
@@ -357,6 +363,7 @@ function moveSectionToZone(section: LayoutSection, targetZone: string): void {
   const idx = props.row.sections.findIndex((s) => s.id === section.id);
   if (idx === -1) return;
   const fromTotal = props.row.sections.length;
+  // eslint-disable-next-line vue/no-mutating-props -- same deliberate in-place splice as above
   const [moved] = props.row.sections.splice(idx, 1);
   if (!moved) return;
   const toIdx = targetRow.sections.length; // append

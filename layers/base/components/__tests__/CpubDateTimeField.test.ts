@@ -12,7 +12,10 @@ Object.assign(globalThis, {
   fromLocalInput,
 });
 
-// eslint-disable-next-line import/first
+// `vi.mock` is hoisted above imports by Vitest, so this import deliberately sits
+// after it. (A disable for `import/first` used to live here, but this repo does
+// not install eslint-plugin-import, and a directive naming an unknown rule is
+// itself an error.)
 import CpubDateTimeField from '../CpubDateTimeField.vue';
 
 describe('CpubDateTimeField', () => {

@@ -363,7 +363,7 @@ function finishWith(apply: boolean): void {
           <div class="cpub-studio-sublbl">Palettes / {{ COLOR_VIBES[colorVibe].name }}</div>
           <div class="cpub-studio-pallist">
             <button
-              v-for="(p, i) in COLOR_VIBES[colorVibe].pals"
+              v-for="p in COLOR_VIBES[colorVibe].pals"
               :key="p.n"
               type="button"
               class="cpub-studio-palchip"
