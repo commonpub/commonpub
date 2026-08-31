@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import type { ExplainerConclusion } from '@commonpub/explainer';
+import { isSafeUrl, type ExplainerConclusion } from '@commonpub/explainer';
 import { sanitizeHtml } from '../../utils/sanitize';
 
 const props = defineProps<{
@@ -8,6 +8,24 @@ const props = defineProps<{
 }>();
 
 const sanitizedBody = computed(() => props.conclusion.body ? sanitizeHtml(props.conclusion.body) : '');
+
+/**
+ * The CTA href, or `undefined` when the author supplied an executable scheme.
+ *
+ * `callToAction.url` is typed `z.string()` in `explainerSchemas` -- no format
+ * check -- and `sanitizeExplainerDocument` on the server never visits it, so
+ * `javascript:alert(1)` reaches this component verbatim from any member who can
+ * author an explainer. The 0.9.0 sanitizer hardening fixed the two HTML sinks
+ * and did not reach this attribute binding, which is the same defect one sink
+ * over.
+ *
+ * Dropping the attribute rather than the element matches what `sanitizeHtml`
+ * does with a bad href: the label still renders, the link is simply inert.
+ */
+const ctaHref = computed(() => {
+  const url = props.conclusion.callToAction?.url;
+  return url && isSafeUrl(url) ? url : undefined;
+});
 </script>
 
 <template>
@@ -18,7 +36,7 @@ const sanitizedBody = computed(() => props.conclusion.body ? sanitizeHtml(props.
 
       <a
         v-if="conclusion.callToAction"
-        :href="conclusion.callToAction.url"
+        :href="ctaHref"
         class="cpub-conclusion-cta"
         target="_blank"
         rel="noopener noreferrer"

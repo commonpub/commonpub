@@ -2,6 +2,7 @@ import type { ExplainerSection, ExplainerDocument, ExplainerDocSection, ExportOp
 import { isExplainerDocument } from '../types.js';
 import { renderSection, sanitizeRichHtml } from '../render/sectionRenderer.js';
 import { generateCss, generateJs } from './templates.js';
+import { isSafeUrl } from '../urlSafety.js';
 import { minifyCss, minifyJs, wrapStyle, wrapScript } from './inlineAssets.js';
 
 /**
@@ -187,8 +188,13 @@ function renderDocSection(section: ExplainerDocSection): string {
 }
 
 function renderConclusion(conclusion: ExplainerDocument['conclusion'] & object): string {
+  // `escapeAttr` neutralises quote-breaking, not schemes: it leaves
+  // `javascript:alert(1)` intact, and an exported file is opened straight from
+  // disk with no CSP. Same gate the viewer uses.
+  const ctaUrl = conclusion.callToAction?.url;
+  const ctaHref = ctaUrl && isSafeUrl(ctaUrl) ? ` href="${escapeAttr(ctaUrl)}"` : '';
   const ctaHtml = conclusion.callToAction
-    ? `<a class="explainer-conclusion__cta" href="${escapeAttr(conclusion.callToAction.url)}">${escapeHtml(conclusion.callToAction.label)}</a>`
+    ? `<a class="explainer-conclusion__cta"${ctaHref}>${escapeHtml(conclusion.callToAction.label)}</a>`
     : '';
 
   return `
