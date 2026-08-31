@@ -191,29 +191,30 @@ See [`codebase-analysis/01-monorepo-topology.md`](./codebase-analysis/01-monorep
 
 ## Packages
 
-12 published to npm as `@commonpub/*`, plus `@commonpub/theme-studio` (session 192, built but **not yet published**) = 13 total. Latest published versions below (verify with `npm view @commonpub/<pkg> version`). commonpub.io builds from workspace source; deveco.io + heatsynclabs.io run the published npm layer.
+14 packages published to npm as `@commonpub/*`, plus the Nuxt layer. Versions below were read from each `package.json` and confirmed against the registry on 2026-08-30; re-check with `npm view @commonpub/<pkg> version`. commonpub.io builds from workspace source; deveco.io + heatsynclabs.io run the published npm layer.
 
 | Package | Version | Purpose |
 |---|---|---|
-| [`@commonpub/schema`](packages/schema/README.md) | 0.35.0 | 90 Drizzle tables (incl. `layouts`/`layout_rows`/`layout_sections`/`layout_versions`, RBAC `roles`/`role_permissions`/`user_roles`, `metrics_daily`), 45 enums, 111 Zod validators |
-| [`@commonpub/config`](packages/config/README.md) | 0.19.0 | `defineCommonPubConfig()` factory, 23 feature flags (+5 identity sub-flags) |
-| [`@commonpub/server`](packages/server/README.md) | 2.82.0 | Framework-agnostic business logic (25 modules incl. `src/publicApi/*` read-API+metrics+CORS, `src/layout/*` CRUD, RBAC, contest stages, keyset feed pagination, transactions, lifecycle hooks) |
-| [`@commonpub/protocol`](packages/protocol/README.md) | 0.13.0 | ActivityPub types, HTTP signatures, WebFinger, NodeInfo, OAuth2, SSRF-safe fetch |
-| [`@commonpub/auth`](packages/auth/README.md) | 0.8.0 | Better Auth wrapper, guards, AP Actor SSO (Model B), RBAC `hasPermissionPure` |
-| [`@commonpub/ui`](packages/ui/README.md) | 0.11.1 | 22 headless Vue 3 components + SectionRegistry/SectionDefinition, 7 themes (incl. Stoa), CSS token system |
-| [`@commonpub/theme-studio`](packages/theme-studio/README.md) | 0.1.0 _(unpublished)_ | Pure-TS theme generator: `recipeToTokens()` projection, color/palette/scales/fonts/vibe presets. Brain behind the admin Theme Studio wizard |
-| [`@commonpub/editor`](packages/editor/README.md) | 0.7.11 | TipTap extensions, 20 block types, BlockTuple serialization, `vue/` editor surface |
+| [`@commonpub/schema`](packages/schema/README.md) | 0.66.0 | 110 Drizzle tables (incl. `layouts`/`layout_rows`/`layout_sections`/`layout_versions`, RBAC `roles`/`role_permissions`/`user_roles`, `metrics_daily`, persona), 50 enums, 166 Zod validators |
+| [`@commonpub/config`](packages/config/README.md) | 0.40.0 | `defineCommonPubConfig()` factory, 47 feature flags |
+| [`@commonpub/server`](packages/server/README.md) | 2.133.2 | Framework-agnostic business logic (29 modules incl. `src/publicApi/*` read-API+metrics+CORS, `src/layout/*` CRUD, RBAC, contest stages, keyset feed pagination, transactions, lifecycle hooks) |
+| [`@commonpub/protocol`](packages/protocol/README.md) | 0.15.2 | ActivityPub types, HTTP signatures, WebFinger, NodeInfo, OAuth2, SSRF-safe fetch |
+| [`@commonpub/auth`](packages/auth/README.md) | 0.13.2 | Better Auth wrapper, guards, AP Actor SSO (Model B), RBAC `hasPermissionPure` |
+| [`@commonpub/ui`](packages/ui/README.md) | 0.16.1 | 22 headless Vue 3 components + SectionRegistry/SectionDefinition, 7 built-in themes (`base`, `dark`, `generics`, `agora`, `agora-dark`, `stoa`, `stoa-dark`), CSS token system |
+| [`@commonpub/theme-studio`](packages/theme-studio/README.md) | 0.7.0 | Pure-TS theme generator: `recipeToTokens()` projection, color/palette/scales/fonts/vibe presets. Brain behind the admin Theme Studio wizard |
+| [`@commonpub/editor`](packages/editor/README.md) | 0.17.2 | TipTap extensions, 21 core block types, BlockTuple serialization, `vue/` editor surface |
 | [`@commonpub/docs`](packages/docs/README.md) | 0.6.3 | Markdown pipeline, versioning, navigation, search adapters |
-| [`@commonpub/explainer`](packages/explainer/README.md) | 0.7.15 | Interactive sections + `modules/` runtime, quiz engine, progress tracking, HTML export |
-| [`@commonpub/learning`](packages/learning/README.md) | 0.5.2 | Learning path engine, progress calculation, certificates |
-| [`@commonpub/infra`](packages/infra/README.md) | 0.8.0 | S3/local storage (DO Spaces CDN), image processing, email adapters, security |
-| [`@commonpub/test-utils`](packages/test-utils/README.md) | 0.5.6 | Test factories and mock configuration |
+| [`@commonpub/explainer`](packages/explainer/README.md) | 0.9.0 | Interactive sections + `modules/` runtime, quiz engine, progress tracking, HTML export, shared `isSafeUrl` URL-scheme gate |
+| [`@commonpub/learning`](packages/learning/README.md) | 0.5.4 | Learning path engine, progress calculation, certificates |
+| [`@commonpub/persona`](packages/persona/README.md) | 0.2.1 | Pure-TS (zod-only) persona registry, storage partition, purposes and Zod schemas |
+| [`@commonpub/infra`](packages/infra/README.md) | 0.21.0 | S3/local storage (DO Spaces CDN), image processing, email adapters, security |
+| [`@commonpub/test-utils`](packages/test-utils/README.md) | 0.5.17 | Test factories and mock configuration |
 
 Plus the layer itself:
 
 | Package | Version | Purpose |
 |---|---|---|
-| `@commonpub/layer` | 0.64.1 | Shared Nuxt layer — pages, components, API routes, middleware, theme. Public-API metrics + CORS, Stoa default theme, contest stages editor, layout editor (Phase 3a–3c), keyset feed, config-driven nav. |
+| `@commonpub/layer` | 0.137.4 | Shared Nuxt layer — pages, components, API routes, middleware, theme. Public-API metrics + CORS, Stoa default theme, contest stages editor, layout editor (Phase 3a–3c), keyset feed, config-driven nav. |
 
 ---
 
@@ -263,7 +264,7 @@ development workflow.
 
 | Layer | Tool | Scope |
 |---|---|---|
-| Unit / integration | Vitest | ~2,850 tests across 12 packages (was 1,939 at v0.2.0; session 121 log recorded 2,852) |
+| Unit / integration | Vitest | ~7,900 tests across 14 packages and the layer (7,815 counted passing on 2026-08-30) |
 | Components | @testing-library/vue + axe-core | WCAG 2.1 AA on all UI components |
 | E2E | Playwright | Auth, content, theming, admin, accessibility |
 | Mutation | Stryker | Per-package mutation score |
