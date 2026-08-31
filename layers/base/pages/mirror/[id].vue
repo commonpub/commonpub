@@ -90,7 +90,7 @@ useSeoMeta({
         <button v-if="actor?.actorUri && !user" class="cpub-fed-banner-follow" @click="remoteFollowRef?.show()">
           <i class="fa-solid fa-user-plus"></i> Follow from your instance
         </button>
-        <a v-if="originUrl" :href="originUrl" target="_blank" rel="noopener noreferrer" class="cpub-fed-banner-link">
+        <a v-if="originUrl" :href="safeHref(originUrl)" target="_blank" rel="noopener noreferrer" class="cpub-fed-banner-link">
           View Original <i class="fa-solid fa-arrow-up-right-from-square"></i>
         </a>
       </div>

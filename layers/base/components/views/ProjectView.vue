@@ -258,7 +258,7 @@ async function handleBuild(): Promise<void> {
           <span class="cpub-author-detail"><i class="fa-solid fa-signal"></i> {{ content.difficulty || 'Intermediate' }}</span>
           <span v-if="content.buildTime" class="cpub-author-detail"><i class="fa-solid fa-clock"></i> {{ content.buildTime }}</span>
           <span v-if="content.estimatedCost" class="cpub-author-detail"><i class="fa-solid fa-dollar-sign"></i> {{ content.estimatedCost }}</span>
-          <a v-if="content.githubUrl" :href="content.githubUrl" target="_blank" rel="noopener" class="cpub-author-detail cpub-author-detail-link"><i class="fa-brands fa-github"></i> Source</a>
+          <a v-if="content.githubUrl" :href="safeHref(content.githubUrl)" target="_blank" rel="noopener" class="cpub-author-detail cpub-author-detail-link"><i class="fa-brands fa-github"></i> Source</a>
           <template v-if="content.tags?.length">
             <span class="cpub-meta-sep">&bull;</span>
             <NuxtLink v-for="tag in content.tags.slice(0, 5)" :key="tag.id || tag.name || String(tag)" :to="`/tags/${tag.slug || (tag.name || String(tag)).toLowerCase().replace(/\s+/g, '-')}`" class="cpub-author-tag">{{ tag.name || tag }}</NuxtLink>
@@ -437,10 +437,10 @@ async function handleBuild(): Promise<void> {
               <div v-for="(file, idx) in downloadFiles" :key="idx" class="cpub-file-row">
                 <div class="cpub-file-icon"><i class="fa-solid fa-file-arrow-down"></i></div>
                 <div class="cpub-file-info">
-                  <a :href="file.url" class="cpub-file-name" download>{{ file.name }}</a>
+                  <a :href="safeHref(file.url)" class="cpub-file-name" download>{{ file.name }}</a>
                   <span v-if="file.size" class="cpub-file-size">{{ file.size }}</span>
                 </div>
-                <a :href="file.url" class="cpub-file-download" download>
+                <a :href="safeHref(file.url)" class="cpub-file-download" download>
                   <i class="fa-solid fa-download"></i>
                 </a>
               </div>

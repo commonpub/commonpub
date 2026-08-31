@@ -114,7 +114,7 @@ useHead({
       <div class="cpub-fed-banner-inner">
         <i class="fa-solid fa-globe"></i>
         <span>Mirrored from <strong>{{ hub?.originDomain }}</strong></span>
-        <a v-if="hub?.url" :href="hub.url" target="_blank" rel="noopener noreferrer" class="cpub-fed-banner-link">
+        <a v-if="hub?.url" :href="safeHref(hub.url)" target="_blank" rel="noopener noreferrer" class="cpub-fed-banner-link">
           Visit original <i class="fa-solid fa-arrow-up-right-from-square"></i>
         </a>
       </div>
@@ -237,7 +237,7 @@ useHead({
       <div class="cpub-fed-thread-info" style="padding: 16px">
         <p class="cpub-empty-state-desc">
           <i class="fa-solid fa-globe"></i>
-          <a v-if="post.objectUri" :href="post.objectUri" target="_blank" rel="noopener noreferrer" class="cpub-inline-link">
+          <a v-if="post.objectUri" :href="safeHref(post.objectUri)" target="_blank" rel="noopener noreferrer" class="cpub-inline-link">
             View full thread on {{ hub?.originDomain }} <i class="fa-solid fa-arrow-up-right-from-square"></i>
           </a>
         </p>

@@ -106,7 +106,7 @@ useSeoMeta({
           <button class="cpub-btn cpub-btn-primary" :disabled="loading" @click="handleFollow">
             <i class="fa-solid fa-user-plus"></i> Follow
           </button>
-          <a :href="uri" target="_blank" rel="noopener noreferrer" class="cpub-btn cpub-btn-sm">
+          <a :href="safeHref(uri)" target="_blank" rel="noopener noreferrer" class="cpub-btn cpub-btn-sm">
             <i class="fa-solid fa-arrow-up-right-from-square"></i> View Original
           </a>
         </div>

@@ -308,7 +308,7 @@ async function handlePostVote(postId: string): Promise<void> {
           <div class="cpub-fed-indicator">
             <i class="fa-solid fa-globe"></i>
             <span>Mirrored from <strong>{{ hub?.originDomain }}</strong></span>
-            <a v-if="hub?.url" :href="hub.url" target="_blank" rel="noopener noreferrer" class="cpub-fed-indicator-link">
+            <a v-if="hub?.url" :href="safeHref(hub.url)" target="_blank" rel="noopener noreferrer" class="cpub-fed-indicator-link">
               Visit original <i class="fa-solid fa-arrow-up-right-from-square"></i>
             </a>
           </div>
@@ -323,7 +323,7 @@ async function handlePostVote(postId: string): Promise<void> {
           <button v-else-if="hub?.actorUri" class="cpub-btn cpub-btn-primary cpub-btn-sm" :disabled="hubFollowing || userFollowState?.status === 'pending'" @click="handleJoinHub">
             <i class="fa-solid fa-user-plus"></i> {{ hubFollowing ? 'Following...' : userFollowState?.status === 'pending' ? 'Follow pending...' : 'Join Hub' }}
           </button>
-          <a v-if="hub?.url" :href="hub.url" target="_blank" rel="noopener noreferrer" class="cpub-btn cpub-btn-sm">
+          <a v-if="hub?.url" :href="safeHref(hub.url)" target="_blank" rel="noopener noreferrer" class="cpub-btn cpub-btn-sm">
             <i class="fa-solid fa-arrow-up-right-from-square"></i> Visit original
           </a>
         </template>
@@ -437,7 +437,7 @@ async function handlePostVote(postId: string): Promise<void> {
         <a
           v-for="m in members"
           :key="m.actorUri"
-          :href="m.actorUri"
+          :href="safeHref(m.actorUri)"
           target="_blank"
           rel="noopener noreferrer"
           class="cpub-fed-member"
@@ -453,7 +453,7 @@ async function handlePostVote(postId: string): Promise<void> {
       </div>
       <p v-else class="cpub-fed-members-empty">No known members yet. Members appear here as they post to the hub.</p>
 
-      <a v-if="hub?.url" :href="hub.url" target="_blank" rel="noopener noreferrer" class="cpub-btn cpub-btn-sm cpub-fed-members-origin-link">
+      <a v-if="hub?.url" :href="safeHref(hub.url)" target="_blank" rel="noopener noreferrer" class="cpub-btn cpub-btn-sm cpub-fed-members-origin-link">
         <i class="fa-solid fa-arrow-up-right-from-square"></i> View all members on {{ hub?.originDomain }}
       </a>
     </div>
@@ -497,7 +497,7 @@ async function handlePostVote(postId: string): Promise<void> {
               <strong>{{ hub?.originDomain }}</strong>
             </div>
             <p class="cpub-origin-desc">Mirrored via ActivityPub federation.</p>
-            <a v-if="hub?.url" :href="hub.url" target="_blank" rel="noopener noreferrer" class="cpub-btn cpub-btn-sm" style="margin-top: 8px; display: inline-flex">
+            <a v-if="hub?.url" :href="safeHref(hub.url)" target="_blank" rel="noopener noreferrer" class="cpub-btn cpub-btn-sm" style="margin-top: 8px; display: inline-flex">
               <i class="fa-solid fa-arrow-up-right-from-square"></i> Visit Original
             </a>
           </div>
