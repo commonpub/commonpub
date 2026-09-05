@@ -58,35 +58,26 @@ the coupling right where I did not.
 
 ## Read this first
 
-**All three production instances are running a Nuxt inside an unauthenticated RCE
-advisory range, and the affected endpoint answers.** That is the single most urgent thing
-in this handoff.
+**Everything in this session shipped and is verified live on all three instances.** The
+urgent item this handoff originally led with -- an unauthenticated Nuxt island RCE on
+every instance -- is closed: all three run **nuxt 3.21.11**.
 
-```
-[high] nuxt >=3.4.0 <3.21.10   patched >=3.21.10
-  Server-Side Remote Code Execution via Runtime Template Injection
-  in Nuxt Server Island Props
-```
+What is worth carrying forward instead is *how* it shipped, because the first attempt
+caused an outage:
 
-Both forks' `package-lock.json` — the file their Dockerfile builds from — resolve **nuxt
-3.21.5**. `GET /__nuxt_island/x.json` returns **204** on commonpub.io, deveco.io and
-heatsynclabs.io, so the endpoint is anonymously reachable. Three more unauthenticated
-highs sit in the same range (island OOM, island CPU exhaustion before hash validation,
-unauthorized component instantiation).
-
-**The monorepo half is fixed and green**: `^3.16.0` already permitted the patch, so it was
-a lockfile re-resolve to **3.21.11**, with `undici` to **7.29.0** at the same time. `pnpm
-audit` now reports zero nuxt and zero undici advisories; repo totals fell from 6 critical
-/ 76 high to 3 / 51, and what remains is mostly devDependencies that never enter the
-image.
-
-**The forks are not fixed.** They install independently. Each needs `nuxt` re-resolved to
-`>=3.21.10` in **both** lockfiles (`package-lock.json` is what Docker builds from,
-`pnpm-lock.yaml` is what CI frozen-installs; both are tracked in both forks) and a deploy.
-
-Worth noting while you are in there: deveco's two lockfiles currently disagree about nuxt
-— 3.21.2 in `pnpm-lock.yaml`, 3.21.5 in `package-lock.json`. That is P1-15 from the
-previous audit, visible in the wild.
+- **Roll nuxt and the layer as separate deploys.** Combined, they took every SSR page on
+  deveco.io to 500 and the cause could not be attributed to either until the lockfiles
+  were diffed.
+- **Raise the root `vue` range whenever nuxt moves.** nuxt 3.21.11 requires `vue ^3.5.40`;
+  a root pinned at `^3.4.0` makes npm nest a second Vue instead of upgrading the first.
+  `overrides.vue` does not work while a direct dependency on vue exists (`EOVERRIDE`).
+- **Fork CI proves nothing about the tree that ships.** CI installs with pnpm; the
+  Dockerfile installs with npm. Both forks now run `scripts/check-single-vue.mjs` against
+  `package-lock.json` before the install -- on heatsync, inside `deploy.yml`, since it has
+  no CI at all.
+- **Build AND RUN the npm tree locally, and probe an SSR route, before opening the PR.**
+  A build passing is not a page rendering. That gap is exactly what shipped the outage,
+  and it is the only check that would have caught it.
 
 ## What this session did
 
@@ -94,19 +85,20 @@ Re-verified all 28 open P1s from scratch, swept eight dimensions the previous au
 covered, and fixed seven things. Every fix is covered by a test that discovers its targets
 by scanning, and every test was mutation-tested against the pre-fix state.
 
-| | what | reaches prod via |
+| | what | status |
 | --- | --- | --- |
-| F-1 | stored XSS in the explainer conclusion CTA | republish `@commonpub/explainer` |
-| F-2 | members' `emailNotifications` readable by anyone | `@commonpub/server` → layer |
-| F-3 | three credentials in the Docker build context | next image build |
-| F-4 | 557 `.vue` files nothing linted, and five real defects in them | developer-facing |
-| F-5 | README package table, `facts.md`, ROADMAP | developer-facing |
-| F-6 | twelve unguarded external hrefs, incl. a reflected query param | `@commonpub/layer` |
-| F-7 | nuxt + undici off their advisories | monorepo image; forks separately |
+| F-1 | stored XSS in the explainer conclusion CTA | **live, all three** (explainer 0.9.1) |
+| F-2 | members' `emailNotifications` readable by anyone | **live, all three** (server 2.134.0) |
+| F-3 | three credentials in the Docker build context | **live** at the next image build |
+| F-4 | 557 `.vue` files nothing linted, and five real defects in them | merged, developer-facing |
+| F-5 | README package table, `facts.md`, ROADMAP | merged, developer-facing |
+| F-6 | twelve unguarded external hrefs, incl. a reflected query param | **live, all three** (layer 0.137.5) |
+| F-7 | nuxt + undici off their advisories | **live, all three** (nuxt 3.21.11) |
 
-**Two are live defects right now.** The `emailNotifications` leak was reproduced against
-deveco.io during this session — `curl https://deveco.io/api/users/<member>` returns digest
-cadence and per-event toggles with no credentials. And the Nuxt version above.
+Both defects that were live when this session started are closed. The
+`emailNotifications` leak -- `curl https://deveco.io/api/users/<member>` returning a
+member's digest cadence with no credentials -- was re-checked against each instance after
+its deploy swap and returns nothing.
 
 ## Re-verification: the extent was understated almost everywhere
 
@@ -165,18 +157,61 @@ string because its fixture lacked `version: 2`.
 
 ## State at handoff
 
-- Build 17/17, typecheck 30/30, lint 31/31. Layer suite 206 files / 2,967 tests green on
-  the bumped tree. Server suite green when run serially.
-- All three instances healthy; **nothing published, nothing deployed**.
-- The 28 P1s from the previous audit are still counted separately from its 3 fixed
-  entries, so this session's work does not reduce that number — it re-verified it.
+- Build 17/17, typecheck 30/30, lint 31/31. Layer suite 206 files / 2,967 tests. Server
+  suite 144 files / 2,143 tests, green **when run serially** (see the gate note above).
+- **All three instances healthy and fully rolled**, each verified after its own swap:
+  `/`, `/about`, the feeds and `/api/health` all 200, feeds parsing, deveco's banner
+  intact.
+- Published to `latest`: protocol **0.15.3**, auth **0.13.3**, explainer **0.9.1**,
+  learning **0.5.5**, server **2.134.0**, layer **0.137.5**.
+- The 28 P1s from the previous audit are counted separately from its 3 fixed entries, so
+  this session's work does not reduce that number -- it re-verified it (25 still real).
+
+### Machine state
+
+- **~34 GB of Docker reclaimed** at the end of the session, at the operator's request:
+  images 39.24 GB (123) to 10.23 GB (28), build cache 5.15 GB to 0. Those are the figures
+  *at the moment of the prune*; normal work rebuilds cache immediately, so do not read
+  them as current. **Volumes were deliberately not pruned** -- they hold the data,
+  including `commonpub_cpub_postgres`. Expect the first `docker compose up` or build per
+  project to re-pull or rebuild.
+- All 27 containers stayed up through the prune, 0 unhealthy.
+- Session scratch cleaned (~672 MB): the local reproduction builds under `/tmp`, the
+  lockfile copies, and the `deveco-repro` tree. No dev servers or test runners left.
+- **Leftover databases on the dev Postgres at :5433**, checked rather than assumed --
+  session 257's `cpub_audit_0825` and `cpub_audit_push` are already GONE. What remains
+  from earlier sessions: `cc_test_09d5b1bc85f94b0d`, `cc_test_51cffda984004c17`,
+  `cc_test_63d4945fdd664621`, `commonpub_verify`, `cpub_tz`, `cpub_v2`, `fork_repro`.
+  None were created by this session; drop whichever you no longer want.
+- `npm@11` now sits in `~/.npm/_npx` (16 MB). Keep it -- npm 10.9 crashes in arborist on
+  the fork lockfiles and that is the working way to regenerate them.
 
 ## Next, in order
 
-1. **Nuxt on the forks.** Both lockfiles, then deploy.
-2. **Rotate the crates.io token** — the only exposure that has already happened.
-3. **Roll F-1, F-2, F-6** through the `--tag next` prerelease gate that worked in 257.
-4. **`sharp` to >=0.35.0** — needs a hand-edited range (`^0.34.5` cannot cross to 0.35)
-   and its own verification, since it processes every upload.
-5. **Make deveco's deploy able to fail** (P1-10, P1-11).
-6. **`profileVisibility`** (P1-1) — a shared predicate plus a scanning guard, not 28 edits.
+The roll is done; everything below is what it did NOT cover.
+
+1. **Rotate the crates.io publish token.** The only exposure that has already happened
+   rather than merely being possible -- it entered every Docker build layer until F-3.
+2. **`sharp` to >=0.35.0** (four libvips CVEs). Needs a hand-edited range, because
+   `^0.34.5` cannot cross to 0.35, and its own verification: it is the native module that
+   processes every member upload, so it wants its own change rather than a ride-along.
+3. **Make deveco's deploy able to fail** (P1-10, P1-11). Its post-deploy check curls a
+   port the container only `expose`s and ends in `|| echo ::warning::`; the 2026-08-28 log
+   prints "Health check failed" and the job still succeeds. Every verification in this
+   session had to be done by hand from outside because of it.
+4. **`profileVisibility`** (P1-1). Honoured on 7 of at least 35 relevant paths against a
+   UI that promises otherwise. No instance has a non-public row yet, so this is a race
+   between the fix and the first member who trusts the setting. It needs a shared
+   predicate and a scanning guard, not 28 individual edits.
+5. **The test gate** (N-1). `pnpm test` exits 1 with zero failing assertions;
+   `createTestDB()` builds a fresh PGlite and pushes all 110 tables on each of 107 suites.
+   Treat the cost, not the timeout.
+6. **The remaining 28 P1s and 34 surviving new findings**, in
+   `docs/reviews/2026-08-30-full-audit.md`. Three anonymous 500s and an anonymous slug
+   oracle are the cheapest wins there.
+
+### A limit worth knowing
+
+`check-single-vue.mjs` guards `vue` and `@vue/server-renderer` specifically, because those
+are what broke. It is **not** a general duplicate-dependency check -- another package
+duplicating the same way would still ship.

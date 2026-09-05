@@ -377,7 +377,10 @@ reports **zero nuxt and zero undici advisories**, with the repo-wide totals fall
 6 critical / 76 high to 3 / 51. The declared floors were raised to match, so a fresh
 install cannot resolve backwards into the vulnerable range.
 
-**The forks are not fixed by that.** They install independently and still resolve 3.21.5.
+**The forks were not fixed by that** -- they install independently and still resolved
+3.21.5 at the time of writing. They were rolled separately afterwards; see "Release
+status" below. Getting them there is what caused the outage described in the next
+section, because the fork's root `vue` pin has to move with nuxt.
 
 Two dependency items were left alone deliberately. `sharp ^0.34.5` carries four libvips
 CVEs fixed in 0.35.0, and a caret on a `0.x` range can never cross that minor — it needs
