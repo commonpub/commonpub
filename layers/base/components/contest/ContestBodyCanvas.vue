@@ -15,7 +15,7 @@ import { BlockCanvas, type BlockEditor, type BlockTypeGroup } from '@commonpub/e
 
 // 'stages' and 'emails' are FORM tabs (not block bodies): each renders its own slot
 // and has no Write/Preview/Code mode. The three block tabs share one BlockCanvas.
-type BodyTab = 'overview' | 'rules' | 'prizes' | 'stages' | 'registration' | 'emails';
+type BodyTab = 'overview' | 'rules' | 'prizes' | 'stages' | 'registration' | 'emails' | 'announcements';
 type BodyMode = 'write' | 'preview' | 'code';
 
 const props = defineProps<{
@@ -25,6 +25,8 @@ const props = defineProps<{
   mode: BodyMode;
   /** Show the Emails tab (edit mode + the contestEmailEditor feature). */
   showEmails?: boolean;
+  /** Show the Announcements tab (edit mode + the contestBroadcast feature). */
+  showAnnouncements?: boolean;
   /** Show the Registration form tab (the contestSignup feature — its consumer,
    *  the public sign-up card, is gated the same way). */
   showRegistration?: boolean;
@@ -45,10 +47,14 @@ const TABS = computed<{ key: BodyTab; label: string; icon: string }[]>(() => {
   ];
   if (props.showRegistration) base.push({ key: 'registration', label: 'Registration', icon: 'fa-user-plus' });
   if (props.showEmails) base.push({ key: 'emails', label: 'Emails', icon: 'fa-envelope' });
+  if (props.showAnnouncements) base.push({ key: 'announcements', label: 'Announcements', icon: 'fa-bullhorn' });
   return base;
 });
-// Block tabs share the canvas + the Write/Preview/Code switch; 'stages'/'emails' are forms.
-const isBlockTab = computed(() => props.activeTab !== 'stages' && props.activeTab !== 'emails' && props.activeTab !== 'registration');
+// Block tabs share the canvas + the Write/Preview/Code switch. 'stages',
+// 'registration', 'emails' and 'announcements' are FORM tabs, each rendering its
+// own slot instead, so they are excluded here rather than listed there.
+const FORM_TABS: readonly BodyTab[] = ['stages', 'registration', 'emails', 'announcements'];
+const isBlockTab = computed(() => !FORM_TABS.includes(props.activeTab));
 const MODES: { key: BodyMode; label: string; icon: string }[] = [
   { key: 'write', label: 'Write', icon: 'fa-pen' },
   { key: 'preview', label: 'Preview', icon: 'fa-eye' },
@@ -125,6 +131,7 @@ function onTabKey(e: KeyboardEvent, key: BodyTab): void {
       <slot v-else-if="activeTab === 'registration'" name="registration" />
       <!-- Emails: a form tab (per-contest email copy editor + live preview). -->
       <slot v-else-if="activeTab === 'emails'" name="emails" />
+      <slot v-else-if="activeTab === 'announcements'" name="announcements" />
       <template v-else>
         <!-- Overview-only lead (inline banner + cover); the parent fills the slot. -->
         <div v-if="activeTab === 'overview' && mode === 'write'" class="cpub-cbc-lead">
@@ -146,8 +153,21 @@ function onTabKey(e: KeyboardEvent, key: BodyTab): void {
 <style scoped>
 .cpub-cbc { display: flex; flex-direction: column; }
 .cpub-cbc-bar { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--space-3); flex-wrap: wrap; margin-bottom: var(--space-3); border-bottom: var(--border-width-default) solid var(--border); }
-.cpub-cbc-tablist { display: flex; gap: 4px; }
+/* The tab row scrolls INSIDE its own box rather than pushing the page wide. With
+   six or seven tabs the row is ~657px, so on a phone it was dragging the whole
+   editor into a horizontal scroll. `min-width: 0` is what actually lets a flex
+   ITEM shrink below its content; overflow-x alone does nothing without it. The
+   tabs themselves must not shrink, or the labels wrap to two lines instead. */
+.cpub-cbc-tablist {
+  display: flex; gap: 4px;
+  min-width: 0; max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  /* Keep the keyboard-focus ring visible rather than clipped by the scroll box. */
+  scroll-padding-inline: var(--space-2);
+}
 .cpub-cbc-tab {
+  flex: 0 0 auto; white-space: nowrap;
   display: inline-flex; align-items: center; gap: 6px;
   padding: 8px 14px; background: transparent; border: none; cursor: pointer;
   font-size: var(--text-sm); font-weight: 600; color: var(--text-dim);
