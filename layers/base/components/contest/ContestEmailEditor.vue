@@ -15,10 +15,11 @@
 // layer's bare component-test harness doesn't provide auto-imports, and a missing
 // one is a hard ReferenceError at setup rather than a silent no-op.
 import { provide } from 'vue';
-import { useBlockEditor, BlockCanvas, type BlockTypeGroup } from '@commonpub/editor/vue';
+import { useBlockEditor, BlockCanvas } from '@commonpub/editor/vue';
 import type { ContestEmailCopy } from '@commonpub/schema';
 import type { ContestEmailCopyForm } from '../../composables/useContestEditor';
 import { seedEmailBlocks } from '../../utils/contestEmailDefaults';
+import { emailBlockGroups } from '../../utils/contestEmailBlocks';
 
 // A registration-link block left blank in a CONTEST email resolves to this contest's
 // registration page, not the instance account-signup page (every recipient of a
@@ -64,27 +65,9 @@ const reminderEditor = useBlockEditor();
 const activeEditor = computed(() => (active.value === 'confirmation' ? confirmationEditor : reminderEditor));
 let hydrating = false;
 
-// Email-safe palette — ONLY the block types renderEmailBlocks supports; any other
-// type would render in the editor but be silently dropped from the sent email.
-const emailBlockGroups: BlockTypeGroup[] = [
-  {
-    name: 'Text',
-    blocks: [
-      { type: 'paragraph', label: 'Text', icon: 'fa-align-left', description: 'Body text' },
-      { type: 'heading', label: 'Heading', icon: 'fa-heading', description: 'Section heading' },
-      { type: 'blockquote', label: 'Quote', icon: 'fa-quote-left', description: 'Quotation' },
-    ],
-  },
-  {
-    name: 'Blocks',
-    blocks: [
-      { type: 'callout', label: 'Callout', icon: 'fa-circle-info', description: 'Highlighted note', attrs: { variant: 'info' } },
-      { type: 'image', label: 'Image', icon: 'fa-image', description: 'Upload or link an image' },
-      { type: 'horizontal_rule', label: 'Divider', icon: 'fa-minus', description: 'Horizontal rule' },
-      { type: 'registrationLink', label: 'Registration Link', icon: 'fa-user-plus', description: 'Button to this contest’s registration page' },
-    ],
-  },
-];
+// Email-safe palette — the shared list, so this composer and the announcement
+// composer can never drift from what renderEmailBlocks actually renders.
+// (see utils/contestEmailBlocks.ts)
 
 // One-way editor -> form. When blocks exist they supersede the legacy intro, so
 // clear the form's intro too (single source of truth in state, not just in the

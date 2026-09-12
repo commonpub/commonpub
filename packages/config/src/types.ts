@@ -71,6 +71,16 @@ export interface FeatureFlags {
    */
   contestEmailEditor: boolean;
   /**
+   * Contest announcements (session 259). When ON, a contest organizer gets an
+   * Announcements tab: compose an arbitrary subject + block body, pick the
+   * registrant audience, see a live recipient count, preview it, send a test to
+   * themselves, then send. Tokens resolve per recipient; every email carries a
+   * one-click unsubscribe. Default OFF, because a send reaches real inboxes.
+   * The send additionally requires `emailNotifications`: with it off the outbox
+   * worker never drains, so an "sent" announcement would sit queued forever.
+   */
+  contestBroadcast: boolean;
+  /**
    * Two-tier contest signup card (session 239). When ON, the contest page's
    * registration card offers an explicit "Register for this contest" plus a
    * lower-commitment "Just get reminders" tier, collects optional self-reported

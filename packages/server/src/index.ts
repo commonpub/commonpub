@@ -878,6 +878,26 @@ export { renderEmailBlocks } from './emailBlocks.js';
 export type { RenderedEmailBody, RenderEmailBlocksOptions } from './emailBlocks.js';
 export { defaultContestEmailBlocks } from './contest/emailDefaults.js';
 
+// Contest announcements (session 259): the organizer "message participants" send,
+// its audience resolver, the abuse bound and the history list.
+export {
+  countAnnouncementRecipients,
+  resolveAnnouncementRecipients,
+  sendContestAnnouncement,
+  listContestAnnouncements,
+  announcementContext,
+  announcementTokens,
+  ANNOUNCEMENT_TOKENS,
+  AnnouncementRateLimitError,
+} from './contest/announcements.js';
+export type {
+  AnnouncementRecipient,
+  AnnouncementContext,
+  SendContestAnnouncementInput,
+  SendContestAnnouncementResult,
+  ContestAnnouncementSummary,
+} from './contest/announcements.js';
+
 // Persona — schema resolution, answer storage, purpose consent, audience metrics.
 // Gated by the `persona`, `dataSharingConsents` and `personaAnalytics` flags at
 // the route layer; the functions themselves are flag-agnostic like every other

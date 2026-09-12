@@ -64,6 +64,13 @@ export const featureFlagsSchema = z.object({
   // of any stored override (flag off ⇒ every send uses built-in default copy).
   // No effect unless `contests` is also on.
   contestEmailEditor: z.boolean().default(false),
+  // Contest announcements (session 259): an organizer composes an arbitrary email
+  // and sends it to that contest's participants, with per-recipient token
+  // rendering and a live preview. Default OFF -- this mails real people. Gates the
+  // Announcements editor tab AND all five announcement routes. No effect unless
+  // `contests` is also on, and the SEND additionally requires `emailNotifications`
+  // (without it the outbox worker never drains, so a send would queue into a void).
+  contestBroadcast: z.boolean().default(false),
   // Two-tier contest signup card (session 239): explicit "Register for this contest"
   // + a lower-commitment "Just get reminders" tier, an optional post-register info
   // form (what you're building / experience / team), and status-aware "what's next"

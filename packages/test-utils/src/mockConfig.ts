@@ -25,6 +25,7 @@ export function createTestConfig(overrides?: Partial<CommonPubConfig>): CommonPu
       contestConditionalFields: true,
       contestReminders: false,
       contestEmailEditor: false,
+      contestBroadcast: false,
       contestSignup: true,
       contestEntryRequiresRegistration: true,
       contestActionBar: true,

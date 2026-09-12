@@ -774,6 +774,14 @@ export const contestRegistrations = pgTable('contest_registrations', {
   // / `contestRegistrationFieldsSchema`). PII/consent answers are partitioned OUT to
   // `contest_registration_private_fields` / `contest_agreement_acceptances`.
   fields: jsonb('fields').$type<Record<string, string>>(),
+  // Per-contest email opt-out (session 259). Set when a participant unsubscribes
+  // from THIS contest's organizer announcements without silencing the whole
+  // instance. ANNOUNCEMENTS honour it; the registration confirmation and the
+  // deadline reminders do NOT, because those are transactional (the user entered
+  // the contest) while an announcement is organizer-authored and can be anything.
+  // The global `users.email_notifications ->> 'unsubscribedAll'` still overrides
+  // everything non-transactional.
+  emailOptOutAt: timestamp('email_opt_out_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 }, (t) => [
   unique('uq_contest_registrations_contest_user').on(t.contestId, t.userId),
@@ -802,6 +810,77 @@ export const contestReminderSends = pgTable('contest_reminder_sends', {
   index('idx_contest_reminder_sends_contest_id').on(t.contestId),
 ]);
 
+/** The stored audience selector on a contest announcement. Structurally mirrors
+ *  `contestAnnouncementAudienceSchema`, which is the WRITE-side source of truth;
+ *  this is the read-side shape so `listContestAnnouncements` does not have to
+ *  cast an `unknown` column back into a type. The mirror is pinned by a
+ *  compile-time assignability check in the validator tests -- adding a selector
+ *  to the schema without widening this fails there, not in production. */
+export interface ContestAnnouncementAudienceValue {
+  kind: 'registrants';
+  tier: 'full' | 'reminders' | 'all';
+}
+
+// --- Contest Announcements (organizer "message participants", session 259) ---
+// One row per announcement an organizer composed and sent to a contest audience.
+// The audit record AND the parent of the per-recipient ledger below. Body is a
+// BlockTuple[] (untyped jsonb, mirroring `description_blocks`) rendered to an
+// email-safe HTML subset at send time by renderEmailBlocks; no organizer HTML is
+// ever stored or emitted raw. Instance-local; never federated.
+export const contestAnnouncements = pgTable('contest_announcements', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  contestId: uuid('contest_id')
+    .notNull()
+    .references(() => contests.id, { onDelete: 'cascade' }),
+  /** Client-supplied idempotency key, one per compose session. A second POST
+   *  carrying the same key returns the existing announcement instead of mailing
+   *  everyone again -- the double-click guard. UNIQUE per contest rather than
+   *  globally, so two contests can never collide on a client's key. */
+  idempotencyKey: varchar('idempotency_key', { length: 64 }).notNull(),
+  subject: text('subject').notNull(),
+  /** BlockTuple[] body. Untyped jsonb mirrors `content_items.content`. */
+  bodyBlocks: jsonb('body_blocks').notNull(),
+  /** The resolved audience selector, stored verbatim so the history list can say
+   *  who a past announcement went to even after the selector shape grows. */
+  audience: jsonb('audience').$type<ContestAnnouncementAudienceValue>().notNull(),
+  recipientCount: integer('recipient_count').default(0).notNull(),
+  /** 'sending' | 'sent' | 'failed'. A row starts `sending` and is stamped `sent`
+   *  once every recipient is enqueued, so a crash mid-send is visible rather than
+   *  indistinguishable from a completed one. */
+  status: text('status').default('sending').notNull(),
+  sentAt: timestamp('sent_at', { withTimezone: true }),
+  /** Nullable so deleting the organizer's account does not erase the audit row. */
+  sentById: uuid('sent_by_id').references(() => users.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [
+  unique('uq_contest_announcements_contest_idempotency').on(t.contestId, t.idempotencyKey),
+  // Serves the history list: `WHERE contest_id = ? ORDER BY created_at DESC`.
+  // Postgres reads a btree backwards, so no DESC index is needed.
+  index('idx_contest_announcements_contest_created').on(t.contestId, t.createdAt),
+]);
+
+// --- Contest Announcement Sends (exactly-once ledger) ---
+// One row per (announcement, recipient) that has been ENQUEUED. The UNIQUE
+// constraint plus `INSERT ... ON CONFLICT DO NOTHING RETURNING` is the claim: a
+// send only mails the rows it actually inserts, so a double-clicked send or a
+// retried one delivers each recipient exactly once. Mirrors
+// contest_reminder_sends, which is the same idiom for the reminder sweep.
+// This is SUBJECT DATA (a record that a named person was mailed), unlike the
+// operational `broadcasts`/`email_outbox` queues -- include it in the GDPR export.
+export const contestAnnouncementSends = pgTable('contest_announcement_sends', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  announcementId: uuid('announcement_id')
+    .notNull()
+    .references(() => contestAnnouncements.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  sentAt: timestamp('sent_at', { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [
+  unique('uq_contest_announcement_sends_announcement_user').on(t.announcementId, t.userId),
+  index('idx_contest_announcement_sends_user_id').on(t.userId),
+]);
+
 // --- Relations ---
 
 export const contestsRelations = relations(contests, ({ one, many }) => ({
@@ -814,6 +893,17 @@ export const contestsRelations = relations(contests, ({ one, many }) => ({
 export const contestRegistrationsRelations = relations(contestRegistrations, ({ one }) => ({
   contest: one(contests, { fields: [contestRegistrations.contestId], references: [contests.id] }),
   user: one(users, { fields: [contestRegistrations.userId], references: [users.id] }),
+}));
+
+export const contestAnnouncementsRelations = relations(contestAnnouncements, ({ one, many }) => ({
+  contest: one(contests, { fields: [contestAnnouncements.contestId], references: [contests.id] }),
+  sentBy: one(users, { fields: [contestAnnouncements.sentById], references: [users.id] }),
+  sends: many(contestAnnouncementSends),
+}));
+
+export const contestAnnouncementSendsRelations = relations(contestAnnouncementSends, ({ one }) => ({
+  announcement: one(contestAnnouncements, { fields: [contestAnnouncementSends.announcementId], references: [contestAnnouncements.id] }),
+  user: one(users, { fields: [contestAnnouncementSends.userId], references: [users.id] }),
 }));
 
 export const contestReminderSendsRelations = relations(contestReminderSends, ({ one }) => ({
@@ -877,3 +967,7 @@ export type ContestRegistrationRow = typeof contestRegistrations.$inferSelect;
 export type NewContestRegistrationRow = typeof contestRegistrations.$inferInsert;
 export type ContestReminderSendRow = typeof contestReminderSends.$inferSelect;
 export type NewContestReminderSendRow = typeof contestReminderSends.$inferInsert;
+export type ContestAnnouncementRow = typeof contestAnnouncements.$inferSelect;
+export type NewContestAnnouncementRow = typeof contestAnnouncements.$inferInsert;
+export type ContestAnnouncementSendRow = typeof contestAnnouncementSends.$inferSelect;
+export type NewContestAnnouncementSendRow = typeof contestAnnouncementSends.$inferInsert;
