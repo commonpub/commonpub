@@ -165,3 +165,179 @@ describe('renderEmailBlocks', () => {
     expect(html).toContain('safe');
   });
 });
+
+// --- Inline formatting (session 260) -------------------------------------
+//
+// `renderEmailBlocks` used to reduce every html-bearing block to its bare text.
+// That was not a formatting nicety: a bullet list collapsed to
+// `A laptopA power strip` (no separator at all), `<br>` vanished, and an
+// organizer's hyperlink lost its href in BOTH MIME parts, so a line reading
+// "Email the organizers" arrived with the address nowhere in the message.
+// Strikethrough was worse than lossy: `Deadline is <s>Friday</s> Monday`
+// arrived as "Deadline is Friday Monday", which inverts the meaning.
+//
+// The block editor loads Bold, Italic, Code, Strike, Link, BulletList and
+// OrderedList, so an organizer can author every one of these, and the editor
+// showed them correctly while the preview and the send silently dropped them.
+//
+// The output vocabulary is CLOSED: nothing is ever copied from the input. The
+// input is parsed, and only tags this renderer writes itself are emitted, each
+// with its own inline styles. That is what keeps the security guarantees below
+// true no matter what the input contains.
+
+describe('renderEmailBlocks — inline formatting is preserved', () => {
+  const html = (b: unknown) => renderEmailBlocks(b).html;
+  const text = (b: unknown) => renderEmailBlocks(b).text;
+  const para = (h: string) => [['paragraph', { html: h }]];
+
+  it('keeps bold and italic', () => {
+    const out = html(para('<p>Kickoff is <strong>Monday</strong> and <em>early</em>.</p>'));
+    expect(out).toContain('<strong>Monday</strong>');
+    expect(out).toContain('<em>early</em>');
+  });
+
+  it('keeps a hyperlink with its href, and carries the URL into the text part', () => {
+    const b = para('<p>Read the <a href="https://x.test/rules">rules</a>.</p>');
+    expect(html(b)).toContain('href="https://x.test/rules"');
+    expect(html(b)).toContain('>rules</a>');
+    // The text part must not lose the address — that is how "email the
+    // organizers" used to arrive with no address anywhere in the message.
+    expect(text(b)).toContain('https://x.test/rules');
+  });
+
+  it('keeps a mailto link', () => {
+    const b = para('<p>Email <a href="mailto:org@x.test">the organizers</a>.</p>');
+    expect(html(b)).toContain('href="mailto:org@x.test"');
+    expect(text(b)).toContain('mailto:org@x.test');
+  });
+
+  it('renders a bullet list as a real list, never run-together words', () => {
+    const out = html(para('<ul><li><p>A laptop</p></li><li><p>A power strip</p></li></ul>'));
+    expect(out).toContain('<ul');
+    expect(out).toContain('A laptop');
+    expect(out).toContain('A power strip');
+    expect(out).not.toContain('A laptopA power strip');
+  });
+
+  it('renders an ordered list, and the text part uses separate lines', () => {
+    const b = para('<ol><li><p>Register</p></li><li><p>Submit</p></li></ol>');
+    expect(html(b)).toContain('<ol');
+    expect(text(b)).toMatch(/Register[\s\S]*Submit/);
+    expect(text(b)).not.toContain('RegisterSubmit');
+  });
+
+  it('keeps line breaks', () => {
+    const b = para('<p>Line one<br>Line two</p>');
+    expect(html(b)).toContain('<br');
+    expect(text(b)).not.toContain('Line oneLine two');
+  });
+
+  it('keeps strikethrough, which used to invert the meaning of a changed date', () => {
+    const out = html(para('<p>Deadline is <s>Friday</s> Monday.</p>'));
+    expect(out).toMatch(/<s>Friday<\/s>|line-through/);
+  });
+
+  it('keeps inline code', () => {
+    expect(html(para('<p>Run <code>npm install</code>.</p>'))).toContain('npm install');
+    expect(html(para('<p>Run <code>npm install</code>.</p>'))).toContain('<code');
+  });
+
+  it('keeps several top-level nodes in ONE block as separate paragraphs', () => {
+    // A paste puts <p>..</p><ul>..</ul><p>..</p> inside a single TextBlock.
+    const out = html(para('<p>First.</p><ul><li><p>Item</p></li></ul><p>Last.</p>'));
+    expect(out).toContain('First.');
+    expect(out).toContain('Last.');
+    expect(out).not.toContain('First.Item');
+    expect(out).not.toContain('ItemLast.');
+  });
+});
+
+describe('renderEmailBlocks — the security guarantees still hold', () => {
+  const html = (h: string) => renderEmailBlocks([['paragraph', { html: h }]]).html;
+
+  it('still drops an img with an event handler (the original pinned case)', () => {
+    const out = html('<b>hi</b><img src=x onerror=alert(1)>');
+    expect(out).not.toContain('<img');
+    expect(out).not.toContain('onerror');
+    expect(out).toContain('hi');
+  });
+
+  it('never emits a script, and shows its text escaped instead', () => {
+    const out = html('<script>alert(1)</script>');
+    expect(out).not.toContain('<script');
+    expect(out).not.toMatch(/<script/i);
+  });
+
+  it('drops a javascript: href but keeps the words', () => {
+    const out = html('<p>See <a href="javascript:alert(1)">this</a>.</p>');
+    expect(out).not.toContain('javascript:');
+    expect(out).toContain('this');
+  });
+
+  it('drops an entity-encoded javascript: href (the 8-encodings lesson)', () => {
+    for (const h of ['java&#115;cript:alert(1)', 'JaVaScRiPt:alert(1)', ' javascript:alert(1)', 'java\tscript:alert(1)']) {
+      const out = html(`<p><a href="${h}">x</a></p>`);
+      expect(out.toLowerCase(), h).not.toContain('javascript');
+    }
+  });
+
+  it('drops a data: href', () => {
+    expect(html('<p><a href="data:text/html,<script>alert(1)</script>">x</a></p>')).not.toContain('data:');
+  });
+
+  it('strips every attribute it does not write itself (no style/onclick passthrough)', () => {
+    const out = html('<p style="position:fixed" onclick="alert(1)" class="evil">hi</p>');
+    expect(out).not.toContain('onclick');
+    expect(out).not.toContain('position:fixed');
+    expect(out).not.toContain('class="evil"');
+    expect(out).toContain('hi');
+  });
+
+  it('emits nothing dangerous from an iframe, object or form', () => {
+    for (const tag of ['iframe', 'object', 'form', 'style', 'link', 'meta']) {
+      const out = html(`<${tag}>x</${tag}>`);
+      expect(out.toLowerCase(), tag).not.toContain(`<${tag}`);
+    }
+  });
+
+  // NESTED inside a paragraph, not just at the top level. The block-level and
+  // inline walkers each have their own drop check, and only the block one was
+  // covered until a surviving mutant said so.
+  it('drops a dangerous element nested INSIDE a paragraph, content and all', () => {
+    expect(html('<p>See <script>alert(1)</script> here</p>')).not.toContain('alert(1)');
+    expect(html('<p>Hi <iframe src="https://evil.test"></iframe> there</p>')).not.toContain('evil.test');
+    const img = html('<p>A <img src=x onerror=alert(1)> B</p>');
+    expect(img).not.toContain('<img');
+    expect(img).not.toContain('onerror');
+  });
+
+  // An http(s) URL passes the scheme check and STILL must be escaped: a quote in
+  // the path would otherwise close the attribute and let an event handler in.
+  it('escapes the href so a quote in the URL cannot break out of the attribute', () => {
+    const out = html('<p><a href=\'https://x.test/"onmouseover="alert(1)\'>x</a></p>');
+    expect(out).not.toContain('onmouseover="alert(1)"');
+    expect(out).not.toMatch(/href="[^"]*"[^>]*onmouseover/);
+    expect(out).toContain('&quot;');
+  });
+
+  // Cleaning the href is what lets a padded-but-legitimate URL through; the
+  // scheme check already fails closed on anything it does not recognise.
+  it('accepts a link whose href is padded with whitespace', () => {
+    expect(html('<p><a href="  https://x.test/ok ">link</a></p>')).toContain('href="https://x.test/ok"');
+  });
+
+  it('normalises unbalanced input rather than emitting unbalanced tags', () => {
+    const out = html('<p>a <strong>unclosed</p><li>orphan');
+    const opens = (out.match(/<strong>/g) ?? []).length;
+    const closes = (out.match(/<\/strong>/g) ?? []).length;
+    expect(opens).toBe(closes);
+  });
+
+  it('still escapes a token value so it cannot inject markup', () => {
+    const out = renderEmailBlocks([['paragraph', { html: '<p>Hi {name}</p>' }]], {
+      tokens: { name: '<img src=x onerror=alert(1)>' },
+    }).html;
+    expect(out).not.toContain('<img');
+    expect(out).toContain('&lt;img');
+  });
+});
