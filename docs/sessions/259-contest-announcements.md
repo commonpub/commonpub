@@ -181,6 +181,64 @@ restarted to pick up the rebuilt package `dist` (memory `feedback_dev_server_dis
 - `broadcastInputSchema` also has no idempotency key, so the admin blast can still
   double-send on a double-click. The announcement schema now requires one.
 
+## ROLLED — live on all three instances 2026-09-12
+
+| | version |
+| --- | --- |
+| config | 0.41.0 |
+| schema | 0.67.0 (migration 0049) |
+| infra | 0.22.0 |
+| protocol | 0.15.4 |
+| auth | 0.13.4 |
+| editor | 0.17.3 |
+| explainer | 0.9.2 |
+| learning | 0.5.6 |
+| test-utils | 0.5.18 |
+| server | 2.135.0 |
+| layer | 0.138.0 |
+
+All three instances: **48 flags, `contestBroadcast: false`**, health ok, database ok, and
+`/`, `/contests`, `/about` all 200 — each verified AFTER its own swap, never during.
+deveco's live Qualcomm contest still renders, its announcement routes correctly 404 with the
+flag off (`requireFeature` hides a disabled feature), and the session-258 `emailNotifications`
+privacy fix still holds. `db:migrate succeeded` in both fork deploys and on commonpub.io.
+
+### Gates that were actually run
+
+1. PR #90 green across three runs. The new e2e was **proven to have executed** rather than
+   skipped: main's baseline was 168 passed / 2 flaky, the branch 175 / 1, skipped unchanged
+   at 12. That is exactly the six new tests plus one previously-flaky test settling.
+2. Published to `--tag next` first; **deveco's CI typechecked the real tarballs** before
+   `latest` moved.
+3. A clean `npm install` + `build` + **run + SSR probe** of both forks against the published
+   tarballs, because CI installs with pnpm and the Dockerfiles install with npm. Zero nested
+   vue copies in either; `check-single-vue.mjs` passed in both.
+4. The published `server@2.135.0` tarball was inspected to confirm the cascade worked: it
+   pins auth 0.13.4, config 0.41.0, editor 0.17.3, infra 0.22.0, learning 0.5.6,
+   protocol 0.15.4, schema 0.67.0 — every changed dep at its new exact version.
+
+### Two npm behaviours worth knowing
+
+**"Previously staged" is not "published".** `protocol@0.15.4` and `layer@0.138.0` both
+reported `+ pkg@version` on publish and then were absent from the registry for several
+minutes. Re-publishing returned `E409 Cannot publish over previously staged version`, which
+is how you tell a staged version from a failed one. Both resolved on their own.
+
+**npm resolves against the abbreviated packument, which lags the full one.** The full doc
+showed `layer@0.138.0` while `npm install` still failed with `ETARGET no matching version`.
+`--prefer-online` plus waiting for the `application/vnd.npm.install-v1+json` endpoint is the
+fix. Filtering publish output through grep hid the first symptom; print it whole.
+
+### Found during the roll, deliberately NOT fixed here
+
+`@commonpub/docs@0.6.3` still pins `schema@0.16.0` + `config@0.12.0` (its workspace
+package.json declares no `@commonpub` deps, but the published tarball predates that). Every
+consumer tree therefore carries two copies of schema and two of config. Verified
+**pre-existing** — the pre-change lockfiles had the same pair — and left alone, because
+session 258's outage came from combining two independent changes in one deploy. It wants its
+own change: republish docs from current source, regenerate both fork lockfiles, confirm the
+duplicates are gone.
+
 ## Release runbook (session 259)
 
 **The cascade is the part that bites.** Internal deps are declared `workspace:*`, which
