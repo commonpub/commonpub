@@ -344,6 +344,13 @@
       "when": 1786781154075,
       "tag": "0048_concerned_sasquatch",
       "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "7",
+      "when": 1789238015299,
+      "tag": "0049_modern_hemingway",
+      "breakpoints": true
     }
   ]
 }

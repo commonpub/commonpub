@@ -32,6 +32,7 @@ const flagMeta: Record<string, { label: string; description: string; icon: strin
   contestActionBar: { label: 'Contest Action Bar', description: 'Persistent Register/Submit bar at the bottom of narrow screens, where the sidebar sits far below the fold', icon: 'fa-solid fa-mobile-screen-button' },
   emailVerification: { label: 'Email Verification', description: 'Mail a confirmation link on signup and nag with a banner until confirmed. Never blocks sign-in, so nobody is locked out. Needs a real mail transport', icon: 'fa-solid fa-envelope-circle-check' },
   contestEmailEditor: { label: 'Contest Email Editor', description: 'Let contest organizers customize the confirmation + reminder email copy per contest', icon: 'fa-solid fa-envelope-open-text' },
+  contestBroadcast: { label: 'Contest Announcements', description: 'Let contest organizers write and send an email to their contest participants. Sends real mail, so it needs Email Notifications too', icon: 'fa-solid fa-bullhorn' },
   learning: { label: 'Learning', description: 'Learning paths and courses', icon: 'fa-solid fa-graduation-cap' },
   explainers: { label: 'Explainers', description: 'Interactive explainer modules', icon: 'fa-solid fa-lightbulb' },
   editorial: { label: 'Editorial', description: 'Staff picks and content categories', icon: 'fa-solid fa-pen-fancy' },

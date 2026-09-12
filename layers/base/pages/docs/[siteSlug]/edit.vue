@@ -658,6 +658,12 @@ watch(site, (s) => {
         </div>
       </div>
     </Teleport>
+
+    <!-- This page is `layout: false`, and AppToast is mounted by
+         layouts/default.vue. Without this every toast the docs editor raises is
+         created and rendered nowhere, so an author gets no feedback on a save or
+         a failure. Pinned by __tests__/layoutlessToastHost.test.ts. -->
+    <AppToast />
   </div>
 </template>
 

@@ -114,6 +114,85 @@ export const contestEmailTestSchema = z
     message: 'Provide exactly one recipient: an email address or a user',
   });
 
+// --- Contest announcements (session 259) ---
+// An organizer composes an arbitrary email and sends it to that contest's
+// participants. The body is a BlockTuple[] rendered to an EMAIL-SAFE HTML subset
+// by the server's renderEmailBlocks -- the single choke point -- so no organizer
+// raw HTML ever reaches the wire. The subject is plain text, tokenized and
+// escaped server-side. `.strict()` throughout.
+
+/** Who an announcement goes to. v1 ships the `registrants` selector only; it is a
+ *  single `.strict()` object rather than a union of one so entrants / judges /
+ *  stakeholders / stage cohorts / hand-picked users land additively later.
+ *  `tier` mirrors the two-tier signup (session 239): `full` = a counted
+ *  participant, `reminders` = the lower-commitment opt-in. `all` matches the
+ *  deadline-reminder sweep, which applies no tier filter. */
+export const contestAnnouncementAudienceSchema = z
+  .object({
+    kind: z.literal('registrants'),
+    tier: z.enum(['full', 'reminders', 'all']).default('all'),
+  })
+  .strict();
+export type ContestAnnouncementAudience = z.infer<typeof contestAnnouncementAudienceSchema>;
+
+const ANNOUNCEMENT_SUBJECT_MAX = 200;
+const ANNOUNCEMENT_BLOCKS_MAX = 200;
+
+/** Subject line. A bare CR or LF can split headers on a transport that does not
+ *  encode them, so reject it at the edge rather than trusting every adapter.
+ *  `.trim()` runs first, so leading/trailing whitespace is not what fails. */
+const announcementSubject = z
+  .string()
+  .trim()
+  .min(1)
+  .max(ANNOUNCEMENT_SUBJECT_MAX)
+  .regex(/^[^\r\n]+$/, 'A subject cannot contain a line break');
+
+/** BlockTuple[] body. Untyped at this layer (the schema package must not import
+ *  the editor), mirroring `contestEmailTemplateCopySchema.bodyBlocks`. */
+const announcementBlocks = z.array(z.array(z.unknown())).max(ANNOUNCEMENT_BLOCKS_MAX);
+
+/** Compose + send. A send needs a real body; an empty one would mail chrome only.
+ *  `idempotencyKey` is generated once per compose session by the client: a second
+ *  POST carrying the same key returns the first announcement and mails nobody, so
+ *  a double-clicked send button cannot blast the audience twice. Required rather
+ *  than optional -- a caller that forgets it would silently lose the guard. */
+export const contestAnnouncementInputSchema = z
+  .object({
+    subject: announcementSubject,
+    bodyBlocks: announcementBlocks.min(1),
+    audience: contestAnnouncementAudienceSchema,
+    idempotencyKey: z.string().trim().min(8).max(64),
+  })
+  .strict();
+export type ContestAnnouncementInput = z.infer<typeof contestAnnouncementInputSchema>;
+
+/** Live preview of UNSAVED copy. No audience (preview sends nothing) and an empty
+ *  body is allowed, so the editor can render while the organizer is still composing. */
+export const contestAnnouncementPreviewSchema = z
+  .object({
+    subject: announcementSubject,
+    bodyBlocks: announcementBlocks,
+  })
+  .strict();
+export type ContestAnnouncementPreviewInput = z.infer<typeof contestAnnouncementPreviewSchema>;
+
+/** Deliver one test copy. Exactly one recipient: an arbitrary address, or a user
+ *  whose address the SERVER resolves (a client-supplied address is never trusted
+ *  for a userId). Mirrors contestEmailTestSchema. */
+export const contestAnnouncementTestSchema = z
+  .object({
+    subject: announcementSubject,
+    bodyBlocks: announcementBlocks,
+    toEmail: z.string().trim().email().max(320).optional(),
+    toUserId: z.string().uuid().optional(),
+  })
+  .strict()
+  .refine((d) => !!d.toEmail !== !!d.toUserId, {
+    message: 'Provide exactly one recipient: an email address or a user',
+  });
+export type ContestAnnouncementTestInput = z.infer<typeof contestAnnouncementTestSchema>;
+
 // Per-stage submission-template field types (Phase 4 extends the original
 // text/textarea/url trio). `agreement` + `address` and any field flagged `pii`
 // are partitioned OUT of the public `stageSubmissions.fields` artifact at submit

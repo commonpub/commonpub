@@ -136,6 +136,16 @@ jobs:
       FEATURE_CONTEST_PROPOSALS: 'true'
       FEATURE_CONTEST_PII: 'true'
       FEATURE_CONTEST_PRIVATE_FILES: 'true'
+      # Session 259. contest-announcements.spec.ts skips itself when
+      # contestBroadcast is off, so without these three it would sit green and
+      # vacuous forever while testing nothing. The send route ALSO refuses
+      # unless emailNotifications is on, and an e2e signup is never
+      # email-verified, so the audience resolves to zero without
+      # emailUnverified. No transport is configured in CI, so mail drains to
+      # the console adapter.
+      FEATURE_CONTEST_BROADCAST: 'true'
+      FEATURE_EMAIL_NOTIFICATIONS: 'true'
+      FEATURE_EMAIL_UNVERIFIED: 'true'
       # Exercises the consent gate in analytics-consent.spec.ts. The reference
       # app declares a provider but leaves this OFF, so the spec skips without it.
       FEATURE_ANALYTICS: 'true'

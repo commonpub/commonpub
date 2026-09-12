@@ -50,6 +50,17 @@ import { eq, sql } from 'drizzle-orm';
 //   - sessions, accounts                  : auth tokens & credentials.
 //   - audit_logs                          : rows reference third-party targets/actions.
 //   - email_outbox, broadcasts            : operational queues (not subject data).
+//   - contest_reminder_sends,             : send LEDGERS. Same class as the queues
+//     contest_announcement_sends            above: a (recipient, thing-sent) row whose
+//                                           purpose is exactly-once delivery, not a record
+//                                           held ABOUT the subject. Named explicitly
+//                                           (session 259) so the omission is a decision
+//                                           rather than an oversight -- the announcement
+//                                           plan had claimed the opposite, and shipping
+//                                           announcements-only into the export while the
+//                                           reminder ledger stayed out would be incoherent.
+//                                           If this class is ever reconsidered, reconsider
+//                                           BOTH; they carry the same kind of row.
 //   - content_builds / federated_content_builds : transient render artifacts.
 // The export is scoped to the SUBJECT's own rows only; where a row also names a
 // third party (reports, referral attributions) we select the subject's own

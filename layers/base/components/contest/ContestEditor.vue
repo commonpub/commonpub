@@ -84,6 +84,10 @@ const piiEnabled = computed(() => features.value.contestPii === true);
 // The per-contest email editor needs a persisted contest (per-contest preview +
 // save), so it is edit-only, and gated on its feature flag.
 const emailEditorEnabled = computed(() => props.mode === 'edit' && features.value.contestEmailEditor === true);
+// Announcements are a SEND action on an existing contest, so like the Emails tab
+// they only exist in edit mode. Their own flag: an operator can let organizers
+// customize the automatic email copy without also letting them blast the audience.
+const announcementsEnabled = computed(() => props.mode === 'edit' && features.value.contestBroadcast === true);
 // The Registration form tab is gated the same way its consumer (the public
 // sign-up card) is — the contestSignup flag (default on) — so an operator can't
 // build a form that renders nowhere.
@@ -97,8 +101,13 @@ const overviewEditor = useBlockEditor(seedBodyBlocks(descriptionBlocks.value, de
 const rulesEditor = useBlockEditor(seedBodyBlocks(rulesBlocks.value, rules.value, rulesFormat.value), blockDefaults);
 const prizesEditor = useBlockEditor(seedBodyBlocks(prizesBlocks.value, prizesDescription.value, prizesDescriptionFormat.value), blockDefaults);
 
-type BodyTab = 'overview' | 'rules' | 'prizes' | 'stages' | 'registration' | 'emails';
+type BodyTab = 'overview' | 'rules' | 'prizes' | 'stages' | 'registration' | 'emails' | 'announcements';
 const activeTab = ref<BodyTab>('overview');
+// Form tabs render their own slot and have no block palette or body hint. One
+// list, derived once: two hand-maintained copies of the same enumeration drift
+// the moment a tab is added (this one was added with the Announcements tab).
+const FORM_BODY_TABS: readonly BodyTab[] = ['stages', 'registration', 'emails', 'announcements'];
+const isBlockBodyTab = computed(() => !FORM_BODY_TABS.includes(activeTab.value));
 const bodyMode = ref<'write' | 'preview' | 'code'>('write');
 // Registration builder: the field index linked between the form editor and its
 // live preview (focus a card ⇄ click a preview field). -1 = none active.
@@ -498,7 +507,7 @@ const reviewStages = computed(() => (contest.value?.stages ?? []).filter((s) => 
     <div class="cpub-ce-shell">
       <!-- LEFT: block palette — inserts into the currently-active body. Hidden on
            the Stages + Emails tabs (forms, not block bodies), giving them more room. -->
-      <aside v-show="activeTab !== 'stages' && activeTab !== 'emails' && activeTab !== 'registration'" class="cpub-ce-library" aria-label="Block palette">
+      <aside v-show="isBlockBodyTab" class="cpub-ce-library" aria-label="Block palette">
         <EditorBlocks :groups="contestBlockGroups" :block-editor="activeBodyEditor" />
       </aside>
 
@@ -511,6 +520,7 @@ const reviewStages = computed(() => (contest.value?.stages ?? []).filter((s) => 
           :mode="bodyMode"
           :show-registration="signupEnabled"
           :show-emails="emailEditorEnabled"
+          :show-announcements="announcementsEnabled"
           @update:active-tab="activeTab = $event"
           @update:mode="bodyMode = $event"
         >
@@ -641,8 +651,13 @@ const reviewStages = computed(() => (contest.value?.stages ?? []).filter((s) => 
           <template v-if="emailEditorEnabled" #emails>
             <ContestEmailEditor :slug="slug" v-model="emailCopy" @load="setEmailCopy" />
           </template>
+
+          <!-- Announcements tab: compose and send an email to this contest's participants. -->
+          <template v-if="announcementsEnabled" #announcements>
+            <ContestAnnouncementComposer :slug="slug" />
+          </template>
         </ContestBodyCanvas>
-        <p v-if="activeTab !== 'stages' && activeTab !== 'emails' && activeTab !== 'registration'" class="cpub-form-hint cpub-ce-body-hint">
+        <p v-if="isBlockBodyTab" class="cpub-form-hint cpub-ce-body-hint">
           The <strong>Overview</strong>, <strong>Rules</strong>, and <strong>Prizes</strong> bodies are blocks
           (headings, lists, images, callouts, and the <strong>Judges Showcase</strong>), like the project and blog
           editors. Add blocks from the palette on the left. The <strong>Stages</strong> tab holds the timeline +
@@ -797,6 +812,14 @@ const reviewStages = computed(() => (contest.value?.stages ?? []).filter((s) => 
       <div class="cpub-not-found"><p>Loading editor…</p></div>
     </template>
   </ClientOnly>
+
+  <!-- Both contest editor routes are `layout: false`, and AppToast is mounted by
+       layouts/default.vue. Without this every toast this editor raises (a save
+       failure, "test email sent", an announcement result) is created and then
+       rendered nowhere, so the organizer gets no feedback at all. The content
+       editor at pages/u/[username]/[type]/[slug]/edit.vue does the same thing
+       for the same reason. -->
+  <AppToast />
 </template>
 
 <style scoped>

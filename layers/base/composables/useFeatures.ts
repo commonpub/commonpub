@@ -35,6 +35,8 @@ export interface FeatureFlags {
   /** Per-contest email-template editor: customize confirmation + reminder copy.
    *  Default OFF; also gates send-side application of a stored override. */
   contestEmailEditor: boolean;
+  /** Contest announcements: organizer composes and sends an arbitrary email to participants. Default OFF. */
+  contestBroadcast: boolean;
   /** Two-tier contest signup card (register + reminders-only) with optional info
    *  form + status-aware onboarding copy. Default ON; off ⇒ simple reminders opt-in. */
   contestSignup: boolean;
@@ -127,7 +129,7 @@ export const DEFAULT_FLAGS: FeatureFlags = {
   content: true, social: true, hubs: true, docs: true, video: true,
   contests: false, contestStageSubmissions: true, contestProposals: false, contestPii: false, contestPrivateFiles: false,
   contestConditionalFields: true,
-  contestReminders: false, contestEmailEditor: false, contestSignup: true,
+  contestReminders: false, contestEmailEditor: false, contestBroadcast: false, contestSignup: true,
   contestEntryRequiresRegistration: true,
   contestActionBar: true,
   events: false, learning: true, explainers: true,
@@ -245,6 +247,7 @@ export function useFeatures() {
     contestConditionalFields: computed(() => flags.value.contestConditionalFields),
     contestReminders: computed(() => flags.value.contestReminders),
     contestEmailEditor: computed(() => flags.value.contestEmailEditor),
+    contestBroadcast: computed(() => flags.value.contestBroadcast),
     contestSignup: computed(() => flags.value.contestSignup),
     contestEntryRequiresRegistration: computed(() => flags.value.contestEntryRequiresRegistration),
     contestActionBar: computed(() => flags.value.contestActionBar),

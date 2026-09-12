@@ -78,6 +78,23 @@ export type {
   SweepContestRemindersResult,
 } from './reminders.js';
 
+export {
+  countAnnouncementRecipients,
+  resolveAnnouncementRecipients,
+  sendContestAnnouncement,
+  listContestAnnouncements,
+  announcementContext,
+  announcementTokens,
+  ANNOUNCEMENT_TOKENS,
+  AnnouncementRateLimitError,
+} from './announcements.js';
+export type {
+  AnnouncementRecipient,
+  AnnouncementContext,
+  SendContestAnnouncementInput,
+  SendContestAnnouncementResult,
+  ContestAnnouncementSummary,
+} from './announcements.js';
 export { parseContestEmailCopy, getContestEmailCopy, buildContestEmailCopyOverride } from './emailCopy.js';
 export { defaultContestEmailBlocks } from './emailDefaults.js';
 export type { ContestEmailKind } from './emailDefaults.js';

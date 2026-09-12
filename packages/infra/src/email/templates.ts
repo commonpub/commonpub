@@ -168,6 +168,64 @@ export const emailTemplates = {
   },
 
   /**
+   * Contest announcement (session 259). An organizer composes an arbitrary email
+   * and sends it to that contest's participants.
+   *
+   * This template differs from the two participation emails in one important way:
+   * there is NO built-in default copy and NO system-injected deadline line. The
+   * organizer authored the whole body, so injecting an uneditable paragraph into
+   * it would be putting words in their mouth. What stays system-owned is the
+   * branded shell, the "View the contest" CTA, and the unsubscribe link.
+   *
+   * `bodyHtml` arrives ALREADY email-safe from the server's renderEmailBlocks --
+   * the single choke point where organizer blocks are escaped, restricted to a
+   * supported subset, and absolutized. It is inserted verbatim and NOT re-escaped;
+   * escaping it twice is what turns `Q&A` into `Q&amp;A` in a delivered mail.
+   *
+   * An announcement is never transactional, so the unsubscribe link is required
+   * in practice (the caller always passes one) rather than optional-by-design.
+   */
+  contestAnnouncement(input: {
+    siteName: string;
+    /** Organizer-authored subject. Tokenized here; used verbatim otherwise -- we
+     *  deliberately do NOT append `-- {siteName}`, because the organizer owns it. */
+    subject: string;
+    contest: { title: string; url: string };
+    /** Pre-rendered email-safe HTML body (renderEmailBlocks output). */
+    bodyHtml: string;
+    /** Plain-text counterpart for the text/plain MIME part. */
+    bodyText: string;
+    /** Per-recipient token values. Interpolated into the subject. */
+    tokens: Record<string, string>;
+    unsubscribeUrl?: string;
+    branding?: EmailBranding;
+  }): EmailMessage & { to: '' } {
+    const safeName = escapeHtml(input.siteName);
+    const safeUrl = escapeHtml(input.contest.url);
+    const safeUnsub = input.unsubscribeUrl ? escapeHtml(input.unsubscribeUrl) : undefined;
+    // A subject is a plain-text HEADER, never HTML, so token values go in RAW --
+    // exactly as contestRegistrationConfirmation and contestDeadlineReminder do,
+    // and as interpolateTokens documents ("callers use this only where no HTML is
+    // emitted"). HTML-escaping here is not extra safety, it is a visible bug: a
+    // contest called `Q&A Jam` would arrive as `Q&amp;A Jam` in the inbox.
+    //
+    // The real header hazard is a line break, which could split headers on a
+    // transport that does not encode them. The validator rejects CR/LF on write;
+    // this collapses it again at the last choke point, because a row stored before
+    // that guard existed, or written by any other path, must not get through.
+    const subject = interpolateTokens(input.subject, input.tokens).replace(/[\r\n]+/g, ' ').trim();
+    return {
+      to: '' as const,
+      subject,
+      html: wrapTemplate(safeName, `
+        ${input.bodyHtml}
+        ${button('View the contest', safeUrl, input.branding)}
+      `, { unsubscribeUrl: safeUnsub, branding: input.branding }),
+      text: `${input.bodyText}\n\n${input.contest.url}`.trim(),
+    };
+  },
+
+  /**
    * Contest deadline reminder. Sent by the reminder sweep to every registered
    * participant at each milestone (7 days, 48 hours, 24 hours, 1 hour before the
    * deadline), exactly once per participant per milestone. Bulk mail: carries a

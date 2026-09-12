@@ -21,6 +21,7 @@ function makeConfig(idOverrides: Partial<CommonPubConfig['features']['identity']
       contestConditionalFields: true,
       contestReminders: false,
       contestEmailEditor: false,
+      contestBroadcast: false,
       contestSignup: true,
       contestEntryRequiresRegistration: true,
       events: false, learning: true, explainers: true,
