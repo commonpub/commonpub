@@ -181,6 +181,79 @@ restarted to pick up the rebuilt package `dist` (memory `feedback_dev_server_dis
 - `broadcastInputSchema` also has no idempotency key, so the admin blast can still
   double-send on a double-click. The announcement schema now requires one.
 
+## Release runbook (session 259)
+
+**The cascade is the part that bites.** Internal deps are declared `workspace:*`, which
+publishes as an EXACT pin -- verified against the live registry: `@commonpub/auth@0.13.3`
+pins `@commonpub/schema` at exactly `0.66.0`. So a package that pins a CHANGED package must
+republish, or the consumer resolves two copies of it and keeps the old content.
+
+Source changes: **config, schema, infra, server, test-utils, layer**.
+Cascade republishes (pin refresh only): **protocol, auth, editor, explainer, learning**.
+Unaffected (no changed deps): docs, persona, theme-studio, ui.
+
+| package | from | to | why |
+| --- | --- | --- | --- |
+| config | 0.40.0 | 0.41.0 | `contestBroadcast` flag |
+| schema | 0.66.0 | 0.67.0 | announcement tables + migration 0049 |
+| infra | 0.21.0 | 0.22.0 | `contestAnnouncement` template |
+| server | 2.134.0 | 2.135.0 | audience / send / tokens |
+| test-utils | 0.5.17 | 0.5.18 | mock config flag |
+| layer | 0.137.5 | 0.138.0 | composer, routes, editor tab, two fixes |
+| protocol | 0.15.3 | 0.15.4 | cascade: pins config |
+| auth | 0.13.3 | 0.13.4 | cascade: pins config, protocol, schema |
+| editor | 0.17.2 | 0.17.3 | cascade: pins config, schema |
+| explainer | 0.9.1 | 0.9.2 | cascade: pins config, editor, schema |
+| learning | 0.5.5 | 0.5.6 | cascade: pins config, editor, explainer, schema |
+
+Publish in dependency order: config, schema, infra, protocol, auth, editor, explainer,
+learning, test-utils, server, layer.
+
+### The fork pins must be hand-edited
+
+Both forks caret-pin on 0.x, and **a caret on 0.x does not cross a minor**:
+
+```
+@commonpub/config: ^0.40.0   ->  will NOT reach 0.41.0
+@commonpub/layer:  ^0.137.5  ->  will NOT reach 0.138.0
+@commonpub/schema: ^0.66.0   ->  will NOT reach 0.67.0
+@commonpub/server: ^2.134.0  ->  WILL reach 2.135.0 (2.x caret allows minor)
+```
+
+The `schema` pin is the dangerous one: the fork's deploy runs `db-migrate.mjs` against the
+migrations folder shipped INSIDE `@commonpub/schema`. Leave it at `^0.66.0` and there is no
+`0049` in that folder, so the migration is silently skipped and the tables never exist.
+
+### Resolvers differ per fork, so both lockfiles matter
+
+- **deveco**: CI is `pnpm install --frozen-lockfile` (so `pnpm-lock.yaml` gates CI) and the
+  Dockerfile is `npm install` (so `package-lock.json` is what actually ships). Update BOTH.
+  `scripts/check-single-vue.mjs` reads `package-lock.json`.
+- **heatsync**: no CI; the Dockerfile is `npm install` and `deploy.yml` runs the same guard
+  against `package-lock.json`. Merging IS deploying there.
+- `npm@10.9` crashes in arborist on these graphs; use `npx npm@11` for the lock update.
+
+### commonpub.io deploys itself on merge
+
+`.github/workflows/deploy.yml` triggers on push to `main` (paths-ignore is docs-only, and
+this touches code). It runs `scripts/db-migrate.mjs` with a hard failure, then
+`scripts/smoke.mjs` which waits on `/api/health` and verifies real pages. That is a properly
+gated deploy, unlike deveco's warn-only post-deploy check (P1-10/P1-11, still open).
+
+### Order
+
+1. PR green (all jobs, read per job -- `e2e` has `needs: check` and SKIPS on a red gate).
+2. Squash merge -> `main`. commonpub.io deploys itself; verify AFTER its swap.
+3. Release commit on `main` (version bumps only), push, CI.
+4. Publish all eleven to `--tag next`.
+5. Draft PR in deveco pinned to the rc; let its CI typecheck the REAL tarballs.
+6. Promote to `latest`.
+7. deveco, then heatsync. Verify each AFTER its swap, never during.
+
+**deveco ships `contestBroadcast: false`.** It has a live Resend transport, `emailNotifications`
+on and a live contest. Nothing in this roll changes send behaviour there, but the first real
+announcement must be a test to the operator's own address, then one small audience.
+
 ## Next
 
 1. **Nothing is published or rolled.** Release order: schema, config, infra, server, layer.
