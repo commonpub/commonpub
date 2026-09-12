@@ -240,8 +240,9 @@ export interface SendContestAnnouncementResult {
   duplicate: boolean;
 }
 
-/** Outbox inserts per statement. Keeps one large audience off a single giant
- *  statement, matching the admin broadcast's chunking. */
+/** Rows per statement, for BOTH the ledger claim and the outbox insert. Keeps one
+ *  large audience off a single giant statement, matching the admin broadcast's
+ *  chunking. */
 const ENQUEUE_CHUNK = 500;
 
 /**

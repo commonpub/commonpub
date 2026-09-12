@@ -844,9 +844,14 @@ export const contestAnnouncements = pgTable('contest_announcements', {
    *  who a past announcement went to even after the selector shape grows. */
   audience: jsonb('audience').$type<ContestAnnouncementAudienceValue>().notNull(),
   recipientCount: integer('recipient_count').default(0).notNull(),
-  /** 'sending' | 'sent' | 'failed'. A row starts `sending` and is stamped `sent`
-   *  once every recipient is enqueued, so a crash mid-send is visible rather than
-   *  indistinguishable from a completed one. */
+  /** 'sending' | 'sent'. In practice a stored row is ALWAYS 'sent': the whole send
+   *  (this row, the ledger claim, every outbox insert, the final stamp) is one
+   *  transaction, so a failure rolls the row back rather than stranding it as
+   *  'sending'. That is the behaviour we want -- the organizer simply presses send
+   *  again -- and it means this column does not currently distinguish anything.
+   *  It is kept for the deferred scheduled/failed states, which do need it, and
+   *  the default is 'sending' only so the value is never briefly wrong mid-txn.
+   *  Do not read it as evidence a send crashed; a crashed send leaves no row. */
   status: text('status').default('sending').notNull(),
   sentAt: timestamp('sent_at', { withTimezone: true }),
   /** Nullable so deleting the organizer's account does not erase the audit row. */
