@@ -195,26 +195,26 @@ See [`codebase-analysis/01-monorepo-topology.md`](./codebase-analysis/01-monorep
 
 | Package | Version | Purpose |
 |---|---|---|
-| [`@commonpub/schema`](packages/schema/README.md) | 0.66.0 | 110 Drizzle tables (incl. `layouts`/`layout_rows`/`layout_sections`/`layout_versions`, RBAC `roles`/`role_permissions`/`user_roles`, `metrics_daily`, persona), 50 enums, 166 Zod validators |
-| [`@commonpub/config`](packages/config/README.md) | 0.40.0 | `defineCommonPubConfig()` factory, 47 feature flags |
-| [`@commonpub/server`](packages/server/README.md) | 2.134.0 | Framework-agnostic business logic (29 modules incl. `src/publicApi/*` read-API+metrics+CORS, `src/layout/*` CRUD, RBAC, contest stages, keyset feed pagination, transactions, lifecycle hooks) |
-| [`@commonpub/protocol`](packages/protocol/README.md) | 0.15.3 | ActivityPub types, HTTP signatures, WebFinger, NodeInfo, OAuth2, SSRF-safe fetch |
-| [`@commonpub/auth`](packages/auth/README.md) | 0.13.3 | Better Auth wrapper, guards, AP Actor SSO (Model B), RBAC `hasPermissionPure` |
+| [`@commonpub/schema`](packages/schema/README.md) | 0.67.0 | 110 Drizzle tables (incl. `layouts`/`layout_rows`/`layout_sections`/`layout_versions`, RBAC `roles`/`role_permissions`/`user_roles`, `metrics_daily`, persona), 50 enums, 166 Zod validators |
+| [`@commonpub/config`](packages/config/README.md) | 0.41.0 | `defineCommonPubConfig()` factory, 47 feature flags |
+| [`@commonpub/server`](packages/server/README.md) | 2.135.0 | Framework-agnostic business logic (29 modules incl. `src/publicApi/*` read-API+metrics+CORS, `src/layout/*` CRUD, RBAC, contest stages, keyset feed pagination, transactions, lifecycle hooks) |
+| [`@commonpub/protocol`](packages/protocol/README.md) | 0.15.4 | ActivityPub types, HTTP signatures, WebFinger, NodeInfo, OAuth2, SSRF-safe fetch |
+| [`@commonpub/auth`](packages/auth/README.md) | 0.13.4 | Better Auth wrapper, guards, AP Actor SSO (Model B), RBAC `hasPermissionPure` |
 | [`@commonpub/ui`](packages/ui/README.md) | 0.16.1 | 22 headless Vue 3 components + SectionRegistry/SectionDefinition, 7 built-in themes (`base`, `dark`, `generics`, `agora`, `agora-dark`, `stoa`, `stoa-dark`), CSS token system |
 | [`@commonpub/theme-studio`](packages/theme-studio/README.md) | 0.7.0 | Pure-TS theme generator: `recipeToTokens()` projection, color/palette/scales/fonts/vibe presets. Brain behind the admin Theme Studio wizard |
-| [`@commonpub/editor`](packages/editor/README.md) | 0.17.2 | TipTap extensions, 21 core block types, BlockTuple serialization, `vue/` editor surface |
+| [`@commonpub/editor`](packages/editor/README.md) | 0.17.3 | TipTap extensions, 21 core block types, BlockTuple serialization, `vue/` editor surface |
 | [`@commonpub/docs`](packages/docs/README.md) | 0.6.3 | Markdown pipeline, versioning, navigation, search adapters |
-| [`@commonpub/explainer`](packages/explainer/README.md) | 0.9.1 | Interactive sections + `modules/` runtime, quiz engine, progress tracking, HTML export, shared `isSafeUrl` URL-scheme gate |
-| [`@commonpub/learning`](packages/learning/README.md) | 0.5.5 | Learning path engine, progress calculation, certificates |
+| [`@commonpub/explainer`](packages/explainer/README.md) | 0.9.2 | Interactive sections + `modules/` runtime, quiz engine, progress tracking, HTML export, shared `isSafeUrl` URL-scheme gate |
+| [`@commonpub/learning`](packages/learning/README.md) | 0.5.6 | Learning path engine, progress calculation, certificates |
 | [`@commonpub/persona`](packages/persona/README.md) | 0.2.1 | Pure-TS (zod-only) persona registry, storage partition, purposes and Zod schemas |
-| [`@commonpub/infra`](packages/infra/README.md) | 0.21.0 | S3/local storage (DO Spaces CDN), image processing, email adapters, security |
-| [`@commonpub/test-utils`](packages/test-utils/README.md) | 0.5.17 | Test factories and mock configuration |
+| [`@commonpub/infra`](packages/infra/README.md) | 0.22.0 | S3/local storage (DO Spaces CDN), image processing, email adapters, security |
+| [`@commonpub/test-utils`](packages/test-utils/README.md) | 0.5.18 | Test factories and mock configuration |
 
 Plus the layer itself:
 
 | Package | Version | Purpose |
 |---|---|---|
-| `@commonpub/layer` | 0.137.5 | Shared Nuxt layer — pages, components, API routes, middleware, theme. Public-API metrics + CORS, Stoa default theme, contest stages editor, layout editor (Phase 3a–3c), keyset feed, config-driven nav. |
+| `@commonpub/layer` | 0.138.0 | Shared Nuxt layer — pages, components, API routes, middleware, theme. Public-API metrics + CORS, Stoa default theme, contest stages editor, layout editor (Phase 3a–3c), keyset feed, config-driven nav. |
 
 ---
 
