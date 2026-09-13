@@ -239,6 +239,91 @@ session 258's outage came from combining two independent changes in one deploy. 
 own change: republish docs from current source, regenerate both fork lockfiles, confirm the
 duplicates are gone.
 
+## Follow-up roll: email rendering (same session)
+
+The original question was whether the email templates follow each instance's
+theme and whether bold and links survive. Driving the real composer said no to
+both, and the formatting half was a LIVE defect rather than a cosmetic one.
+
+### What was broken
+
+`renderEmailBlocks` reduced every html-bearing block to its bare text:
+
+| authored | delivered |
+| --- | --- |
+| `<a href="https://x/rules">rules</a>` | `rules` -- href gone from BOTH MIME parts |
+| `<ul><li>A laptop</li><li>A power strip</li></ul>` | `A laptopA power strip` |
+| `Line one<br>Line two` | `Line oneLine two` |
+| `Deadline is <s>Friday</s> Monday` | `Deadline is Friday Monday` |
+
+The last one inverts meaning rather than losing a style. The link case is the
+worst: "Questions? Email the organizers" arrived with the address nowhere in the
+message, in either part.
+
+`TextBlock` loads Bold, Italic, Code, Strike, Link, BulletList and OrderedList,
+so an organizer could author all of it, and the editor rendered it correctly
+while the preview and the send dropped it.
+
+**It was live.** `emailCopy.ts` shares the renderer, and `contestEmailEditor` +
+`contestReminders` are both ON on deveco with a real transport, so registration
+confirmations and deadline reminders had been sending flattened copy.
+
+### The design turn
+
+The obvious fix -- a regex inline allowlist -- was wrong, and a memory said so:
+a regex cannot close `<strong>unclosed`, and unbalanced markup relocates content
+in a mail client. `packages/server` already depended on **linkedom** (sync, used
+by the importers) and **isomorphic-dompurify**.
+
+What shipped is not "sanitize and pass through". The input is parsed and the only
+markup emitted is markup the module writes itself, with attributes it constructs.
+The output vocabulary is CLOSED, so an unknown tag, attribute or encoding cannot
+reach the wire -- there is no filter to defeat.
+
+Worth recording: the test that pinned the old behaviour was named `strips tags`
+but only asserted `<img` and `onerror` do not get through. The formatting loss
+was incidental to the security goal, not required by it, so it passes unchanged.
+
+### Theme
+
+All three instances render LIGHT (`color-scheme: light`, near-white `--bg`, each
+with its own named theme); all eight templates used a hardcoded near-black shell.
+The shell also disagreed with the block styles, which assumed a light page:
+
+| pair | before |
+| --- | --- |
+| callout text on its own background | **1.24:1** |
+| blockquote | 2.66:1 |
+| CTA label on deveco's red | 2.71:1 |
+| footer | 3.45:1 |
+
+The CTA is instructive: black passes on the default blue (7.53:1) and fails on a
+dark brand accent, so the label colour is now derived from accent luminance.
+
+Per-instance email colours remain a follow-up: `emailBranding` carries an accent,
+header, logo and footer text, and nothing about background or foreground.
+
+### Two guards that were vacuous until mutation testing said so
+
+- The first contrast test asserted the SOURCE CONSTANTS. Four mutants that
+  reverted the shell to dark survived it. Rewritten to parse the rendered mail.
+  It also expands short hex, because a mutant hardcoding `color:#000` slipped
+  past a 6-hex filter.
+- The security tests missed the INLINE drop-list (only the block-level one was
+  covered) and href escaping. A URL like `https://x/"onmouseover="alert(1)`
+  passes the scheme check and must still be escaped. Both now pinned; six
+  security mutants all fail.
+
+### Rolled
+
+infra **0.23.0**, server **2.136.0**, layer **0.138.1** (cascade: it pins server).
+schema and config untouched, so a three-package roll rather than eleven.
+
+One thing to carry: **a satisfied caret is never upgraded on its own.** Both
+forks pinned `^0.138.0`, which 0.138.0 already satisfies, so neither `npm update`
+nor `pnpm update` moved. The floors were raised to `^0.138.1` / `^2.136.0`, which
+also documents the minimum version carrying the fix.
+
 ## Release runbook (session 259)
 
 **The cascade is the part that bites.** Internal deps are declared `workspace:*`, which
