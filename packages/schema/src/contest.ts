@@ -816,10 +816,9 @@ export const contestReminderSends = pgTable('contest_reminder_sends', {
  *  cast an `unknown` column back into a type. The mirror is pinned by a
  *  compile-time assignability check in the validator tests -- adding a selector
  *  to the schema without widening this fails there, not in production. */
-export interface ContestAnnouncementAudienceValue {
-  kind: 'registrants';
-  tier: 'full' | 'reminders' | 'all';
-}
+export type ContestAnnouncementAudienceValue =
+  | { kind: 'registrants'; tier: 'full' | 'reminders' | 'all' }
+  | { kind: 'users'; userIds: string[] };
 
 // --- Contest Announcements (organizer "message participants", session 259) ---
 // One row per announcement an organizer composed and sent to a contest audience.
