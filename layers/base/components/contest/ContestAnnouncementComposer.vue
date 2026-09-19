@@ -41,14 +41,50 @@ const deliveryOn = computed(() => features.value.emailNotifications === true);
 const subject = ref('');
 const editor = useBlockEditor();
 
-type Tier = 'all' | 'full' | 'reminders';
-const TIERS: { key: Tier; label: string; hint: string }[] = [
+type Choice = 'all' | 'full' | 'reminders' | 'picked';
+const CHOICES: { key: Choice; label: string; hint: string }[] = [
   { key: 'all', label: 'Everyone registered', hint: 'Both full participants and people who only asked for reminders' },
   { key: 'full', label: 'Full participants only', hint: 'People who registered to take part' },
   { key: 'reminders', label: 'Reminders-only signups', hint: 'People who asked for deadline reminders but did not register to take part' },
+  { key: 'picked', label: 'Specific people', hint: 'Pick one or more individuals from this contest' },
 ];
-const tier = ref<Tier>('all');
-const audience = computed(() => ({ kind: 'registrants' as const, tier: tier.value }));
+const tier = ref<Choice>('all');
+
+// Hand-picked recipients. The server intersects these ids with everyone
+// connected to THIS contest, so picking someone unrelated silently drops them
+// rather than mailing a stranger.
+type Picked = { id: string; username: string; displayName: string | null };
+const picked = ref<Picked[]>([]);
+const pickQuery = ref('');
+const pickResults = ref<Picked[]>([]);
+const picking = ref(false);
+let pickTimer: ReturnType<typeof setTimeout> | undefined;
+
+function onPickSearch(): void {
+  if (pickTimer) clearTimeout(pickTimer);
+  const q = pickQuery.value.trim();
+  if (q.length < 2) { pickResults.value = []; picking.value = false; return; }
+  picking.value = true;
+  pickTimer = setTimeout(async () => {
+    try {
+      const hits = await $fetch<Picked[]>(`/api/contests/${props.slug}/user-search`, { query: { q, limit: 8 } });
+      const already = new Set(picked.value.map((p) => p.id));
+      pickResults.value = hits.filter((h) => !already.has(h.id));
+    } catch { pickResults.value = []; }
+    finally { picking.value = false; }
+  }, 250);
+}
+function addPicked(u: Picked): void {
+  if (!picked.value.some((p) => p.id === u.id)) picked.value = [...picked.value, u];
+  pickQuery.value = ''; pickResults.value = [];
+}
+function removePicked(id: string): void { picked.value = picked.value.filter((p) => p.id !== id); }
+
+const audience = computed(() =>
+  tier.value === 'picked'
+    ? { kind: 'users' as const, userIds: picked.value.map((p) => p.id) }
+    : { kind: 'registrants' as const, tier: tier.value },
+);
 
 // One key per compose session. The server returns the first announcement instead
 // of mailing everyone again if this key repeats, so a double-clicked Send (or a
@@ -60,7 +96,10 @@ function newKey(): string {
 }
 
 const hasBody = computed(() => editor.blocks.value.length > 0);
-const canSend = computed(() => deliveryOn.value && !!subject.value.trim() && hasBody.value && !sending.value);
+const canSend = computed(() =>
+  deliveryOn.value && !!subject.value.trim() && hasBody.value && !sending.value
+  && (tier.value !== 'picked' || picked.value.length > 0),
+);
 
 // --- Recipient count (debounced; the number the organizer approves) ---
 const recipientCount = ref<number | null>(null);
@@ -82,10 +121,11 @@ async function refreshCount(): Promise<void> {
   }
 }
 
-watch(tier, () => {
+watch([tier, picked], () => {
+  if (tier.value === 'picked' && picked.value.length === 0) { recipientCount.value = 0; return; }
   if (countTimer) clearTimeout(countTimer);
   countTimer = setTimeout(refreshCount, 200);
-});
+}, { deep: true });
 
 // --- Live preview (debounced, server-rendered, sandboxed iframe) ---
 const previewHtml = ref('');
@@ -250,7 +290,7 @@ function formatWhen(iso: string): string {
           <span id="cpub-cac-aud-label" class="cpub-form-label">Who gets this</span>
           <div class="cpub-cac-tiers" role="radiogroup" aria-labelledby="cpub-cac-aud-label">
             <button
-              v-for="t in TIERS"
+              v-for="t in CHOICES"
               :key="t.key"
               type="button"
               role="radio"
@@ -263,6 +303,34 @@ function formatWhen(iso: string): string {
               <span class="cpub-cac-tier-hint">{{ t.hint }}</span>
             </button>
           </div>
+          <div v-if="tier === 'picked'" class="cpub-cac-pick">
+            <span v-for="p in picked" :key="p.id" class="cpub-cac-chip">
+              <i class="fa-solid fa-user"></i> {{ p.displayName || p.username }}
+              <button type="button" class="cpub-cac-chip-x" :aria-label="`Remove ${p.username}`" @click="removePicked(p.id)">×</button>
+            </span>
+            <div class="cpub-cac-usersearch">
+              <input
+                v-model="pickQuery"
+                type="text"
+                class="cpub-form-input"
+                placeholder="Search people in this contest…"
+                aria-label="Search people to send to"
+                @input="onPickSearch"
+              />
+              <div v-if="pickResults.length" class="cpub-cac-userdrop">
+                <button v-for="u in pickResults" :key="u.id" type="button" class="cpub-cac-userdrop-item" @click="addPicked(u)">
+                  <span class="cpub-cac-userdrop-name">{{ u.displayName || u.username }}</span>
+                  <span class="cpub-cac-userdrop-handle">@{{ u.username }}</span>
+                </button>
+              </div>
+              <div v-else-if="picking" class="cpub-cac-userdrop"><span class="cpub-cac-userdrop-empty">Searching…</span></div>
+              <div v-else-if="pickQuery.length >= 2" class="cpub-cac-userdrop"><span class="cpub-cac-userdrop-empty">No people found</span></div>
+            </div>
+            <p class="cpub-form-hint">
+              Only people connected to this contest can be picked. Anyone else is left out of the send.
+            </p>
+          </div>
+
           <p class="cpub-form-hint" aria-live="polite">
             <template v-if="counting">Counting recipients…</template>
             <template v-else-if="recipientCount === null">Recipient count unavailable.</template>
@@ -444,6 +512,8 @@ function formatWhen(iso: string): string {
 .cpub-cac-field { display: flex; flex-direction: column; gap: var(--space-1); }
 
 .cpub-cac-tiers { display: flex; flex-direction: column; gap: var(--space-2); }
+.cpub-cac-pick { display: flex; flex-wrap: wrap; align-items: flex-start; gap: var(--space-2); margin-top: var(--space-2); }
+.cpub-cac-pick .cpub-cac-usersearch { flex: 1 1 220px; min-width: 180px; }
 .cpub-cac-tier {
   display: flex; flex-direction: column; gap: var(--space-1); text-align: left; cursor: pointer;
   padding: var(--space-2) var(--space-3); background: transparent;

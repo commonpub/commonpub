@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { eq } from 'drizzle-orm';
-import { contests, contestRegistrations, users } from '@commonpub/schema';
+import { contests, contestRegistrations, contestEntries, contestJudges, contentItems, users } from '@commonpub/schema';
 import type { ContestAnnouncementAudience } from '@commonpub/schema';
 import type { DB } from '../types.js';
 import { createTestDB, createTestUser, closeTestDB } from './helpers/testdb.js';
@@ -156,6 +156,60 @@ describe('contest announcement audience', () => {
       await register(inn);
 
       expect((await both(ALL)).map((r) => r.userId)).toEqual([inn]);
+    });
+  });
+
+  // Hand-picked individuals -- the third audience an organizer asked for.
+  describe('hand-picked users', () => {
+    it('mails exactly the people picked', async () => {
+      const a = await makeUser('pick-a');
+      const b = await makeUser('pick-b');
+      const c = await makeUser('pick-c');
+      for (const u of [a, b, c]) await register(u);
+
+      const rows = await both({ kind: 'users', userIds: [a, c] });
+      expect(rows.map((r) => r.userId).sort()).toEqual([a, c].sort());
+    });
+
+    // THE security boundary: the organizer's people-picker searches the whole
+    // instance, so without the intersect a contest organizer could mail any
+    // member at all. Instance-wide sending belongs to the admin broadcast.
+    it('silently drops a picked user who has nothing to do with this contest', async () => {
+      const inside = await makeUser('pick-in');
+      const outsider = await makeUser('pick-out');
+      await register(inside);
+
+      const rows = await both({ kind: 'users', userIds: [inside, outsider] });
+      expect(rows.map((r) => r.userId)).toEqual([inside]);
+    });
+
+    it('reaches a judge or an entrant, not only registrants', async () => {
+      const judge = await makeUser('pick-judge');
+      const entrant = await makeUser('pick-entrant');
+      await db.insert(contestJudges).values({ contestId, userId: judge });
+      const [item] = await db
+        .insert(contentItems)
+        .values({ type: 'project', title: 'Entry', slug: `e-${crypto.randomUUID().slice(0, 8)}`, authorId: entrant, status: 'published' } as never)
+        .returning({ id: contentItems.id });
+      await db.insert(contestEntries).values({ contestId, userId: entrant, contentId: item!.id });
+
+      const rows = await both({ kind: 'users', userIds: [judge, entrant] });
+      expect(rows.map((r) => r.userId).sort()).toEqual([judge, entrant].sort());
+    });
+
+    it('still applies every mailability exclusion to a picked user', async () => {
+      const unv = await makeUser('pick-unverified', { emailVerified: false });
+      const gone = await makeUser('pick-unsub', { emailNotifications: { unsubscribedAll: true } });
+      const ok = await makeUser('pick-ok');
+      for (const u of [unv, gone, ok]) await register(u);
+
+      const rows = await both({ kind: 'users', userIds: [unv, gone, ok] });
+      expect(rows.map((r) => r.userId)).toEqual([ok]);
+    });
+
+    it('returns nobody when none of the picked ids are connected', async () => {
+      const outsider = await makeUser('pick-none');
+      expect(await both({ kind: 'users', userIds: [outsider] })).toHaveLength(0);
     });
   });
 

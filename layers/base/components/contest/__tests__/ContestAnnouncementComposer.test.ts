@@ -75,12 +75,25 @@ describe('ContestAnnouncementComposer', () => {
     expect(getByText('7')).toBeTruthy();
   });
 
-  it('offers the three registrant tiers as an accessible radio group', () => {
+  it('offers the four audiences as an accessible radio group', () => {
     const { getByRole, getAllByRole } = mount();
     expect(getByRole('radiogroup', { name: /Who gets this/i })).toBeTruthy();
     const radios = getAllByRole('radio');
-    expect(radios).toHaveLength(3);
+    // everyone registered / full only / reminders-only / specific people
+    expect(radios).toHaveLength(4);
     expect(radios[0]!.getAttribute('aria-checked')).toBe('true');
+    expect(getByRole('radio', { name: /Specific people/i })).toBeTruthy();
+  });
+
+  // Picking individuals is the third thing an organizer asked for, alongside the
+  // whole registration and the reminders-only subscribers.
+  it('cannot send to "specific people" until at least one person is picked', async () => {
+    const { getByRole, container } = mount();
+    await fireEvent.update(subjectInput(container), 'An update');
+    await fireEvent.click(getByRole('radio', { name: /Specific people/i }));
+    await nextTick();
+    expect((getByRole('button', { name: /Send to participants/ }) as HTMLButtonElement).disabled).toBe(true);
+    expect(getByRole('textbox', { name: /Search people/i })).toBeTruthy();
   });
 
   it('re-counts recipients when the audience changes', async () => {
