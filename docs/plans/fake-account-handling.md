@@ -48,6 +48,11 @@ Prompted by suspected fake accounts on deveco.io during the live Qualcomm contes
 
 ### Now, with no code (deveco contest)
 
+0. **One concrete case already.** maxic93 (account created 2026-08-05, submitted
+   09-04) and pldubouilh (account created 09-04, submitted 09-06) entered proposals
+   with the **identical title**. Open both entries and compare. If it's one person
+   twice, keep one entry and leave the other out with Pick manually at the cut.
+
 1. **Pull the evidence (read-only).** For every contest registrant and entrant:
    `users.created_at`, `email_verified`, email domain, `sessions.ip_address` /
    `user_agent`, agreement-acceptance IP, referral attribution. Group by IP, by
