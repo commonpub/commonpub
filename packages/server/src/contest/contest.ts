@@ -5,6 +5,7 @@ import type { DB } from '../types.js';
 import { isContestEditor } from './stakeholders.js';
 import { toContestDetail, getContestBySlug } from './read.js';
 import { calculateContestRanks } from './entries.js';
+import { currentStage, normalizeStages } from './stages.js';
 import type { ContestDetail, CreateContestInput } from './types.js';
 
 // Contest CRUD + lifecycle. The read/listing path lives in entries.ts, the pure
@@ -244,7 +245,15 @@ export async function transitionContestStatus(
   canManage = false,
 ): Promise<{ transitioned: boolean; error?: string }> {
   const contest = await db
-    .select({ createdById: contests.createdById, status: contests.status })
+    .select({
+      createdById: contests.createdById,
+      status: contests.status,
+      stages: contests.stages,
+      currentStageId: contests.currentStageId,
+      startDate: contests.startDate,
+      endDate: contests.endDate,
+      judgingEndDate: contests.judgingEndDate,
+    })
     .from(contests)
     .where(eq(contests.id, contestId))
     .limit(1);
@@ -263,11 +272,31 @@ export async function transitionContestStatus(
 
   // Status flip + (on completion) rank calculation must be atomic so we never
   // leave a 'completed' contest with stale/partial ranks.
+  // Starting judging on a staged contest whose current stage is NOT a review
+  // round (the organizer had marked Proposals current) moves the pointer to the
+  // next review round, so "Start Judging" opens a round judges can score in.
+  // Scoring refuses any non-review stage (judgeContestEntry); without this the
+  // button would open judging with nothing scoreable. A null pointer already
+  // resolves to the first review round and is left alone.
+  let currentStageIdPatch: { currentStageId: string } | Record<string, never> = {};
+  const c0 = contest[0]!;
+  if (newStatus === 'judging' && c0.stages && c0.stages.length > 0 && c0.currentStageId) {
+    const asJudging = { ...c0, status: 'judging' };
+    const now = currentStage(asJudging);
+    if (now && now.kind !== 'review') {
+      const stages = normalizeStages(asJudging);
+      const from = stages.findIndex((s) => s.id === now.id);
+      const nextReview = stages.slice(from + 1).find((s) => s.kind === 'review');
+      if (nextReview) currentStageIdPatch = { currentStageId: nextReview.id };
+    }
+  }
+
   await db.transaction(async (tx) => {
     await tx
       .update(contests)
       .set({
         status: newStatus,
+        ...currentStageIdPatch,
         updatedAt: new Date(),
       })
       .where(eq(contests.id, contestId));
@@ -370,7 +399,8 @@ export async function transitionContestStatus(
             type: 'contest',
             title: judgeMsg.title,
             message: judgeMsg.message,
-            link,
+            // A judge's next step is the judge page, not the contest page.
+            link: newStatus === 'judging' ? `/contests/${contestInfo.slug}/judge` : link,
             actorId: userId,
           }).catch(() => {});
         }

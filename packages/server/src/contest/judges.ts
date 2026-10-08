@@ -1,7 +1,9 @@
 import { eq, and } from 'drizzle-orm';
-import { contestJudges, contests, users } from '@commonpub/schema';
+import { contestJudges, contests, contestEntries, users } from '@commonpub/schema';
 import type { DB } from '../types.js';
 import { createNotification } from '../notification/notification.js';
+import { currentStage } from './stages.js';
+import type { JudgeScoreEntry } from './types.js';
 
 export type JudgeRole = 'lead' | 'judge' | 'guest';
 
@@ -110,7 +112,34 @@ export async function removeContestJudge(
     .limit(1);
 
   if (!existing) return false;
-  await db.delete(contestJudges).where(eq(contestJudges.id, existing.id));
+
+  // A judge removed mid-round (a conflict of interest, a wrong invite) must stop
+  // deciding the cut. Their scores in the CURRENT review round are dropped and
+  // each affected entry's live average recomputed from the remaining judges.
+  // Earlier rounds are history: those cuts already ran and are snapshotted.
+  await db.transaction(async (tx) => {
+    await tx.delete(contestJudges).where(eq(contestJudges.id, existing.id));
+    const [c] = await tx
+      .select({ status: contests.status, stages: contests.stages, currentStageId: contests.currentStageId, startDate: contests.startDate, endDate: contests.endDate, judgingEndDate: contests.judgingEndDate })
+      .from(contests)
+      .where(eq(contests.id, contestId))
+      .limit(1);
+    const round = c ? currentStage(c) : null;
+    if (!round || round.kind !== 'review') return;
+    const rows = await tx
+      .select({ id: contestEntries.id, judgeScores: contestEntries.judgeScores })
+      .from(contestEntries)
+      .where(eq(contestEntries.contestId, contestId))
+      .for('update');
+    for (const r of rows) {
+      const scores = (r.judgeScores ?? []) as JudgeScoreEntry[];
+      const kept = scores.filter((s) => !(s.judgeId === userId && s.roundId === round.id));
+      if (kept.length === scores.length) continue;
+      const roundScores = kept.filter((s) => s.roundId === round.id);
+      const avg = roundScores.length ? Math.round(roundScores.reduce((t, s) => t + s.score, 0) / roundScores.length) : null;
+      await tx.update(contestEntries).set({ judgeScores: kept, score: avg }).where(eq(contestEntries.id, r.id));
+    }
+  });
   return true;
 }
 
@@ -175,6 +204,25 @@ export async function acceptJudgeInvite(
   } catch { /* non-critical */ }
 
   return true;
+}
+
+/**
+ * The viewer's judge record on a contest, or null. Callers that grant READ
+ * privileges should require `acceptedAt`: `isContestJudge` matches a pending
+ * invitation too, so a wrongly invited person who never accepted could read
+ * every judge's scores and feedback (session 260).
+ */
+export async function getContestJudgeMembership(
+  db: DB,
+  contestId: string,
+  userId: string,
+): Promise<{ role: JudgeRole; acceptedAt: Date | null } | null> {
+  const [row] = await db
+    .select({ role: contestJudges.role, acceptedAt: contestJudges.acceptedAt })
+    .from(contestJudges)
+    .where(and(eq(contestJudges.contestId, contestId), eq(contestJudges.userId, userId)))
+    .limit(1);
+  return row ?? null;
 }
 
 export async function isContestJudge(

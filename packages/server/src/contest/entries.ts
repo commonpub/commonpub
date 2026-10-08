@@ -2,7 +2,7 @@ import { eq, and, or, desc, sql, isNull } from 'drizzle-orm';
 import { contests, contestEntries, contestRegistrations, users, contentItems } from '@commonpub/schema';
 import type { DB } from '../types.js';
 import { normalizePagination, countRows } from '../query.js';
-import { isEliminated } from './stages.js';
+import { isEliminated, currentStage, stageHasClosed } from './stages.js';
 import type { ContestEntryItem, JudgeScoreEntry } from './types.js';
 
 // Contest entry lifecycle: list / fetch / submit (attach published content) /
@@ -73,7 +73,10 @@ export async function listContestEntries(
     opts.orderBy === 'rank'
       ? [
           sql`${contestEntries.rank} asc nulls last`,
-          sql`${contestEntries.score} desc nulls last`,
+          // The score tiebreak only when the caller may see scores: blanking
+          // `score` in the response doesn't hide the ORDER, and before results
+          // every rank is null, so this sort WAS the live leaderboard.
+          ...(revealScores ? [sql`${contestEntries.score} desc nulls last`] : []),
           desc(contestEntries.submittedAt),
           desc(contestEntries.id),
         ]
@@ -235,6 +238,11 @@ export async function submitContestEntry(
       status: contests.status,
       eligibleContentTypes: contests.eligibleContentTypes,
       maxEntriesPerUser: contests.maxEntriesPerUser,
+      stages: contests.stages,
+      currentStageId: contests.currentStageId,
+      startDate: contests.startDate,
+      endDate: contests.endDate,
+      judgingEndDate: contests.judgingEndDate,
     })
     .from(contests)
     .where(eq(contests.id, contestId))
@@ -243,6 +251,13 @@ export async function submitContestEntry(
   if (contest.length === 0) return null;
   const c = contest[0]!;
   if (c.status !== 'active') return null;
+  // New entries only during an open submission stage. Status alone let anyone
+  // registered attach a fresh project after the proposal deadline, or during a
+  // build sprint set back to `active`, where the new entry (never cut) would
+  // land in the finalist round (session 260). A classic contest's current stage
+  // while active is its synthesized submission stage, ending at `endDate`.
+  const stage = currentStage(c);
+  if (!stage || stage.kind !== 'submission' || stageHasClosed(stage)) return null;
 
   // Validate content exists, is published, and user owns it
   const content = await db
@@ -383,6 +398,11 @@ export async function withdrawContestEntry(
   if (row.entry.userId !== userId) return { withdrawn: false, error: 'Not the entry owner' };
   if (row.contestStatus !== 'active') {
     return { withdrawn: false, error: 'Can only withdraw from active contests' };
+  }
+  // Withdrawing deletes the row, and with it the cut that eliminated it, so an
+  // eliminated entrant could withdraw and re-enter as if never judged.
+  if (isEliminated(row.entry)) {
+    return { withdrawn: false, error: 'An entry that was not advanced cannot be withdrawn' };
   }
 
   // A proposal-created draft placeholder (never developed into a published entry)

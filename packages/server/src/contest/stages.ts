@@ -70,6 +70,22 @@ export function currentStageEndDate(c: StageSource): Date | null {
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
+/**
+ * True once a stage's `endsAt` has passed. Nothing moves a contest's status on a
+ * date, so before session 260 a proposal could be submitted, or its answers
+ * overwritten, after the published deadline for as long as the organizer left
+ * the contest `active`. Writers check this; an organizer who wants to extend
+ * edits the stage's end date. A stage with no end date never closes on its own.
+ */
+export function stageHasClosed(stage: { endsAt?: string | null; core?: boolean }, now: Date = new Date()): boolean {
+  // Only organizer-defined stages. A classic contest's synthesized submission
+  // stage "ends" at the contest endDate, which has never been enforced (the
+  // status is what closes a classic contest); changing that is out of scope.
+  if (stage.core || !stage.endsAt) return false;
+  const end = new Date(stage.endsAt).getTime();
+  return !Number.isNaN(end) && now.getTime() > end;
+}
+
 /** True when an entry was culled at some review stage (Phase B2 cohort gate). */
 export function isEliminated(entry: { stageState?: Array<{ status: string }> | null }): boolean {
   return !!entry.stageState?.some((s) => s.status === 'eliminated');
