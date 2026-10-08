@@ -85,5 +85,9 @@ export default defineEventHandler(async (event): Promise<{ sent: true; to: strin
     text: `(This is a test email.)\n\n${rendered.text}`,
   });
 
-  return { sent: true, to: recipientEmail };
+  // Name the recipient the way the organizer named them. A typed address is
+  // theirs already; a picked member is shown by @username, never by email, or
+  // this route would look up any member's address for any organizer (including
+  // a per-contest editor without contest.pii) (session 260).
+  return { sent: true, to: toUserId ? `@${recipientUsername}` : recipientEmail };
 });

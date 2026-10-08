@@ -31,7 +31,14 @@ describe('GET /api/contests/:slug/entries — judge-score leak guard', () => {
     expect(src, 'must check contest.manage permission').toMatch(
       /hasPermission\(\s*event\s*,\s*['"]contest\.manage['"]\s*\)/,
     );
-    expect(src, 'must check judge membership').toMatch(/isContestJudge\(/);
+    // Session 260: an ACCEPTED judge, not any invitation row (a pending invite
+    // used to read every judge's scores and feedback).
+    expect(src, 'must check judge membership').toMatch(/getContestJudgeMembership\(/);
+    expect(src, 'must require an accepted invitation').toMatch(/membership\?\.acceptedAt/);
+    expect(src, 'must not grant privilege on a bare invitation').not.toMatch(/isContestJudge\(/);
+    // Session 260: the advancement cut is open to per-contest editors, so they
+    // are privileged readers of the field it cuts.
+    expect(src, 'must check per-contest editor').toMatch(/isContestEditor\(/);
   });
 
   it('only forwards includeJudgeScores when the caller is privileged', () => {
@@ -42,8 +49,21 @@ describe('GET /api/contests/:slug/entries — judge-score leak guard', () => {
 
   it('gates aggregate score reveal through shouldRevealScores + judgingVisibility', () => {
     expect(src, 'must call shouldRevealScores with the contest visibility').toMatch(
-      /revealScores:\s*shouldRevealScores\(\s*contest\.judgingVisibility\s*,\s*contest\.status\s*,\s*privileged\s*\)/,
+      /revealScores\s*=\s*shouldRevealScores\(\s*contest\.judgingVisibility\s*,\s*contest\.status\s*,\s*privileged\s*\)/,
     );
+    expect(src, 'must pass that decision to the listing').toMatch(/^\s*revealScores,\s*$/m);
+  });
+
+  it('does not let a viewer who cannot see scores sort by them (session 260)', () => {
+    // `order=rank` orders by the live score; a hidden score must not be readable
+    // from the order of the list.
+    expect(src).toMatch(/query\.order === 'rank' && !revealScores && contest\.status !== 'completed' \? 'recent'/);
+    expect(src).toMatch(/orderBy,/);
+    expect(src, 'the raw query order must not reach the listing').not.toMatch(/orderBy:\s*query\.order/);
+  });
+
+  it('gives a judge only their own scores, not the rest of the panel (session 260)', () => {
+    expect(src).toMatch(/item\.judgeScores\.filter\(\(s\) => s\.judgeId === user\.id\)/);
   });
 
   it('is feature-gated behind the contests flag', () => {

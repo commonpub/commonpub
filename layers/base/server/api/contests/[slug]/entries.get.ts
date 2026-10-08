@@ -1,4 +1,4 @@
-import { listContestEntries, getContestBySlug, isContestJudge, shouldRevealScores, canViewContest } from '@commonpub/server';
+import { listContestEntries, getContestBySlug, getContestJudgeMembership, isContestEditor, shouldRevealScores, canViewContest } from '@commonpub/server';
 import type { ContestEntryItem } from '@commonpub/server';
 import { z } from 'zod';
 
@@ -26,13 +26,24 @@ export default defineEventHandler(async (event): Promise<{ items: ContestEntryIt
   if (!(await canViewContest(db, contest, user))) {
     throw createError({ statusCode: 404, statusMessage: 'Contest not found' });
   }
-  let privileged = false;
+  // Organizers: the owner, a contest.manage holder, or a per-contest editor. An
+  // editor can run the advancement cut (advance.post.ts), so it must see what the
+  // cut is made on: the full field and every judge's score.
+  // Judges: ACCEPTED panel members only. A pending invitation used to count, so
+  // a wrongly invited person could read every score without ever accepting.
+  let organizer = false;
+  let judge = false;
   if (user) {
-    privileged =
+    organizer =
       user.id === contest.createdById ||
       hasPermission(event, 'contest.manage') ||
-      (await isContestJudge(db, contest.id, user.id));
+      (await isContestEditor(db, contest.id, user.id));
+    if (!organizer) {
+      const membership = await getContestJudgeMembership(db, contest.id, user.id);
+      judge = !!membership?.acceptedAt;
+    }
   }
+  const privileged = organizer || judge;
 
   // Per-stage artifacts ride along for privileged viewers (judge/owner views)
   // and for the entrant's OWN entries (pre-filling their submit form). Gated
@@ -40,10 +51,18 @@ export default defineEventHandler(async (event): Promise<{ items: ContestEntryIt
   const config = useConfig();
   const artifactsOn = (config.features as unknown as Record<string, boolean>).contestStageSubmissions !== false;
 
-  return listContestEntries(db, contest.id, {
+  const revealScores = shouldRevealScores(contest.judgingVisibility, contest.status, privileged);
+  // `order=rank` sorts by rank, then by the LIVE score. Blanking `score` in the
+  // response doesn't hide the ORDER, so an anonymous `?order=rank` read the
+  // judges' running standings mid-round (session 260). Before results, a viewer
+  // who can't see scores can't sort by them either. Once completed, ranks are
+  // public and the results page re-sorts by rank client-side anyway.
+  const orderBy = query.order === 'rank' && !revealScores && contest.status !== 'completed' ? 'recent' : query.order;
+
+  const result = await listContestEntries(db, contest.id, {
     limit: query.limit,
     offset: query.offset,
-    orderBy: query.order,
+    orderBy,
     includeJudgeScores: privileged && query.includeJudgeScores,
     includeStageSubmissions: privileged && artifactsOn,
     stageSubmissionsViewerId: artifactsOn ? user?.id : undefined,
@@ -52,6 +71,15 @@ export default defineEventHandler(async (event): Promise<{ items: ContestEntryIt
     // their OWN draft entry so the submit-form gating (myEntries) stays correct.
     onlyPublishedContent: !privileged,
     viewerId: user?.id,
-    revealScores: shouldRevealScores(contest.judgingVisibility, contest.status, privileged),
+    revealScores,
   });
+
+  // A judge sees their OWN scores and feedback, not the rest of the panel's:
+  // seeing another judge's number before scoring anchors the judgement.
+  if (judge && user) {
+    for (const item of result.items) {
+      if (item.judgeScores) item.judgeScores = item.judgeScores.filter((s) => s.judgeId === user.id);
+    }
+  }
+  return result;
 });

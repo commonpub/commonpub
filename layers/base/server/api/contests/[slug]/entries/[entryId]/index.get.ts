@@ -1,4 +1,4 @@
-import { getContestBySlug, getContestEntry, canViewContest, canViewContestEntryDetail, isContestJudge, shouldRevealScores } from '@commonpub/server';
+import { getContestBySlug, getContestEntry, canViewContest, canViewContestEntryDetail, getContestJudgeMembership, isContestEditor, shouldRevealScores } from '@commonpub/server';
 import type { ContestEntryItem } from '@commonpub/server';
 
 /**
@@ -25,13 +25,21 @@ export default defineEventHandler(async (event): Promise<ContestEntryItem> => {
     throw createError({ statusCode: 404, statusMessage: 'Entry not found' });
   }
 
-  let privileged = false;
+  // Same split as the entries listing: organizers (owner / contest.manage /
+  // per-contest editor) and ACCEPTED judges are privileged; a pending invite is not.
+  let organizer = false;
+  let judge = false;
   if (user) {
-    privileged =
+    organizer =
       user.id === contest.createdById ||
       hasPermission(event, 'contest.manage') ||
-      (await isContestJudge(db, contest.id, user.id));
+      (await isContestEditor(db, contest.id, user.id));
+    if (!organizer) {
+      const membership = await getContestJudgeMembership(db, contest.id, user.id);
+      judge = !!membership?.acceptedAt;
+    }
   }
+  const privileged = organizer || judge;
   const isEntrant = !!user && user.id === entry.userId;
 
   // Draft + visibility gate (mirrors the listing's `onlyPublishedContent` +
@@ -55,6 +63,9 @@ export default defineEventHandler(async (event): Promise<ContestEntryItem> => {
   }
   if (!privileged) {
     delete entry.judgeScores;
+  } else if (judge && user && entry.judgeScores) {
+    // A judge sees their own scores, not the rest of the panel's (anchoring).
+    entry.judgeScores = entry.judgeScores.filter((s) => s.judgeId === user.id);
   }
   if (!artifactsOn || !(privileged || isEntrant)) {
     delete entry.stageSubmissions;
