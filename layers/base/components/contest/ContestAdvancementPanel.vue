@@ -8,9 +8,17 @@
  * contest. Mounted inside the Stages tab, below the stage editor.
  */
 import type { ContestStage } from '@commonpub/schema';
+import type { ContestJudgeItem, JudgeScoreEntry } from '@commonpub/server';
 
 type ReviewStage = Pick<ContestStage, 'id' | 'name' | 'advanceCount'>;
-interface EntryLite { id: string; contentTitle: string; score?: number | null; eliminated?: boolean }
+interface EntryLite {
+  id: string;
+  contentTitle: string;
+  authorName?: string;
+  score?: number | null;
+  eliminated?: boolean;
+  judgeScores?: JudgeScoreEntry[];
+}
 
 const props = defineProps<{
   slug: string;
@@ -21,10 +29,45 @@ const emit = defineEmits<{ advanced: [] }>();
 const toast = useToast();
 const { extract: extractError } = useApiError();
 
-const { data: entriesData, refresh: refreshEntries } = useLazyFetch<{ items: EntryLite[] }>(
-  () => `/api/contests/${props.slug}/entries`,
+// EVERY entry (the route defaults to 20, which hid the rest from the manual
+// picker), with per-judge scores so the organizer can see who has judged what
+// before making a cut. The route only returns judgeScores to the owner, a
+// contest.manage holder or a panel judge, which is everyone who sees this panel.
+const { data: entriesData, refresh: refreshEntries } = useLazyAsyncData(
+  `advance-entries-${props.slug}`,
+  () => fetchAllPages<EntryLite>((offset, limit) =>
+    $fetch<{ items: EntryLite[]; total: number }>(`/api/contests/${props.slug}/entries`, {
+      query: { includeJudgeScores: true, limit, offset },
+    }),
+  ),
+  { server: false },
 );
 const eligibleEntries = computed(() => (entriesData.value?.items ?? []).filter((e) => !e.eliminated));
+
+const { data: judgesData } = useLazyFetch<ContestJudgeItem[]>(() => `/api/contests/${props.slug}/judges`, { server: false });
+const judgeName = computed(() => new Map((judgesData.value ?? []).map((j) => [j.userId, j.userName])));
+// Judges who can actually score: accepted, not guests.
+const scoringJudgeCount = computed(() => (judgesData.value ?? []).filter((j) => j.acceptedAt && j.role !== 'guest').length);
+
+/**
+ * One review round's scores per entry, highest average first. Scores are
+ * matched on `roundId`, the same tag the server writes, so a later round never
+ * shows an earlier round's numbers. Unscored entries sort last.
+ */
+function roundRows(stageId: string): Array<{ id: string; title: string; author: string; avg: number | null; scores: Array<{ judge: string; score: number; feedback: string }> }> {
+  return eligibleEntries.value
+    .map((e) => {
+      const scores = (e.judgeScores ?? [])
+        .filter((s) => s.roundId === stageId)
+        .map((s) => ({ judge: judgeName.value.get(s.judgeId) ?? 'Removed judge', score: s.score, feedback: s.feedback ?? '' }));
+      const avg = scores.length ? Math.round(scores.reduce((t, s) => t + s.score, 0) / scores.length) : null;
+      return { id: e.id, title: e.contentTitle, author: e.authorName ?? '', avg, scores };
+    })
+    .sort((a, b) => (b.avg ?? -1) - (a.avg ?? -1) || a.title.localeCompare(b.title));
+}
+function unscoredCount(stageId: string): number {
+  return roundRows(stageId).filter((r) => r.scores.length === 0).length;
+}
 
 const advancing = ref<string | null>(null);
 const advanceN = ref<Record<string, number>>({});
@@ -56,7 +99,13 @@ async function postAdvance(stageId: string, body: Record<string, unknown>): Prom
 async function advanceStage(stageId: string): Promise<void> {
   const topN = advanceN.value[stageId];
   if (!topN || topN < 1) { toast.error('Enter how many entries advance.'); return; }
-  if (!confirm(`Advance the top ${topN} entries from this stage? Entries below the cut are marked "not advanced" and drop out of later judging + final results. You can re-run this.`)) return;
+  // Unscored entries rank below every scored one, so a Top-N cut made while
+  // judging is incomplete silently eliminates whatever nobody got to.
+  const unscored = unscoredCount(stageId);
+  const warn = unscored > 0 && topN < eligibleEntries.value.length
+    ? `\n\n${unscored} ${unscored === 1 ? 'entry has' : 'entries have'} no score in this round yet and will rank last.`
+    : '';
+  if (!confirm(`Advance the top ${topN} entries from this stage? Entries below the cut are marked "not advanced" and drop out of later judging + final results. You can re-run this.${warn}`)) return;
   await postAdvance(stageId, { reviewStageId: stageId, mode: 'topN', topN });
 }
 
@@ -87,6 +136,32 @@ watch(() => props.reviewStages, (stages) => {
           <label class="cpub-form-check"><input type="radio" :name="`mode-${rs.id}`" :checked="advanceMode[rs.id] === 'manual'" @change="advanceMode[rs.id] = 'manual'" /> <span>Pick manually</span></label>
         </div>
       </div>
+      <!-- Who has judged what, before any cut is made. -->
+      <details class="cpub-advance-scores">
+        <summary>
+          Scores and feedback
+          <span class="cpub-advance-scores-meta">
+            {{ eligibleEntries.length - unscoredCount(rs.id) }} of {{ eligibleEntries.length }} entries scored
+            <template v-if="scoringJudgeCount"> · {{ scoringJudgeCount }} {{ scoringJudgeCount === 1 ? 'judge' : 'judges' }} on the panel</template>
+          </span>
+        </summary>
+        <p v-if="!eligibleEntries.length" class="cpub-form-hint" style="margin: 8px 0 0;">No entries in the current cohort yet.</p>
+        <ol v-else class="cpub-advance-score-list">
+          <li v-for="row in roundRows(rs.id)" :key="row.id" class="cpub-advance-score-row">
+            <div class="cpub-advance-score-head">
+              <NuxtLink :to="`/contests/${slug}/entries/${row.id}`" target="_blank" class="cpub-advance-score-title">{{ row.title }}</NuxtLink>
+              <span v-if="row.author" class="cpub-advance-score-author">{{ row.author }}</span>
+              <span class="cpub-advance-score-avg">{{ row.avg ?? 'not scored' }}<template v-if="row.avg !== null"> avg · {{ row.scores.length }} of {{ scoringJudgeCount || row.scores.length }}</template></span>
+            </div>
+            <ul v-if="row.scores.length" class="cpub-advance-score-judges">
+              <li v-for="(s, i) in row.scores" :key="i">
+                <strong>{{ s.judge }}</strong> {{ s.score }}<template v-if="s.feedback">: <span class="cpub-advance-score-fb">{{ s.feedback }}</span></template>
+              </li>
+            </ul>
+          </li>
+        </ol>
+      </details>
+
       <div v-if="(advanceMode[rs.id] ?? 'topN') === 'topN'" class="cpub-advance-ctl">
         <label class="cpub-form-label" :for="`adv-${rs.id}`">Advance top</label>
         <input :id="`adv-${rs.id}`" v-model.number="advanceN[rs.id]" type="number" min="1" class="cpub-form-input cpub-advance-n" placeholder="50" />
@@ -134,4 +209,15 @@ watch(() => props.reviewStages, (stages) => {
 .cpub-advance-pick-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cpub-advance-pick-score { font-family: var(--font-mono); font-size: 11px; color: var(--accent); flex-shrink: 0; }
 .cpub-advance-manual .cpub-btn { align-self: flex-start; margin-top: 6px; }
+.cpub-advance-scores { margin-top: 10px; border: var(--border-width-default) solid var(--border); background: var(--surface2); padding: 8px 10px; }
+.cpub-advance-scores summary { cursor: pointer; font-size: 12px; font-weight: 600; color: var(--text); display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; }
+.cpub-advance-scores-meta { font-family: var(--font-mono); font-size: 11px; font-weight: 400; color: var(--text-dim); }
+.cpub-advance-score-list { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.cpub-advance-score-row { padding: 6px 8px; border: var(--border-width-default) solid var(--border); background: var(--surface); }
+.cpub-advance-score-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; font-size: 12px; }
+.cpub-advance-score-title { color: var(--accent); font-weight: 600; overflow-wrap: anywhere; }
+.cpub-advance-score-author { color: var(--text-dim); font-size: 11px; }
+.cpub-advance-score-avg { margin-left: auto; font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); }
+.cpub-advance-score-judges { list-style: none; margin: 4px 0 0; padding: 0; font-size: 11px; color: var(--text-dim); display: flex; flex-direction: column; gap: 2px; }
+.cpub-advance-score-fb { white-space: pre-line; overflow-wrap: anywhere; }
 </style>

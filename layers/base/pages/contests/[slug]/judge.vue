@@ -10,9 +10,18 @@ import type { Serialized, ContestDetail, ContestEntryItem, ContestJudgeItem, Jud
 
 const { data: contest } = useLazyFetch<Serialized<ContestDetail>>(`/api/contests/${slug}`);
 const { data: judgesData, refresh: refreshJudges } = useLazyFetch<ContestJudgeItem[]>(`/api/contests/${slug}/judges`);
-const { data: entriesData, refresh: refreshEntries } = useLazyFetch<{ items: (Serialized<ContestEntryItem> & { judgeScores?: JudgeScoreEntry[] })[]; total: number }>(
-  `/api/contests/${slug}/entries`,
-  { query: { includeJudgeScores: true } },
+// EVERY entry, not the first page. The route defaults to 20, so a bare fetch
+// showed a judge the 20 newest entries and a progress bar reading "20 / 20"
+// while the rest were never scored by anyone. Client-only, like the page.
+type JudgeEntry = Serialized<ContestEntryItem> & { judgeScores?: JudgeScoreEntry[] };
+const { data: entriesData, refresh: refreshEntries } = useLazyAsyncData(
+  `judge-entries-${slug}`,
+  () => fetchAllPages<JudgeEntry>((offset, limit) =>
+    $fetch<{ items: JudgeEntry[]; total: number }>(`/api/contests/${slug}/entries`, {
+      query: { includeJudgeScores: true, limit, offset },
+    }),
+  ),
+  { server: false },
 );
 
 // The current review stage (multi-round contests). Drives the round label + the
@@ -125,14 +134,19 @@ const entryList = computed(() => {
       myScore: myScore?.score ?? null,
       myFeedback: myScore?.feedback ?? '',
       myCriteriaScores: myScore?.criteriaScores ?? null,
+      // The server refuses a judge's score on their own entry; say so on the
+      // card instead of offering controls that can only fail.
+      isOwn: !!user.value?.id && entry.userId === user.value.id,
       artifactRows,
       hasArtifact: !!sub,
     };
   });
 });
 
-const scoredCount = computed(() => entryList.value.filter((e) => e.myScore !== null).length);
-const totalCount = computed(() => entryList.value.length);
+// Own entries are not scoreable, so they don't count toward this judge's progress.
+const scoreable = computed(() => entryList.value.filter((e) => !e.isOwn));
+const scoredCount = computed(() => scoreable.value.filter((e) => e.myScore !== null).length);
+const totalCount = computed(() => scoreable.value.length);
 const progressPct = computed(() => totalCount.value > 0 ? Math.round((scoredCount.value / totalCount.value) * 100) : 0);
 
 const scoring = ref<Record<string, number>>({});
@@ -235,8 +249,11 @@ async function submitScore(entryId: string): Promise<void> {
              wrong — and a judge following it would have their score rejected. -->
         <template v-if="hasCriteria">Score each criterion against its own maximum; the overall score is calculated for you.</template>
         <template v-else>Score each entry from 0 to 100.</template>
-        Add optional feedback. Scores are saved immediately.
+        Add optional feedback. Each score saves when you press its button, and you can change it until the round closes.
         <template v-if="currentReviewStage"> You're judging the <strong>{{ entryList.length }}</strong> {{ entryList.length === 1 ? 'entry' : 'entries' }} still in this round.</template>
+      </p>
+      <p class="cpub-judge-desc">
+        Entrants never see your scores or feedback. The organizers see them, and they decide who advances.
       </p>
     </header>
 
@@ -300,11 +317,12 @@ async function submitScore(entryId: string): Promise<void> {
           <div class="cpub-judge-entry-info">
             <div class="cpub-judge-entry-title">{{ entry.contentTitle }}</div>
             <div class="cpub-judge-entry-author">by {{ entry.authorName }}</div>
-            <NuxtLink :to="`/u/${entry.authorUsername}/${entry.contentType}/${entry.contentSlug}`" class="cpub-judge-entry-link" target="_blank">
-              <i class="fa-solid fa-arrow-up-right-from-square"></i> View entry
-            </NuxtLink>
-            <NuxtLink :to="`/contests/${slug}/entries/${entry.id}`" class="cpub-judge-entry-link" target="_blank" style="margin-left: 10px;">
-              <i class="fa-solid fa-file-lines"></i> All submissions
+            <!-- The entry page, never the content page directly: a proposal is
+                 backed by a DRAFT placeholder project, and a draft's content URL
+                 404s for everyone but its author. The entry page shows every
+                 stage's submission and links the project once it's published. -->
+            <NuxtLink :to="`/contests/${slug}/entries/${entry.id}`" class="cpub-judge-entry-link" target="_blank">
+              <i class="fa-solid fa-arrow-up-right-from-square"></i> Open full entry
             </NuxtLink>
 
             <!-- This round's artifact (the proposal / prototype fields) -->
@@ -322,7 +340,10 @@ async function submitScore(entryId: string): Promise<void> {
               <p v-else class="cpub-judge-artifact-none">Nothing submitted for this stage.</p>
             </div>
           </div>
-          <div class="cpub-judge-entry-scoring">
+          <div v-if="entry.isOwn" class="cpub-judge-entry-scoring">
+            <p class="cpub-judge-save-status is-muted">This is your own entry, so you can't score it.</p>
+          </div>
+          <div v-else class="cpub-judge-entry-scoring">
             <div v-if="entry.myScore !== null" class="cpub-judge-current-score">
               <span class="cpub-judge-score-label">Your Score</span>
               <span class="cpub-judge-score-value">{{ entry.myScore }}</span>

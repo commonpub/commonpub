@@ -12,7 +12,18 @@ const { isAuthenticated, isAdmin, user } = useAuth();
 // Blocking fetch (not lazy) so the description/rules render server-side and are
 // present on first paint — no empty flash while the client fetches + renders.
 const { data: contest } = await useFetch(`/api/contests/${slug}`);
-const { data: apiEntriesData, refresh: refreshEntries } = useLazyFetch<{ items: Serialized<ContestEntryItem>[]; total: number }>(`/api/contests/${slug}/entries`);
+// EVERY entry, not the route's default first 20. Past 20 a participant's own
+// (older) entry fell off the list, `myEntries` went empty and the proposal form
+// invited them to submit a duplicate. useRequestFetch, not bare $fetch, so the
+// SSR pass forwards the viewer's cookie: an anonymous server fetch would bake
+// the public list into the payload and the client would never see its own drafts.
+const requestFetch = useRequestFetch();
+const { data: apiEntriesData, refresh: refreshEntries } = useLazyAsyncData(
+  `contest-entries-${slug}`,
+  () => fetchAllPages<Serialized<ContestEntryItem>>((offset, limit) =>
+    requestFetch<{ items: Serialized<ContestEntryItem>[]; total: number }>(`/api/contests/${slug}/entries`, { query: { limit, offset } }),
+  ),
+);
 const { data: judgesData, refresh: refreshJudges } = useLazyFetch<ContestJudgeItem[]>(`/api/contests/${slug}/judges`);
 // Registration state (viewer's own + public count). Drives the sidebar register
 // toggle. client-only (server: false): this is per-viewer registration status, so
