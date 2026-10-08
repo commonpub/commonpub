@@ -11,12 +11,29 @@ const toast = useToast();
 // literals, because coercing 'false' to a boolean would invert the filter.
 const emailFilter = ref<'any' | 'true' | 'false'>('any');
 
+// Paged. The route defaults to 20 rows, and this page used to request no limit,
+// so every account past the 20 newest was unreachable except by searching for it.
+const PAGE_SIZE = 50;
+const page = ref(1);
+// A new search or filter starts again from the first page.
+watch([search, emailFilter], () => { page.value = 1; });
+
 const { data: users, refresh } = await useFetch('/api/admin/users', {
   query: computed(() => ({
     search: search.value || undefined,
     emailVerified: emailFilter.value === 'any' ? undefined : emailFilter.value,
+    limit: PAGE_SIZE,
+    offset: (page.value - 1) * PAGE_SIZE,
   })),
 });
+
+const totalUsers = computed<number>(() => (users.value as { total?: number } | null)?.total ?? 0);
+const totalPages = computed(() => Math.max(1, Math.ceil(totalUsers.value / PAGE_SIZE)));
+const rangeStart = computed(() => (totalUsers.value === 0 ? 0 : (page.value - 1) * PAGE_SIZE + 1));
+const rangeEnd = computed(() => Math.min(page.value * PAGE_SIZE, totalUsers.value));
+// Deleting the last row of the last page would otherwise strand the view on an
+// empty page past the end.
+watch(totalPages, (tp) => { if (page.value > tp) page.value = tp; });
 
 // Custom (non-system) roles — for per-user assignment. Requires `roles.manage`;
 // useFetch won't crash the page if the viewer lacks it (data stays null).
@@ -221,6 +238,19 @@ async function deleteUser(userId: string, username: string): Promise<void> {
       </table>
     </div>
     <p class="admin-empty" v-else>No users found.</p>
+
+    <nav v-if="totalUsers > 0" class="admin-pager" aria-label="Users pages">
+      <span class="admin-pager-range" aria-live="polite">{{ rangeStart }}–{{ rangeEnd }} of {{ totalUsers }}</span>
+      <button class="admin-pager-btn" :disabled="page <= 1" @click="page = 1">First</button>
+      <button class="admin-pager-btn" :disabled="page <= 1" aria-label="Previous page" @click="page = Math.max(1, page - 1)">
+        <i class="fa-solid fa-chevron-left" aria-hidden="true"></i> Prev
+      </button>
+      <span class="admin-pager-page">Page {{ page }} of {{ totalPages }}</span>
+      <button class="admin-pager-btn" :disabled="page >= totalPages" aria-label="Next page" @click="page = Math.min(totalPages, page + 1)">
+        Next <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+      </button>
+      <button class="admin-pager-btn" :disabled="page >= totalPages" @click="page = totalPages">Last</button>
+    </nav>
   </div>
 </template>
 
@@ -261,4 +291,10 @@ async function deleteUser(userId: string, username: string): Promise<void> {
 .admin-roles-save { font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; padding: 3px 10px; border: var(--border-width-default) solid var(--accent); background: var(--accent); color: var(--color-on-accent); cursor: pointer; margin-left: auto; }
 .admin-roles-save:disabled { opacity: 0.6; cursor: default; }
 .admin-empty { color: var(--text-faint); text-align: center; padding: 32px 0; }
+.admin-pager { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 16px; font-family: var(--font-mono); font-size: 11px; }
+.admin-pager-range { color: var(--text-dim); margin-right: auto; }
+.admin-pager-page { color: var(--text-dim); padding: 0 4px; }
+.admin-pager-btn { font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; padding: 4px 10px; border: var(--border-width-default) solid var(--border2); background: var(--surface); color: var(--text); cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.admin-pager-btn:hover:not(:disabled) { border-color: var(--accent); }
+.admin-pager-btn:disabled { opacity: 0.5; cursor: default; }
 </style>
