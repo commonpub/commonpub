@@ -72,6 +72,22 @@ function fmtDate(d: string | null | undefined): string | null {
   return formatLocalDate(d);
 }
 
+/**
+ * The open stage's deadline has passed while the contest is still `active` (the
+ * organizer hasn't started judging yet). The server refuses entries then, so
+ * the card must stop inviting them. Client-only, like every date here.
+ */
+const submissionsClosed = computed<boolean>(() => {
+  const c = props.contest;
+  // Organizer-defined stages only, matching the server (stageHasClosed): a
+  // classic contest's end date isn't enforced, its status closes it.
+  if (!mounted.value || !c || status.value !== 'active' || !c.stages?.length) return false;
+  const end = currentStageEnd(c);
+  if (!end) return false;
+  const at = new Date(end).getTime();
+  return Number.isFinite(at) && at < Date.now();
+});
+
 /** Whole days from now until an ISO date (null when unknown / not yet mounted). */
 function daysUntil(d: string | null | undefined): number | null {
   if (!d || !mounted.value) return null;
@@ -108,13 +124,21 @@ const milestone = computed<{ label: string; date: string | null; hint: string | 
       // "today" next to a visibly past date. The date itself still shows.
       return { label: 'Submissions open', date: start, hint: dStart != null && dStart >= 0 ? humanizeDays(dStart) : null };
     case 'active':
+      // Past the stage deadline the server refuses new entries, so don't read
+      // "Submissions close" over a date that has gone.
+      if (submissionsClosed.value) return { label: 'Submissions closed', date: end, hint: null };
       return { label: 'Submissions close', date: end, hint: dEnd != null && dEnd >= 0 ? humanizeDays(dEnd) : null };
-    case 'judging':
-      return { label: 'Judging in progress', date: null, hint: 'Results announced soon' };
+    case 'judging': {
+      // Staged contests move between rounds while still "judging" (a build sprint
+      // between two review rounds); name the stage rather than claim judging.
+      const st = c.stages?.length ? currentStage(c) : null;
+      if (st && st.kind !== 'review' && st.name) return { label: st.name, date: st.endsAt ? fmtDate(st.endsAt) : null, hint: null };
+      return { label: 'Judging in progress', date: null, hint: null };
+    }
     case 'completed':
       return { label: 'Winners announced', date: null, hint: null };
     case 'paused':
-      return { label: 'Paused', date: null, hint: "We'll email you when it resumes" };
+      return { label: 'Paused', date: null, hint: null };
     default:
       return null;
   }
@@ -127,13 +151,20 @@ const whatsNext = computed<string>(() => {
     case 'upcoming':
       return 'Submissions haven\'t opened yet, so there\'s nothing to submit right now. Use the time to plan your build and, if you want, find teammates. We\'ll email you the moment submissions open and again as the deadline nears.';
     case 'active':
+      if (submissionsClosed.value) return 'The submission deadline has passed. The organizers will start judging shortly.';
       return 'Submissions are open. Enter your project before the deadline; you can keep editing it until then. We\'ll send you reminders as the deadline approaches.';
-    case 'judging':
-      return 'Submissions are closed and judging is underway. There\'s nothing more to do right now. We\'ll email you when the results are announced.';
+    case 'judging': {
+      // Contest notifications are in-app only, so promise the bell and this
+      // page, never an email.
+      const c = props.contest;
+      const st = c?.stages?.length ? currentStage(c) : null;
+      if (st && st.kind !== 'review') return `Judging for the last round is done. If your entry advanced, keep building and publish your project before ${st.endsAt ? fmtDate(st.endsAt) : 'the stage deadline'}. Updates appear in your notifications and on this page.`;
+      return 'Submissions are closed and judging is underway. There\'s nothing more to do right now. Updates appear in your notifications and on this page.';
+    }
     case 'completed':
       return 'This contest has ended. Thanks for taking part. Check out the results.';
     case 'paused':
-      return 'This contest is paused for now. We\'ll email you when it resumes.';
+      return 'This contest is paused for now. Check back here for updates.';
     default:
       return '';
   }

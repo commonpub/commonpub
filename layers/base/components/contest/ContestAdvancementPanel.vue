@@ -23,6 +23,15 @@ interface EntryLite {
 const props = defineProps<{
   slug: string;
   reviewStages: ReviewStage[];
+  /** The persisted contest: status + stage pointer decide which round can be cut. */
+  contest: {
+    status: string;
+    stages?: ContestStage[] | null;
+    currentStageId?: string | null;
+    startDate: string;
+    endDate: string;
+    judgingEndDate?: string | null;
+  };
 }>();
 const emit = defineEmits<{ advanced: [] }>();
 
@@ -96,23 +105,45 @@ async function postAdvance(stageId: string, body: Record<string, unknown>): Prom
   }
 }
 
+/**
+ * Which review rounds can be cut right now, mirroring the server
+ * (advanceContestStage): only while judging, and only the current round or an
+ * earlier one (a re-run, which the server refuses once a later round has
+ * started). Every review stage used to show a live Advance button, so pressing
+ * the finalists row during round 1 culled the field on round-1 scores.
+ */
+function cutState(stageId: string): { ok: boolean; why: string } {
+  const c = { ...props.contest, judgingEndDate: props.contest.judgingEndDate ?? null };
+  if (c.status !== 'judging') return { ok: false, why: 'Cuts open once judging has started.' };
+  const stages = normalizeStages(c);
+  const idx = stages.findIndex((s) => s.id === stageId);
+  const curIdx = stages.findIndex((s) => s.id === currentStageId(c));
+  if (idx > curIdx) return { ok: false, why: 'This round hasn’t started yet.' };
+  return { ok: true, why: idx === curIdx ? '' : 'Already cut. Running it again recomputes this round’s cut.' };
+}
+
 async function advanceStage(stageId: string): Promise<void> {
   const topN = advanceN.value[stageId];
   if (!topN || topN < 1) { toast.error('Enter how many entries advance.'); return; }
+  // Fresh numbers: the panel loaded once, and judges may have scored since.
+  await refreshEntries();
   // Unscored entries rank below every scored one, so a Top-N cut made while
   // judging is incomplete silently eliminates whatever nobody got to.
   const unscored = unscoredCount(stageId);
   const warn = unscored > 0 && topN < eligibleEntries.value.length
     ? `\n\n${unscored} ${unscored === 1 ? 'entry has' : 'entries have'} no score in this round yet and will rank last.`
     : '';
-  if (!confirm(`Advance the top ${topN} entries from this stage? Entries below the cut are marked "not advanced" and drop out of later judging + final results. You can re-run this.${warn}`)) return;
+  const name = props.reviewStages.find((s) => s.id === stageId)?.name ?? 'this round';
+  if (!confirm(`Advance the top ${topN} entries from "${name}"? Entries below the cut are marked "not advanced" and drop out of later judging and final results. Every entrant gets a notification. Until the next round has scores you can run it again with a different number, which reinstates or removes entries and notifies everyone again.${warn}`)) return;
   await postAdvance(stageId, { reviewStageId: stageId, mode: 'topN', topN });
 }
 
 async function advanceStageManual(stageId: string): Promise<void> {
   const ids = manualPick.value[stageId] ?? [];
   if (!ids.length) { toast.error('Select at least one entry to advance.'); return; }
-  if (!confirm(`Advance the ${ids.length} selected ${ids.length === 1 ? 'entry' : 'entries'}? The rest of the cohort is marked "not advanced" and drops out of later judging + final results.`)) return;
+  await refreshEntries();
+  const name = props.reviewStages.find((s) => s.id === stageId)?.name ?? 'this round';
+  if (!confirm(`Advance the ${ids.length} selected ${ids.length === 1 ? 'entry' : 'entries'} from "${name}"? The rest of the field is marked "not advanced" and drops out of later judging and final results. Every entrant gets a notification.`)) return;
   await postAdvance(stageId, { reviewStageId: stageId, mode: 'manual', advancedEntryIds: ids });
 }
 
@@ -127,7 +158,8 @@ watch(() => props.reviewStages, (stages) => {
 <template>
   <div v-if="reviewStages.length" class="cpub-advance-section">
     <h3 class="cpub-form-subtitle"><i class="fa-solid fa-arrow-up-right-dots"></i> Advancement</h3>
-    <p class="cpub-form-hint">After judging a review stage, advance the top entries to the next stage. Entries below the cut are marked "not advanced". Re-running re-computes the cut. (Save any stage changes above first.)</p>
+    <p class="cpub-form-hint">When a round's judging is done, advance the top entries to the next stage. Entries below the cut are marked "not advanced". Only the round that's open can be cut, and until the next round has scores a cut can be run again to correct it. (Save any stage changes above first.)</p>
+    <button type="button" class="cpub-btn cpub-btn-sm cpub-advance-refresh" @click="refreshEntries()"><i class="fa-solid fa-rotate"></i> Refresh scores</button>
     <div v-for="rs in reviewStages" :key="rs.id" class="cpub-advance-block">
       <div class="cpub-advance-row">
         <span class="cpub-advance-name"><i class="fa-solid fa-gavel"></i> {{ rs.name }}</span>
@@ -136,6 +168,7 @@ watch(() => props.reviewStages, (stages) => {
           <label class="cpub-form-check"><input type="radio" :name="`mode-${rs.id}`" :checked="advanceMode[rs.id] === 'manual'" @change="advanceMode[rs.id] = 'manual'" /> <span>Pick manually</span></label>
         </div>
       </div>
+      <p v-if="cutState(rs.id).why" class="cpub-form-hint cpub-advance-why">{{ cutState(rs.id).why }}</p>
       <!-- Who has judged what, before any cut is made. -->
       <details class="cpub-advance-scores">
         <summary>
@@ -151,7 +184,7 @@ watch(() => props.reviewStages, (stages) => {
             <div class="cpub-advance-score-head">
               <NuxtLink :to="`/contests/${slug}/entries/${row.id}`" target="_blank" class="cpub-advance-score-title">{{ row.title }}</NuxtLink>
               <span v-if="row.author" class="cpub-advance-score-author">{{ row.author }}</span>
-              <span class="cpub-advance-score-avg">{{ row.avg ?? 'not scored' }}<template v-if="row.avg !== null"> avg · {{ row.scores.length }} of {{ scoringJudgeCount || row.scores.length }}</template></span>
+              <span class="cpub-advance-score-avg">{{ row.avg ?? 'not scored' }}<template v-if="row.avg !== null"> avg · {{ row.scores.length }} of {{ Math.max(scoringJudgeCount, row.scores.length) }}</template></span>
             </div>
             <ul v-if="row.scores.length" class="cpub-advance-score-judges">
               <li v-for="(s, i) in row.scores" :key="i">
@@ -164,9 +197,9 @@ watch(() => props.reviewStages, (stages) => {
 
       <div v-if="(advanceMode[rs.id] ?? 'topN') === 'topN'" class="cpub-advance-ctl">
         <label class="cpub-form-label" :for="`adv-${rs.id}`">Advance top</label>
-        <input :id="`adv-${rs.id}`" v-model.number="advanceN[rs.id]" type="number" min="1" class="cpub-form-input cpub-advance-n" placeholder="50" />
-        <button type="button" class="cpub-btn cpub-btn-sm" :disabled="advancing === rs.id" @click="advanceStage(rs.id)">
-          <i class="fa-solid fa-arrow-up-right-dots"></i> {{ advancing === rs.id ? 'Advancing…' : 'Advance' }}
+        <input :id="`adv-${rs.id}`" v-model.number="advanceN[rs.id]" type="number" min="1" step="1" class="cpub-form-input cpub-advance-n" />
+        <button type="button" class="cpub-btn cpub-btn-sm" :disabled="advancing === rs.id || !cutState(rs.id).ok" @click="advanceStage(rs.id)">
+          <i class="fa-solid fa-arrow-up-right-dots"></i> {{ advancing === rs.id ? 'Advancing…' : `Advance ${rs.name}` }}
         </button>
       </div>
       <div v-else class="cpub-advance-manual">
@@ -177,7 +210,7 @@ watch(() => props.reviewStages, (stages) => {
             <span class="cpub-advance-pick-title">{{ e.contentTitle }}</span>
             <span v-if="e.score != null" class="cpub-advance-pick-score">{{ e.score }}</span>
           </label>
-          <button type="button" class="cpub-btn cpub-btn-sm" :disabled="advancing === rs.id || !(manualPick[rs.id] ?? []).length" @click="advanceStageManual(rs.id)">
+          <button type="button" class="cpub-btn cpub-btn-sm" :disabled="advancing === rs.id || !(manualPick[rs.id] ?? []).length || !cutState(rs.id).ok" @click="advanceStageManual(rs.id)">
             <i class="fa-solid fa-arrow-up-right-dots"></i> {{ advancing === rs.id ? 'Advancing…' : `Advance ${(manualPick[rs.id] ?? []).length} selected` }}
           </button>
         </template>
@@ -210,7 +243,12 @@ watch(() => props.reviewStages, (stages) => {
 .cpub-advance-pick-score { font-family: var(--font-mono); font-size: 11px; color: var(--accent); flex-shrink: 0; }
 .cpub-advance-manual .cpub-btn { align-self: flex-start; margin-top: 6px; }
 .cpub-advance-scores { margin-top: 10px; border: var(--border-width-default) solid var(--border); background: var(--surface2); padding: 8px 10px; }
-.cpub-advance-scores summary { cursor: pointer; font-size: 12px; font-weight: 600; color: var(--text); display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; }
+/* list-item, not flex: a flex summary drops the disclosure triangle, leaving
+   nothing to say the section opens. */
+.cpub-advance-scores summary { cursor: pointer; font-size: 12px; font-weight: 600; color: var(--text); display: list-item; }
+.cpub-advance-scores-meta { margin-left: 8px; }
+.cpub-advance-why { margin: 6px 0 0; }
+.cpub-advance-refresh { margin-bottom: 8px; }
 .cpub-advance-scores-meta { font-family: var(--font-mono); font-size: 11px; font-weight: 400; color: var(--text-dim); }
 .cpub-advance-score-list { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 .cpub-advance-score-row { padding: 6px 8px; border: var(--border-width-default) solid var(--border); background: var(--surface); }

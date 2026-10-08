@@ -234,8 +234,11 @@ function statusClass(status: string): string {
       <i class="fa-solid fa-pen-to-square"></i> Edit Contest
     </NuxtLink>
 
-    <NuxtLink v-if="canJudge && (contest?.status === 'judging')" :to="`/contests/${contest?.slug}/judge`" class="cpub-btn cpub-sb-link cpub-sb-judge">
-      <i class="fa-solid fa-gavel"></i> Judge Entries
+    <!-- Any accepted judge, any live status: before judging opens the page is
+         where a judge reads the entries ahead of time, and it was reachable
+         only from a URL the organizer had to send. -->
+    <NuxtLink v-if="canJudge && contest?.status !== 'completed' && contest?.status !== 'cancelled'" :to="`/contests/${contest?.slug}/judge`" class="cpub-btn cpub-sb-link cpub-sb-judge">
+      <i class="fa-solid fa-gavel"></i> {{ contest?.status === 'judging' ? 'Judge Entries' : 'Preview entries to judge' }}
     </NuxtLink>
 
     <NuxtLink v-if="contest?.status === 'completed'" :to="`/contests/${contest.slug}/results`" class="cpub-btn cpub-sb-link">

@@ -66,7 +66,7 @@ async function addJudge(userId: string): Promise<void> {
 }
 
 async function removeJudge(userId: string): Promise<void> {
-  if (!confirm('Remove this judge?')) return;
+  if (!confirm('Remove this judge? Any scores they gave in the round that is open now are removed too, and the averages recalculated.')) return;
   try {
     await ($fetch as Function)(`/api/contests/${props.contestSlug}/judges/${userId}`, { method: 'DELETE' });
     toast.success('Judge removed');
@@ -113,12 +113,13 @@ const roleLabels: Record<string, string> = {
             v-model="searchQuery"
             class="cpub-judges-input"
             placeholder="Search by name or username..."
+            aria-label="Search members to invite as judges"
             @input="handleSearch"
           />
           <select v-model="newJudgeRole" class="cpub-judges-input cpub-judges-select" aria-label="Judge role">
-            <option value="lead">Lead</option>
-            <option value="judge">Judge</option>
-            <option value="guest">Guest</option>
+            <option value="judge">Judge (scores entries)</option>
+            <option value="lead">Lead judge (scores entries)</option>
+            <option value="guest">Guest (can't score)</option>
           </select>
         </div>
         <div v-if="searchResults.length" class="cpub-judges-dropdown">

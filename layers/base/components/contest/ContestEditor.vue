@@ -354,10 +354,9 @@ const availableTransitions = computed<string[]>(() => contestTransitionsFrom(con
 const statusAction = contestStatusAction;
 
 async function transitionStatus(newStatus: string): Promise<void> {
-  // Only the consequential transitions confirm; reversible nudges (pause/resume,
-  // go-back) just apply.
-  if (newStatus === 'cancelled' && !confirm('Cancel this contest? This cannot be undone.')) return;
-  if (newStatus === 'completed' && !confirm('Complete this contest and publish results? Final rankings will be calculated.')) return;
+  // Every change that notifies entrants confirms, with the same copy as the hero.
+  const ask = contestTransitionConfirm(contest.value?.status, newStatus);
+  if (ask && !confirm(ask)) return;
   try {
     await $fetch(`/api/contests/${slug.value}/transition`, { method: 'POST', body: { status: newStatus } });
     toast.success(`Status changed to ${newStatus}`);
@@ -592,9 +591,10 @@ const reviewStages = computed(() => (contest.value?.stages ?? []).filter((s) => 
                 :judging-end-date="judgingEndDate"
               />
               <ContestAdvancementPanel
-                v-if="mode === 'edit' && reviewStages.length"
+                v-if="mode === 'edit' && reviewStages.length && contest"
                 :slug="slug"
                 :review-stages="reviewStages"
+                :contest="contest"
                 @advanced="refresh()"
               />
             </div>

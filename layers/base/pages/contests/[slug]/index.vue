@@ -182,14 +182,15 @@ function onTabKey(e: KeyboardEvent, key: string): void {
 // Admin contest management
 const transitioning = ref(false);
 async function transitionStatus(newStatus: string): Promise<void> {
-  if (newStatus === 'cancelled' && !confirm('Cancel this contest? This cannot be undone.')) return;
+  const ask = contestTransitionConfirm(contest.value?.status, newStatus);
+  if (ask && !confirm(ask)) return;
   transitioning.value = true;
   try {
     await $fetch(`/api/contests/${slug}/transition`, { method: 'POST', body: { status: newStatus } });
-    toast.success(`Contest ${newStatus}`);
+    toast.success(`Status changed to ${newStatus}`);
     refreshNuxtData();
-  } catch {
-    toast.error(`Failed to transition to ${newStatus}`);
+  } catch (err: unknown) {
+    toast.error(extractError(err));
   } finally {
     transitioning.value = false;
   }
@@ -202,6 +203,9 @@ async function acceptInvite(): Promise<void> {
   try {
     await $fetch(`/api/contests/${slug}/judges/accept`, { method: 'POST' });
     toast.success('You are now a judge for this contest');
+    // The judge page is the next step; the banner that held the Accept button
+    // just disappeared, so take them there rather than leave them looking.
+    await navigateTo(`/contests/${slug}/judge`);
     await refreshJudges();
   } catch {
     toast.error('Failed to accept invitation');
@@ -243,9 +247,20 @@ const currentSubmissionStage = computed(() => {
   };
   const cid = currentStageId(source);
   const stage = normalizeStages(source).find((s) => s.id === cid);
+  if (stage && stageDeadlinePassed(stage)) return null;
   return stage && stage.kind === 'submission' && stage.submissionTemplate?.length ? stage : null;
 });
 const myEntries = computed(() => entries.value.filter((e) => e.userId === user.value?.id));
+
+// The server refuses proposal and stage submissions once an organizer-defined
+// stage's end date passes (stageHasClosed), so stop rendering the forms then
+// rather than let an entrant fill one in and hit a refusal. Synthesized
+// (classic) stages never close on a date, matching the server.
+function stageDeadlinePassed(stage: { endsAt?: string | null; core?: boolean }): boolean {
+  if (stage.core || !stage.endsAt) return false;
+  const end = new Date(stage.endsAt).getTime();
+  return Number.isFinite(end) && Date.now() > end;
+}
 
 // Proposal mode (Phase 4): when the CURRENT submission stage is proposal-mode
 // and proposals are enabled, entrants submit a form (no pre-existing project)
@@ -261,6 +276,7 @@ const currentProposalStage = computed(() => {
     currentStageId: c.value.currentStageId,
   };
   const stage = normalizeStages(source).find((s) => s.id === currentStageId(source));
+  if (stage && stageDeadlinePassed(stage)) return null;
   return stage && stage.kind === 'submission' && stage.submissionMode === 'proposal' && stage.submissionTemplate?.length ? stage : null;
 });
 

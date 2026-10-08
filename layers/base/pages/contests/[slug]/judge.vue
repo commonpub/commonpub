@@ -5,6 +5,7 @@ const route = useRoute();
 const slug = route.params.slug as string;
 const { user } = useAuth();
 const toast = useToast();
+const { extract: extractError } = useApiError();
 
 import type { Serialized, ContestDetail, ContestEntryItem, ContestJudgeItem, JudgeScoreEntry } from '@commonpub/server';
 
@@ -14,7 +15,7 @@ const { data: judgesData, refresh: refreshJudges } = useLazyFetch<ContestJudgeIt
 // showed a judge the 20 newest entries and a progress bar reading "20 / 20"
 // while the rest were never scored by anyone. Client-only, like the page.
 type JudgeEntry = Serialized<ContestEntryItem> & { judgeScores?: JudgeScoreEntry[] };
-const { data: entriesData, refresh: refreshEntries } = useLazyAsyncData(
+const { data: entriesData, refresh: refreshEntries, status: entriesStatus } = useLazyAsyncData(
   `judge-entries-${slug}`,
   () => fetchAllPages<JudgeEntry>((offset, limit) =>
     $fetch<{ items: JudgeEntry[]; total: number }>(`/api/contests/${slug}/entries`, {
@@ -88,8 +89,11 @@ useSeoMeta({ title: () => `Judge: ${contest.value?.title || 'Contest'}, ${siteNa
 const myJudge = computed(() => (judgesData.value ?? []).find((j) => j.userId === user.value?.id) ?? null);
 const pendingInvite = computed(() => !!myJudge.value && !myJudge.value.acceptedAt);
 const isGuest = computed(() => myJudge.value?.role === 'guest');
-const canScore = computed(() => !!myJudge.value && !!myJudge.value.acceptedAt && !isGuest.value);
 const inJudgingPhase = computed(() => contest.value?.status === 'judging');
+// Scoring needs an open REVIEW round, not just the judging status: after a cut
+// the contest moves on to the next stage (a build sprint, say) while the status
+// stays `judging`, and the server refuses scores there.
+const roundOpen = computed(() => inJudgingPhase.value && !!currentRoundId.value);
 
 const accepting = ref(false);
 async function acceptInvite(): Promise<void> {
@@ -121,6 +125,11 @@ const entryList = computed(() => {
           .filter((f) => sub.fields[f.key])
           .map((f) => ({ key: f.key, label: f.label, type: f.type, value: sub.fields[f.key]! }))
       : [];
+    // Edited after the stage deadline? The server now refuses that, but answers
+    // saved late before it did (or while an organizer had extended the stage)
+    // are flagged so a judge knows what they're reading.
+    const stageEnd = artifactStage.value?.endsAt ? new Date(artifactStage.value.endsAt).getTime() : null;
+    const savedAt = sub?.submittedAt ? new Date(sub.submittedAt).getTime() : null;
     return {
       id: entry.id,
       contentId: entry.contentId,
@@ -139,6 +148,7 @@ const entryList = computed(() => {
       isOwn: !!user.value?.id && entry.userId === user.value.id,
       artifactRows,
       hasArtifact: !!sub,
+      savedLate: stageEnd !== null && savedAt !== null && savedAt > stageEnd,
     };
   });
 });
@@ -149,9 +159,14 @@ const scoredCount = computed(() => scoreable.value.filter((e) => e.myScore !== n
 const totalCount = computed(() => scoreable.value.length);
 const progressPct = computed(() => totalCount.value > 0 ? Math.round((scoredCount.value / totalCount.value) * 100) : 0);
 
-const scoring = ref<Record<string, number>>({});
-const critScoring = ref<Record<string, number[]>>({}); // per entry → [criterionScore...]
+// '' = not filled in. Criterion inputs used to start at 0, so a criterion the
+// judge never touched was submitted as a zero.
+type ScoreInput = number | '';
+const scoring = ref<Record<string, ScoreInput>>({});
+const critScoring = ref<Record<string, ScoreInput[]>>({}); // per entry → [criterionScore...]
 const feedback = ref<Record<string, string>>({});
+const unscoredOnly = ref(false);
+const visibleEntries = computed(() => (unscoredOnly.value ? entryList.value.filter((e) => e.myScore === null && !e.isOwn) : entryList.value));
 const submitting = ref<string | null>(null);
 // Per-card save status (announced via aria-live) so a judge sees the result next
 // to the entry they just scored, not in one banner far up the page (G8).
@@ -169,7 +184,7 @@ watch(entryList, (list) => {
     if (hasCriteria.value && critScoring.value[entry.id] === undefined) {
       // seed from a prior per-criterion submission, aligned by index
       critScoring.value[entry.id] = criteria.value.map((c, i) =>
-        entry.myCriteriaScores?.[i]?.score ?? 0,
+        entry.myCriteriaScores?.[i]?.score ?? '',
       );
     }
   }
@@ -180,37 +195,74 @@ function critTotal(entryId: string): number {
   const vals = critScoring.value[entryId] ?? [];
   const totalMax = criteria.value.reduce((s, _c, i) => s + critMax(i), 0);
   if (totalMax <= 0) return 0;
-  const sum = criteria.value.reduce((s, _c, i) => s + Math.min(Math.max(vals[i] ?? 0, 0), critMax(i)), 0);
+  const sum = criteria.value.reduce((s, _c, i) => {
+    const v = vals[i];
+    return s + (typeof v === 'number' ? Math.min(Math.max(v, 0), critMax(i)) : 0);
+  }, 0);
   return Math.round((sum / totalMax) * 100);
 }
+
+const isWhole = (v: unknown, max: number): v is number => typeof v === 'number' && Number.isInteger(v) && v >= 0 && v <= max;
+
+/**
+ * Unsaved work. Each card saves on its own button, so a judge who typed into
+ * five cards and pressed one lost the other four without a word. A card is
+ * dirty when what's in it differs from what the server last saved.
+ */
+function isDirty(entryId: string): boolean {
+  const e = entryList.value.find((x) => x.id === entryId);
+  if (!e || e.isOwn) return false;
+  const fb = feedback.value[entryId] ?? '';
+  if (fb !== (e.myFeedback ?? '')) return true;
+  if (hasCriteria.value) {
+    const vals = critScoring.value[entryId] ?? [];
+    return criteria.value.some((_c, i) => (vals[i] ?? '') !== (e.myCriteriaScores?.[i]?.score ?? ''));
+  }
+  return (scoring.value[entryId] ?? '') !== (e.myScore ?? '');
+}
+const dirtyCount = computed(() => entryList.value.filter((e) => isDirty(e.id)).length);
+
+function onBeforeUnload(ev: BeforeUnloadEvent): void {
+  if (dirtyCount.value > 0) {
+    ev.preventDefault();
+    ev.returnValue = '';
+  }
+}
+onMounted(() => window.addEventListener('beforeunload', onBeforeUnload));
+onBeforeUnmount(() => window.removeEventListener('beforeunload', onBeforeUnload));
+onBeforeRouteLeave(() => {
+  if (dirtyCount.value === 0) return true;
+  return window.confirm(`You have unsaved scores or feedback on ${dirtyCount.value} ${dirtyCount.value === 1 ? 'entry' : 'entries'}. Leave without saving?`);
+});
 
 function setStatus(entryId: string, ok: boolean, msg: string): void {
   saveStatus.value[entryId] = { ok, msg };
 }
+/** Editing a card retires its last message, so an old error can't outlive the fix. */
+function clearStatus(entryId: string): void {
+  if (saveStatus.value[entryId]) delete saveStatus.value[entryId];
+}
 
 async function submitScore(entryId: string): Promise<void> {
-  if (!inJudgingPhase.value) {
-    setStatus(entryId, false, 'Scoring is only open during the judging phase.');
+  if (!roundOpen.value) {
+    setStatus(entryId, false, 'No judging round is open right now.');
     return;
   }
 
   let body: Record<string, unknown>;
   if (hasCriteria.value) {
     const vals = critScoring.value[entryId] ?? [];
-    const criteriaScores = criteria.value.map((c, i) => ({
-      label: c.label,
-      score: Math.round(vals[i] ?? 0),
-      max: critMax(i),
-    }));
-    if (criteriaScores.some((c) => c.score < 0 || c.score > c.max)) {
-      setStatus(entryId, false, 'Each criterion score must be between 0 and its maximum.');
+    const missing = criteria.value.findIndex((_c, i) => !isWhole(vals[i], critMax(i)));
+    if (missing >= 0) {
+      setStatus(entryId, false, `Give "${criteria.value[missing]!.label}" a whole number from 0 to ${critMax(missing)}.`);
       return;
     }
+    const criteriaScores = criteria.value.map((c, i) => ({ label: c.label, score: vals[i] as number, max: critMax(i) }));
     body = { entryId, criteriaScores, feedback: feedback.value[entryId] || undefined };
   } else {
     const score = scoring.value[entryId];
-    if (score === undefined || score < 0 || score > 100) {
-      setStatus(entryId, false, 'Score must be between 0 and 100.');
+    if (!isWhole(score, 100)) {
+      setStatus(entryId, false, 'Enter a whole number from 0 to 100.');
       return;
     }
     body = { entryId, score, feedback: feedback.value[entryId] || undefined };
@@ -222,7 +274,7 @@ async function submitScore(entryId: string): Promise<void> {
     setStatus(entryId, true, 'Score saved.');
     await refreshEntries().catch(() => setStatus(entryId, true, 'Score saved, refresh to see the updated totals.'));
   } catch (err: unknown) {
-    setStatus(entryId, false, (err as { data?: { message?: string } })?.data?.message || 'Failed to submit score.');
+    setStatus(entryId, false, extractError(err) || 'Failed to submit score.');
   } finally {
     submitting.value = null;
   }
@@ -281,7 +333,7 @@ async function submitScore(entryId: string): Promise<void> {
     <!-- Guest judge (view-only) -->
     <div v-else-if="isGuest" class="cpub-judge-unauthorized">
       <i class="fa-solid fa-eye"></i>
-      <p>You are a guest judge and can view entries but cannot submit scores.</p>
+      <p>You're a guest judge, so you can follow the contest but not score entries. Ask the organizers if you should be a full judge.</p>
       <NuxtLink :to="`/contests/${slug}`" class="cpub-btn cpub-btn-sm">Back to Contest</NuxtLink>
     </div>
 
@@ -289,7 +341,12 @@ async function submitScore(entryId: string): Promise<void> {
       <!-- Judging not open yet -->
       <div v-if="!inJudgingPhase" class="cpub-judge-notice" role="status">
         <i class="fa-solid fa-circle-info"></i>
-        Scoring opens when the contest enters the judging phase (currently <strong>{{ contest.status }}</strong>).
+        <span>Scoring opens when the organizers start judging. You can read the entries now.</span>
+      </div>
+      <!-- Judging status, but between rounds (e.g. after a cut, during a build sprint). -->
+      <div v-else-if="!roundOpen" class="cpub-judge-notice" role="status">
+        <i class="fa-solid fa-circle-info"></i>
+        <span>No judging round is open right now. The organizers will open the next round when it's time to score.</span>
       </div>
 
       <!-- Rubric guidance (per-round criteria when the current review stage defines them) -->
@@ -298,7 +355,8 @@ async function submitScore(entryId: string): Promise<void> {
       </div>
 
       <!-- Progress bar -->
-      <div v-if="totalCount > 0" class="cpub-judge-progress">
+      <!-- Between rounds there's nothing to count, so no "Scored 0 / N". -->
+      <div v-if="totalCount > 0 && (roundOpen || !inJudgingPhase)" class="cpub-judge-progress">
         <div class="cpub-judge-progress-label">
           Scored <strong>{{ scoredCount }}</strong> / <strong>{{ totalCount }}</strong> entries
         </div>
@@ -307,13 +365,35 @@ async function submitScore(entryId: string): Promise<void> {
         </div>
       </div>
 
-      <div v-if="entryList.length === 0" class="cpub-judge-empty">
+      <!-- Entries are their own request: "No entries" must not show while they
+           load, or when the request failed (a judge would conclude there's
+           nothing to do). -->
+      <div v-if="entriesStatus === 'pending' || entriesStatus === 'idle'" class="cpub-judge-empty" role="status">
+        <p>Loading entries...</p>
+      </div>
+      <div v-else-if="entriesStatus === 'error'" class="cpub-judge-empty" role="alert">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <p>The entries couldn't be loaded.</p>
+        <button type="button" class="cpub-btn cpub-btn-sm" @click="refreshEntries()">Try again</button>
+      </div>
+      <div v-else-if="entryList.length === 0" class="cpub-judge-empty">
         <i class="fa-solid fa-inbox"></i>
         <p>No entries to judge yet.</p>
       </div>
 
-      <div v-else class="cpub-judge-entries">
-        <div v-for="entry in entryList" :key="entry.id" class="cpub-judge-entry">
+      <template v-else>
+      <div class="cpub-judge-toolbar">
+        <label class="cpub-judge-filter">
+          <input v-model="unscoredOnly" type="checkbox" />
+          <span>Show only entries I haven't scored</span>
+        </label>
+        <span v-if="dirtyCount" class="cpub-judge-dirty-count" role="status">
+          {{ dirtyCount }} unsaved {{ dirtyCount === 1 ? 'card' : 'cards' }}
+        </span>
+      </div>
+      <p v-if="unscoredOnly && visibleEntries.length === 0" class="cpub-judge-empty">You've scored every entry in this round.</p>
+      <div class="cpub-judge-entries">
+        <div v-for="entry in visibleEntries" :key="entry.id" class="cpub-judge-entry" :class="{ 'is-dirty': isDirty(entry.id) }">
           <div class="cpub-judge-entry-info">
             <div class="cpub-judge-entry-title">{{ entry.contentTitle }}</div>
             <div class="cpub-judge-entry-author">by {{ entry.authorName }}</div>
@@ -327,7 +407,10 @@ async function submitScore(entryId: string): Promise<void> {
 
             <!-- This round's artifact (the proposal / prototype fields) -->
             <div v-if="artifactStage" class="cpub-judge-artifact">
-              <div class="cpub-judge-artifact-head">{{ artifactStage.name }} submission</div>
+              <div class="cpub-judge-artifact-head">
+                {{ artifactStage.name }} submission
+                <span v-if="entry.savedLate" class="cpub-judge-late">Edited after the deadline</span>
+              </div>
               <dl v-if="entry.hasArtifact && entry.artifactRows.length" class="cpub-judge-artifact-fields">
                 <template v-for="row in entry.artifactRows" :key="row.key">
                   <dt>{{ row.label }}</dt>
@@ -357,12 +440,15 @@ async function submitScore(entryId: string): Promise<void> {
                   <div class="cpub-judge-crit-input-wrap">
                     <input
                       :id="`crit-${entry.id}-${i}`"
-                      v-model.number="critScoring[entry.id][i]"
+                      v-model.number="critScoring[entry.id]![i]"
                       type="number"
+                      inputmode="numeric"
+                      step="1"
                       class="cpub-judge-crit-input"
                       min="0"
                       :max="critMax(i)"
                       :aria-label="`${crit.label} score, max ${critMax(i)}`"
+                      @input="clearStatus(entry.id)"
                     />
                     <span class="cpub-judge-crit-max">/ {{ critMax(i) }}</span>
                   </div>
@@ -375,15 +461,20 @@ async function submitScore(entryId: string): Promise<void> {
                   v-if="!hasCriteria"
                   v-model.number="scoring[entry.id]"
                   type="number"
+                  inputmode="numeric"
+                  step="1"
                   class="cpub-judge-score-input"
                   min="0"
                   max="100"
                   placeholder="0-100"
                   :aria-label="`Overall score for ${entry.contentTitle}, 0 to 100`"
+                  @input="clearStatus(entry.id)"
                 />
                 <button
+                  type="button"
                   class="cpub-judge-score-btn"
-                  :disabled="submitting === entry.id || !inJudgingPhase"
+                  :disabled="submitting === entry.id || !roundOpen"
+                  :aria-label="`${entry.myScore !== null ? 'Update' : 'Save'} score for ${entry.contentTitle}`"
                   @click="submitScore(entry.id)"
                 >
                   {{ submitting === entry.id ? '...' : entry.myScore !== null ? 'Update' : 'Score' }}
@@ -396,10 +487,14 @@ async function submitScore(entryId: string): Promise<void> {
                 class="cpub-judge-feedback"
                 placeholder="Optional feedback (max 2000 chars)"
                 maxlength="2000"
-                rows="2"
+                rows="4"
+                @input="clearStatus(entry.id)"
               ></textarea>
+              <!-- Order: a refused save's reason first (the card is still unsaved,
+                   and "Unsaved changes" alone would hide WHY), then unsaved
+                   (beats a stale "Score saved." from before the edit), then saved. -->
               <p
-                v-if="saveStatus[entry.id]"
+                v-if="saveStatus[entry.id] && (!saveStatus[entry.id]!.ok || !isDirty(entry.id))"
                 class="cpub-judge-save-status"
                 :class="saveStatus[entry.id]!.ok ? 'is-ok' : 'is-err'"
                 role="status"
@@ -408,13 +503,17 @@ async function submitScore(entryId: string): Promise<void> {
                 <i :class="saveStatus[entry.id]!.ok ? 'fa-solid fa-circle-check' : 'fa-solid fa-circle-exclamation'"></i>
                 {{ saveStatus[entry.id]!.msg }}
               </p>
-              <p v-else-if="!inJudgingPhase" class="cpub-judge-save-status is-muted">
-                Scoring opens in the judging phase.
+              <p v-else-if="isDirty(entry.id) && roundOpen" class="cpub-judge-save-status is-dirty" role="status">
+                <i class="fa-solid fa-pen"></i> Unsaved changes. Press {{ entry.myScore !== null ? 'Update' : 'Score' }} to save.
+              </p>
+              <p v-else-if="!roundOpen" class="cpub-judge-save-status is-muted">
+                {{ inJudgingPhase ? 'No round is open for scoring.' : 'Scoring opens when judging starts.' }}
               </p>
             </div>
           </div>
         </div>
       </div>
+      </template>
     </template>
   </div>
   </ClientOnly>
@@ -457,19 +556,25 @@ async function submitScore(entryId: string): Promise<void> {
 }
 .cpub-judge-entry-info { flex: 1; min-width: 0; }
 .cpub-judge-entry-title { font-size: 14px; font-weight: 600; color: var(--text); }
-.cpub-judge-entry-author { font-size: 11px; color: var(--text-faint); margin-top: 2px; }
+.cpub-judge-entry-author { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
 .cpub-judge-entry-link { font-size: 10px; color: var(--accent); text-decoration: none; display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; }
 .cpub-judge-entry-link:hover { text-decoration: underline; }
 
 .cpub-judge-artifact { margin-top: 10px; border: var(--border-width-default) dashed var(--border2); background: var(--surface2); }
 .cpub-judge-artifact-head { font-size: 9px; font-family: var(--font-mono); font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--accent); padding: 6px 10px; border-bottom: var(--border-width-default) dashed var(--border2); }
 .cpub-judge-artifact-fields { margin: 0; padding: 8px 10px; display: grid; grid-template-columns: minmax(90px, 130px) 1fr; gap: 4px 10px; }
-.cpub-judge-artifact-fields dt { font-size: 10px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: .05em; color: var(--text-faint); }
-.cpub-judge-artifact-fields dd { margin: 0; font-size: 12px; color: var(--text); line-height: 1.5; white-space: pre-line; overflow-wrap: anywhere; }
+.cpub-judge-artifact-fields dt { font-size: 11px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: .05em; color: var(--text-dim); }
+.cpub-judge-artifact-fields dd { margin: 0; font-size: 14px; color: var(--text); line-height: 1.5; white-space: pre-line; overflow-wrap: anywhere; }
 .cpub-judge-artifact-fields dd a { color: var(--accent); }
 .cpub-judge-artifact-none { font-size: 11px; color: var(--text-faint); margin: 0; padding: 8px 10px; }
 
-.cpub-judge-entry-scoring { display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; min-width: 220px; }
+.cpub-judge-entry-scoring { display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; min-width: 220px; position: sticky; top: calc(var(--cpub-header-h, 64px) + 12px); align-self: flex-start; }
+.cpub-judge-entry.is-dirty { border-color: var(--accent); }
+.cpub-judge-toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px 16px; margin-bottom: 12px; }
+.cpub-judge-filter { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-dim); cursor: pointer; }
+.cpub-judge-filter input { width: 16px; height: 16px; }
+.cpub-judge-dirty-count { font-family: var(--font-mono); font-size: 11px; color: var(--accent); }
+.cpub-judge-late { margin-left: 8px; padding: 1px 6px; border: var(--border-width-default) solid var(--yellow-border, var(--border)); background: var(--yellow-bg, var(--surface2)); color: var(--yellow-text, var(--text)); text-transform: none; letter-spacing: 0; font-weight: 600; }
 .cpub-judge-current-score { text-align: center; }
 .cpub-judge-score-label { display: block; font-family: var(--font-mono); font-size: 9px; color: var(--text-faint); text-transform: uppercase; }
 .cpub-judge-score-value { font-size: 20px; font-weight: 700; color: var(--accent); font-family: var(--font-mono); }
@@ -497,17 +602,23 @@ async function submitScore(entryId: string): Promise<void> {
 .cpub-judge-score-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 .cpub-judge-feedback {
   width: 100%; padding: 6px 8px; border: var(--border-width-default) solid var(--border); background: var(--surface);
-  color: var(--text); font-size: 11px; font-family: inherit; resize: vertical; outline: none;
+  color: var(--text); font-size: 13px; font-family: inherit; resize: vertical; outline: none;
 }
 .cpub-judge-feedback:focus { border-color: var(--accent); }
 .cpub-judge-save-status { display: flex; align-items: center; gap: 5px; margin: 2px 0 0; font-size: 11px; font-family: var(--font-mono); }
 .cpub-judge-save-status.is-ok { color: var(--green-text); }
 .cpub-judge-save-status.is-err { color: var(--red-text); }
-.cpub-judge-save-status.is-muted { color: var(--text-faint); }
+.cpub-judge-save-status.is-muted { color: var(--text-dim); }
+.cpub-judge-save-status.is-dirty { color: var(--accent); }
 .cpub-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 
 @media (max-width: 768px) {
+  .cpub-judge-page { padding: 24px 16px; }
   .cpub-judge-entry { flex-direction: column; }
-  .cpub-judge-entry-scoring { min-width: 100%; }
+  .cpub-judge-entry-scoring { min-width: 100%; position: static; }
+}
+@media (max-width: 600px) {
+  .cpub-judge-artifact-fields { grid-template-columns: 1fr; }
+  .cpub-judge-artifact-fields dd { margin-bottom: 6px; }
 }
 </style>
