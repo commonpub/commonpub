@@ -5,6 +5,13 @@ definePageMeta({ layout: 'admin', middleware: 'auth' });
 useSeoMeta({ title: `Users, Admin, ${useSiteName()}` });
 
 const search = ref('');
+// The query is bound to a debounced copy: every keystroke used to fire a request.
+const searchQuery = ref('');
+let searchTimer: ReturnType<typeof setTimeout> | null = null;
+watch(search, (v) => {
+  if (searchTimer) clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => { searchQuery.value = v; }, 300);
+});
 const toast = useToast();
 
 // 'any' means no filter at all; the route rejects anything but the two
@@ -16,11 +23,11 @@ const emailFilter = ref<'any' | 'true' | 'false'>('any');
 const PAGE_SIZE = 50;
 const page = ref(1);
 // A new search or filter starts again from the first page.
-watch([search, emailFilter], () => { page.value = 1; });
+watch([searchQuery, emailFilter], () => { page.value = 1; });
 
 const { data: users, refresh } = await useFetch('/api/admin/users', {
   query: computed(() => ({
-    search: search.value || undefined,
+    search: searchQuery.value || undefined,
     emailVerified: emailFilter.value === 'any' ? undefined : emailFilter.value,
     limit: PAGE_SIZE,
     offset: (page.value - 1) * PAGE_SIZE,
@@ -34,6 +41,10 @@ const rangeEnd = computed(() => Math.min(page.value * PAGE_SIZE, totalUsers.valu
 // Deleting the last row of the last page would otherwise strand the view on an
 // empty page past the end.
 watch(totalPages, (tp) => { if (page.value > tp) page.value = tp; });
+// Paging from the bottom pager leaves the viewer at the bottom of the new page.
+watch(page, () => {
+  if (typeof window !== 'undefined') document.querySelector('.admin-users')?.scrollIntoView({ block: 'start' });
+});
 
 // Custom (non-system) roles — for per-user assignment. Requires `roles.manage`;
 // useFetch won't crash the page if the viewer lacks it (data stays null).
