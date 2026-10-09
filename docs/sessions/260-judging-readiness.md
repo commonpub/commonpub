@@ -201,6 +201,36 @@ host disk that was 98% full (11 GB free, Docker.raw about 26 GB). The second
 round of fixes is covered by the unit, integration and typecheck gates, but not
 yet re-walked.
 
+## Branch audit (fourth request, 2026-10-09)
+
+Three reviewers covered server logic, routes and privacy, and UI and server
+rendering. I verified each finding I acted on. Fixed in 9b8a2ca8 (server) and
+17e7b355 (layer):
+
+- **P0:** a judge-page save blanked the list (`refresh()` → `pending` → loading
+  state). This is a defect I introduced in the walk-through fixes. It's the class
+  the "audit your own fixes" rule is for.
+- **P1s:**
+  - the later-round guard bypassed by moving the pointer back by hand (mutation-tested);
+  - a removed judge's in-flight score;
+  - post-deadline Submit prompts (one shared `contestEntriesClosed`);
+  - finalist copy after the final cut;
+  - a manual re-run blind to its own cuts;
+  - unscored finalists missing from results;
+  - a double toast.
+- **P2s:** a whole-field elimination from bad cut input, the legacy re-run fallback,
+  pending judges on the personal-data route and the showcase import, the results note
+  wording, and the admin search scroll and timer.
+
+Open P2s are listed in `260-handoff.md`.
+
+Live deveco at 08:47 UTC: still `active`, 0 judges, **22 entries** (one more than
+last night, so a submission after the deadline arrived as predicted), no rubric, the
+0001 date unchanged.
+
+STATUS.md header re-verified against the registry and live `/api/features`: 47 boolean
+flags per instance, and CI on `main` per job.
+
 ## Open
 
 - **Release:** server 2.136.0 → **2.137.0** (new exports), layer 0.138.1 →
