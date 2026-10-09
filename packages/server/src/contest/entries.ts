@@ -91,6 +91,8 @@ export async function listContestEntries(
           slug: contentItems.slug,
           type: contentItems.type,
           coverImageUrl: contentItems.coverImageUrl,
+          status: contentItems.status,
+          visibility: contentItems.visibility,
         },
         author: {
           displayName: users.displayName,
@@ -142,6 +144,12 @@ export async function listContestEntries(
       authorName: row.author.displayName ?? row.author.username,
       authorUsername: row.author.username,
       authorAvatarUrl: row.author.avatarUrl,
+      // Lets privileged views tell a built, published project from a proposal's
+      // draft placeholder: finals judges should open the project, and an
+      // organizer must know a finalist hasn't published before completing (an
+      // unpublished winner is missing from the public results). Session 260.
+      contentStatus: row.content.status,
+      contentVisibility: row.content.visibility,
     };
     if (opts.includeJudgeScores) {
       item.judgeScores = (row.entry.judgeScores ?? []) as JudgeScoreEntry[];

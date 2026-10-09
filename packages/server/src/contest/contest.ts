@@ -363,7 +363,7 @@ export async function transitionContestStatus(
               userId: entrant.userId,
               type: 'contest',
               title: 'You won!',
-              message: `Congratulations — you placed ${ordinalPlace(rank!)} in "${contestInfo.title}"${won}!`,
+              message: `Congratulations, you placed ${ordinalPlace(rank!)} in "${contestInfo.title}"${won}!`,
               link,
               actorId: userId,
             }).catch(() => {});
