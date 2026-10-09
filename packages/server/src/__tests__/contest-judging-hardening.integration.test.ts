@@ -133,6 +133,15 @@ describe('contest judging hardening (session 260)', () => {
 
     const empty = await advanceContestStage(db, c.id, organizerId, { reviewStageId: 'r1', mode: 'manual', advancedEntryIds: [] });
     expect(empty.advanced).toBe(false);
+    expect(empty.error).toMatch(/pick at least one/i);
+    // Ids that match nobody would otherwise eliminate the whole field.
+    const ghost = await advanceContestStage(db, c.id, organizerId, { reviewStageId: 'r1', mode: 'manual', advancedEntryIds: ['00000000-0000-0000-0000-000000000000'] });
+    expect(ghost.advanced).toBe(false);
+    expect(ghost.error).toMatch(/none of the picked/i);
+    const zero = await advanceContestStage(db, c.id, organizerId, { reviewStageId: 'r1', mode: 'topN', topN: 0 });
+    expect(zero.advanced).toBe(false);
+    expect(zero.error).toMatch(/at least one/i);
+    expect((await byId(c.id))[Object.keys(await byId(c.id))[0]!]!.eliminated).toBe(false);
   });
 
   it('re-running an earlier cut never moves the stage pointer backwards, and is refused once a later round has scores', async () => {
@@ -249,6 +258,34 @@ describe('contest judging hardening (session 260)', () => {
     const after = (await byId(c.id))[a.id]!;
     expect(after.score).toBe(90);
     expect(after.judgeScores!.some((s) => s.judgeId === judgeB)).toBe(false);
+  });
+
+  it('a pointer moved back by hand does not reopen an earlier cut once a later round has scores', async () => {
+    const c = await staged();
+    const a = await enter(c.id, 'a');
+    const b = await enter(c.id, 'b');
+    await transitionContestStatus(db, c.id, organizerId, 'judging');
+    await judgeContestEntry(db, a.id, 80, judgeA);
+    await judgeContestEntry(db, b.id, 60, judgeA);
+    await advanceContestStage(db, c.id, organizerId, { reviewStageId: 'r1', mode: 'topN', topN: 2 });
+    await updateContest(db, c.slug, organizerId, { currentStageId: 'r2' });
+    await judgeContestEntry(db, a.id, 70, judgeA);
+    // The organizer points back at r1 "to look", then presses Advance there.
+    await updateContest(db, c.slug, organizerId, { currentStageId: 'r1' });
+    const res = await advanceContestStage(db, c.id, organizerId, { reviewStageId: 'r1', mode: 'topN', topN: 1 });
+    expect(res.advanced).toBe(false);
+    expect(res.error).toMatch(/later round/i);
+    // The finals score survived.
+    expect((await byId(c.id))[a.id]!.judgeScores!.some((s) => s.roundId === 'r2' && s.score === 70)).toBe(true);
+  });
+
+  it('a removed judge cannot score', async () => {
+    const c = await staged();
+    const a = await enter(c.id, 'a');
+    await transitionContestStatus(db, c.id, organizerId, 'judging');
+    await removeContestJudge(db, c.id, judgeB);
+    const r = await judgeContestEntry(db, a.id, 99, judgeB);
+    expect(r.judged).toBe(false);
   });
 
   it('Start Judging moves an explicit submission-stage pointer to the next review round', async () => {

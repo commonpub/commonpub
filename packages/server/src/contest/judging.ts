@@ -174,6 +174,18 @@ export async function judgeContestEntry(
     if (isEliminated({ stageState: locked?.stageState })) {
       return { judged: false, error: 'This entry was not advanced and can no longer be scored' };
     }
+    // And the judge is still on the panel. removeContestJudge deletes the judge
+    // row BEFORE it locks entries to strip scores, so a score that waited on this
+    // lock behind a removal would otherwise be appended after the strip and keep
+    // counting (session 260 review).
+    const [stillJudge] = await tx
+      .select({ role: contestJudges.role, acceptedAt: contestJudges.acceptedAt })
+      .from(contestJudges)
+      .where(and(eq(contestJudges.contestId, row.contestId), eq(contestJudges.userId, judgeId)))
+      .limit(1);
+    if (!stillJudge || !stillJudge.acceptedAt || stillJudge.role === 'guest') {
+      return { judged: false, error: 'Not authorized to judge this contest' };
+    }
 
     const scores = (locked?.judgeScores ?? []) as JudgeScoreEntry[];
     const record: JudgeScoreEntry = { judgeId, score: overall, feedback };
@@ -275,14 +287,15 @@ export async function advanceContestStage(
 
     // Re-running an earlier round once a later round has been cut or scored
     // would reshuffle a field that later judges are already working on.
-    if (!isCurrent) {
-      const laterStarted = rows.some(
-        (r) =>
-          (r.stageState ?? []).some((s) => laterReviewIds.has(s.stageId)) ||
-          ((r.judgeScores ?? []) as JudgeScoreEntry[]).some((s) => s.roundId && laterReviewIds.has(s.roundId)),
-      );
-      if (laterStarted) return { error: 'A later round has already started, so this cut can no longer be changed' };
-    }
+    // Checked whether or not this round is "current": an organizer can move the
+    // pointer back to an earlier round by hand, and a cut there would otherwise
+    // reshuffle the later field and clear its live scores (session 260 review).
+    const laterStarted = rows.some(
+      (r) =>
+        (r.stageState ?? []).some((s) => laterReviewIds.has(s.stageId)) ||
+        ((r.judgeScores ?? []) as JudgeScoreEntry[]).some((s) => s.roundId && laterReviewIds.has(s.roundId)),
+    );
+    if (laterStarted) return { error: 'A later round has already started, so this cut can no longer be changed' };
 
     // The cohort is every entry not eliminated at some OTHER stage. Eliminations
     // from THIS stage are exactly what a re-run recomputes; filtering them out
@@ -302,14 +315,21 @@ export async function advanceContestStage(
       return xs.length ? xs.reduce((t, s) => t + s.score, 0) / xs.length : null;
     };
     const anyTagged = eligible.some((r) => roundMean(r) !== null);
-    const cutScore = (r: (typeof rows)[number]): number | null => (anyTagged ? roundMean(r) : r.score ?? null);
+    // Legacy fallback: the live score, or (on a re-run, after the first cut
+    // cleared it) this stage's own snapshot, so a re-run doesn't cut by id.
+    const priorSnap = (r: (typeof rows)[number]): number | null =>
+      (r.stageState ?? []).find((s) => s.stageId === input.reviewStageId)?.score ?? null;
+    const cutScore = (r: (typeof rows)[number]): number | null => (anyTagged ? roundMean(r) : r.score ?? priorSnap(r));
 
     let advancedIds: Set<string>;
     if (input.mode === 'manual') {
       const picked = new Set(input.advancedEntryIds ?? []);
       advancedIds = new Set(eligible.filter((e) => picked.has(e.id)).map((e) => e.id));
+      // Ids that match nobody in the field would eliminate everyone.
+      if (advancedIds.size === 0) return { error: 'None of the picked entries is in this round' };
     } else {
-      const n = Math.max(0, input.topN ?? 0);
+      const n = Math.trunc(input.topN ?? 0);
+      if (n < 1) return { error: 'Advance at least one entry' };
       const sorted = [...eligible].sort(
         (a, b) =>
           (cutScore(b) ?? -Infinity) - (cutScore(a) ?? -Infinity) ||
