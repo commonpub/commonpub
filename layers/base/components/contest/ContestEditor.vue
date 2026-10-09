@@ -137,10 +137,12 @@ provide(UPLOAD_HANDLER_KEY, (file: File) => uploadFile<{ url: string; width?: nu
 // slug yet). Maps the judges API row shape to the showcase's curated-row shape.
 provide(CONTEST_JUDGES_KEY, async () => {
   if (!slug.value) return [];
-  const rows = await $fetch<Array<{ userName: string; userAvatar?: string | null; userUsername: string; role: string }>>(
+  const rows = await $fetch<Array<{ userName: string; userAvatar?: string | null; userUsername: string; role: string; acceptedAt?: string | null }>>(
     `/api/contests/${slug.value}/judges`,
   );
-  return rows.map((r) => ({
+  // Accepted judges only: an organizer's list includes pending invitations, and
+  // importing one would publish the name of someone who never said yes.
+  return rows.filter((r) => !!r.acceptedAt).map((r) => ({
     name: r.userName,
     avatarUrl: r.userAvatar ?? undefined,
     link: r.userUsername ? `/u/${r.userUsername}` : undefined,
@@ -354,10 +356,9 @@ const availableTransitions = computed<string[]>(() => contestTransitionsFrom(con
 const statusAction = contestStatusAction;
 
 async function transitionStatus(newStatus: string): Promise<void> {
-  // Only the consequential transitions confirm; reversible nudges (pause/resume,
-  // go-back) just apply.
-  if (newStatus === 'cancelled' && !confirm('Cancel this contest? This cannot be undone.')) return;
-  if (newStatus === 'completed' && !confirm('Complete this contest and publish results? Final rankings will be calculated.')) return;
+  // Every change that notifies entrants confirms, with the same copy as the hero.
+  const ask = contestTransitionConfirm(contest.value?.status, newStatus);
+  if (ask && !confirm(ask)) return;
   try {
     await $fetch(`/api/contests/${slug.value}/transition`, { method: 'POST', body: { status: newStatus } });
     toast.success(`Status changed to ${newStatus}`);
@@ -592,9 +593,10 @@ const reviewStages = computed(() => (contest.value?.stages ?? []).filter((s) => 
                 :judging-end-date="judgingEndDate"
               />
               <ContestAdvancementPanel
-                v-if="mode === 'edit' && reviewStages.length"
+                v-if="mode === 'edit' && reviewStages.length && contest"
                 :slug="slug"
                 :review-stages="reviewStages"
+                :contest="contest"
                 @advanced="refresh()"
               />
             </div>

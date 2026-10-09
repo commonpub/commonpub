@@ -70,6 +70,22 @@ export function currentStageEnd(c: StageSource): string | null {
   return currentStage(c)?.endsAt ?? null;
 }
 
+/**
+ * An active contest that can't take NEW entries right now: the current stage of
+ * an organizer-defined timeline isn't a submission stage, or its end date has
+ * passed. Mirrors the server's gate (submitContestEntry + stageHasClosed), which
+ * refuses then, so every "Submit entry" prompt should hide. Classic contests
+ * (no explicit stages) never close on a date, like the server.
+ */
+export function contestEntriesClosed(c: StageSource, now: number = Date.now()): boolean {
+  if (c.status !== 'active' || !c.stages?.length) return false;
+  const st = currentStage(c);
+  if (!st || st.kind !== 'submission') return true;
+  if (st.core || !st.endsAt) return false;
+  const end = new Date(st.endsAt).getTime();
+  return Number.isFinite(end) && now > end;
+}
+
 // ─── Pure stage-array operations (used by ContestStagesEditor; unit-tested) ───
 
 export function newStageId(): string {

@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import type { Serialized, ContestDetail } from '@commonpub/server';
+// Explicit, not auto-imported: component tests run without Nuxt's auto-imports.
+import { contestEntriesClosed } from '../../utils/contestStages';
 
 const props = defineProps<{
   contest: Serialized<ContestDetail> | null;
@@ -68,7 +70,10 @@ const countdownTargetStr = computed<string | null>(() => {
   const cv = c.value;
   if (!cv) return null;
   const s = cv.status;
-  if (s === 'judging') return cv.judgingEndDate ?? cv.endDate ?? null;
+  // Judging: the CURRENT round's end when the contest is staged (a four-day
+  // semi-final round must not read "Judging ends in 101d" off the contest-wide
+  // judging end). A classic contest has no stage end and keeps judgingEndDate.
+  if (s === 'judging') return (cv.stages?.length ? currentStageEnd(cv) : null) ?? cv.judgingEndDate ?? cv.endDate ?? null;
   if (s === 'upcoming') return cv.startDate ?? null;
   // active / paused: the CURRENT stage's end (the open round for a multi-stage
   // contest — e.g. the Proposals deadline), NOT the far-off final endDate. For a
@@ -129,7 +134,11 @@ const countdownLabel = computed(() => {
   const cv = c.value;
   const s = cv?.status;
   if (s === 'completed' || s === 'cancelled') return 'Contest ended';
-  if (s === 'judging') return 'Judging ends in';
+  if (s === 'judging') {
+    // Staged: name the round (or the build sprint between rounds).
+    const st = cv?.stages?.length ? currentStage(cv) : null;
+    return st?.name ? `${st.name} ends in` : 'Judging ends in';
+  }
   if (s === 'upcoming') return 'Opens in';
   // active / paused: "Submissions close in" is right for the open submission round
   // (and every classic contest); for a multi-stage contest sitting in a non-
@@ -235,6 +244,9 @@ const showSubmitCta = computed(
   () =>
     props.isAuthenticated &&
     c.value?.status === 'active' &&
+    // After mount only (it reads the clock), and never past the stage deadline:
+    // the server refuses the entry then.
+    !(mounted.value && c.value && contestEntriesClosed({ ...c.value, judgingEndDate: c.value.judgingEndDate ?? null })) &&
     (isFullyRegistered.value || props.entryRequiresRegistration === false),
 );
 </script>

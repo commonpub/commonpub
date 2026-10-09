@@ -1,4 +1,4 @@
-import { getContestBySlug, getContestEntry, canViewContest, getEntryPrivateData, isContestEditor, isContestJudge } from '@commonpub/server';
+import { getContestBySlug, getContestEntry, canViewContest, getEntryPrivateData, isContestEditor, getContestJudgeMembership } from '@commonpub/server';
 import type { EntryPrivateData } from '@commonpub/server';
 
 /**
@@ -37,7 +37,8 @@ export default defineEventHandler(async (event): Promise<EntryPrivateData> => {
     user.id === contest.createdById ||
     hasPermission(event, 'contest.manage') ||
     (await isContestEditor(db, contest.id, user.id));
-  const isJudge = await isContestJudge(db, contest.id, user.id);
+  // An ACCEPTED judge only; a pending invitation is not a judge (session 260).
+  const isJudge = !!(await getContestJudgeMembership(db, contest.id, user.id))?.acceptedAt;
   if (!isEntrant && !(hasPermission(event, 'contest.pii') && (canManage || isJudge))) {
     throw createError({ statusCode: 403, statusMessage: 'You do not have access to entrant personal data' });
   }

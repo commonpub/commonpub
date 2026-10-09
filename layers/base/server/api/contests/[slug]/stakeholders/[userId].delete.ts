@@ -8,9 +8,9 @@ export default defineEventHandler(async (event) => {
   requireFeature('contests');
   const user = requireAuth(event);
   const db = useDB();
-  const slug = getRouterParam(event, 'slug');
-  const userId = getRouterParam(event, 'userId');
-  if (!slug || !userId) throw createError({ statusCode: 400, statusMessage: 'Missing slug or userId' });
+  // userId validated as a uuid (the DOMAIN, not just "a string"): a non-uuid
+  // used to reach Postgres as a uuid bind and come back as a 500.
+  const { slug, userId } = parseParams(event, { slug: 'string', userId: 'uuid' });
 
   const contest = await getContestBySlug(db, slug);
   if (!contest) throw createError({ statusCode: 404, statusMessage: 'Contest not found' });

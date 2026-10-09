@@ -94,7 +94,9 @@ describe('ContestProposalForm — submit', () => {
       '/api/contests/resilient/proposal',
       { method: 'POST', body: { stageId: 'proposals', fields: { project_name: 'Solar Mesh' } } },
     );
-    expect(toastSuccess).toHaveBeenCalled();
+    // The page confirms (it knows what happens next); the form stays quiet so the
+    // entrant doesn't get two toasts with different advice (session 260).
+    expect(toastSuccess).not.toHaveBeenCalled();
     expect(emitted().submitted?.[0]).toEqual(['my-build', 'project']);
   });
 

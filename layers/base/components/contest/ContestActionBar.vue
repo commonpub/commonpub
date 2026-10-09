@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { contestEntriesClosed } from '../../utils/contestStages';
 import type { Serialized, ContestDetail } from '@commonpub/server';
 
 /**
@@ -49,6 +50,9 @@ const emit = defineEmits<{
 const status = computed(() => props.contest?.status ?? '');
 const slug = computed(() => props.contest?.slug ?? '');
 const isFull = computed(() => props.registrationTier === 'full');
+// Past the open stage's deadline the server refuses new entries. isFull is
+// client-only data, so this only ever renders after hydration.
+const entriesClosed = computed(() => !!props.contest && contestEntriesClosed({ ...props.contest, judgingEndDate: props.contest.judgingEndDate ?? null }));
 const isFollowing = computed(() => props.registrationTier === 'reminders');
 
 // Mirrors the server's REGISTERABLE_STATUSES and the signup card.
@@ -130,7 +134,7 @@ usePublishedHeight(root, '--cpub-contest-actions-h');
       <!-- FULL REGISTRANT: entering is the next step, but only while open. -->
       <template v-else-if="isFull">
         <button
-          v-if="status === 'active'"
+          v-if="status === 'active' && !entriesClosed"
           type="button"
           class="cpub-btn cpub-btn-primary cpub-contest-actions-main"
           @click="emit('submit-entry')"

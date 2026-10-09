@@ -4,27 +4,30 @@
 > full-repository audit found the previous header wrong on **27 of 38** present-tense
 > state claims, and self-contradictory 40 lines apart. Everything below the first `---`
 > is **historical session narrative** and has NOT been re-verified; read it as a log, not
-> as current state. Only this header is warranted current as of 2026-08-30.
+> as current state. Only this header is warranted current as of 2026-10-09.
 
-## Verified current state — 2026-08-30
+## Verified current state — 2026-10-09
 
-Every figure here was taken from the registry, `gh`, or a live request on the date above.
+Every figure here was taken from the registry or a live request on the date above.
 Re-check before trusting it: `npm view @commonpub/<pkg> version`,
 `curl https://<instance>/api/features`, `gh run list --branch main`.
 
-**Published (all match the working tree):** schema **0.66.0** · config **0.40.0** ·
-protocol **0.15.3** · auth **0.13.3** · ui **0.16.1** · editor **0.17.2** ·
-explainer **0.9.1** · learning **0.5.5** · infra **0.21.0** · server **2.134.0** ·
-docs **0.6.3** · test-utils **0.5.17** · persona **0.2.1** · theme-studio **0.7.0** ·
-layer **0.137.5** · `create-commonpub` **0.5.29** (crates.io).
-`@commonpub/layer` also carries **0.137.4-rc.1** on the `next` tag — the prerelease that
-verified the fork typecheck before `latest` moved. Harmless; leave it.
+**Published (all match `main`):** schema **0.67.0** · config **0.41.0** ·
+protocol **0.15.4** · auth **0.13.4** · ui **0.16.1** · editor **0.17.3** ·
+explainer **0.9.2** · learning **0.5.6** · infra **0.23.0** · server **2.136.0** ·
+docs **0.6.3** · test-utils **0.5.18** · persona **0.2.1** · theme-studio **0.7.0** ·
+layer **0.138.1**.
 
-**Live:** all three instances healthy, migrations through **0048**, **47 flags** each,
-all three on **layer 0.137.5** and **nuxt 3.21.11** as of 2026-08-31. Flags ON by operator choice:
-commonpub.io **29**, deveco.io **43**, heatsynclabs.io **21**.
+**Live:** all three instances healthy, migrations through **0049**, **47** boolean flags
+each from `/api/features`. ON by operator choice: commonpub.io **29**, deveco.io **44**,
+heatsynclabs.io **21**. `contestBroadcast` is ON only on deveco.
 
-**CI on `main` is GREEN**, including `e2e` — verified per job on run `33131511119`
+**Unreleased work:** branch `fix/judging-readiness` (session 260, local, not pushed):
+judging hardening, persona walk-through fixes, admin users pagination. Releasing it is
+server **2.137.0** + layer **0.138.2**, with no schema change. See
+`docs/sessions/260-handoff.md`.
+
+**CI on `main` is GREEN**, including `e2e` — verified per job on run `34786863884` (head 38e3970f, 2026-09-13)
 (`rust`, `check (22)`, `e2e` all success), not from a badge. Check the jobs, never the
 badge: `e2e` has `needs: check`, so a red gate makes it *skip* while the run still
 reports a single tidy failure.

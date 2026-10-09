@@ -17,6 +17,8 @@ const props = defineProps<{
   /** Whether the viewer already has an entry in this contest. Drives the
    *  "registered, but nothing submitted yet" nudge. */
   hasEntry?: boolean;
+  /** The viewer's own entry outcome after a review cut, if any. */
+  entryOutcome?: 'advanced' | 'eliminated' | null;
 }>();
 
 // Public registration count, read from the SSR'd contest DTO rather than taken
@@ -72,12 +74,34 @@ function fmtDate(d: string | null | undefined): string | null {
   return formatLocalDate(d);
 }
 
-/** Whole days from now until an ISO date (null when unknown / not yet mounted). */
+/**
+ * The open stage's deadline has passed while the contest is still `active` (the
+ * organizer hasn't started judging yet). The server refuses entries then, so
+ * the card must stop inviting them. Client-only, like every date here.
+ */
+const submissionsClosed = computed<boolean>(() => {
+  const c = props.contest;
+  // Organizer-defined stages only, matching the server (stageHasClosed): a
+  // classic contest's end date isn't enforced, its status closes it.
+  if (!mounted.value || !c || status.value !== 'active' || !c.stages?.length) return false;
+  const end = currentStageEnd(c);
+  if (!end) return false;
+  const at = new Date(end).getTime();
+  return Number.isFinite(at) && at < Date.now();
+});
+
+/**
+ * CALENDAR days from today until an ISO date, in the viewer's time zone (null
+ * when unknown / not yet mounted). Rounding milliseconds up made a deadline six
+ * minutes away read "tomorrow" (session 260 walk-through); a deadline later
+ * today is "today", one on tomorrow's date is "tomorrow".
+ */
 function daysUntil(d: string | null | undefined): number | null {
   if (!d || !mounted.value) return null;
-  const ms = new Date(d).getTime() - Date.now();
-  if (!Number.isFinite(ms)) return null;
-  return Math.ceil(ms / 86_400_000);
+  const target = new Date(d);
+  if (!Number.isFinite(target.getTime())) return null;
+  const startOf = (x: Date): number => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  return Math.round((startOf(target) - startOf(new Date())) / 86_400_000);
 }
 
 function humanizeDays(n: number): string {
@@ -108,13 +132,24 @@ const milestone = computed<{ label: string; date: string | null; hint: string | 
       // "today" next to a visibly past date. The date itself still shows.
       return { label: 'Submissions open', date: start, hint: dStart != null && dStart >= 0 ? humanizeDays(dStart) : null };
     case 'active':
+      // Past the stage deadline the server refuses new entries, so don't read
+      // "Submissions close" over a date that has gone.
+      if (submissionsClosed.value) return { label: 'Submissions closed', date: end, hint: null };
       return { label: 'Submissions close', date: end, hint: dEnd != null && dEnd >= 0 ? humanizeDays(dEnd) : null };
-    case 'judging':
-      return { label: 'Judging in progress', date: null, hint: 'Results announced soon' };
+    case 'judging': {
+      // Staged contests move between rounds while still "judging" (a build sprint
+      // between two review rounds); name the stage rather than claim judging.
+      const st = c.stages?.length ? currentStage(c) : null;
+      // Only a building stage gets "ends <date>"; after the final cut the pointer
+      // sits on an event or the results stage, where "Results ends" is nonsense.
+      if (st && (st.kind === 'interim' || st.kind === 'submission') && st.name) return { label: `${st.name} ends`, date: st.endsAt ? fmtDate(st.endsAt) : null, hint: null };
+      if (st && (st.kind === 'event' || st.kind === 'results')) return { label: 'Final results being prepared', date: null, hint: null };
+      return { label: 'Judging in progress', date: null, hint: null };
+    }
     case 'completed':
       return { label: 'Winners announced', date: null, hint: null };
     case 'paused':
-      return { label: 'Paused', date: null, hint: "We'll email you when it resumes" };
+      return { label: 'Paused', date: null, hint: null };
     default:
       return null;
   }
@@ -127,13 +162,29 @@ const whatsNext = computed<string>(() => {
     case 'upcoming':
       return 'Submissions haven\'t opened yet, so there\'s nothing to submit right now. Use the time to plan your build and, if you want, find teammates. We\'ll email you the moment submissions open and again as the deadline nears.';
     case 'active':
+      if (submissionsClosed.value) return 'The submission deadline has passed. The organizers will start judging shortly.';
       return 'Submissions are open. Enter your project before the deadline; you can keep editing it until then. We\'ll send you reminders as the deadline approaches.';
-    case 'judging':
-      return 'Submissions are closed and judging is underway. There\'s nothing more to do right now. We\'ll email you when the results are announced.';
+    case 'judging': {
+      // Contest notifications are in-app only, so promise the bell and this
+      // page, never an email.
+      const c = props.contest;
+      const st = c?.stages?.length ? currentStage(c) : null;
+      const by = st?.endsAt ? fmtDate(st.endsAt) : null;
+      const building = !!st && (st.kind === 'interim' || st.kind === 'submission');
+      const finished = !!st && (st.kind === 'event' || st.kind === 'results');
+      if (props.entryOutcome === 'eliminated') return 'Your entry wasn\'t selected to continue this time. Thank you for taking part. You can keep following the contest here.';
+      if (building && props.entryOutcome === 'advanced') return `Your entry advanced to the ${st!.name}. Keep building and publish your project${by ? ` before ${by}` : ''}, so the judges can see what you built in the next round.`;
+      if (finished && props.entryOutcome === 'advanced') return 'You\'re a finalist. Judging is complete and the final results are being prepared. Make sure your project is published so it appears in the results.';
+      if (props.entryOutcome === 'advanced') return 'Your entry advanced and is in this judging round. There\'s nothing to do right now. Updates appear in your notifications and on this page.';
+      if (finished) return 'Judging is complete and the final results are being prepared. Updates appear on this page.';
+      if (building && props.hasEntry) return `Judging for the last round is done. If your entry advanced, keep building and publish your project before ${by ?? 'the stage deadline'}. Updates appear in your notifications and on this page.`;
+      if (building) return `The ${st!.name} is underway for the entries that advanced. Updates appear on this page.`;
+      return 'Submissions are closed and judging is underway. There\'s nothing more to do right now. Updates appear in your notifications and on this page.';
+    }
     case 'completed':
       return 'This contest has ended. Thanks for taking part. Check out the results.';
     case 'paused':
-      return 'This contest is paused for now. We\'ll email you when it resumes.';
+      return 'This contest is paused for now. Check back here for updates.';
     default:
       return '';
   }
@@ -261,7 +312,8 @@ watch(isFull, (full) => { if (full) modalOpen.value = false; });
            is signed up and has submitted NOTHING, and until now the card said
            "You're registered" and stopped there. Name the next action and link
            straight to it. -->
-      <div v-if="isFull && !entersOnRegister && !hasEntry && status === 'active'" class="cpub-su-nextstep">
+      <!-- Not past the stage deadline: the server refuses entries then. -->
+      <div v-if="isFull && !entersOnRegister && !hasEntry && status === 'active' && !submissionsClosed" class="cpub-su-nextstep">
         <p class="cpub-su-nextstep-title"><i class="fa-solid fa-arrow-right"></i> Next: submit your project</p>
         <p class="cpub-su-nextstep-body">You are registered, but you have not entered a project yet. Registering does not enter you on its own.</p>
         <NuxtLink :to="entriesLink" class="cpub-btn cpub-btn-primary cpub-su-btn">

@@ -110,10 +110,12 @@ describe('contest integration', () => {
       { id: reviewId, name: 'Top 2 Selection', kind: 'review' as const },
       { id: nextId, name: 'Final Judging', kind: 'review' as const },
     ];
+    // No currentStageId: entries go in during the submission stage, and Start
+    // Judging resolves to the first review round (session 260 made attaching an
+    // entry outside a submission stage a refusal).
     const contest = await createContest(db, {
       ...makeContestInput({ title: `Advance ${Date.now()}` }),
       stages,
-      currentStageId: reviewId,
       judges: [judgeUserId],
     });
     await addContestJudge(db, contest.id, judgeUserId, 'judge');
@@ -156,17 +158,25 @@ describe('contest integration', () => {
     expect(byId[mid]!.eliminated).toBe(false);
     expect(isEliminated({ stageState: byId[low]!.stageState })).toBe(true);
 
-    // Ranks: survivors ranked by score (high=1, mid=2); the eliminated entry has no rank.
+    // Idempotent: re-running the same cut (allowed until the next round has
+    // scores) doesn't duplicate stageState rows.
+    await advanceContestStage(db, contest.id, organizerId, { reviewStageId: reviewId, mode: 'topN', topN: 2 });
+    const lowEntry = (await listContestEntries(db, contest.id, { limit: 50 })).items.find((e) => e.id === low)!;
+    expect(lowEntry.stageState.filter((s) => s.stageId === reviewId)).toHaveLength(1);
+
+    // A later review round exists, so the cut clears the live score: the final
+    // round starts clean and ranks come from ITS scores (session 260).
+    const cleared = Object.fromEntries((await listContestEntries(db, contest.id, { limit: 50 })).items.map((e) => [e.id, e.score]));
+    expect(cleared[high]).toBeNull();
+    await judgeContestEntry(db, high, 90, judgeUserId);
+    await judgeContestEntry(db, mid, 70, judgeUserId);
+
+    // Ranks: survivors ranked by their final-round score (high=1, mid=2); the eliminated entry has no rank.
     await calculateContestRanks(db, contest.id);
     const ranks = Object.fromEntries((await listContestEntries(db, contest.id, { limit: 50 })).items.map((e) => [e.id, e.rank]));
     expect(ranks[high]).toBe(1);
     expect(ranks[mid]).toBe(2);
     expect(ranks[low]).toBeNull();
-
-    // Idempotent: re-running the same cut doesn't duplicate stageState rows.
-    await advanceContestStage(db, contest.id, organizerId, { reviewStageId: reviewId, mode: 'topN', topN: 2 });
-    const lowEntry = (await listContestEntries(db, contest.id, { limit: 50 })).items.find((e) => e.id === low)!;
-    expect(lowEntry.stageState.filter((s) => s.stageId === reviewId)).toHaveLength(1);
 
     // Cohort gate (G2): the eliminated entry can no longer be scored; survivors can.
     const rejected = await judgeContestEntry(db, low, 50, judgeUserId);

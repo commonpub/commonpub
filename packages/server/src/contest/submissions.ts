@@ -12,7 +12,7 @@ import type { ContentType, ContestStageSubmission, FormField } from '@commonpub/
 import type { DB } from '../types.js';
 import { countRows, rowsOf } from '../query.js';
 import { createContent, deleteContent } from '../content/content.js';
-import { normalizeStages, currentStage, isEliminated } from './stages.js';
+import { normalizeStages, currentStage, isEliminated, stageHasClosed } from './stages.js';
 import { validateSubmissionFields, hashTerms, canonicalUuid } from './validation.js';
 import type { StageSource, AgreementAcceptanceInput, ContestTx } from './types.js';
 
@@ -321,6 +321,7 @@ export async function submitStageArtifact(
 
   const current = currentStage(source);
   if (current?.id !== stageId) return fail('This stage is not currently open');
+  if (stageHasClosed(stage)) return fail('This stage closed at its deadline, so the submission can no longer be changed');
 
   // Cohort gate: once a review cut culled the field, eliminated entries are
   // out of every later round (mirrors judgeContestEntry's gate).
@@ -434,6 +435,7 @@ export async function submitContestProposal(db: DB, args: SubmitProposalArgs): P
   if (stage.kind !== 'submission') return fail('This stage does not accept submissions');
   if (stage.submissionMode !== 'proposal') return fail('This stage is not accepting proposals');
   if (currentStage(source)?.id !== stageId) return fail('This stage is not currently open');
+  if (stageHasClosed(stage)) return fail('Proposals closed at the stage deadline');
 
   const template = stage.submissionTemplate ?? [];
   const validated = validateSubmissionFields(template, fields);

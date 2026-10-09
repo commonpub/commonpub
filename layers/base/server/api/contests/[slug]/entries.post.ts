@@ -1,4 +1,4 @@
-import { submitContestEntry, getContestBySlug, canViewContest, getRegistrationTier } from '@commonpub/server';
+import { submitContestEntry, getContestBySlug, canViewContest, getRegistrationTier, currentStage, stageHasClosed } from '@commonpub/server';
 import type { ContestEntryItem } from '@commonpub/server';
 import { contentItems } from '@commonpub/schema';
 import { eq } from 'drizzle-orm';
@@ -30,6 +30,13 @@ export default defineEventHandler(async (event): Promise<ContestEntryItem> => {
         ? 'Submissions are closed, the contest is being judged.'
         : `The contest is ${contest.status}.`;
     throw createError({ statusCode: 400, statusMessage: `This contest isn't accepting entries right now. ${detail}` });
+  }
+  // Same stage gate as submitContestEntry, said out loud: past the open stage's
+  // deadline, or between rounds, the server refuses and the "couldn't submit"
+  // catch-all below would not say why.
+  const openStage = currentStage(contest);
+  if (!openStage || openStage.kind !== 'submission' || stageHasClosed(openStage)) {
+    throw createError({ statusCode: 400, statusMessage: 'This contest isn\u2019t accepting new entries right now. The submission deadline has passed.' });
   }
   // Registration precondition (features.contestEntryRequiresRegistration, default ON).
   // The registration flow is where the contest's REQUIRED fields are enforced and its

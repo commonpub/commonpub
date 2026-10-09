@@ -1,4 +1,4 @@
-import { getContestBySlug, canViewContest, isContestEditor, isContestJudge, buildContestExport } from '@commonpub/server';
+import { getContestBySlug, canViewContest, isContestEditor, getContestJudgeMembership, buildContestExport } from '@commonpub/server';
 
 /**
  * GET /api/contests/:slug/export   (CSV)
@@ -23,7 +23,9 @@ export default defineEventHandler(async (event): Promise<string> => {
     user.id === contest.createdById ||
     hasPermission(event, 'contest.manage') ||
     (await isContestEditor(db, contest.id, user.id));
-  const isJudge = await isContestJudge(db, contest.id, user.id);
+  // An ACCEPTED judge, as the doc comment above always said; a pending invite
+  // could download the whole field before (session 260).
+  const isJudge = !!(await getContestJudgeMembership(db, contest.id, user.id))?.acceptedAt;
   if (!canManage && !isJudge) {
     throw createError({ statusCode: 403, statusMessage: 'You cannot export this contest' });
   }

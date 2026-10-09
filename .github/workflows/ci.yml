@@ -15,7 +15,7 @@ jobs:
 
     services:
       postgres:
-        image: postgres:16-alpine
+        image: public.ecr.aws/docker/library/postgres:16-alpine
         env:
           POSTGRES_USER: commonpub
           POSTGRES_PASSWORD: commonpub_test
@@ -33,7 +33,7 @@ jobs:
       # skip cleanly. With it, they cover cross-instance rate-limit
       # enforcement + pub/sub delivery on every PR.
       redis:
-        image: redis:7-alpine
+        image: public.ecr.aws/docker/library/redis:7-alpine
         ports:
           - 6379:6379
         options: >-
@@ -106,7 +106,7 @@ jobs:
     needs: check
     services:
       postgres:
-        image: postgres:16-alpine
+        image: public.ecr.aws/docker/library/postgres:16-alpine
         env:
           POSTGRES_USER: commonpub
           POSTGRES_PASSWORD: commonpub_ci

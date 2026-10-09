@@ -28,6 +28,7 @@ export {
   currentStage,
   currentStageEndDate,
   isEliminated,
+  stageHasClosed,
   nextContestDeadline,
 } from './stages.js';
 export type { NextContestDeadline } from './stages.js';
@@ -133,6 +134,7 @@ export {
   updateJudgeRole,
   acceptJudgeInvite,
   isContestJudge,
+  getContestJudgeMembership,
 } from './judges.js';
 export type {
   JudgeRole,

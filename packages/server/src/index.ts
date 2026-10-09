@@ -619,6 +619,8 @@ export {
   canViewContest,
   advanceContestStage,
   isEliminated,
+  stageHasClosed,
+  currentStage,
   canViewContestEntryDetail,
   getContestEntry,
   submitStageArtifact,
@@ -682,6 +684,7 @@ export {
   updateJudgeRole,
   acceptJudgeInvite,
   isContestJudge,
+  getContestJudgeMembership,
 } from './contest/judges.js';
 export type {
   JudgeRole,

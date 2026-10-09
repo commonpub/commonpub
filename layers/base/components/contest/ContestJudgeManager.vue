@@ -66,7 +66,7 @@ async function addJudge(userId: string): Promise<void> {
 }
 
 async function removeJudge(userId: string): Promise<void> {
-  if (!confirm('Remove this judge?')) return;
+  if (!confirm('Remove this judge? Any scores they gave in the round that is open now are removed too, and the averages recalculated.')) return;
   try {
     await ($fetch as Function)(`/api/contests/${props.contestSlug}/judges/${userId}`, { method: 'DELETE' });
     toast.success('Judge removed');
@@ -113,14 +113,17 @@ const roleLabels: Record<string, string> = {
             v-model="searchQuery"
             class="cpub-judges-input"
             placeholder="Search by name or username..."
+            aria-label="Search members to invite as judges"
             @input="handleSearch"
           />
           <select v-model="newJudgeRole" class="cpub-judges-input cpub-judges-select" aria-label="Judge role">
-            <option value="lead">Lead</option>
             <option value="judge">Judge</option>
+            <option value="lead">Lead judge</option>
             <option value="guest">Guest</option>
           </select>
         </div>
+        <!-- The rail is too narrow to explain the roles in the option labels. -->
+        <p class="cpub-judges-hint">Judges and lead judges score entries; guests can only follow along. Each person must accept their invitation, and it arrives in their notifications only, not by email.</p>
         <div v-if="searchResults.length" class="cpub-judges-dropdown">
           <button
             v-for="user in searchResults"
@@ -187,4 +190,5 @@ const roleLabels: Record<string, string> = {
 .cpub-judges-dropdown-name { font-size: 12px; font-weight: 600; color: var(--text); }
 .cpub-judges-dropdown-handle { font-size: 11px; color: var(--text-faint); margin-left: auto; }
 .cpub-judges-dropdown-empty { display: block; padding: 8px 12px; font-size: 11px; color: var(--text-faint); }
+.cpub-judges-hint { font-size: 11px; line-height: 1.5; color: var(--text-dim); margin: 6px 0 0; }
 </style>

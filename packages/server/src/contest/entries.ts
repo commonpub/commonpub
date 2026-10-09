@@ -2,7 +2,7 @@ import { eq, and, or, desc, sql, isNull } from 'drizzle-orm';
 import { contests, contestEntries, contestRegistrations, users, contentItems } from '@commonpub/schema';
 import type { DB } from '../types.js';
 import { normalizePagination, countRows } from '../query.js';
-import { isEliminated } from './stages.js';
+import { isEliminated, currentStage, stageHasClosed } from './stages.js';
 import type { ContestEntryItem, JudgeScoreEntry } from './types.js';
 
 // Contest entry lifecycle: list / fetch / submit (attach published content) /
@@ -73,7 +73,10 @@ export async function listContestEntries(
     opts.orderBy === 'rank'
       ? [
           sql`${contestEntries.rank} asc nulls last`,
-          sql`${contestEntries.score} desc nulls last`,
+          // The score tiebreak only when the caller may see scores: blanking
+          // `score` in the response doesn't hide the ORDER, and before results
+          // every rank is null, so this sort WAS the live leaderboard.
+          ...(revealScores ? [sql`${contestEntries.score} desc nulls last`] : []),
           desc(contestEntries.submittedAt),
           desc(contestEntries.id),
         ]
@@ -88,6 +91,8 @@ export async function listContestEntries(
           slug: contentItems.slug,
           type: contentItems.type,
           coverImageUrl: contentItems.coverImageUrl,
+          status: contentItems.status,
+          visibility: contentItems.visibility,
         },
         author: {
           displayName: users.displayName,
@@ -139,6 +144,12 @@ export async function listContestEntries(
       authorName: row.author.displayName ?? row.author.username,
       authorUsername: row.author.username,
       authorAvatarUrl: row.author.avatarUrl,
+      // Lets privileged views tell a built, published project from a proposal's
+      // draft placeholder: finals judges should open the project, and an
+      // organizer must know a finalist hasn't published before completing (an
+      // unpublished winner is missing from the public results). Session 260.
+      contentStatus: row.content.status,
+      contentVisibility: row.content.visibility,
     };
     if (opts.includeJudgeScores) {
       item.judgeScores = (row.entry.judgeScores ?? []) as JudgeScoreEntry[];
@@ -235,6 +246,11 @@ export async function submitContestEntry(
       status: contests.status,
       eligibleContentTypes: contests.eligibleContentTypes,
       maxEntriesPerUser: contests.maxEntriesPerUser,
+      stages: contests.stages,
+      currentStageId: contests.currentStageId,
+      startDate: contests.startDate,
+      endDate: contests.endDate,
+      judgingEndDate: contests.judgingEndDate,
     })
     .from(contests)
     .where(eq(contests.id, contestId))
@@ -243,6 +259,13 @@ export async function submitContestEntry(
   if (contest.length === 0) return null;
   const c = contest[0]!;
   if (c.status !== 'active') return null;
+  // New entries only during an open submission stage. Status alone let anyone
+  // registered attach a fresh project after the proposal deadline, or during a
+  // build sprint set back to `active`, where the new entry (never cut) would
+  // land in the finalist round (session 260). A classic contest's current stage
+  // while active is its synthesized submission stage, ending at `endDate`.
+  const stage = currentStage(c);
+  if (!stage || stage.kind !== 'submission' || stageHasClosed(stage)) return null;
 
   // Validate content exists, is published, and user owns it
   const content = await db
@@ -384,6 +407,11 @@ export async function withdrawContestEntry(
   if (row.contestStatus !== 'active') {
     return { withdrawn: false, error: 'Can only withdraw from active contests' };
   }
+  // Withdrawing deletes the row, and with it the cut that eliminated it, so an
+  // eliminated entrant could withdraw and re-enter as if never judged.
+  if (isEliminated(row.entry)) {
+    return { withdrawn: false, error: 'An entry that was not advanced cannot be withdrawn' };
+  }
 
   // A proposal-created draft placeholder (never developed into a published entry)
   // is litter once its entry is withdrawn — archive it so it doesn't orphan a stub
@@ -419,6 +447,25 @@ export async function calculateContestRanks(
   db: DB,
   contestId: string,
 ): Promise<void> {
+  // A cut clears the live score when a later review round exists (so the next
+  // round starts clean). If the organizer then completes WITHOUT scoring that
+  // later round, no survivor has a live score and nobody would be ranked. In that
+  // case only, rank on each survivor's score from the last cut it passed. If ANY
+  // survivor was scored in the final round, those scores alone decide, and an
+  // unscored survivor stays unranked rather than competing on an older round's
+  // number (session 260).
+  const survivors = await db
+    .select({ id: contestEntries.id, score: contestEntries.score, stageState: contestEntries.stageState })
+    .from(contestEntries)
+    .where(and(eq(contestEntries.contestId, contestId), sql`NOT (${contestEntries.stageState} @> '[{"status":"eliminated"}]'::jsonb)`));
+  if (survivors.length && survivors.every((r) => r.score == null)) {
+    for (const r of survivors) {
+      const passed = (r.stageState ?? []).filter((st) => st.status === 'advanced' && st.score != null);
+      const last = passed[passed.length - 1];
+      if (last) await db.update(contestEntries).set({ score: last.score }).where(eq(contestEntries.id, r.id));
+    }
+  }
+
   // Assign ranks by score with RANK() so tied scores share a rank (1, 1, 3…).
   // Only scored entries are ranked; entries that were never judged keep a null
   // rank rather than being handed an arbitrary trailing position.

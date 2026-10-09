@@ -12,7 +12,18 @@ const { isAuthenticated, isAdmin, user } = useAuth();
 // Blocking fetch (not lazy) so the description/rules render server-side and are
 // present on first paint — no empty flash while the client fetches + renders.
 const { data: contest } = await useFetch(`/api/contests/${slug}`);
-const { data: apiEntriesData, refresh: refreshEntries } = useLazyFetch<{ items: Serialized<ContestEntryItem>[]; total: number }>(`/api/contests/${slug}/entries`);
+// EVERY entry, not the route's default first 20. Past 20 a participant's own
+// (older) entry fell off the list, `myEntries` went empty and the proposal form
+// invited them to submit a duplicate. useRequestFetch, not bare $fetch, so the
+// SSR pass forwards the viewer's cookie: an anonymous server fetch would bake
+// the public list into the payload and the client would never see its own drafts.
+const requestFetch = useRequestFetch();
+const { data: apiEntriesData, refresh: refreshEntries } = useLazyAsyncData(
+  `contest-entries-${slug}`,
+  () => fetchAllPages<Serialized<ContestEntryItem>>((offset, limit) =>
+    requestFetch<{ items: Serialized<ContestEntryItem>[]; total: number }>(`/api/contests/${slug}/entries`, { query: { limit, offset } }),
+  ),
+);
 const { data: judgesData, refresh: refreshJudges } = useLazyFetch<ContestJudgeItem[]>(`/api/contests/${slug}/judges`);
 // Registration state (viewer's own + public count). Drives the sidebar register
 // toggle. client-only (server: false): this is per-viewer registration status, so
@@ -171,14 +182,15 @@ function onTabKey(e: KeyboardEvent, key: string): void {
 // Admin contest management
 const transitioning = ref(false);
 async function transitionStatus(newStatus: string): Promise<void> {
-  if (newStatus === 'cancelled' && !confirm('Cancel this contest? This cannot be undone.')) return;
+  const ask = contestTransitionConfirm(contest.value?.status, newStatus);
+  if (ask && !confirm(ask)) return;
   transitioning.value = true;
   try {
     await $fetch(`/api/contests/${slug}/transition`, { method: 'POST', body: { status: newStatus } });
-    toast.success(`Contest ${newStatus}`);
+    toast.success(`Status changed to ${newStatus}`);
     refreshNuxtData();
-  } catch {
-    toast.error(`Failed to transition to ${newStatus}`);
+  } catch (err: unknown) {
+    toast.error(extractError(err));
   } finally {
     transitioning.value = false;
   }
@@ -191,6 +203,9 @@ async function acceptInvite(): Promise<void> {
   try {
     await $fetch(`/api/contests/${slug}/judges/accept`, { method: 'POST' });
     toast.success('You are now a judge for this contest');
+    // The judge page is the next step; the banner that held the Accept button
+    // just disappeared, so take them there rather than leave them looking.
+    await navigateTo(`/contests/${slug}/judge`);
     await refreshJudges();
   } catch {
     toast.error('Failed to accept invitation');
@@ -232,9 +247,30 @@ const currentSubmissionStage = computed(() => {
   };
   const cid = currentStageId(source);
   const stage = normalizeStages(source).find((s) => s.id === cid);
+  if (stage && stageDeadlinePassed(stage)) return null;
   return stage && stage.kind === 'submission' && stage.submissionTemplate?.length ? stage : null;
 });
 const myEntries = computed(() => entries.value.filter((e) => e.userId === user.value?.id));
+// The viewer's own result after a cut, so the signup card can say it plainly.
+// During a build sprint an advanced and an eliminated entrant saw the identical
+// page, "If your entry advanced, keep building" (session 260 walk-through).
+const myEntryOutcome = computed<'advanced' | 'eliminated' | null>(() => {
+  const mine = myEntries.value;
+  if (!mine.length) return null;
+  if (mine.some((e) => !e.eliminated && (e.stageState ?? []).some((s) => s.status === 'advanced'))) return 'advanced';
+  if (mine.every((e) => e.eliminated)) return 'eliminated';
+  return null;
+});
+
+// The server refuses proposal and stage submissions once an organizer-defined
+// stage's end date passes (stageHasClosed), so stop rendering the forms then
+// rather than let an entrant fill one in and hit a refusal. Synthesized
+// (classic) stages never close on a date, matching the server.
+function stageDeadlinePassed(stage: { endsAt?: string | null; core?: boolean }): boolean {
+  if (stage.core || !stage.endsAt) return false;
+  const end = new Date(stage.endsAt).getTime();
+  return Number.isFinite(end) && Date.now() > end;
+}
 
 // Proposal mode (Phase 4): when the CURRENT submission stage is proposal-mode
 // and proposals are enabled, entrants submit a form (no pre-existing project)
@@ -250,16 +286,18 @@ const currentProposalStage = computed(() => {
     currentStageId: c.value.currentStageId,
   };
   const stage = normalizeStages(source).find((s) => s.id === currentStageId(source));
+  if (stage && stageDeadlinePassed(stage)) return null;
   return stage && stage.kind === 'submission' && stage.submissionMode === 'proposal' && stage.submissionTemplate?.length ? stage : null;
 });
 
-function onProposalSubmitted(projectSlug: string, contentType: string): void {
+function onProposalSubmitted(_projectSlug: string, _contentType: string): void {
+  // Stay here and confirm. This used to open the new draft project in the
+  // editor: a blank page with a Publish button and no word that the proposal
+  // was in, which reads as "you're not done". Developing the project is a
+  // later-round task; the entries tab shows the submission, editable until
+  // the deadline (session 260 walk-through).
+  toast.success('Proposal submitted. You can edit your answers here until the deadline.');
   refreshNuxtData();
-  // Route the entrant into their new draft project to develop it for later rounds.
-  // Use the server's ACTUAL created type (not a client guess) so the URL resolves.
-  if (user.value?.username) {
-    navigateTo(`/u/${user.value.username}/${contentType}/${projectSlug}/edit`);
-  }
 }
 
 // The hero "Submit Entry" button. Form-based entry (a proposal draft, or a
@@ -645,7 +683,10 @@ async function withdrawEntry(entryId: string): Promise<void> {
             <!-- Attach an existing published project. Available for every active
                  contest, INCLUDING proposal mode, so entrants can choose either
                  path: fill the form to start a draft, or enter a finished project. -->
-            <div v-if="c?.status === 'active'" class="cpub-entries-cta">
+            <!-- Not for someone who already entered through the proposal form:
+                 it invited a second entry from the same person. -->
+            <!-- Nor past the stage deadline (the server refuses the entry then). -->
+            <div v-if="c?.status === 'active' && !(currentProposalStage && myEntries.length) && !(c && contestEntriesClosed({ ...c, judgingEndDate: c.judgingEndDate ?? null }))" class="cpub-entries-cta">
               <div class="cpub-entries-cta-text">
                 <p class="cpub-entries-cta-title">
                   <i class="fa-solid fa-trophy"></i>
@@ -725,6 +766,7 @@ async function withdrawEntry(entryId: string): Promise<void> {
           :saved-fields="registrationFields"
           :registering="registering"
           :has-entry="myEntries.length > 0"
+          :entry-outcome="myEntryOutcome"
           @copy-link="copyLink"
           @register="register"
           @unregister="unregister"
