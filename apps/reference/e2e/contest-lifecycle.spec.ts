@@ -438,7 +438,16 @@ test.describe('Contest lifecycle', () => {
     await page.goto(`${contestUrl}/results`);
     await page.waitForTimeout(2000);
     await expect(page.locator('h1')).toContainText(/Results/i);
-    await expect(page.locator('body')).toContainText(/Full Standings/i);
+    // The winner here entered through the PROPOSAL form, so its project is still
+    // a private draft, which public lists never show. Since session 260 the
+    // standings list placed entries only (not cut ones under "-"), so the public
+    // page says so plainly, and the organizer sees the winner plus a warning to
+    // get it published. That pair is the contract worth pinning.
+    await expect(page.locator('body')).toContainText(/No placed entries to show yet|Full Standings/i);
+    await olive.page.goto(`${contestUrl}/results`);
+    await olive.page.waitForTimeout(2000);
+    await expect(olive.page.locator('body')).toContainText(/Full Standings/i);
+    await expect(olive.page.locator('.cpub-results-hidden'), 'the organizer is told the winner is not public').toBeVisible();
 
     const closed = await fiona.ctx.request.post(`${BASE}/api/contests/${slug}/register`, {
       headers: ORIGIN, data: { tier: 'full' },
