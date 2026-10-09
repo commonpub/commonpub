@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import type { Serialized, ContestDetail } from '@commonpub/server';
+// Explicit, not auto-imported: component tests run without Nuxt's auto-imports.
+import { contestEntriesClosed } from '../../utils/contestStages';
 
 const props = defineProps<{
   contest: Serialized<ContestDetail> | null;
