@@ -288,6 +288,39 @@ describe('contest judging hardening (session 260)', () => {
     expect(r.judged).toBe(false);
   });
 
+  it('completing right after a cut, with later rounds skipped, still ranks the survivors', async () => {
+    const c = await staged();
+    const a = await enter(c.id, 'a');
+    const b = await enter(c.id, 'b');
+    const d = await enter(c.id, 'd');
+    await transitionContestStatus(db, c.id, organizerId, 'judging');
+    await judgeContestEntry(db, a.id, 90, judgeA);
+    await judgeContestEntry(db, b.id, 70, judgeA);
+    await judgeContestEntry(db, d.id, 50, judgeA);
+    await advanceContestStage(db, c.id, organizerId, { reviewStageId: 'r1', mode: 'topN', topN: 2 });
+    await transitionContestStatus(db, c.id, organizerId, 'completed');
+    const after = await byId(c.id);
+    expect(after[a.id]!.rank).toBe(1);
+    expect(after[b.id]!.rank).toBe(2);
+    expect(after[d.id]!.rank).toBeNull();
+  });
+
+  it('a finalist nobody scored in the final round stays unranked when others were scored', async () => {
+    const c = await staged();
+    const a = await enter(c.id, 'a');
+    const b = await enter(c.id, 'b');
+    await transitionContestStatus(db, c.id, organizerId, 'judging');
+    await judgeContestEntry(db, a.id, 50, judgeA);
+    await judgeContestEntry(db, b.id, 95, judgeA);
+    await advanceContestStage(db, c.id, organizerId, { reviewStageId: 'r1', mode: 'topN', topN: 2 });
+    await updateContest(db, c.slug, organizerId, { currentStageId: 'r2' });
+    await judgeContestEntry(db, a.id, 60, judgeA); // b (95 in round 1) is never scored in round 2
+    await transitionContestStatus(db, c.id, organizerId, 'completed');
+    const after = await byId(c.id);
+    expect(after[a.id]!.rank).toBe(1);
+    expect(after[b.id]!.rank).toBeNull();
+  });
+
   it('Start Judging moves an explicit submission-stage pointer to the next review round', async () => {
     const c = await staged();
     await updateContest(db, c.slug, organizerId, { currentStageId: 'sub' });

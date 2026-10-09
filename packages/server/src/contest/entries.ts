@@ -447,6 +447,25 @@ export async function calculateContestRanks(
   db: DB,
   contestId: string,
 ): Promise<void> {
+  // A cut clears the live score when a later review round exists (so the next
+  // round starts clean). If the organizer then completes WITHOUT scoring that
+  // later round, no survivor has a live score and nobody would be ranked. In that
+  // case only, rank on each survivor's score from the last cut it passed. If ANY
+  // survivor was scored in the final round, those scores alone decide, and an
+  // unscored survivor stays unranked rather than competing on an older round's
+  // number (session 260).
+  const survivors = await db
+    .select({ id: contestEntries.id, score: contestEntries.score, stageState: contestEntries.stageState })
+    .from(contestEntries)
+    .where(and(eq(contestEntries.contestId, contestId), sql`NOT (${contestEntries.stageState} @> '[{"status":"eliminated"}]'::jsonb)`));
+  if (survivors.length && survivors.every((r) => r.score == null)) {
+    for (const r of survivors) {
+      const passed = (r.stageState ?? []).filter((st) => st.status === 'advanced' && st.score != null);
+      const last = passed[passed.length - 1];
+      if (last) await db.update(contestEntries).set({ score: last.score }).where(eq(contestEntries.id, r.id));
+    }
+  }
+
   // Assign ranks by score with RANK() so tied scores share a rank (1, 1, 3…).
   // Only scored entries are ranked; entries that were never judged keep a null
   // rank rather than being handed an arbitrary trailing position.
