@@ -40,6 +40,11 @@ Previous: `docs/sessions/259-handoff.md`.
 
 It is not committed, because it carries 1.4 MB of embedded images.
 
+**Published:** https://deveco.nyc3.digitaloceanspaces.com/guides/deveco-judging-guide.html
+(public-read, `Cache-Control: no-cache`; re-upload to the same key to update it. It was
+uploaded with the Spaces keys in `deveco-io/new_env_bak`, the only local copy; production
+reads them from GitHub secrets).
+
 ## What the branch fixes (grouped)
 
 **Live on deveco today, from the first score:**
