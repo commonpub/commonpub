@@ -19,6 +19,7 @@ interface EntryLite {
   eliminated?: boolean;
   judgeScores?: JudgeScoreEntry[];
   contentStatus?: string;
+  stageState?: Array<{ stageId: string; status: string }>;
 }
 
 const props = defineProps<{
@@ -52,7 +53,17 @@ const { data: entriesData, refresh: refreshEntries } = useLazyAsyncData(
   ),
   { server: false },
 );
-const eligibleEntries = computed(() => (entriesData.value?.items ?? []).filter((e) => !e.eliminated));
+/**
+ * A round's field, as the server computes it for a cut or a re-run: every entry
+ * not eliminated at some OTHER stage. Using "not eliminated anywhere" hid the
+ * entries this very round had cut, so a re-run's picker and counts showed only
+ * the survivors and could never bring anyone back (session 260 review).
+ */
+function fieldFor(stageId: string): EntryLite[] {
+  return (entriesData.value?.items ?? []).filter(
+    (e) => !(e.stageState ?? []).some((s) => s.status === 'eliminated' && s.stageId !== stageId),
+  );
+}
 
 const { data: judgesData } = useLazyFetch<ContestJudgeItem[]>(() => `/api/contests/${props.slug}/judges`, { server: false });
 const judgeName = computed(() => new Map((judgesData.value ?? []).map((j) => [j.userId, j.userName])));
@@ -65,7 +76,7 @@ const scoringJudgeCount = computed(() => (judgesData.value ?? []).filter((j) => 
  * shows an earlier round's numbers. Unscored entries sort last.
  */
 function roundRows(stageId: string): Array<{ id: string; title: string; author: string; avg: number | null; scores: Array<{ judge: string; score: number; feedback: string }>; unpublished: boolean }> {
-  return eligibleEntries.value
+  return fieldFor(stageId)
     .map((e) => {
       const scores = (e.judgeScores ?? [])
         .filter((s) => s.roundId === stageId)
@@ -86,7 +97,7 @@ function unpublishedFinalists(stageId: string): string[] {
   const stages = normalizeStages(c);
   const idx = stages.findIndex((s) => s.id === stageId);
   if (stages.slice(idx + 1).some((s) => s.kind === 'review')) return [];
-  return eligibleEntries.value.filter((e) => e.contentStatus && e.contentStatus !== 'published').map((e) => e.contentTitle);
+  return fieldFor(stageId).filter((e) => !e.eliminated && e.contentStatus && e.contentStatus !== 'published').map((e) => e.contentTitle);
 }
 
 function unscoredCount(stageId: string): number {
@@ -145,7 +156,7 @@ async function advanceStage(stageId: string): Promise<void> {
   // Unscored entries rank below every scored one, so a Top-N cut made while
   // judging is incomplete silently eliminates whatever nobody got to.
   const unscored = unscoredCount(stageId);
-  const warn = unscored > 0 && topN < eligibleEntries.value.length
+  const warn = unscored > 0 && topN < fieldFor(stageId).length
     ? `\n\n${unscored} ${unscored === 1 ? 'entry has' : 'entries have'} no score in this round yet and will rank last.`
     : '';
   const name = props.reviewStages.find((s) => s.id === stageId)?.name ?? 'this round';
@@ -193,11 +204,11 @@ watch(() => props.reviewStages, (stages) => {
         <summary>
           Scores and feedback
           <span class="cpub-advance-scores-meta">
-            {{ eligibleEntries.length - unscoredCount(rs.id) }} of {{ eligibleEntries.length }} entries scored
+            {{ fieldFor(rs.id).length - unscoredCount(rs.id) }} of {{ fieldFor(rs.id).length }} entries scored
             <template v-if="scoringJudgeCount"> · {{ scoringJudgeCount }} {{ scoringJudgeCount === 1 ? 'judge' : 'judges' }} on the panel</template>
           </span>
         </summary>
-        <p v-if="!eligibleEntries.length" class="cpub-form-hint" style="margin: 8px 0 0;">No entries in the current cohort yet.</p>
+        <p v-if="!fieldFor(rs.id).length" class="cpub-form-hint" style="margin: 8px 0 0;">No entries in this round yet.</p>
         <ol v-else class="cpub-advance-score-list">
           <li v-for="row in roundRows(rs.id)" :key="row.id" class="cpub-advance-score-row">
             <div class="cpub-advance-score-head">
@@ -223,9 +234,9 @@ watch(() => props.reviewStages, (stages) => {
         </button>
       </div>
       <div v-else class="cpub-advance-manual">
-        <p v-if="!eligibleEntries.length" class="cpub-form-hint" style="margin: 0;">No entries in the current cohort to pick from yet.</p>
+        <p v-if="!fieldFor(rs.id).length" class="cpub-form-hint" style="margin: 0;">No entries in this round to pick from yet.</p>
         <template v-else>
-          <label v-for="e in eligibleEntries" :key="e.id" class="cpub-advance-pick">
+          <label v-for="e in fieldFor(rs.id)" :key="e.id" class="cpub-advance-pick">
             <input type="checkbox" :checked="(manualPick[rs.id] ?? []).includes(e.id)" @change="toggleManual(rs.id, e.id)" />
             <span class="cpub-advance-pick-title">{{ e.contentTitle }}</span>
             <span v-if="e.score != null" class="cpub-advance-pick-score">{{ e.score }}</span>

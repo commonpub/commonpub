@@ -298,7 +298,10 @@ async function submitScore(entryId: string): Promise<void> {
   try {
     await $fetch(`/api/contests/${slug}/judge`, { method: 'POST', body });
     setStatus(entryId, true, 'Score saved.');
-    await refreshEntries().catch(() => setStatus(entryId, true, 'Score saved, refresh to see the updated totals.'));
+    // refresh() never rejects; a failure shows up as status 'error' (and the
+    // previous data is kept on screen by the gates above).
+    await refreshEntries();
+    if (entriesStatus.value === 'error') setStatus(entryId, true, 'Score saved. Reload the page to see the updated totals.');
   } catch (err: unknown) {
     setStatus(entryId, false, extractError(err) || 'Failed to submit score.');
   } finally {
@@ -394,10 +397,13 @@ async function submitScore(entryId: string): Promise<void> {
       <!-- Entries are their own request: "No entries" must not show while they
            load, or when the request failed (a judge would conclude there's
            nothing to do). -->
-      <div v-if="entriesStatus === 'pending' || entriesStatus === 'idle'" class="cpub-judge-empty" role="status">
+      <!-- Only while there is NO data yet. refresh() after every save sets the
+           status back to 'pending'; gating on status alone unmounted every card
+           and threw the judge back to the top on each save (session 260 review). -->
+      <div v-if="!entriesData && (entriesStatus === 'pending' || entriesStatus === 'idle')" class="cpub-judge-empty" role="status">
         <p>Loading entries...</p>
       </div>
-      <div v-else-if="entriesStatus === 'error'" class="cpub-judge-empty" role="alert">
+      <div v-else-if="!entriesData && entriesStatus === 'error'" class="cpub-judge-empty" role="alert">
         <i class="fa-solid fa-triangle-exclamation"></i>
         <p>The entries couldn't be loaded.</p>
         <button type="button" class="cpub-btn cpub-btn-sm" @click="refreshEntries()">Try again</button>
@@ -483,6 +489,7 @@ async function submitScore(entryId: string): Promise<void> {
                       min="0"
                       :max="critMax(i)"
                       :aria-label="`${crit.label} score, max ${critMax(i)}`"
+                      :disabled="!roundOpen"
                       @input="clearStatus(entry.id)"
                     />
                     <span class="cpub-judge-crit-max">/ {{ critMax(i) }}</span>
@@ -503,6 +510,7 @@ async function submitScore(entryId: string): Promise<void> {
                   max="100"
                   placeholder="0-100"
                   :aria-label="`Overall score for ${entry.contentTitle}, 0 to 100`"
+                  :disabled="!roundOpen"
                   @input="clearStatus(entry.id)"
                 />
                 <button
@@ -523,6 +531,7 @@ async function submitScore(entryId: string): Promise<void> {
                 placeholder="Optional feedback (max 2000 chars)"
                 maxlength="2000"
                 rows="4"
+                :disabled="!roundOpen"
                 @input="clearStatus(entry.id)"
               ></textarea>
               <!-- Order: a refused save's reason first (the card is still unsaved,

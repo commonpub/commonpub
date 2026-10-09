@@ -137,10 +137,12 @@ provide(UPLOAD_HANDLER_KEY, (file: File) => uploadFile<{ url: string; width?: nu
 // slug yet). Maps the judges API row shape to the showcase's curated-row shape.
 provide(CONTEST_JUDGES_KEY, async () => {
   if (!slug.value) return [];
-  const rows = await $fetch<Array<{ userName: string; userAvatar?: string | null; userUsername: string; role: string }>>(
+  const rows = await $fetch<Array<{ userName: string; userAvatar?: string | null; userUsername: string; role: string; acceptedAt?: string | null }>>(
     `/api/contests/${slug.value}/judges`,
   );
-  return rows.map((r) => ({
+  // Accepted judges only: an organizer's list includes pending invitations, and
+  // importing one would publish the name of someone who never said yes.
+  return rows.filter((r) => !!r.acceptedAt).map((r) => ({
     name: r.userName,
     avatarUrl: r.userAvatar ?? undefined,
     link: r.userUsername ? `/u/${r.userUsername}` : undefined,

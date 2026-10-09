@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   synthesizeStages,
+  contestEntriesClosed,
   normalizeStages,
   currentStageId,
   seedStandardStages,
@@ -206,5 +207,28 @@ describe('submission-template field operations', () => {
 
     const removed = withTemplateOptionRemoved(set, 0, 0, 0);
     expect(removed[0]!.submissionTemplate![0]!.options).toHaveLength(0);
+  });
+});
+
+describe('contestEntriesClosed (session 260)', () => {
+  const now = Date.parse('2026-10-09T12:00:00Z');
+  const base = { status: 'active', startDate: '2026-08-01T00:00:00Z', endDate: '2027-01-01T00:00:00Z', judgingEndDate: null };
+  const stages = (endsAt: string) => [
+    { id: 'p', name: 'Proposals', kind: 'submission' as const, endsAt },
+    { id: 'r', name: 'Semis', kind: 'review' as const },
+  ];
+
+  it('is open before the stage deadline and closed after it', () => {
+    expect(contestEntriesClosed({ ...base, stages: stages('2026-10-10T00:00:00Z') }, now)).toBe(false);
+    expect(contestEntriesClosed({ ...base, stages: stages('2026-10-08T15:00:00Z') }, now)).toBe(true);
+  });
+
+  it('is closed whenever the current stage is not a submission stage', () => {
+    expect(contestEntriesClosed({ ...base, stages: stages('2026-10-10T00:00:00Z'), currentStageId: 'r' }, now)).toBe(true);
+  });
+
+  it('never closes a classic contest on a date, or a contest that is not active', () => {
+    expect(contestEntriesClosed({ ...base, endDate: '2026-01-01T00:00:00Z', stages: [] }, now)).toBe(false);
+    expect(contestEntriesClosed({ ...base, status: 'judging', stages: stages('2026-10-08T15:00:00Z') }, now)).toBe(false);
   });
 });

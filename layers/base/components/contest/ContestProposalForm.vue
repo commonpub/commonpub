@@ -48,7 +48,8 @@ async function submit(): Promise<void> {
       `/api/contests/${props.contestSlug}/proposal`,
       { method: 'POST', body: { stageId: props.stage.id, fields } },
     );
-    toast.success('Proposal submitted. Continue building your project for the next round.');
+    // The page owns the confirmation (it knows what happens next); a second toast
+    // here gave contradictory advice.
     emit('submitted', res.projectSlug, res.contentType);
   } catch (err: unknown) {
     toast.error(extractError(err));

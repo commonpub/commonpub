@@ -3,6 +3,7 @@ import type { Serialized, ContestDetail, ContestEntryItem, ContestEntryVoteInfo 
 
 const route = useRoute();
 const slug = route.params.slug as string;
+const { user } = useAuth();
 
 const { data: contest } = useLazyFetch<Serialized<ContestDetail>>(`/api/contests/${slug}`);
 // Full standings: rank-ordered (not submit-ordered) + a high cap so every
@@ -48,10 +49,12 @@ const rankedEntries = computed(() => {
 });
 
 const podium = computed(() => rankedEntries.value.filter((e) => e.rank && e.rank <= 3));
-// Placed entries only. Entries cut in an earlier round have no rank, and listing
-// them under "-" beside an earlier round's score made the standings read as if
-// they had competed in the final (session 260 walk-through).
-const leaderboard = computed(() => rankedEntries.value.filter((e) => e.rank != null));
+// Not entries cut in an earlier round: listing them under "-" beside an earlier
+// round's score made the standings read as if they had competed in the final
+// (session 260 walk-through).
+// Unranked entries that were NOT cut (a finalist nobody scored) still belong in
+// the standings, under "-"; a classic contest's unscored entries too.
+const leaderboard = computed(() => rankedEntries.value.filter((e) => e.rank != null || !e.eliminated));
 // Ranked entries whose project isn't published reach ONLY privileged viewers
 // (the public listing hides drafts), so the organizer sees a podium the public
 // doesn't. Say so, by name, so they can ask those entrants to publish.
@@ -134,10 +137,10 @@ function medalColor(rank: number): string {
         </div>
       </div>
 
-      <div v-if="hiddenFromPublic.length" class="cpub-results-hidden" role="note">
+      <div v-if="hiddenFromPublic.length && hiddenFromPublic.some((e) => e.userId !== user?.id)" class="cpub-results-hidden" role="note">
         <i class="fa-solid fa-eye-slash" aria-hidden="true"></i>
         <span>
-          Only you can see {{ hiddenFromPublic.map((e) => e.contentTitle).join(', ') }} here: {{ hiddenFromPublic.length === 1 ? 'its project isn\u2019t' : 'their projects aren\u2019t' }} published,
+          Only organizers and judges can see {{ hiddenFromPublic.map((e) => e.contentTitle).join(', ') }} here: {{ hiddenFromPublic.length === 1 ? 'its project isn\u2019t' : 'their projects aren\u2019t' }} published,
           so {{ hiddenFromPublic.length === 1 ? 'it doesn\u2019t' : 'they don\u2019t' }} appear in the public results. Ask the {{ hiddenFromPublic.length === 1 ? 'entrant' : 'entrants' }} to publish.
         </span>
       </div>
@@ -185,7 +188,7 @@ function medalColor(rank: number): string {
 
       <div v-else class="cpub-results-empty">
         <i class="fa-solid fa-inbox"></i>
-        <p>No entries were submitted to this contest.</p>
+        <p>{{ (entriesData?.total ?? 0) > 0 ? 'No placed entries to show yet.' : 'No entries were submitted to this contest.' }}</p>
       </div>
     </template>
   </div>

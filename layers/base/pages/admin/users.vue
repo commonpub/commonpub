@@ -12,6 +12,7 @@ watch(search, (v) => {
   if (searchTimer) clearTimeout(searchTimer);
   searchTimer = setTimeout(() => { searchQuery.value = v; }, 300);
 });
+onBeforeUnmount(() => { if (searchTimer) clearTimeout(searchTimer); });
 const toast = useToast();
 
 // 'any' means no filter at all; the route rejects anything but the two
@@ -41,10 +42,13 @@ const rangeEnd = computed(() => Math.min(page.value * PAGE_SIZE, totalUsers.valu
 // Deleting the last row of the last page would otherwise strand the view on an
 // empty page past the end.
 watch(totalPages, (tp) => { if (page.value > tp) page.value = tp; });
-// Paging from the bottom pager leaves the viewer at the bottom of the new page.
-watch(page, () => {
+// Paging from the bottom pager leaves the viewer at the bottom of the new page,
+// so the pager scrolls back up. Only the pager: a search resetting to page 1
+// must not yank the page while the admin is typing.
+function goPage(p: number): void {
+  page.value = Math.min(Math.max(1, p), totalPages.value);
   if (typeof window !== 'undefined') document.querySelector('.admin-users')?.scrollIntoView({ block: 'start' });
-});
+}
 
 // Custom (non-system) roles — for per-user assignment. Requires `roles.manage`;
 // useFetch won't crash the page if the viewer lacks it (data stays null).
@@ -252,15 +256,15 @@ async function deleteUser(userId: string, username: string): Promise<void> {
 
     <nav v-if="totalUsers > 0" class="admin-pager" aria-label="Users pages">
       <span class="admin-pager-range" aria-live="polite">{{ rangeStart }}–{{ rangeEnd }} of {{ totalUsers }}</span>
-      <button class="admin-pager-btn" :disabled="page <= 1" @click="page = 1">First</button>
-      <button class="admin-pager-btn" :disabled="page <= 1" aria-label="Previous page" @click="page = Math.max(1, page - 1)">
+      <button class="admin-pager-btn" :disabled="page <= 1" @click="goPage(1)">First</button>
+      <button class="admin-pager-btn" :disabled="page <= 1" aria-label="Previous page" @click="goPage(page - 1)">
         <i class="fa-solid fa-chevron-left" aria-hidden="true"></i> Prev
       </button>
       <span class="admin-pager-page">Page {{ page }} of {{ totalPages }}</span>
-      <button class="admin-pager-btn" :disabled="page >= totalPages" aria-label="Next page" @click="page = Math.min(totalPages, page + 1)">
+      <button class="admin-pager-btn" :disabled="page >= totalPages" aria-label="Next page" @click="goPage(page + 1)">
         Next <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
       </button>
-      <button class="admin-pager-btn" :disabled="page >= totalPages" @click="page = totalPages">Last</button>
+      <button class="admin-pager-btn" :disabled="page >= totalPages" @click="goPage(totalPages)">Last</button>
     </nav>
   </div>
 </template>

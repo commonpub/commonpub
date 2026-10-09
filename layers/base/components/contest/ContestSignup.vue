@@ -140,7 +140,10 @@ const milestone = computed<{ label: string; date: string | null; hint: string | 
       // Staged contests move between rounds while still "judging" (a build sprint
       // between two review rounds); name the stage rather than claim judging.
       const st = c.stages?.length ? currentStage(c) : null;
-      if (st && st.kind !== 'review' && st.name) return { label: `${st.name} ends`, date: st.endsAt ? fmtDate(st.endsAt) : null, hint: null };
+      // Only a building stage gets "ends <date>"; after the final cut the pointer
+      // sits on an event or the results stage, where "Results ends" is nonsense.
+      if (st && (st.kind === 'interim' || st.kind === 'submission') && st.name) return { label: `${st.name} ends`, date: st.endsAt ? fmtDate(st.endsAt) : null, hint: null };
+      if (st && (st.kind === 'event' || st.kind === 'results')) return { label: 'Final results being prepared', date: null, hint: null };
       return { label: 'Judging in progress', date: null, hint: null };
     }
     case 'completed':
@@ -167,10 +170,15 @@ const whatsNext = computed<string>(() => {
       const c = props.contest;
       const st = c?.stages?.length ? currentStage(c) : null;
       const by = st?.endsAt ? fmtDate(st.endsAt) : null;
+      const building = !!st && (st.kind === 'interim' || st.kind === 'submission');
+      const finished = !!st && (st.kind === 'event' || st.kind === 'results');
       if (props.entryOutcome === 'eliminated') return 'Your entry wasn\'t selected to continue this time. Thank you for taking part. You can keep following the contest here.';
-      if (st && st.kind !== 'review' && props.entryOutcome === 'advanced') return `Your entry advanced to the ${st.name}. Keep building and publish your project${by ? ` before ${by}` : ''}, so the judges can see what you built in the next round.`;
+      if (building && props.entryOutcome === 'advanced') return `Your entry advanced to the ${st!.name}. Keep building and publish your project${by ? ` before ${by}` : ''}, so the judges can see what you built in the next round.`;
+      if (finished && props.entryOutcome === 'advanced') return 'You\'re a finalist. Judging is complete and the final results are being prepared. Make sure your project is published so it appears in the results.';
       if (props.entryOutcome === 'advanced') return 'Your entry advanced and is in this judging round. There\'s nothing to do right now. Updates appear in your notifications and on this page.';
-      if (st && st.kind !== 'review') return `Judging for the last round is done. If your entry advanced, keep building and publish your project before ${by ?? 'the stage deadline'}. Updates appear in your notifications and on this page.`;
+      if (finished) return 'Judging is complete and the final results are being prepared. Updates appear on this page.';
+      if (building && props.hasEntry) return `Judging for the last round is done. If your entry advanced, keep building and publish your project before ${by ?? 'the stage deadline'}. Updates appear in your notifications and on this page.`;
+      if (building) return `The ${st!.name} is underway for the entries that advanced. Updates appear on this page.`;
       return 'Submissions are closed and judging is underway. There\'s nothing more to do right now. Updates appear in your notifications and on this page.';
     }
     case 'completed':
@@ -304,7 +312,8 @@ watch(isFull, (full) => { if (full) modalOpen.value = false; });
            is signed up and has submitted NOTHING, and until now the card said
            "You're registered" and stopped there. Name the next action and link
            straight to it. -->
-      <div v-if="isFull && !entersOnRegister && !hasEntry && status === 'active'" class="cpub-su-nextstep">
+      <!-- Not past the stage deadline: the server refuses entries then. -->
+      <div v-if="isFull && !entersOnRegister && !hasEntry && status === 'active' && !submissionsClosed" class="cpub-su-nextstep">
         <p class="cpub-su-nextstep-title"><i class="fa-solid fa-arrow-right"></i> Next: submit your project</p>
         <p class="cpub-su-nextstep-body">You are registered, but you have not entered a project yet. Registering does not enter you on its own.</p>
         <NuxtLink :to="entriesLink" class="cpub-btn cpub-btn-primary cpub-su-btn">

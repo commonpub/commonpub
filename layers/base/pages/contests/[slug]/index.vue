@@ -685,7 +685,8 @@ async function withdrawEntry(entryId: string): Promise<void> {
                  path: fill the form to start a draft, or enter a finished project. -->
             <!-- Not for someone who already entered through the proposal form:
                  it invited a second entry from the same person. -->
-            <div v-if="c?.status === 'active' && !(currentProposalStage && myEntries.length)" class="cpub-entries-cta">
+            <!-- Nor past the stage deadline (the server refuses the entry then). -->
+            <div v-if="c?.status === 'active' && !(currentProposalStage && myEntries.length) && !(c && contestEntriesClosed({ ...c, judgingEndDate: c.judgingEndDate ?? null }))" class="cpub-entries-cta">
               <div class="cpub-entries-cta-text">
                 <p class="cpub-entries-cta-title">
                   <i class="fa-solid fa-trophy"></i>

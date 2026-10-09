@@ -242,6 +242,9 @@ const showSubmitCta = computed(
   () =>
     props.isAuthenticated &&
     c.value?.status === 'active' &&
+    // After mount only (it reads the clock), and never past the stage deadline:
+    // the server refuses the entry then.
+    !(mounted.value && c.value && contestEntriesClosed({ ...c.value, judgingEndDate: c.value.judgingEndDate ?? null })) &&
     (isFullyRegistered.value || props.entryRequiresRegistration === false),
 );
 </script>
