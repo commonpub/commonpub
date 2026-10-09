@@ -211,3 +211,14 @@ server rendering. **No P0 in server or routes, and nothing more exposed than on
 - **The `x-forwarded-for` trick for distinct-IP personas must be scoped to the app's
   host.** Sent to the font and icon CDNs, it fails their CORS preflight and strips
   every icon from the screenshots.
+
+## Left behind on this machine (local only)
+
+Inside Docker, which is currently down:
+
+- image `commonpub-contest-e2e:local`
+- container `cpub-contest-e2e` on port 3300
+- databases `contest_e2e` and `contest_e2e2` in the local `commonpub-postgres-1`
+
+All are disposable. Remove them once Docker is back, or reuse them for the re-walk.
+No dev servers are left running.
