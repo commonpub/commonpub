@@ -6,47 +6,39 @@ Previous: `docs/sessions/259-handoff.md`.
 
 ## Read this first
 
-**Nothing from this session is released.** Branch `fix/judging-readiness` is local and
-unpushed: 13 code and doc commits on top of `main` 38e3970f, plus the commit carrying this handoff. deveco still runs layer 0.138.1 / server
-2.136.0 and has every bug this session found.
+**RELEASED AND LIVE ON deveco.io (2026-10-09 ~22:40 UTC).**
 
-**deveco's first review round opens 2026-10-09 15:00 UTC, and the contest is not ready**
-(checked 08:47 UTC by request):
+- **commonpub:** PR #93 squash-merged as 8f8658a2. Release commit fc7d2232 publishes
+  **server 2.137.0** and **layer 0.138.2**.
+- **Layer verification:** it went out first as 0.138.2-rc.1 on `next`. A throwaway
+  deveco draft PR (#40) ran Build & Typecheck green against it before it was promoted
+  to `latest`.
+- **deveco:** #41 merged as 3342c55. Deploy run 38000302855 succeeded. After the swap:
+  `/api/health` ok, contest page and home 200, and list items now carry `contentStatus`,
+  a behaviour only server 2.137 has.
+- **commonpub.io:** deployed fc7d2232, health ok.
+- **heatsynclabs.io NOT rolled.** Its `^0.138.1` / `^2.136.0` carets reach the new
+  versions on its next lockfile refresh; raise the floors when it's touched.
 
-| | live value | needed |
-| --- | --- | --- |
-| status | `active` | `judging` (press Start Judging) |
-| judges | **0 invited** | panel invited and every judge accepted |
-| entries | **22**, one more than at 22:15 UTC last night, after the 15:00 UTC deadline. Proposals stay open until the status changes | Start Judging closes them |
-| rubric | none on the round or the contest | judges give one score from 0 to 100. Fine, or add criteria first |
-| Winner Showcase `startsAt` | year 0001 | real date |
+**deveco contest state at roll time:**
 
-Those are operator actions in the contest editor. The runbook walks through them.
+| item | state |
+| --- | --- |
+| status | `judging` (Start Judging was pressed) |
+| current stage | null, which resolves to Semi-Finalists |
+| entries | 22 |
+| public judges | none (pending invitations are hidden from the public now) |
+| rubric | none |
 
-## State at handoff (2026-10-09)
+**A shareable judge guide** was built as a single file at
+`~/Desktop/deveco-judging-guide.html` (also in the session scratchpad):
 
-**Published / live:** unchanged since 259. schema 0.67.0 · config 0.41.0 · infra 0.23.0 ·
-server 2.136.0 · layer 0.138.1. All three instances are on 48 flags, with migrations
-through 0049.
+- the deveco site's own styling;
+- 15 annotated screenshots from a local production build of deveco-io, on a practice
+  contest with made-up entrants;
+- clears the deveco-forge voice and review gates.
 
-**Branch release, if approved:** server 2.136.0 → **2.137.0** (new exports:
-`getContestJudgeMembership`, `stageHasClosed`, `currentStage`) and layer 0.138.1 →
-**0.138.2**. Only the layer depends on server, so nothing else republishes. **No schema
-change and no migration.**
-
-- deveco pins `^0.138.1` / `^2.136.0`. Both carets reach the new versions, but **raise
-  the floors** to `^0.138.2` / `^2.137.0`, because a satisfied caret never upgrades
-  itself.
-- Refresh **both** of deveco's lockfiles: CI uses pnpm and the Dockerfile uses npm.
-  Count `node_modules/vue` entries in package-lock before merging.
-- deveco's deploy doesn't wait for CI and can't fail on a bad container, so check
-  `/api/health` and one contest page after the swap.
-
-**Suites on the branch:** server 2201 passed + 11 skipped (245 contest). The 8
-real-Postgres concurrency tests skip because local Postgres is down with Docker; the
-other 3 skips predate the branch. Layer 3034. Reference typecheck is clean; a planted
-error proved it covers layer pages. Lint: 0 errors (3 pre-existing warnings in
-`utils/contestStages.ts`).
+It is not committed, because it carries 1.4 MB of embedded images.
 
 ## What the branch fixes (grouped)
 
@@ -175,15 +167,19 @@ server rendering. **No P0 in server or routes, and nothing more exposed than on
 
 ## Next, in order
 
-1. **Release and roll before 15:00 UTC, or not.** The operator decides. Without it,
-   round 1 runs on 0.138.1 and the runbook's **[before the update]** notes apply.
-   The biggest one: **only 20 of 22 entries reach judges.**
+1. **Done:** released and rolled to deveco (see top). heatsync is still on 0.138.1.
 2. **Operator actions on deveco** (runbook Part 1): invite judges and get acceptances,
    press Start Judging, fix the 0001 date, set max entries per person to 1, review
    the duplicate wildfire entry (maxic93 and pldubouilh) and the 22nd, late entry.
-3. **Free disk space, restore Docker, and re-run the persona walk** against the
-   rebuilt image. The harness is described in the session log. It was a throwaway
-   `walk.mjs`, deleted, so rebuild it or add a Playwright spec.
+3. **Done:**
+   - Disk freed: 7.9 GB to 34 GB free, from caches and Rust `target/` dirs only. Volumes
+     and other projects' Docker data were left alone.
+   - Docker restored.
+   - A targeted re-walk on the rebuilt production image passed 13/13, with no
+     hydration mismatch with the browser off UTC.
+   - Follow-up: the "Unsaved changes" line and the dirty-card count use `--accent`.
+     On deveco that's bright mint on white, below AA contrast. Use `--text` with an
+     accent icon.
 4. Open from the audits, not blocking:
    - Reminders and announcements can't target only the people still in the running.
    - A tie at completion produces two first places and no second.
@@ -197,6 +193,26 @@ server rendering. **No P0 in server or routes, and nothing more exposed than on
    - The audit's open P2s above.
 5. Still open from 258/259: PR #92, rotate the crates.io token, `sharp` ≥ 0.35, and
    make deveco's deploy able to fail.
+
+## What the release itself caught
+
+- **CI exited 1 with every test green.** `contestEntriesClosed` was auto-imported in
+  ContestHero, and component tests have no Nuxt auto-imports, so there were 6
+  unhandled rejections. My local check had read the totals, not the exit code. That is
+  the trap the memory note "green test count is not a green run" describes. Fixed with an explicit
+  import.
+- **e2e failed three times on Docker Hub's anonymous pull limit** (`toomanyrequests`).
+  CI service images now come from `public.ecr.aws/docker/library`.
+- **The contest-lifecycle e2e caught a real semantic gap:** completing straight after
+  a cut, with later rounds skipped, left nobody ranked, because cuts clear the live
+  score. `calculateContestRanks` now falls back to each survivor's last cut snapshot,
+  but only when no survivor was scored in the final round.
+- **The npm tarball 404'd for deveco's CI** for a few minutes after publish. Poll the
+  tarball URL before re-running.
+- **deveco-io has a `.env` with production credentials.** For local runs, use a
+  production build (`node .output/server/index.mjs` does not auto-load `.env`) or
+  `nuxt dev --dotenv <scratch file>`. The dev server also 500s on a highlight.js
+  ESM interop that the production build doesn't have.
 
 ## Things that will bite the next person
 
