@@ -22,6 +22,8 @@ const props = defineProps<{
   registering?: boolean;
   /** Whether the viewer already has an entry (drives the "now submit" nudge). */
   hasEntry?: boolean;
+  /** The viewer's own entry outcome after a cut, if any. */
+  entryOutcome?: 'advanced' | 'eliminated' | null;
 }>();
 
 // Public registration count, from the SSR'd contest DTO. The `registrantCount`
@@ -166,6 +168,7 @@ function statusClass(status: string): string {
       :saved-fields="savedFields"
       :registering="registering"
       :has-entry="hasEntry"
+      :entry-outcome="entryOutcome"
       @register="(payload) => emit('register', payload)"
       @unregister="emit('unregister')"
     />

@@ -53,24 +53,49 @@ const currentRoundId = computed<string | null>(() => {
 // the page byte-identical to pre-artifact behaviour. Flag-gated so disabling
 // contestStageSubmissions hides the (server-stripped) artifact boxes entirely.
 const { features } = useFeatures();
+// The round this page is FOR: the open review round, or before judging starts
+// the next one, so a judge previewing entries sees the proposals they'll score.
+// Without this the preview said "You can read the entries now" over cards with
+// only a title (session 260 walk-through).
+const targetRoundId = computed<string | null>(() => {
+  if (currentRoundId.value) return currentRoundId.value;
+  const c = contest.value;
+  if (!c) return null;
+  const stages = normalizeStages(c);
+  const from = stages.findIndex((s) => s.id === currentStageId(c));
+  return stages.slice(from + 1).find((s) => s.kind === 'review')?.id ?? null;
+});
 const artifactStage = computed(() => {
   if (features.value.contestStageSubmissions === false) return null;
   const c = contest.value;
-  if (!c || !currentRoundId.value) return null;
+  if (!c || !targetRoundId.value) return null;
   const stages = normalizeStages(c);
-  const idx = stages.findIndex((s) => s.id === currentRoundId.value);
+  const idx = stages.findIndex((s) => s.id === targetRoundId.value);
   for (let i = idx - 1; i >= 0; i--) {
     const s = stages[i]!;
     if (s.kind === 'submission' && s.submissionTemplate?.length) return s;
   }
   return null;
 });
+// A later round reviews what was BUILT since that submission (a build sprint sits
+// between). The submission is then background, and the published project is
+// what's being judged, so say so instead of presenting the proposal as the entry.
+const artifactIsEarlier = computed(() => {
+  const c = contest.value;
+  if (!c || !artifactStage.value || !targetRoundId.value) return false;
+  const stages = normalizeStages(c);
+  return stages.findIndex((s) => s.id === targetRoundId.value) - stages.findIndex((s) => s.id === artifactStage.value!.id) > 1;
+});
 
 // Judging rubric: per-round criteria if the current review stage defines them,
 // else the contest-level rubric. Judges score each criterion (0..max); the overall
 // is the normalized weighted sum (computed server-side).
 const criteria = computed(() => {
-  const stageCrit = currentReviewStage.value?.criteria;
+  // The target round's rubric, so a preview (before the round opens) shows the
+  // criteria the judge will score against.
+  const c = contest.value;
+  const target = c && targetRoundId.value ? normalizeStages(c).find((st) => st.id === targetRoundId.value) : null;
+  const stageCrit = target?.criteria;
   return (stageCrit && stageCrit.length ? stageCrit : contest.value?.judgingCriteria) ?? [];
 });
 const hasCriteria = computed(() => criteria.value.length > 0);
@@ -148,6 +173,7 @@ const entryList = computed(() => {
       isOwn: !!user.value?.id && entry.userId === user.value.id,
       artifactRows,
       hasArtifact: !!sub,
+      projectPublished: entry.contentStatus === 'published',
       savedLate: stageEnd !== null && savedAt !== null && savedAt > stageEnd,
     };
   });
@@ -401,14 +427,23 @@ async function submitScore(entryId: string): Promise<void> {
                  backed by a DRAFT placeholder project, and a draft's content URL
                  404s for everyone but its author. The entry page shows every
                  stage's submission and links the project once it's published. -->
-            <NuxtLink :to="`/contests/${slug}/entries/${entry.id}`" class="cpub-judge-entry-link" target="_blank">
-              <i class="fa-solid fa-arrow-up-right-from-square"></i> Open full entry
-            </NuxtLink>
+            <div class="cpub-judge-entry-links">
+              <!-- The built project, once published: what a later round judges. -->
+              <NuxtLink v-if="entry.projectPublished" :to="`/u/${entry.authorUsername}/${entry.contentType}/${entry.contentSlug}`" class="cpub-judge-entry-link cpub-judge-entry-link--primary" target="_blank">
+                <i class="fa-solid fa-screwdriver-wrench"></i> View the project
+              </NuxtLink>
+              <NuxtLink :to="`/contests/${slug}/entries/${entry.id}`" class="cpub-judge-entry-link" target="_blank">
+                <i class="fa-solid fa-arrow-up-right-from-square"></i> Open full entry
+              </NuxtLink>
+            </div>
+            <p v-if="artifactIsEarlier && !entry.projectPublished" class="cpub-judge-unpublished">
+              The entrant hasn't published their project yet, so only the earlier submission is available.
+            </p>
 
             <!-- This round's artifact (the proposal / prototype fields) -->
             <div v-if="artifactStage" class="cpub-judge-artifact">
               <div class="cpub-judge-artifact-head">
-                {{ artifactStage.name }} submission
+                {{ artifactIsEarlier ? `Original ${artifactStage.name.toLowerCase()} submission` : `${artifactStage.name} submission` }}
                 <span v-if="entry.savedLate" class="cpub-judge-late">Edited after the deadline</span>
               </div>
               <dl v-if="entry.hasArtifact && entry.artifactRows.length" class="cpub-judge-artifact-fields">
@@ -559,6 +594,9 @@ async function submitScore(entryId: string): Promise<void> {
 .cpub-judge-entry-author { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
 .cpub-judge-entry-link { font-size: 10px; color: var(--accent); text-decoration: none; display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; }
 .cpub-judge-entry-link:hover { text-decoration: underline; }
+.cpub-judge-entry-links { display: flex; flex-wrap: wrap; gap: 4px 14px; }
+.cpub-judge-entry-link--primary { font-size: 12px; font-weight: 600; }
+.cpub-judge-unpublished { font-size: 12px; color: var(--text-dim); margin: 6px 0 0; }
 
 .cpub-judge-artifact { margin-top: 10px; border: var(--border-width-default) dashed var(--border2); background: var(--surface2); }
 .cpub-judge-artifact-head { font-size: 9px; font-family: var(--font-mono); font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--accent); padding: 6px 10px; border-bottom: var(--border-width-default) dashed var(--border2); }
@@ -590,7 +628,7 @@ async function submitScore(entryId: string): Promise<void> {
 .cpub-judge-crit-total strong { color: var(--accent); font-size: 13px; }
 .cpub-judge-score-input-wrap { display: flex; gap: 0; }
 .cpub-judge-score-input {
-  width: 70px; padding: 6px 8px; border: var(--border-width-default) solid var(--border); background: var(--surface);
+  width: 84px; padding: 6px 8px; border: var(--border-width-default) solid var(--border); background: var(--surface);
   color: var(--text); font-size: 13px; font-family: var(--font-mono); text-align: center; outline: none;
 }
 .cpub-judge-score-input:focus { border-color: var(--accent); }

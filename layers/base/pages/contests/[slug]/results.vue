@@ -11,8 +11,6 @@ const { data: entriesData } = useLazyFetch<{ items: Serialized<ContestEntryItem>
   `/api/contests/${slug}/entries`,
   { query: { order: 'rank', limit: 100 } },
 );
-const totalEntries = computed(() => entriesData.value?.total ?? 0);
-const shownEntries = computed(() => rankedEntries.value.length);
 const { data: votesData } = useLazyFetch<ContestEntryVoteInfo[]>(`/api/contests/${slug}/votes`);
 
 // Resolved HERE, in setup scope. Inside a useSeoMeta getter the head
@@ -50,7 +48,14 @@ const rankedEntries = computed(() => {
 });
 
 const podium = computed(() => rankedEntries.value.filter((e) => e.rank && e.rank <= 3));
-const leaderboard = computed(() => rankedEntries.value);
+// Placed entries only. Entries cut in an earlier round have no rank, and listing
+// them under "-" beside an earlier round's score made the standings read as if
+// they had competed in the final (session 260 walk-through).
+const leaderboard = computed(() => rankedEntries.value.filter((e) => e.rank != null));
+// Ranked entries whose project isn't published reach ONLY privileged viewers
+// (the public listing hides drafts), so the organizer sees a podium the public
+// doesn't. Say so, by name, so they can ask those entrants to publish.
+const hiddenFromPublic = computed(() => leaderboard.value.filter((e) => e.contentStatus && (e.contentStatus !== 'published' || (e.contentVisibility && e.contentVisibility !== 'public'))));
 
 const prizes = computed(() => contest.value?.prizes ?? []);
 
@@ -129,13 +134,20 @@ function medalColor(rank: number): string {
         </div>
       </div>
 
+      <div v-if="hiddenFromPublic.length" class="cpub-results-hidden" role="note">
+        <i class="fa-solid fa-eye-slash" aria-hidden="true"></i>
+        <span>
+          Only you can see {{ hiddenFromPublic.map((e) => e.contentTitle).join(', ') }} here: {{ hiddenFromPublic.length === 1 ? 'its project isn\u2019t' : 'their projects aren\u2019t' }} published,
+          so {{ hiddenFromPublic.length === 1 ? 'it doesn\u2019t' : 'they don\u2019t' }} appear in the public results. Ask the {{ hiddenFromPublic.length === 1 ? 'entrant' : 'entrants' }} to publish.
+        </span>
+      </div>
+
       <!-- LEADERBOARD -->
       <div v-if="leaderboard.length > 0" class="cpub-leaderboard">
         <div class="cpub-leaderboard-head">
           <h2 class="cpub-leaderboard-title">Full Standings</h2>
           <span class="cpub-leaderboard-count">
-            {{ totalEntries }} {{ totalEntries === 1 ? 'entry' : 'entries' }}
-            <template v-if="shownEntries < totalEntries"> · showing top {{ shownEntries }}</template>
+            {{ leaderboard.length }} placed
           </span>
         </div>
         <div class="cpub-leaderboard-scroll">
@@ -240,4 +252,6 @@ function medalColor(rank: number): string {
   .cpub-leaderboard-table { font-size: 11px; }
   .cpub-leaderboard-table th, .cpub-leaderboard-table td { padding: 8px; }
 }
+.cpub-results-hidden { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; margin-bottom: 20px; font-size: 13px; color: var(--text); background: var(--yellow-bg); border: var(--border-width-default) solid var(--border); }
+.cpub-results-hidden i { color: var(--yellow-text); margin-top: 3px; }
 </style>

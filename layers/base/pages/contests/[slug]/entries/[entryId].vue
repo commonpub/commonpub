@@ -71,7 +71,13 @@ const showProjectLink = computed(
   () => entry.value?.contentStatus === 'published' || (!!user.value?.id && user.value.id === entry.value?.userId),
 );
 
+// Client-only: dates format in the viewer's time zone, and the server renders in
+// UTC, so formatting during SSR printed a different day for anyone off UTC and
+// tripped a hydration mismatch (found in the session 260 production-build walk).
+const mounted = ref(false);
+onMounted(() => { mounted.value = true; });
 function fmtDate(iso: string): string {
+  if (!mounted.value) return '';
   return new Date(iso).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
 }
 

@@ -18,6 +18,7 @@ interface EntryLite {
   score?: number | null;
   eliminated?: boolean;
   judgeScores?: JudgeScoreEntry[];
+  contentStatus?: string;
 }
 
 const props = defineProps<{
@@ -63,17 +64,31 @@ const scoringJudgeCount = computed(() => (judgesData.value ?? []).filter((j) => 
  * matched on `roundId`, the same tag the server writes, so a later round never
  * shows an earlier round's numbers. Unscored entries sort last.
  */
-function roundRows(stageId: string): Array<{ id: string; title: string; author: string; avg: number | null; scores: Array<{ judge: string; score: number; feedback: string }> }> {
+function roundRows(stageId: string): Array<{ id: string; title: string; author: string; avg: number | null; scores: Array<{ judge: string; score: number; feedback: string }>; unpublished: boolean }> {
   return eligibleEntries.value
     .map((e) => {
       const scores = (e.judgeScores ?? [])
         .filter((s) => s.roundId === stageId)
         .map((s) => ({ judge: judgeName.value.get(s.judgeId) ?? 'Removed judge', score: s.score, feedback: s.feedback ?? '' }));
       const avg = scores.length ? Math.round(scores.reduce((t, s) => t + s.score, 0) / scores.length) : null;
-      return { id: e.id, title: e.contentTitle, author: e.authorName ?? '', avg, scores };
+      return { id: e.id, title: e.contentTitle, author: e.authorName ?? '', avg, scores, unpublished: !!e.contentStatus && e.contentStatus !== 'published' };
     })
     .sort((a, b) => (b.avg ?? -1) - (a.avg ?? -1) || a.title.localeCompare(b.title));
 }
+/**
+ * The LAST review round decides the winners, and an entry whose project isn't
+ * published is missing from the public results (the listing hides drafts). In
+ * the walk-through both winners were proposal drafts and the public results
+ * page showed neither. Warn before that cut, by name.
+ */
+function unpublishedFinalists(stageId: string): string[] {
+  const c = { ...props.contest, judgingEndDate: props.contest.judgingEndDate ?? null };
+  const stages = normalizeStages(c);
+  const idx = stages.findIndex((s) => s.id === stageId);
+  if (stages.slice(idx + 1).some((s) => s.kind === 'review')) return [];
+  return eligibleEntries.value.filter((e) => e.contentStatus && e.contentStatus !== 'published').map((e) => e.contentTitle);
+}
+
 function unscoredCount(stageId: string): number {
   return roundRows(stageId).filter((r) => r.scores.length === 0).length;
 }
@@ -169,6 +184,10 @@ watch(() => props.reviewStages, (stages) => {
         </div>
       </div>
       <p v-if="cutState(rs.id).why" class="cpub-form-hint cpub-advance-why">{{ cutState(rs.id).why }}</p>
+      <p v-if="cutState(rs.id).ok && unpublishedFinalists(rs.id).length" class="cpub-advance-warn" role="note">
+        <i class="fa-solid fa-eye-slash" aria-hidden="true"></i>
+        Not published yet: {{ unpublishedFinalists(rs.id).join(', ') }}. This round decides the winners, and an unpublished project doesn't appear in the public results. Ask these entrants to publish before you complete the contest.
+      </p>
       <!-- Who has judged what, before any cut is made. -->
       <details class="cpub-advance-scores">
         <summary>
@@ -184,6 +203,7 @@ watch(() => props.reviewStages, (stages) => {
             <div class="cpub-advance-score-head">
               <NuxtLink :to="`/contests/${slug}/entries/${row.id}`" target="_blank" class="cpub-advance-score-title">{{ row.title }}</NuxtLink>
               <span v-if="row.author" class="cpub-advance-score-author">{{ row.author }}</span>
+              <span v-if="row.unpublished" class="cpub-advance-draft">Not published</span>
               <span class="cpub-advance-score-avg">{{ row.avg ?? 'not scored' }}<template v-if="row.avg !== null"> avg · {{ row.scores.length }} of {{ Math.max(scoringJudgeCount, row.scores.length) }}</template></span>
             </div>
             <ul v-if="row.scores.length" class="cpub-advance-score-judges">
@@ -248,6 +268,8 @@ watch(() => props.reviewStages, (stages) => {
 .cpub-advance-scores summary { cursor: pointer; font-size: 12px; font-weight: 600; color: var(--text); display: list-item; }
 .cpub-advance-scores-meta { margin-left: 8px; }
 .cpub-advance-why { margin: 6px 0 0; }
+.cpub-advance-warn { display: flex; gap: 8px; align-items: flex-start; margin: 8px 0 0; padding: 8px 10px; font-size: 12px; color: var(--text); background: var(--yellow-bg); border: var(--border-width-default) solid var(--border); }
+.cpub-advance-draft { font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; letter-spacing: .04em; color: var(--text-dim); border: var(--border-width-default) solid var(--border); padding: 0 5px; }
 .cpub-advance-refresh { margin-bottom: 8px; }
 .cpub-advance-scores-meta { font-family: var(--font-mono); font-size: 11px; font-weight: 400; color: var(--text-dim); }
 .cpub-advance-score-list { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }

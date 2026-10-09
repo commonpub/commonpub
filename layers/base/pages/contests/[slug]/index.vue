@@ -251,6 +251,16 @@ const currentSubmissionStage = computed(() => {
   return stage && stage.kind === 'submission' && stage.submissionTemplate?.length ? stage : null;
 });
 const myEntries = computed(() => entries.value.filter((e) => e.userId === user.value?.id));
+// The viewer's own result after a cut, so the signup card can say it plainly.
+// During a build sprint an advanced and an eliminated entrant saw the identical
+// page, "If your entry advanced, keep building" (session 260 walk-through).
+const myEntryOutcome = computed<'advanced' | 'eliminated' | null>(() => {
+  const mine = myEntries.value;
+  if (!mine.length) return null;
+  if (mine.some((e) => !e.eliminated && (e.stageState ?? []).some((s) => s.status === 'advanced'))) return 'advanced';
+  if (mine.every((e) => e.eliminated)) return 'eliminated';
+  return null;
+});
 
 // The server refuses proposal and stage submissions once an organizer-defined
 // stage's end date passes (stageHasClosed), so stop rendering the forms then
@@ -280,13 +290,14 @@ const currentProposalStage = computed(() => {
   return stage && stage.kind === 'submission' && stage.submissionMode === 'proposal' && stage.submissionTemplate?.length ? stage : null;
 });
 
-function onProposalSubmitted(projectSlug: string, contentType: string): void {
+function onProposalSubmitted(_projectSlug: string, _contentType: string): void {
+  // Stay here and confirm. This used to open the new draft project in the
+  // editor: a blank page with a Publish button and no word that the proposal
+  // was in, which reads as "you're not done". Developing the project is a
+  // later-round task; the entries tab shows the submission, editable until
+  // the deadline (session 260 walk-through).
+  toast.success('Proposal submitted. You can edit your answers here until the deadline.');
   refreshNuxtData();
-  // Route the entrant into their new draft project to develop it for later rounds.
-  // Use the server's ACTUAL created type (not a client guess) so the URL resolves.
-  if (user.value?.username) {
-    navigateTo(`/u/${user.value.username}/${contentType}/${projectSlug}/edit`);
-  }
 }
 
 // The hero "Submit Entry" button. Form-based entry (a proposal draft, or a
@@ -672,7 +683,9 @@ async function withdrawEntry(entryId: string): Promise<void> {
             <!-- Attach an existing published project. Available for every active
                  contest, INCLUDING proposal mode, so entrants can choose either
                  path: fill the form to start a draft, or enter a finished project. -->
-            <div v-if="c?.status === 'active'" class="cpub-entries-cta">
+            <!-- Not for someone who already entered through the proposal form:
+                 it invited a second entry from the same person. -->
+            <div v-if="c?.status === 'active' && !(currentProposalStage && myEntries.length)" class="cpub-entries-cta">
               <div class="cpub-entries-cta-text">
                 <p class="cpub-entries-cta-title">
                   <i class="fa-solid fa-trophy"></i>
@@ -752,6 +765,7 @@ async function withdrawEntry(entryId: string): Promise<void> {
           :saved-fields="registrationFields"
           :registering="registering"
           :has-entry="myEntries.length > 0"
+          :entry-outcome="myEntryOutcome"
           @copy-link="copyLink"
           @register="register"
           @unregister="unregister"

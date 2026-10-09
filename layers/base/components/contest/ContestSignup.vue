@@ -17,6 +17,8 @@ const props = defineProps<{
   /** Whether the viewer already has an entry in this contest. Drives the
    *  "registered, but nothing submitted yet" nudge. */
   hasEntry?: boolean;
+  /** The viewer's own entry outcome after a review cut, if any. */
+  entryOutcome?: 'advanced' | 'eliminated' | null;
 }>();
 
 // Public registration count, read from the SSR'd contest DTO rather than taken
@@ -88,12 +90,18 @@ const submissionsClosed = computed<boolean>(() => {
   return Number.isFinite(at) && at < Date.now();
 });
 
-/** Whole days from now until an ISO date (null when unknown / not yet mounted). */
+/**
+ * CALENDAR days from today until an ISO date, in the viewer's time zone (null
+ * when unknown / not yet mounted). Rounding milliseconds up made a deadline six
+ * minutes away read "tomorrow" (session 260 walk-through); a deadline later
+ * today is "today", one on tomorrow's date is "tomorrow".
+ */
 function daysUntil(d: string | null | undefined): number | null {
   if (!d || !mounted.value) return null;
-  const ms = new Date(d).getTime() - Date.now();
-  if (!Number.isFinite(ms)) return null;
-  return Math.ceil(ms / 86_400_000);
+  const target = new Date(d);
+  if (!Number.isFinite(target.getTime())) return null;
+  const startOf = (x: Date): number => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  return Math.round((startOf(target) - startOf(new Date())) / 86_400_000);
 }
 
 function humanizeDays(n: number): string {
@@ -132,7 +140,7 @@ const milestone = computed<{ label: string; date: string | null; hint: string | 
       // Staged contests move between rounds while still "judging" (a build sprint
       // between two review rounds); name the stage rather than claim judging.
       const st = c.stages?.length ? currentStage(c) : null;
-      if (st && st.kind !== 'review' && st.name) return { label: st.name, date: st.endsAt ? fmtDate(st.endsAt) : null, hint: null };
+      if (st && st.kind !== 'review' && st.name) return { label: `${st.name} ends`, date: st.endsAt ? fmtDate(st.endsAt) : null, hint: null };
       return { label: 'Judging in progress', date: null, hint: null };
     }
     case 'completed':
@@ -158,7 +166,11 @@ const whatsNext = computed<string>(() => {
       // page, never an email.
       const c = props.contest;
       const st = c?.stages?.length ? currentStage(c) : null;
-      if (st && st.kind !== 'review') return `Judging for the last round is done. If your entry advanced, keep building and publish your project before ${st.endsAt ? fmtDate(st.endsAt) : 'the stage deadline'}. Updates appear in your notifications and on this page.`;
+      const by = st?.endsAt ? fmtDate(st.endsAt) : null;
+      if (props.entryOutcome === 'eliminated') return 'Your entry wasn\'t selected to continue this time. Thank you for taking part. You can keep following the contest here.';
+      if (st && st.kind !== 'review' && props.entryOutcome === 'advanced') return `Your entry advanced to the ${st.name}. Keep building and publish your project${by ? ` before ${by}` : ''}, so the judges can see what you built in the next round.`;
+      if (props.entryOutcome === 'advanced') return 'Your entry advanced and is in this judging round. There\'s nothing to do right now. Updates appear in your notifications and on this page.';
+      if (st && st.kind !== 'review') return `Judging for the last round is done. If your entry advanced, keep building and publish your project before ${by ?? 'the stage deadline'}. Updates appear in your notifications and on this page.`;
       return 'Submissions are closed and judging is underway. There\'s nothing more to do right now. Updates appear in your notifications and on this page.';
     }
     case 'completed':
