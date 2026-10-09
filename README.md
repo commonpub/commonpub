@@ -197,7 +197,7 @@ See [`codebase-analysis/01-monorepo-topology.md`](./codebase-analysis/01-monorep
 |---|---|---|
 | [`@commonpub/schema`](packages/schema/README.md) | 0.67.0 | 110 Drizzle tables (incl. `layouts`/`layout_rows`/`layout_sections`/`layout_versions`, RBAC `roles`/`role_permissions`/`user_roles`, `metrics_daily`, persona), 50 enums, 166 Zod validators |
 | [`@commonpub/config`](packages/config/README.md) | 0.41.0 | `defineCommonPubConfig()` factory, 47 feature flags |
-| [`@commonpub/server`](packages/server/README.md) | 2.136.0 | Framework-agnostic business logic (29 modules incl. `src/publicApi/*` read-API+metrics+CORS, `src/layout/*` CRUD, RBAC, contest stages, keyset feed pagination, transactions, lifecycle hooks) |
+| [`@commonpub/server`](packages/server/README.md) | 2.137.0 | Framework-agnostic business logic (29 modules incl. `src/publicApi/*` read-API+metrics+CORS, `src/layout/*` CRUD, RBAC, contest stages, keyset feed pagination, transactions, lifecycle hooks) |
 | [`@commonpub/protocol`](packages/protocol/README.md) | 0.15.4 | ActivityPub types, HTTP signatures, WebFinger, NodeInfo, OAuth2, SSRF-safe fetch |
 | [`@commonpub/auth`](packages/auth/README.md) | 0.13.4 | Better Auth wrapper, guards, AP Actor SSO (Model B), RBAC `hasPermissionPure` |
 | [`@commonpub/ui`](packages/ui/README.md) | 0.16.1 | 22 headless Vue 3 components + SectionRegistry/SectionDefinition, 7 built-in themes (`base`, `dark`, `generics`, `agora`, `agora-dark`, `stoa`, `stoa-dark`), CSS token system |
@@ -214,7 +214,7 @@ Plus the layer itself:
 
 | Package | Version | Purpose |
 |---|---|---|
-| `@commonpub/layer` | 0.138.1 | Shared Nuxt layer — pages, components, API routes, middleware, theme. Public-API metrics + CORS, Stoa default theme, contest stages editor, layout editor (Phase 3a–3c), keyset feed, config-driven nav. |
+| `@commonpub/layer` | 0.138.2 | Shared Nuxt layer — pages, components, API routes, middleware, theme. Public-API metrics + CORS, Stoa default theme, contest stages editor, layout editor (Phase 3a–3c), keyset feed, config-driven nav. |
 
 ---
 
