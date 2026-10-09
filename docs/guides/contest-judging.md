@@ -69,14 +69,19 @@ detection: a detector on any camera, one integrator to weigh them all". They may
 teammates or a copy. Compare the two entries, then decide. See
 `docs/plans/fake-account-handling.md`.
 
-**5. Eligibility.** "I confirm my country of residence is the United States" is
+**5. Judges who are also entrants.** Nothing stops a judge from entering. A judge
+can't score their own entry, but in the walk-through a judge's own entry won first
+place. Decide your policy. The usual one is that judges don't enter, or that a judge
+with an entry recuses from that round.
+
+**6. Eligibility.** "I confirm my country of residence is the United States" is
 optional on the form, and there is an "I'd like to participate even though I don't
 qualify" box. Screen these entries before the 50 advance. Check identity and
 eligibility at payout, not at entry.
 
 ### Opening the round
 
-**6. Press "Start Judging".** Do it as soon as you're ready.
+**7. Press "Start Judging".** Do it as soon as you're ready.
 
 - **[before the update] The proposal deadline passed at 2026-10-08 15:00 UTC, but
   proposals are still open.** Until the status leaves Active, people can submit new
@@ -165,7 +170,15 @@ it back to Active.**
 
 ### Completing
 
-**12. Complete & Publish** calculates final ranks from the last round's scores.
+**12. Before completing, make sure every finalist has PUBLISHED their project.**
+A proposal creates a private draft project. Public lists hide drafts, so **an
+unpublished winner doesn't appear on the public results page at all.** In the
+session-260 walk-through, both winners were unpublished and the public results page
+showed neither of them. [after the update] The final cut and the results page name
+the unpublished entries for you. [before the update] Nothing warns you: check each
+finalist's project yourself.
+
+**13. Complete & Publish** calculates final ranks from the last round's scores.
 
 - Ties share a place: two entries tied for first both get "You won… 1st" and the
   first-place prize text, and nobody is placed 2nd.

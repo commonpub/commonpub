@@ -147,6 +147,60 @@ clean.
 - deveco's deploy doesn't wait for CI and can't fail on a bad container (known since
   257).
 
+## Persona walk-through on the production image (third request)
+
+Built the repo's Dockerfile, ran its migrations through `scripts/db-migrate.mjs` on
+a fresh database, and drove a deveco-shaped contest end to end with Playwright:
+
+- **Personas:** organizer; judges Jae, Kim (also an entrant), Lee (lead), Gus
+  (guest) and Pat (never accepts); six entrants; a latecomer; an anonymous visitor.
+- **Real time:** the proposal deadline passed in real time; nothing was moved by
+  SQL.
+- **Distinct IPs:** each persona had its own forwarded IP, so production rate limits
+  stayed on.
+
+**Worked as intended:**
+- Hero activate and Start Judging, both with confirms.
+- Judge invites through the People search, accepting from the banner (which lands
+  on the judge page) and from the judge page.
+- The public panel hides the pending invitee.
+- The late proposal was refused.
+- Scoring by all three judges, including the own-entry card, a guest's 403, and a
+  rubric in round 2 with a message naming the missing criterion.
+- A mistaken Top 2 corrected to Top 4.
+- Advance notices update in place rather than piling up.
+- The stage pointer moves forward only.
+- The finals cut was made on round-2 scores.
+- Ranks went to finalists only, and prize notifications went out.
+
+**Found and fixed (commits 2a0f7fc6, 3765ab4e):**
+- **Hydration mismatch on every contest page that has entries.** Entry dates were
+  formatted during SSR (UTC) but in the browser's time zone on the client. Live on
+  deveco for anyone off UTC.
+- The judge preview before judging showed titles only.
+- **Finals judges saw the original proposal as the entry**, with no link to the
+  built project.
+- Advanced and eliminated entrants saw an identical sprint card.
+- Proposal submit dropped the entrant into a blank project editor, and the page then
+  offered them a second entry.
+- "Tomorrow" was shown for a deadline 6 minutes away.
+- **Results hid unpublished winners from the public without telling the organizer**,
+  and listed eliminated entries with stale scores.
+- The judge manager's labels were truncated.
+- An em dash in the win notice.
+
+**Not fixed (noted):**
+- After the deadline, before Start Judging, the hero still offers "Log in to
+  register".
+- The semi-final Advance button stays enabled in round 2; the server refuses it with
+  a message.
+- Judges may enter the contest (a policy decision, now in the runbook).
+
+**Second replay not run:** Docker Desktop failed with containerd I/O errors on a
+host disk that was 98% full (11 GB free, Docker.raw about 26 GB). The second
+round of fixes is covered by the unit, integration and typecheck gates, but not
+yet re-walked.
+
 ## Open
 
 - **Release:** server 2.136.0 → **2.137.0** (new exports), layer 0.138.1 →
