@@ -11,7 +11,7 @@
  * label PII keys + detect `address` fields (rendered as a formatted block rather
  * than raw JSON). Unknown keys fall back to the raw key + value.
  */
-import { ADDRESS_SUBFIELDS, parseAddress } from '../../utils/contestSubmission';
+import { formatAddressLines } from '../../utils/contestSubmission';
 
 interface TemplateField { key: string; label: string; type: string }
 interface Agreement { fieldKey: string; stageId: string; termsHash: string; termsSnapshot: string; acceptedAt: string | Date; ip?: string | null }
@@ -34,11 +34,8 @@ const fieldRows = computed<FieldRow[]>(() =>
   }),
 );
 
-function formatAddress(json: string): string[] {
-  const a = parseAddress(json);
-  const cityLine = [a.city, a.region].filter(Boolean).join(', ') + (a.postal ? ` ${a.postal}` : '');
-  return [a.line1, a.line2, cityLine.trim(), a.country].map((l) => (l ?? '').trim()).filter(Boolean);
-}
+// One formatter for every organizer surface and the CSV exports (utils/contestSubmission).
+const formatAddress = formatAddressLines;
 
 function agreementLabel(fieldKey: string): string {
   return byKey.value.get(fieldKey)?.label ?? fieldKey;

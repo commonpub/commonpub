@@ -56,6 +56,9 @@ export {
 
 export { buildContestExport, buildRegistrantsExport, toCsv } from './export.js';
 export type { ContestExport } from './export.js';
+export type { ExportOptions } from './export.js';
+export { ADDRESS_PARTS, parseAddressValue, formatAddressLines } from './address.js';
+export type { AddressParts, AddressPartKey } from './address.js';
 
 export {
   registerForContest,

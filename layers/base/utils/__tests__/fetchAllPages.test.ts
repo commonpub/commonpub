@@ -26,13 +26,25 @@ describe('fetchAllPages', () => {
     expect(fetchPage.mock.calls.map((c) => c[0])).toEqual([0, 100, 200]);
   });
 
-  it('stops on a short page even if the server cap is below the requested size', async () => {
+  it('keeps reading when the server clamps the page below the requested size', async () => {
+    // registrants: the route accepts limit=200, the service clamps to 100. Stopping
+    // on the "short" first page dropped every registrant past the 100th.
     const fetchPage = endpoint(45, 20);
     const res = await fetchAllPages(fetchPage, { pageSize: 100 });
-    // A server that silently caps the page must not be read as "done" after 20.
-    // It is: the page is short, so the loop ends. The caller sees the gap.
+    expect(res.items).toEqual(Array.from({ length: 45 }, (_, i) => i));
+    expect(fetchPage.mock.calls.map((c) => c[0])).toEqual([0, 20, 40]);
+  });
+
+  it('stops on an empty page when the total shrank under it', async () => {
+    let total = 30;
+    const fetchPage = vi.fn(async (offset: number) => {
+      const res = { items: offset === 0 ? Array.from({ length: 20 }, (_, i) => i) : [], total };
+      total = 20; // rows deleted between the two requests
+      return res;
+    });
+    const res = await fetchAllPages(fetchPage, { pageSize: 20 });
+    expect(fetchPage).toHaveBeenCalledTimes(2);
     expect(res.items).toHaveLength(20);
-    expect(res.total).toBe(45);
   });
 
   it('handles an empty list in one call', async () => {

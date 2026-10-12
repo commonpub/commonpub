@@ -9,10 +9,14 @@
  * the 21st entry is never shown to anyone (session 260).
  *
  * The loop stops on whichever comes first: the reported `total` is reached, a
- * page comes back short or empty (the total moved under us, or the server
- * capped the page), or `maxPages` is hit as a runaway backstop. The `total`
- * returned is the server's, so a caller can still tell when the backstop cut
- * the list short (`items.length < total`).
+ * page comes back empty (the total moved under us), or `maxPages` is hit as a
+ * runaway backstop. A SHORT page is not the end: a route whose service clamps
+ * the limit below the one asked for (registrants: route allows 200, service
+ * caps at 100) returns a full page that only looks short, and stopping there
+ * silently dropped every row past the cap. Offsets advance by rows received, so
+ * a clamped page is simply followed by the next one. The `total` returned is
+ * the server's, so a caller can still tell when the backstop cut the list short
+ * (`items.length < total`).
  */
 export interface Page<T> {
   items: T[];
@@ -31,7 +35,7 @@ export async function fetchAllPages<T>(
     const res = await fetchPage(items.length, pageSize);
     total = res.total;
     items.push(...res.items);
-    if (res.items.length < pageSize || items.length >= total) break;
+    if (res.items.length === 0 || items.length >= total) break;
   }
   return { items, total };
 }
