@@ -13,7 +13,11 @@ import { fetchAllPages } from '../../utils/fetchAllPages';
 // are stored as JSON strings and are formatted here, at read time, so every answer
 // already submitted reads correctly. The table used to print the raw JSON.
 
-const props = defineProps<{ slug: string }>();
+const props = withDefaults(defineProps<{
+  slug: string;
+  /** h3 inside the editor's Registration tab; h2 on the standalone registrants page. */
+  headingLevel?: 2 | 3;
+}>(), { headingLevel: 3 });
 
 interface Registrant {
   userId: string;
@@ -139,7 +143,7 @@ function contactBlock(r: Registrant): string {
   <section class="cpub-rp" aria-label="Registrants">
     <p class="cpub-sr-only" role="status">{{ copyAnnouncement }}</p>
     <div class="cpub-rp-head">
-      <h3 class="cpub-form-label" style="margin: 0;">Registrants <span v-if="data" class="cpub-rp-count">{{ data.total }}</span></h3>
+      <component :is="`h${headingLevel}`" class="cpub-form-label" style="margin: 0;">Registrants <span v-if="data" class="cpub-rp-count">{{ data.total }}</span></component>
       <div v-if="data && data.total > 0" class="cpub-rp-actions">
         <a :href="`/api/contests/${slug}/registrants-export`" class="cpub-btn cpub-btn-sm" download>
           <i class="fa-solid fa-file-csv" aria-hidden="true"></i> Export CSV

@@ -325,6 +325,9 @@ const showSubmitCta = computed(
           </div>
         </div>
 
+        <!-- Organizer / judge tools (ContestStaffTools), supplied by the page. -->
+        <slot name="tools" />
+
         <!-- Admin controls — bidirectional, derived from the valid-transition map. -->
         <div v-if="isAdmin && c" class="cpub-admin-controls">
           <span class="cpub-admin-controls-label"><i class="fa-solid fa-shield-halved"></i> Stage</span>

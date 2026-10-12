@@ -356,6 +356,24 @@ test.describe('Contest lifecycle', () => {
 
     const leak = await dan.ctx.request.get(`${BASE}/api/contests/${slug}/registrants-export`);
     expect(leak.status(), 'a participant cannot export registrant PII').toBe(403);
+
+    // The contest page hands the organizer a way in (session 261); a participant gets none.
+    await olive.page.goto(contestUrl);
+    const tools = olive.page.getByRole('navigation', { name: 'Organizer tools' });
+    await expect(tools).toBeVisible({ timeout: 30_000 });
+    await expect(tools.getByRole('link', { name: 'Judging portal' })).toBeVisible();
+    await expect(tools.getByRole('link', { name: 'Edit contest' })).toBeVisible();
+    await tools.getByRole('link', { name: 'View registrants' }).click();
+    await olive.page.waitForURL(`**${contestUrl}/registrants`);
+    await expect(olive.page.getByRole('heading', { level: 1 })).toContainText('Lifecycle Cup');
+    await expect(olive.page.locator('.cpub-rp-table tbody tr')).toHaveCount(3, { timeout: 30_000 });
+
+    await dan.page.goto(contestUrl);
+    await expect(dan.page.locator('.cpub-hero-title')).toBeVisible();
+    await expect(dan.page.locator('.cpub-staff-tools')).toHaveCount(0);
+    await dan.page.goto(`${contestUrl}/registrants`);
+    await expect(dan.page.getByText('Only the contest\'s organizers can see who registered.')).toBeVisible({ timeout: 30_000 });
+    await expect(dan.page.locator('.cpub-rp-table')).toHaveCount(0);
   });
 
   test('judging: invite, accept, score against the rubric, advance, rank', async () => {
@@ -412,6 +430,19 @@ test.describe('Contest lifecycle', () => {
       });
       expect(scored.ok(), `score entry ${i}: ${scored.status()} ${await scored.text()}`).toBeTruthy();
     }
+
+    // A panel judge gets the judging portal on the contest page, and nothing else.
+    await jae.page.goto(contestUrl);
+    const judgeTools = jae.page.getByRole('navigation', { name: 'Judge tools' });
+    await expect(judgeTools.getByRole('link', { name: 'Judging portal' })).toBeVisible({ timeout: 30_000 });
+    await expect(judgeTools.getByRole('link')).toHaveCount(1);
+
+    // The organizer, not on the panel, gets the read-only overview, not "not a judge".
+    await olive.page.goto(`${contestUrl}/judge`);
+    await expect(olive.page.getByText('this view is read only')).toBeVisible({ timeout: 30_000 });
+    await expect(olive.page.locator('.cpub-jov-judge')).toContainText(`${entries.length} / ${entries.length} scored`, { timeout: 30_000 });
+    await expect(olive.page.locator('.cpub-jov-entry')).toHaveCount(entries.length);
+    await expect(olive.page.locator('.cpub-jov-entry input, .cpub-jov-entry button')).toHaveCount(0);
 
     const notJudge = await dan.ctx.request.post(`${BASE}/api/contests/${slug}/judge`, {
       headers: ORIGIN, data: { entryId: entries[0].id, score: 100 },

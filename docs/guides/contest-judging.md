@@ -37,6 +37,12 @@ update]**.
 - Get every judge accepted **before** pressing Start Judging. Only accepted judges get
   the "Judging Period Started" notice. [after the update] That notice links straight
   to the judge page.
+- [session 261] Once a judge has accepted, the contest page shows them a **Judge tools**
+  row under the title with a **Judging portal** button, on phones too. Organizers and
+  admins get an **Organizer tools** row instead: **Judging portal** (a read-only view
+  of each judge's progress and every entry's scores and feedback), **View registrants**
+  (the registrant list, addresses and the shipping list on their own page) and **Edit
+  contest**.
 
 **2. Decide on a rubric now, not mid-round.**
 
@@ -191,7 +197,8 @@ finalist's project yourself.
 1. **Sign in** to deveco.io. You need a member account; send the organizers your
    username if you haven't been invited yet.
 2. Open **https://deveco.io/contests/qualcommforamoreresilientamerica/judge** and
-   press **Accept invitation**.
+   press **Accept invitation**. After that, the contest page shows a **Judge tools**
+   row under the title; its **Judging portal** button brings you back here.
 3. When judging opens, the same page lists every proposal still in this round. Each
    card shows the proposal answers. **Open full entry** opens the full entry page.
    Most entries are proposals, not finished projects, so there may be no project page
