@@ -3,6 +3,7 @@ import { contests, contestEntries, users, contentItems, contestEntryPrivateField
 import type { DB } from '../types.js';
 import type { ContestStageSubmission, FormField } from '@commonpub/schema';
 import { currentStage, isEliminated } from './stages.js';
+import { ADDRESS_PARTS, parseAddressValue, formatAddressLines } from './address.js';
 import type { ContestJudgingCriterion } from './types.js';
 
 // Contest submissions export (Phase 5 / G9). Pages through ALL entries (not the
@@ -23,6 +24,44 @@ export function toCsv(rows: string[][]): string {
     return /[",\r\n]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe;
   };
   return rows.map((r) => r.map(cell).join(',')).join('\r\n');
+}
+
+/** Export options shared by both CSV builders. */
+export interface ExportOptions {
+  /**
+   * Site origin (e.g. `https://deveco.io`). Links in the sheet (entry pages,
+   * private files) are made absolute with it; a spreadsheet has no host to resolve
+   * `/api/files/…` against, so a relative link is a dead link there.
+   */
+  baseUrl?: string;
+}
+
+const absolute = (baseUrl: string | undefined, path: string): string =>
+  baseUrl ? `${baseUrl.replace(/\/+$/, '')}${path}` : path;
+
+/**
+ * One answer becomes one or more sheet columns. An `address` becomes a column per
+ * part plus a ready-to-paste mailing label, so a shipping list can be sorted by
+ * country and pasted onto a label; everything else stays one column.
+ */
+function answerColumns(
+  label: string,
+  type: string,
+  read: () => string,
+  baseUrl: string | undefined,
+): Array<{ header: string; value: () => string }> {
+  if (type === 'address') {
+    return [
+      ...ADDRESS_PARTS.map((part) => ({ header: `${label}: ${part.label}`, value: () => parseAddressValue(read())[part.key] ?? '' })),
+      { header: `${label} (mailing label)`, value: () => formatAddressLines(read()).join('\n') },
+    ];
+  }
+  if (type === 'file') {
+    // A `file` answer is a bare files.id uuid, useless in a spreadsheet. Emit the
+    // gated /raw link (access still enforced by the route's auth + contest.pii).
+    return [{ header: label, value: () => { const v = read(); return v ? absolute(baseUrl, `/api/files/${v}/raw`) : ''; } }];
+  }
+  return [{ header: label, value: read }];
 }
 
 /** Derive an entry's cohort status from its stageState. */
@@ -54,6 +93,7 @@ export async function buildContestExport(
   db: DB,
   contestId: string,
   includePii: boolean,
+  opts: ExportOptions = {},
 ): Promise<ContestExport | null> {
   const [contest] = await db
     .select({
@@ -121,14 +161,28 @@ export async function buildContestExport(
     piiKeys = [...keys].sort();
   }
 
+  // PII keys come from stage forms; an `address` key is split into parts (by its
+  // form label), every other key keeps its historical `PII: <key>` column.
+  const fieldByKey = new Map<string, { label: string; type: string }>();
+  for (const st of (contest.stages ?? [])) {
+    for (const f of st.submissionTemplate ?? []) fieldByKey.set(f.key, { label: f.label, type: f.type });
+  }
+  let current: Record<string, string> = {};
+  const piiCols = piiKeys.flatMap((k) => {
+    const f = fieldByKey.get(k);
+    return f?.type === 'address'
+      ? answerColumns(f.label, 'address', () => current[k] ?? '', opts.baseUrl)
+      : [{ header: `PII: ${k}`, value: () => current[k] ?? '' }];
+  });
+
   const header = [
     'Entry', 'Author', 'Username', 'Status', 'Score', 'Rank', 'Entry URL', 'Project URL', 'Submission',
-    ...piiKeys.map((k) => `PII: ${k}`),
+    ...piiCols.map((c) => c.header),
     ...rubricLabels,
   ];
 
   const body = rows.map((r) => {
-    const pii = piiByEntry.get(r.id) ?? {};
+    current = piiByEntry.get(r.id) ?? {};
     return [
       r.title ?? 'Untitled',
       r.authorName ?? r.authorUsername ?? 'Unknown',
@@ -136,10 +190,10 @@ export async function buildContestExport(
       entryStatus(r.stageState),
       r.score == null ? '' : String(r.score),
       r.rank == null ? '' : String(r.rank),
-      `/contests/${contest.slug}/entries/${r.id}`,
-      r.authorUsername ? `/u/${r.authorUsername}/${r.contentType}/${r.contentSlug}` : '',
+      absolute(opts.baseUrl, `/contests/${contest.slug}/entries/${r.id}`),
+      r.authorUsername ? absolute(opts.baseUrl, `/u/${r.authorUsername}/${r.contentType}/${r.contentSlug}`) : '',
       summarizeArtifact(r.stageSubmissions),
-      ...piiKeys.map((k) => pii[k] ?? ''),
+      ...piiCols.map((c) => c.value()),
       ...rubricLabels.map(() => ''), // empty: filled in by hand during tallying
     ];
   });
@@ -160,6 +214,15 @@ export async function buildRegistrantsExport(
   db: DB,
   contestId: string,
   includePii: boolean,
+  opts: ExportOptions & {
+    /**
+     * `shipping`: only who and how to reach them. Identity plus every contact-type
+     * field (short text, email, phone, address) in form order, public or private,
+     * since an official name is often an ordinary public text field. Private ones
+     * still need `includePii`.
+     */
+    format?: 'full' | 'shipping';
+  } = {},
 ): Promise<ContestExport | null> {
   const [contest] = await db
     .select({ slug: contests.slug, registrationTemplate: contests.registrationTemplate })
@@ -174,7 +237,11 @@ export async function buildRegistrantsExport(
   const isPii = isFormFieldPii; // shared source of truth — see @commonpub/schema
   // Answer columns: skip section (display) + agreement (consent, not a stored value),
   // and skip PII columns unless the reader is allowed them.
-  const cols = template.filter((f) => f.type !== 'section' && f.type !== 'agreement' && (includePii || !isPii(f)));
+  const shipping = opts.format === 'shipping';
+  const CONTACT_TYPES = new Set(['text', 'email', 'tel', 'address']);
+  const cols = template.filter((f) =>
+    f.type !== 'section' && f.type !== 'agreement' && (includePii || !isPii(f)) && (!shipping || CONTACT_TYPES.has(f.type)),
+  );
 
   const rows = await db
     .select({
@@ -225,24 +292,30 @@ export async function buildRegistrantsExport(
     privateByUser = new Map(priv.map((p) => [p.username, p.fields]));
   }
 
-  const header = ['Username', 'Name', 'Registered', ...(agreementCount > 0 ? ['Consents'] : []), ...cols.map((f) => f.label)];
+  let pub: Record<string, string> = {};
+  let priv: Record<string, string> = {};
+  const answerCols = cols.flatMap((f) =>
+    answerColumns(f.label, f.type, () => ((isPii(f) ? priv[f.key] : pub[f.key]) ?? ''), opts.baseUrl),
+  );
+  const withConsents = agreementCount > 0 && !shipping;
+  const header = [
+    'Username', 'Name',
+    ...(shipping ? [] : ['Registered']),
+    ...(withConsents ? ['Consents'] : []),
+    ...answerCols.map((c) => c.header),
+  ];
   const body = rows.map((r) => {
-    const pub = (r.fields ?? {}) as Record<string, string>;
-    const priv = privateByUser.get(r.username) ?? {};
+    pub = (r.fields ?? {}) as Record<string, string>;
+    priv = privateByUser.get(r.username) ?? {};
     return [
       r.username,
       r.displayName ?? '',
-      r.registeredAt.toISOString(),
-      ...(agreementCount > 0 ? [`${consentByReg.get(r.registrationId) ?? 0}/${agreementCount}`] : []),
-      ...cols.map((f) => {
-        const v = (isPii(f) ? priv[f.key] : pub[f.key]) ?? '';
-        // A `file` answer is a bare files.id uuid — useless in a spreadsheet. Emit
-        // the gated /raw path so an organizer can open the upload (host-relative;
-        // access still enforced by the route's auth + contest.pii check).
-        return v && f.type === 'file' ? `/api/files/${v}/raw` : v;
-      }),
+      ...(shipping ? [] : [r.registeredAt.toISOString()]),
+      ...(withConsents ? [`${consentByReg.get(r.registrationId) ?? 0}/${agreementCount}`] : []),
+      ...answerCols.map((c) => c.value()),
     ];
   });
 
-  return { filename: `${contest.slug}-registrants.csv`, csv: toCsv([header, ...body]) };
+  const suffix = shipping ? 'shipping' : 'registrants';
+  return { filename: `${contest.slug}-${suffix}.csv`, csv: toCsv([header, ...body]) };
 }
