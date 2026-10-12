@@ -208,15 +208,23 @@ describe('contest proposals (form-first)', () => {
     const contest = await createContest(db, proposalContestInput('leak'));
     await transitionContestStatus(db, contest.id, organizerId, 'active');
     const entrant = await createTestUser(db, { username: `prop-leak-${Date.now()}` });
-    await submitContestProposal(db, { contestId: contest.id, stageId: 'prop', fields: goodForm(), userId: entrant.id });
+    const res = await submitContestProposal(db, { contestId: contest.id, stageId: 'prop', fields: goodForm(), userId: entrant.id });
+    expect(res.ok).toBe(true);
 
     const priv = await listContestEntries(db, contest.id, { includeStageSubmissions: true });
-    for (const item of priv.items) {
-      for (const s of item.stageSubmissions ?? []) {
-        expect(s.fields).not.toHaveProperty('email');
-        expect(s.fields).not.toHaveProperty('address');
-      }
+    // Something to inspect: an empty list (or no submissions) would pass the
+    // absence checks below with nothing checked at all.
+    expect(priv.items).toHaveLength(1);
+    expect(priv.items[0]!.stageSubmissions).toHaveLength(1);
+    expect(priv.items[0]!.stageSubmissions![0]!.fields.title).toBe('Solar Pump');
+    for (const s of priv.items[0]!.stageSubmissions!) {
+      expect(s.fields).not.toHaveProperty('email');
+      expect(s.fields).not.toHaveProperty('address');
     }
+    // And by value, anywhere in the payload, not only under those two keys.
+    const body = JSON.stringify(priv);
+    expect(body).not.toContain('entrant@example.com');
+    expect(body).not.toContain('1 Main St');
   });
 
   it('hides a draft proposal placeholder from the PUBLIC list but keeps it visible to the owner + privileged', async () => {
