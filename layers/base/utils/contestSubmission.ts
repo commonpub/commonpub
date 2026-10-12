@@ -54,6 +54,26 @@ export function parseAddress(value: string | undefined): AddressValue {
   }
 }
 
+/**
+ * Mailing lines for display: line 1, line 2, "City, Region Postal", Country.
+ * Mirrors `formatAddressLines` in @commonpub/server (the CSV exports) exactly,
+ * including keeping a non-JSON legacy value whole as line 1, so the organizer
+ * screens and the spreadsheet never disagree. A parity test pins the two.
+ */
+export function formatAddressLines(value: string | undefined | null): string[] {
+  const raw = asText(value).trim();
+  if (!raw) return [];
+  let a: AddressValue = parseAddress(raw);
+  if (!Object.keys(a).length) {
+    let isObject = false;
+    try { const o = JSON.parse(raw); isObject = !!o && typeof o === 'object' && !Array.isArray(o); } catch { /* plain text */ }
+    if (!isObject) a = { line1: raw };
+  }
+  const t = (v: unknown): string => asText(v).trim();
+  const cityLine = `${[t(a.city), t(a.region)].filter(Boolean).join(', ')}${t(a.postal) ? ` ${t(a.postal)}` : ''}`.trim();
+  return [t(a.line1), t(a.line2), cityLine, t(a.country)].filter(Boolean);
+}
+
 /** Serialize an address to a compact JSON string, or '' when entirely empty. */
 export function serializeAddress(addr: AddressValue): string {
   const cleaned: AddressValue = {};

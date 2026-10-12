@@ -1,4 +1,10 @@
 import { getContestBySlug, canViewContest, isContestEditor, buildRegistrantsExport } from '@commonpub/server';
+import { z } from 'zod';
+
+const querySchema = z.object({
+  // `shipping`: identity + contact fields + the address split into parts.
+  format: z.enum(['full', 'shipping']).optional(),
+});
 
 /**
  * GET /api/contests/:slug/registrants-export   (CSV)
@@ -28,7 +34,15 @@ export default defineEventHandler(async (event): Promise<string> => {
   }
 
   const includePii = hasPermission(event, 'contest.pii');
-  const result = await buildRegistrantsExport(db, contest.id, includePii);
+  const { format } = parseQueryParams(event, querySchema);
+  // A shipping list without personal data would be names only; say why instead
+  // of handing over a sheet with no addresses in it.
+  if (format === 'shipping' && !includePii) {
+    throw createError({ statusCode: 403, statusMessage: 'The shipping list needs permission to see entrants’ personal data' });
+  }
+  // Absolute links in the sheet: a spreadsheet has no host to resolve /api/... against.
+  const baseUrl = (useRuntimeConfig().public?.siteUrl as string) || `https://${useConfig().instance.domain}`;
+  const result = await buildRegistrantsExport(db, contest.id, includePii, { format, baseUrl });
   if (!result) throw createError({ statusCode: 404, statusMessage: 'Contest not found' });
 
   setHeader(event, 'Content-Type', 'text/csv; charset=utf-8');

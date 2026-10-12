@@ -33,7 +33,9 @@ export default defineEventHandler(async (event): Promise<string> => {
   // PII columns only for `contest.pii` holders (admin, or an assigned grant when
   // RBAC is enabled), never plain judges or non-admin owners.
   const includePii = hasPermission(event, 'contest.pii');
-  const result = await buildContestExport(db, contest.id, includePii);
+  // Absolute links in the sheet: a spreadsheet has no host to resolve /api/... against.
+  const baseUrl = (useRuntimeConfig().public?.siteUrl as string) || `https://${useConfig().instance.domain}`;
+  const result = await buildContestExport(db, contest.id, includePii, { baseUrl });
   if (!result) throw createError({ statusCode: 404, statusMessage: 'Contest not found' });
 
   setHeader(event, 'Content-Type', 'text/csv; charset=utf-8');
