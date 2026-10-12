@@ -508,7 +508,11 @@ async function withdrawEntry(entryId: string): Promise<void> {
       @register="startRegistration"
       @transition="transitionStatus"
       @copy-link="copyLink"
-    />
+    >
+      <template #tools>
+        <ContestStaffTools v-if="c" :slug="slug" :status="c.status" :can-manage="canManage" :can-judge="canJudge" />
+      </template>
+    </ContestHero>
 
     <!-- Persistent action bar, narrow viewports only. Above 768px the sidebar is
          sticky and carries the real registration card instead. Sibling of the

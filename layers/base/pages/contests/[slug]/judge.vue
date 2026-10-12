@@ -120,6 +120,33 @@ const inJudgingPhase = computed(() => contest.value?.status === 'judging');
 // stays `judging`, and the server refuses scores there.
 const roundOpen = computed(() => inJudgingPhase.value && !!currentRoundId.value);
 
+// Organizers (owner, contest.manage holders such as admins, per-contest editors)
+// who are not scoring on the panel get the read-only overview instead of "You are
+// not a judge" (session 261). An organizer who IS an accepted judge scores here
+// like any other judge.
+const isPanelJudge = computed(() => !!myJudge.value?.acceptedAt && myJudge.value.role !== 'guest');
+const isOrganizerView = computed(() => !isPanelJudge.value && !!contest.value?.viewerCanManage);
+// Which round the overview shows: the open one; else the round that last closed
+// (between rounds and after the contest, its scores are what the cut was made on);
+// else the next one, which has no scores yet but tells the organizer what's coming.
+const overviewRound = computed<{ id: string; name: string; phase: 'open' | 'closed' | 'upcoming' } | null>(() => {
+  const c = contest.value;
+  if (!c) return null;
+  const stages = normalizeStages(c);
+  const byId = (id: string | null) => (id ? stages.find((st) => st.id === id) ?? null : null);
+  const open = roundOpen.value ? byId(currentRoundId.value) : null;
+  if (open) return { id: open.id, name: open.name, phase: 'open' };
+  const at = stages.findIndex((st) => st.id === currentStageId(c));
+  const upto = at >= 0 ? stages.slice(0, at + 1) : stages;
+  // A completed contest's own round is closed; otherwise the pointer's round (if
+  // any) has not opened yet, so look at the review rounds before it.
+  const closed = (c.status === 'completed' ? byId(currentRoundId.value) : null)
+    ?? [...upto].reverse().find((st) => st.kind === 'review' && st.id !== currentRoundId.value);
+  if (closed) return { id: closed.id, name: closed.name, phase: 'closed' };
+  const next = byId(targetRoundId.value);
+  return next ? { id: next.id, name: next.name, phase: 'upcoming' } : null;
+});
+
 const accepting = ref(false);
 async function acceptInvite(): Promise<void> {
   accepting.value = true;
@@ -321,9 +348,13 @@ async function submitScore(entryId: string): Promise<void> {
       </NuxtLink>
       <h1 class="cpub-judge-title">
         <i class="fa-solid fa-gavel cpub-judge-icon"></i>
-        Judge: {{ contest?.title || 'Contest' }}
+        {{ isOrganizerView ? 'Judging' : 'Judge' }}: {{ contest?.title || 'Contest' }}
         <span v-if="currentReviewStage" class="cpub-judge-round">{{ currentReviewStage.name }}</span>
       </h1>
+      <p v-if="isOrganizerView" class="cpub-judge-desc">
+        Each judge's progress this round, and every entry still in it with the scores and feedback it has so far.
+      </p>
+      <template v-else>
       <p class="cpub-judge-desc">
         <!-- With a rubric the judge scores each CRITERION against its own max (the
              overall /100 is derived), so the flat "0 to 100" instruction would be
@@ -336,12 +367,40 @@ async function submitScore(entryId: string): Promise<void> {
       <p class="cpub-judge-desc">
         Entrants never see your scores or feedback. The organizers see them, and they decide who advances.
       </p>
+      </template>
     </header>
 
     <!-- Loading -->
     <div v-if="!contest || !judgesData" class="cpub-judge-empty">
       <p>Loading...</p>
     </div>
+
+    <!-- Organizer, not scoring: the read-only overview. -->
+    <template v-else-if="isOrganizerView">
+      <div v-if="pendingInvite" class="cpub-judge-notice" role="status">
+        <i class="fa-solid fa-envelope-open-text" aria-hidden="true"></i>
+        <span>You've also been invited to judge. Accept to score entries here.</span>
+        <button class="cpub-btn cpub-btn-sm cpub-btn-primary" :disabled="accepting" @click="acceptInvite">
+          {{ accepting ? 'Accepting...' : 'Accept invitation' }}
+        </button>
+      </div>
+      <div v-if="!entriesData && (entriesStatus === 'pending' || entriesStatus === 'idle')" class="cpub-judge-empty" role="status">
+        <p>Loading entries...</p>
+      </div>
+      <div v-else-if="!entriesData && entriesStatus === 'error'" class="cpub-judge-empty" role="alert">
+        <p>Couldn't load the entries.</p>
+        <button type="button" class="cpub-btn cpub-btn-sm" @click="refreshEntries()">Try again</button>
+      </div>
+      <ContestJudgingOverview
+        v-else
+        :slug="slug"
+        :entries="entriesData?.items ?? []"
+        :judges="judgesData ?? []"
+        :round-id="overviewRound?.id ?? null"
+        :round-name="overviewRound?.name ?? null"
+        :round-phase="overviewRound?.phase ?? null"
+      />
+    </template>
 
     <!-- Not a judge -->
     <div v-else-if="!myJudge" class="cpub-judge-unauthorized">
