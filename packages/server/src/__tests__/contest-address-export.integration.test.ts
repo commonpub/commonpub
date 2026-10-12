@@ -19,7 +19,7 @@ import { buildRegistrantsExport, buildContestExport } from '../contest/export.js
 import { formatAddressLines, parseAddressValue } from '../contest/address.js';
 import { createContest, transitionContestStatus } from '../contest/contest.js';
 import { submitContestProposal } from '../contest/submissions.js';
-import { contestRegistrationPrivateFields } from '@commonpub/schema';
+import { contestRegistrationPrivateFields, contestEntries, contestEntryPrivateFields } from '@commonpub/schema';
 import { eq } from 'drizzle-orm';
 
 const cfg = { features: {}, instance: { domain: 'test.example', name: 'Test' } } as unknown as CommonPubConfig;
@@ -200,5 +200,32 @@ describe('entries export with an address in the proposal form', () => {
     expect(col(rows, 'Mailing address: City')).toBe('Aurora');
     expect(col(rows, 'Mailing address (mailing label)')).toContain('Aurora, CO 80012');
     expect(col(rows, 'Entry URL')).toMatch(/^https:\/\/deveco\.io\/contests\//);
+  });
+
+  it('keeps two address groups apart when two stages reuse the same label', async () => {
+    const org = (await createTestUser(db, { username: `ent-dup-org-${Date.now()}` })).id;
+    const FORM: ContestSubmissionTemplateField[] = [{ key: 'mail', label: 'Mailing address', type: 'address', required: true }];
+    const FINAL: ContestSubmissionTemplateField[] = [{ key: 'mail2', label: 'Mailing address', type: 'address', required: true }];
+    const contest = await createContest(db, {
+      title: 'Dup Address', slug: `ent-dup-${Date.now()}`, createdBy: org,
+      startDate: new Date('2026-01-01').toISOString(), endDate: new Date('2026-12-01').toISOString(),
+      stages: [
+        { id: 'p', name: 'Proposals', kind: 'submission', submissionMode: 'proposal', submissionTemplate: FORM },
+        { id: 'r', name: 'Review', kind: 'review' },
+        { id: 'f', name: 'Finals', kind: 'submission', submissionTemplate: FINAL },
+      ],
+      currentStageId: 'p',
+    });
+    await transitionContestStatus(db, contest.id, org, 'active');
+    const e = await createTestUser(db, { username: `ent-dup-e-${Date.now()}` });
+    expect((await submitContestProposal(db, { contestId: contest.id, stageId: 'p', fields: { mail: ADDR }, userId: e.id })).ok).toBe(true);
+    const [entry] = await db.select({ id: contestEntries.id }).from(contestEntries).where(eq(contestEntries.contestId, contest.id));
+    const moved = JSON.stringify({ line1: '18 Furstenwalder Str.', city: 'Berlin', postal: '10243', country: 'Germany' });
+    await db.update(contestEntryPrivateFields).set({ fields: { mail: ADDR, mail2: moved } }).where(eq(contestEntryPrivateFields.entryId, entry!.id));
+
+    const rows = parseCsv((await buildContestExport(db, contest.id, true))!.csv);
+    expect(new Set(rows[0]).size).toBe(rows[0]!.length); // no duplicated headers
+    expect(col(rows, 'Mailing address (mail): City')).toBe('Aurora');
+    expect(col(rows, 'Mailing address (mail2): City')).toBe('Berlin');
   });
 });

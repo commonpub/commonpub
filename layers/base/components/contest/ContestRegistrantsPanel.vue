@@ -31,7 +31,7 @@ interface RegistrantsResponse {
   includePii: boolean;
 }
 
-// Every registrant, not just the first page (the route caps a page at 200).
+// Every registrant, not just the first page (the service caps a page at 100).
 const { data, pending, error } = useLazyAsyncData(
   `registrants-${props.slug}`,
   async () => {
@@ -40,7 +40,7 @@ const { data, pending, error } = useLazyAsyncData(
       const r = await $fetch<RegistrantsResponse>(`/api/contests/${props.slug}/registrants`, { query: { limit, offset } });
       meta = { template: r.template, includePii: r.includePii };
       return { items: r.items, total: r.total };
-    }, { pageSize: 200 });
+    }, { pageSize: 100 });
     return { ...all, ...meta } as RegistrantsResponse;
   },
   { server: false },
@@ -97,16 +97,28 @@ const visible = computed<Registrant[]>(() => {
   });
 });
 
-// Copy to clipboard, with a per-button confirmation that screen readers hear.
-const copied = ref<string | null>(null);
+// Copy to clipboard. The button text confirms it visually; the status region below
+// announces it (the buttons carry aria-labels, which a text change can't reach). A
+// refused write (permission denied, insecure context) says so on the button
+// rather than looking like it worked; the text on screen is still selectable.
+const copyResult = ref<{ id: string; ok: boolean } | null>(null);
 async function copy(id: string, text: string): Promise<void> {
+  let ok = false;
   try {
     await navigator.clipboard.writeText(text);
-    copied.value = id;
-    setTimeout(() => { if (copied.value === id) copied.value = null; }, 1600);
+    ok = true;
   } catch {
-    /* clipboard unavailable (insecure context): the text is still selectable */
+    /* handled below */
   }
+  copyResult.value = { id, ok };
+  setTimeout(() => { if (copyResult.value?.id === id) copyResult.value = null; }, ok ? 1600 : 4000);
+}
+const copyAnnouncement = computed<string>(() =>
+  !copyResult.value ? '' : copyResult.value.ok ? 'Copied to clipboard' : 'Copy failed. Select the text to copy it.',
+);
+function copyLabel(id: string, idle: string): string {
+  if (copyResult.value?.id !== id) return idle;
+  return copyResult.value.ok ? 'Copied' : 'Copy failed, select the text';
 }
 function contactBlock(r: Registrant): string {
   const lines = [r.displayName ? `${r.displayName} (@${r.username})` : `@${r.username}`];
@@ -125,6 +137,7 @@ function contactBlock(r: Registrant): string {
 
 <template>
   <section class="cpub-rp" aria-label="Registrants">
+    <p class="cpub-sr-only" role="status">{{ copyAnnouncement }}</p>
     <div class="cpub-rp-head">
       <h3 class="cpub-form-label" style="margin: 0;">Registrants <span v-if="data" class="cpub-rp-count">{{ data.total }}</span></h3>
       <div v-if="data && data.total > 0" class="cpub-rp-actions">
@@ -187,7 +200,7 @@ function contactBlock(r: Registrant): string {
                     @click="copy(`${r.userId}:${f.key}`, addressLines(r, f).join('\n'))"
                   >
                     <i class="fa-regular fa-copy" aria-hidden="true"></i>
-                    {{ copied === `${r.userId}:${f.key}` ? 'Copied' : 'Copy address' }}
+                    {{ copyLabel(`${r.userId}:${f.key}`, 'Copy address') }}
                   </button>
                 </dd>
               </template>
@@ -204,7 +217,7 @@ function contactBlock(r: Registrant): string {
             @click="copy(`${r.userId}:all`, contactBlock(r))"
           >
             <i class="fa-regular fa-clipboard" aria-hidden="true"></i>
-            {{ copied === `${r.userId}:all` ? 'Copied' : 'Copy all' }}
+            {{ copyLabel(`${r.userId}:all`, 'Copy all') }}
           </button>
         </li>
       </ul>
@@ -230,7 +243,7 @@ function contactBlock(r: Registrant): string {
               <td class="cpub-rp-date">{{ fmtDate(r.registeredAt) }}</td>
               <td v-if="agreementCount" class="cpub-rp-consent">
                 <span :class="r.consentCount >= agreementCount ? 'cpub-rp-consent-ok' : 'cpub-rp-consent-partial'">
-                  <i class="fa-solid" :class="r.consentCount >= agreementCount ? 'fa-circle-check' : 'fa-circle-half-stroke'"></i>
+                  <i class="fa-solid" :class="r.consentCount >= agreementCount ? 'fa-circle-check' : 'fa-circle-half-stroke'" aria-hidden="true"></i>
                   {{ r.consentCount }}/{{ agreementCount }}
                 </span>
               </td>
@@ -241,7 +254,7 @@ function contactBlock(r: Registrant): string {
                   class="cpub-rp-file"
                   target="_blank"
                   rel="noopener"
-                ><i class="fa-solid fa-paperclip"></i> View file</a>
+                ><i class="fa-solid fa-paperclip" aria-hidden="true"></i> View file</a>
                 <template v-else-if="f.type === 'address'">
                   <address v-if="addressLines(r, f).length" class="cpub-rp-address">
                     <span v-for="(line, i) in addressLines(r, f)" :key="i">{{ line }}</span>
@@ -254,7 +267,7 @@ function contactBlock(r: Registrant): string {
                     @click="copy(`${r.userId}:${f.key}`, addressLines(r, f).join('\n'))"
                   >
                     <i class="fa-regular fa-copy" aria-hidden="true"></i>
-                    {{ copied === `${r.userId}:${f.key}` ? 'Copied' : 'Copy' }}
+                    {{ copyLabel(`${r.userId}:${f.key}`, 'Copy') }}
                   </button>
                 </template>
                 <template v-else>{{ answer(r, f) }}</template>

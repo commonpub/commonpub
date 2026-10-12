@@ -85,6 +85,22 @@ describe('ContestRegistrantsPanel', () => {
     expect(container.querySelector('.cpub-rp-address')).toBeNull();
   });
 
+  it('copy confirms on the button and in the status region, and admits a refused write', async () => {
+    const writeText = vi.fn().mockResolvedValueOnce(undefined).mockRejectedValueOnce(new Error('denied'));
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+    const { container, getAllByRole, getByRole } = mount();
+    const [btn] = getAllByRole('button', { name: /^Copy Shipping Address for Jasiah Jones$/ });
+    await fireEvent.click(btn!);
+    await Promise.resolve();
+    expect(writeText).toHaveBeenCalledWith('1039 South Fair Play Way\nAurora, CO 80012\nUSA');
+    expect(btn!.textContent).toContain('Copied');
+    expect(getByRole('status').textContent).toBe('Copied to clipboard');
+    await fireEvent.click(btn!);
+    await Promise.resolve();
+    expect(btn!.textContent).toContain('Copy failed');
+    expect(container.querySelector('[role="status"]')!.textContent).toContain('Copy failed');
+  });
+
   it('has no axe violations in the shipping view', async () => {
     const { container, getByRole } = mount();
     await fireEvent.click(getByRole('button', { name: 'Shipping' }));

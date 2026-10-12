@@ -167,12 +167,17 @@ export async function buildContestExport(
   for (const st of (contest.stages ?? [])) {
     for (const f of st.submissionTemplate ?? []) fieldByKey.set(f.key, { label: f.label, type: f.type });
   }
+  // Two stages may each ask for "Shipping address" under different keys; keep their
+  // column groups apart in the sheet by naming the key when a label repeats.
+  const addressKeys = piiKeys.filter((k) => fieldByKey.get(k)?.type === 'address');
+  const labelUses = new Map<string, number>();
+  for (const k of addressKeys) { const l = fieldByKey.get(k)!.label; labelUses.set(l, (labelUses.get(l) ?? 0) + 1); }
   let current: Record<string, string> = {};
   const piiCols = piiKeys.flatMap((k) => {
     const f = fieldByKey.get(k);
-    return f?.type === 'address'
-      ? answerColumns(f.label, 'address', () => current[k] ?? '', opts.baseUrl)
-      : [{ header: `PII: ${k}`, value: () => current[k] ?? '' }];
+    if (f?.type !== 'address') return [{ header: `PII: ${k}`, value: () => current[k] ?? '' }];
+    const label = (labelUses.get(f.label) ?? 0) > 1 ? `${f.label} (${k})` : f.label;
+    return answerColumns(label, 'address', () => current[k] ?? '', opts.baseUrl);
   });
 
   const header = [
