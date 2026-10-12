@@ -16,7 +16,8 @@
  *
  * Gated: `realPgReachable()` returns false when no Postgres is reachable, so
  * suites `describe.skipIf(!(await realPgReachable()))(...)` and stay green in
- * environments without a database (PGlite-only CI). Locally + in any CI with a
+ * environments without a database. Under `CI` it throws instead: CI has a
+ * Postgres service, so not reaching it is a failure to report, not a skip. Locally + in any CI with a
  * Postgres service it runs for real. Override the target via TEST_DATABASE_URL.
  */
 import { Pool } from 'pg';
@@ -52,6 +53,12 @@ export async function realPgReachable(): Promise<boolean> {
     cachedReachable = false;
   } finally {
     await pool.end().catch(() => {});
+  }
+  // CI provides a Postgres service. There, an unreachable database is a broken
+  // pipeline, not an environment without one: skipping would turn the
+  // concurrency, messaging and hub suites green with zero tests run.
+  if (!cachedReachable && process.env.CI) {
+    throw new Error(`realPgReachable: no Postgres at ${PG_URL.replace(/:[^:@/]+@/, ':***@')} under CI`);
   }
   return cachedReachable;
 }

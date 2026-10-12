@@ -412,6 +412,9 @@ test.describe('Contest lifecycle', () => {
       headers: ORIGIN, data: { contentId: danProjectId },
     });
     expect(late.status()).toBe(400);
+    // The REASON, not just the status: Dan already entered this project, so a
+    // duplicate-entry 400 would satisfy the status alone with the gate deleted.
+    expect(await late.text()).toContain("isn't accepting entries right now");
 
     await jae.page.goto(`${contestUrl}/judge`);
     await jae.page.waitForTimeout(3000);
@@ -484,6 +487,9 @@ test.describe('Contest lifecycle', () => {
       headers: ORIGIN, data: { tier: 'full' },
     });
     expect(closed.ok(), 'a completed contest accepts no new registrations').toBeFalsy();
+    // The reason: this body also lacks required fields, so a validation 400 would
+    // pass the line above even if the status gate were gone.
+    expect(await closed.text()).toContain('not open for registration');
 
     // Both public surfaces must survive a phone viewport.
     await page.setViewportSize({ width: 390, height: 844 });

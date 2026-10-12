@@ -6,7 +6,7 @@
  * wrong control is a dead end, and every cell that renders a control the viewer
  * cannot use is worse than rendering nothing.
  */
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { render } from '@testing-library/vue';
 import { defineComponent, h } from 'vue';
 import axe from 'axe-core';
@@ -32,12 +32,12 @@ function mount(props: Props = {}) {
   });
 }
 
-/** Visible control labels, in order. */
-function labels(container: Element): string {
+/** Visible control labels, in order. An array, so `toContain` matches a WHOLE
+ *  label: on a joined string 'Register' also matched 'Registered'. */
+function labels(container: Element): string[] {
   return [...container.querySelectorAll('.cpub-contest-actions a, .cpub-contest-actions button, .cpub-contest-actions-state')]
     .map((e) => (e.textContent ?? '').replace(/\s+/g, ' ').trim())
-    .filter(Boolean)
-    .join('|');
+    .filter(Boolean);
 }
 
 describe('ContestActionBar — who sees what', () => {
@@ -62,7 +62,7 @@ describe('ContestActionBar — who sees what', () => {
     const l = labels(container);
     expect(l).toContain('Register');
     expect(l).toContain('Following');
-    expect(l).not.toContain('Follow|');
+    expect(l).not.toContain('Follow');
   });
 
   it('moves a full registrant on to Submit entry while the contest is open', () => {
