@@ -279,6 +279,10 @@ export function getTierForPath(pathname: string): RateLimitTier {
 
 /** Paths to skip rate limiting (static assets, health checks) */
 export function shouldSkipRateLimit(pathname: string): boolean {
+  // Never an API route, whatever it ends in: `/api/users/[username]` matches
+  // `alice.png`, so the suffix checks below used to exempt any API route whose
+  // last segment is a parameter from the limiter.
+  if (pathname.startsWith('/api/')) return false;
   return (
     pathname.startsWith('/_app/') ||
     pathname.startsWith('/_nuxt/') ||

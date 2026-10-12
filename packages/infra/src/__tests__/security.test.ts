@@ -147,6 +147,15 @@ describe('shouldSkipRateLimit', () => {
     expect(shouldSkipRateLimit('/auth/login')).toBe(false);
     expect(shouldSkipRateLimit('/')).toBe(false);
   });
+
+  it('an asset-looking suffix never exempts an API route', () => {
+    // `/api/users/[username]` matches `alice.png`, so a suffix test alone let any
+    // API route whose last segment is a parameter skip the limiter entirely.
+    expect(shouldSkipRateLimit('/api/users/alice.png')).toBe(false);
+    expect(shouldSkipRateLimit('/api/contests/x/entries/y.js')).toBe(false);
+    expect(shouldSkipRateLimit('/api/files/abc.css')).toBe(false);
+    expect(shouldSkipRateLimit('/api/x.woff2')).toBe(false);
+  });
 });
 
 describe('RateLimitStore', () => {
