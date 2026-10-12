@@ -14,13 +14,19 @@ Re-check before trusting it: `npm view @commonpub/<pkg> version`,
 
 **Published (all match `main`):** schema **0.67.0** · config **0.41.0** ·
 protocol **0.15.4** · auth **0.13.4** · ui **0.16.1** · editor **0.17.3** ·
-explainer **0.9.2** · learning **0.5.6** · infra **0.23.0** · server **2.137.0** ·
+explainer **0.9.2** · learning **0.5.6** · infra **0.23.0** · server **2.138.0** ·
 docs **0.6.3** · test-utils **0.5.18** · persona **0.2.1** · theme-studio **0.7.0** ·
-layer **0.138.2** (2026-10-09).
+layer **0.139.0** (2026-10-12).
 
 **Live:** all three instances healthy, migrations through **0049**, **47** boolean flags
 each from `/api/features`. ON by operator choice: commonpub.io **29**, deveco.io **44**,
 heatsynclabs.io **21**. `contestBroadcast` is ON only on deveco.
+
+**Session 261 release (2026-10-12):** server 2.138.0 + layer 0.139.0 (registrant
+addresses split in exports, shipping list, registrants page, organizer/judge tools,
+organizer judging overview) are live on **deveco.io** (#43) and **commonpub.io**
+(9fc11f3b). No schema change. heatsynclabs.io not rolled. Test audit and open P1s:
+`docs/reviews/test-audit-2026-10-12.md`; session log `docs/sessions/261-registrants-staff-tools-test-audit.md`.
 
 **Session 260 release (2026-10-09):** server 2.137.0 + layer 0.138.2 are live on
 **deveco.io** (#41) and **commonpub.io** (fc7d2232). **heatsynclabs.io is still on
