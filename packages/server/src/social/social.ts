@@ -17,6 +17,7 @@ import {
 } from '@commonpub/schema';
 import type { CommonPubConfig } from '@commonpub/config';
 import type { DB, CommentItem } from '../types.js';
+import { profileVisibleTo } from '../profile/visibility.js';
 import type { LikeTargetType, CommentTargetType } from '@commonpub/schema';
 import { federateLike, federateUnlike, federateComment } from '../federation/federation.js';
 import { buildContentPath } from '../query.js';
@@ -786,9 +787,11 @@ export async function listFollowers(
 ): Promise<{ items: FollowUserItem[]; total: number }> {
   const { limit, offset } = normalizePagination(opts);
 
-  const where = eq(follows.followingId, userId);
+  // Only people whose profile this viewer may see (profile/visibility.ts), and
+  // the total counts the same people, so a page never promises rows it hides.
+  const where = and(eq(follows.followingId, userId), profileVisibleTo(viewerId));
 
-  const [rows, total] = await Promise.all([
+  const [rows, [counted]] = await Promise.all([
     db
       .select({
         user: USER_REF_WITH_BIO_SELECT,
@@ -800,8 +803,13 @@ export async function listFollowers(
       .orderBy(desc(follows.createdAt), desc(follows.id))
       .limit(limit)
       .offset(offset),
-    countRows(db, follows, where),
+    db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(follows)
+      .innerJoin(users, eq(follows.followerId, users.id))
+      .where(where),
   ]);
+  const total = counted?.count ?? 0;
 
   const followed = await viewerFollowingSet(db, viewerId, rows.map((r) => r.user.id));
 
@@ -824,9 +832,11 @@ export async function listFollowing(
 ): Promise<{ items: FollowUserItem[]; total: number }> {
   const { limit, offset } = normalizePagination(opts);
 
-  const where = eq(follows.followerId, userId);
+  // Only people whose profile this viewer may see (profile/visibility.ts), and
+  // the total counts the same people, so a page never promises rows it hides.
+  const where = and(eq(follows.followerId, userId), profileVisibleTo(viewerId));
 
-  const [rows, total] = await Promise.all([
+  const [rows, [counted]] = await Promise.all([
     db
       .select({
         user: USER_REF_WITH_BIO_SELECT,
@@ -838,8 +848,13 @@ export async function listFollowing(
       .orderBy(desc(follows.createdAt), desc(follows.id))
       .limit(limit)
       .offset(offset),
-    countRows(db, follows, where),
+    db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(follows)
+      .innerJoin(users, eq(follows.followingId, users.id))
+      .where(where),
   ]);
+  const total = counted?.count ?? 0;
 
   const followed = await viewerFollowingSet(db, viewerId, rows.map((r) => r.user.id));
 

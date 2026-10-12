@@ -5,7 +5,7 @@ const username = route.params.username as string;
 useSeoMeta({ title: `Following, @${username}, ${useSiteName()}` });
 
 type FollowRow = { id: string; username: string; displayName: string | null; avatarUrl: string | null; isFollowing?: boolean };
-const { data: following } = useLazyFetch<{ items: FollowRow[]; total: number }>(`/api/users/${username}/following`);
+const { data: following, error: followingError } = useLazyFetch<{ items: FollowRow[]; total: number }>(`/api/users/${username}/following`);
 const { isAuthenticated, user } = useAuth();
 const toast = useToast();
 
@@ -42,7 +42,11 @@ async function toggleFollow(targetUsername: string, isFollowing: boolean): Promi
       <h1 class="follow-title">Following</h1>
     </div>
 
-    <div v-if="following?.items?.length" class="follow-list">
+    <!-- 404: no such account, or its profile is hidden from this viewer (session 261). -->
+    <div v-if="followingError?.statusCode === 404" class="follow-empty">
+      <p>User not found.</p>
+    </div>
+    <div v-else-if="following?.items?.length" class="follow-list">
       <div v-for="f in following.items" :key="f.id" class="follow-item">
         <NuxtLink :to="`/u/${f.username}`" class="follow-user">
           <div class="follow-avatar">

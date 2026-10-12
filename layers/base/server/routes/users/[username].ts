@@ -1,4 +1,4 @@
-import { getUserByUsername, getOrCreateActorKeypair } from '@commonpub/server';
+import { getUserByUsername, getOrCreateActorKeypair, findProfileGate, canViewProfile } from '@commonpub/server';
 
 export default defineEventHandler(async (event) => {
   const username = getRouterParam(event, 'username')!;
@@ -29,6 +29,13 @@ export default defineEventHandler(async (event) => {
     // Key generation may fail if crypto is unavailable
   }
 
+  // A non-public profile still needs an actor: its handle, inbox and key are
+  // what lets its posts federate and its follows work. What it stops publishing
+  // is the profile: the display name and bio (session 261). A remote server is a
+  // signed-out viewer, so a members-only profile is treated the same way.
+  const gate = await findProfileGate(db, username);
+  const shown = !!gate && canViewProfile(gate, null);
+
   setResponseHeader(event, 'content-type', 'application/activity+json');
 
   return {
@@ -39,8 +46,8 @@ export default defineEventHandler(async (event) => {
     id: actorUri,
     type: 'Person',
     preferredUsername: username,
-    name: profile.displayName || username,
-    summary: profile.bio || '',
+    name: shown ? profile.displayName || username : username,
+    summary: shown ? profile.bio || '' : '',
     inbox: `${actorUri}/inbox`,
     outbox: `${actorUri}/outbox`,
     followers: `${actorUri}/followers`,

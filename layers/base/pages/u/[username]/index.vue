@@ -23,6 +23,10 @@ const instanceDomain = computed(() => {
 import type { Serialized, UserProfile, ContentListItem, PaginatedResponse } from '@commonpub/server';
 
 const { data: profile, pending: profilePending, error: profileError, refresh: refreshProfile } = useLazyFetch<Serialized<UserProfile>>(`/api/users/${username}`);
+// A 404 is "no such profile for you": the account doesn't exist, or its owner
+// has made the profile members-only or private (session 261). That is not a
+// load failure, so it gets the "User not found" state, not a Retry button.
+const profileNotFound = computed(() => profileError.value?.statusCode === 404);
 const { data: content } = useLazyFetch<PaginatedResponse<Serialized<ContentListItem>>>(`/api/users/${username}/content`);
 const { data: learningData } = useLazyFetch(`/api/users/${username}/learning`, {
   immediate: learningEnabled.value,
@@ -292,7 +296,7 @@ async function handleReport(): Promise<void> {
 
 <template>
   <div v-if="profilePending" class="cpub-loading">Loading profile...</div>
-  <div v-else-if="profileError" class="cpub-fetch-error">
+  <div v-else-if="profileError && !profileNotFound" class="cpub-fetch-error">
     <div class="cpub-fetch-error-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
     <div class="cpub-fetch-error-msg">Failed to load user profile.</div>
     <button class="cpub-btn cpub-btn-sm" @click="refreshProfile()">Retry</button>

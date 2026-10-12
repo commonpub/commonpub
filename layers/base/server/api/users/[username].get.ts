@@ -4,6 +4,8 @@ import type { UserProfile } from '@commonpub/server';
 export default defineEventHandler(async (event): Promise<UserProfile & { isFollowing: boolean }> => {
   const db = useDB();
   const { username } = parseParams(event, { username: 'string' });
+  // Hidden by the member's profile visibility: the same 404 as no account.
+  await requireVisibleProfile(event, username);
 
   const profile = await getUserByUsername(db, username);
   if (!profile) {

@@ -5,3 +5,5 @@ export { exportUserData } from './export.js';
 export type { UserDataExport } from './export.js';
 export { recordConsent, needsTermsReacceptance, getEffectiveTermsVersion, TERMS_VERSION_SETTING_KEY } from './consent.js';
 export type { ConsentKind, RecordConsentInput } from './consent.js';
+export { canViewProfile, profileVisibleTo, findProfileGate } from './visibility.js';
+export type { ProfileGateTarget } from './visibility.js';

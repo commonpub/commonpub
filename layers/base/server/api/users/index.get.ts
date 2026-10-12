@@ -1,7 +1,7 @@
 import { users, follows } from '@commonpub/schema';
 import { sql, desc, ilike, or, and, isNull, inArray } from 'drizzle-orm';
 import { z } from 'zod';
-import { escapeLike } from '@commonpub/server';
+import { escapeLike, profileVisibleTo } from '@commonpub/server';
 
 const usersQuerySchema = z.object({
   q: z.string().max(200).optional(),
@@ -19,7 +19,9 @@ export default defineEventHandler(async (event) => {
   const offset = query.offset ?? 0;
   const search = query.q || query.search;
 
-  const conditions = [isNull(users.deletedAt)];
+  // Only people whose profile this viewer may see (session 261): the Explore
+  // page's People list used to show private and members-only members to anyone.
+  const conditions = [isNull(users.deletedAt), profileVisibleTo(getOptionalUser(event)?.id)];
   if (query.ids) {
     const idList = query.ids.split(',').filter(Boolean).slice(0, 50);
     if (idList.length > 0) {

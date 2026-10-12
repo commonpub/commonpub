@@ -1,4 +1,4 @@
-import { searchContent, listContent, listHubs, escapeLike, toPageMeta } from '@commonpub/server';
+import { searchContent, listContent, listHubs, escapeLike, toPageMeta, profileVisibleTo } from '@commonpub/server';
 import type { ContentSearchOptions, ContentFilters, MeiliClient } from '@commonpub/server';
 import { users, follows, hubs } from '@commonpub/schema';
 import { sql, desc, ilike, or, and, isNull, eq, inArray } from 'drizzle-orm';
@@ -59,6 +59,8 @@ export default defineEventHandler(
     const where = and(
       isNull(users.deletedAt),
       or(ilike(users.username, term), ilike(users.displayName, term)),
+      // Only people whose profile this viewer may see (session 261).
+      profileVisibleTo(getOptionalUser(event)?.id),
     );
 
     const [rows, countResult] = await Promise.all([

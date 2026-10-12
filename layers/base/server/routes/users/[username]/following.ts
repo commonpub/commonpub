@@ -1,4 +1,4 @@
-import { getUserByUsername, getFollowing } from '@commonpub/server';
+import { getUserByUsername, findProfileGate, canViewProfile, getFollowing } from '@commonpub/server';
 
 export default defineEventHandler(async (event) => {
   const username = getRouterParam(event, 'username')!;
@@ -21,6 +21,9 @@ export default defineEventHandler(async (event) => {
     // May not have federation tables
   }
 
+  const gate = await findProfileGate(db, username);
+  const listed = !!gate && canViewProfile(gate, null);
+
   setResponseHeader(event, 'content-type', 'application/activity+json');
 
   return {
@@ -28,6 +31,8 @@ export default defineEventHandler(async (event) => {
     id: `${actorUri}/following`,
     type: 'OrderedCollection',
     totalItems: following.length,
-    orderedItems: following,
+    // A non-public profile keeps its count but not the names (session 261). A
+    // remote server is a signed-out viewer, so members-only hides them too.
+    orderedItems: listed ? following : [],
   };
 });
