@@ -12,7 +12,7 @@ describe('contestAnnouncementAudienceSchema', () => {
   it('defaults the tier to `all` so an omitted tier means every registrant', () => {
     const r = contestAnnouncementAudienceSchema.safeParse({ kind: 'registrants' });
     expect(r.success).toBe(true);
-    expect(r.success && r.data.tier).toBe('all');
+    expect(r.success && r.data.kind === 'registrants' && r.data.tier).toBe('all');
   });
 
   it('accepts each explicit tier', () => {
@@ -25,6 +25,30 @@ describe('contestAnnouncementAudienceSchema', () => {
     expect(contestAnnouncementAudienceSchema.safeParse({ kind: 'registrants', tier: 'everyone' }).success).toBe(false);
     expect(contestAnnouncementAudienceSchema.safeParse({ kind: 'judges' }).success).toBe(false);
     expect(contestAnnouncementAudienceSchema.safeParse({ kind: 'registrants', evil: 1 }).success).toBe(false);
+  });
+
+  // Hand-picked individuals: the third thing an organizer asked for, alongside
+  // the whole registration and the reminders-only subscribers.
+  it('accepts a hand-picked list of user ids', () => {
+    // A real v4 UUID: zod's uuid() checks the version and variant nibbles, so
+    // `...-000000000001` is not a valid fixture.
+    const id = '3f2504e0-4f89-41d3-9a0c-0305e82c3301';
+    const r = contestAnnouncementAudienceSchema.safeParse({ kind: 'users', userIds: [id] });
+    expect(r.success).toBe(true);
+    expect(r.success && r.data.kind === 'users' && r.data.userIds).toEqual([id]);
+  });
+
+  it('rejects an empty, oversized or non-uuid picked list', () => {
+    expect(contestAnnouncementAudienceSchema.safeParse({ kind: 'users', userIds: [] }).success).toBe(false);
+    expect(contestAnnouncementAudienceSchema.safeParse({ kind: 'users', userIds: ['nope'] }).success).toBe(false);
+    const many = Array.from({ length: 501 }, (_, i) => `3f2504e0-4f89-41d3-9a0c-${String(i).padStart(12, '0')}`);
+    expect(contestAnnouncementAudienceSchema.safeParse({ kind: 'users', userIds: many }).success).toBe(false);
+  });
+
+  it('rejects unknown keys on the picked selector too', () => {
+    expect(contestAnnouncementAudienceSchema.safeParse({
+      kind: 'users', userIds: ['3f2504e0-4f89-41d3-9a0c-0305e82c3301'], evil: 1,
+    }).success).toBe(false);
   });
 });
 

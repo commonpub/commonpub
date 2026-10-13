@@ -127,12 +127,25 @@ export const contestEmailTestSchema = z
  *  `tier` mirrors the two-tier signup (session 239): `full` = a counted
  *  participant, `reminders` = the lower-commitment opt-in. `all` matches the
  *  deadline-reminder sweep, which applies no tier filter. */
-export const contestAnnouncementAudienceSchema = z
-  .object({
-    kind: z.literal('registrants'),
-    tier: z.enum(['full', 'reminders', 'all']).default('all'),
-  })
-  .strict();
+export const contestAnnouncementAudienceSchema = z.union([
+  z
+    .object({
+      kind: z.literal('registrants'),
+      tier: z.enum(['full', 'reminders', 'all']).default('all'),
+    })
+    .strict(),
+  // Hand-picked individuals. The ids are INTERSECTED server-side with the people
+  // actually connected to this contest: the organizer's people-picker searches
+  // all users, and a contest organizer must not be able to mail an arbitrary
+  // instance member. Instance-wide sends are the admin broadcast's job, behind
+  // the `broadcast.send` permission.
+  z
+    .object({
+      kind: z.literal('users'),
+      userIds: z.array(z.string().uuid()).min(1).max(500),
+    })
+    .strict(),
+]);
 export type ContestAnnouncementAudience = z.infer<typeof contestAnnouncementAudienceSchema>;
 
 const ANNOUNCEMENT_SUBJECT_MAX = 200;

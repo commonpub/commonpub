@@ -1,6 +1,9 @@
-import { and, asc, desc, eq, gte, isNull, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, inArray, isNull, sql } from 'drizzle-orm';
 import type { SQL } from 'drizzle-orm';
-import { contestAnnouncements, contestAnnouncementSends, contestRegistrations, users } from '@commonpub/schema';
+import {
+  contestAnnouncements, contestAnnouncementSends, contestRegistrations,
+  contestEntries, contestJudges, contestStakeholders, users,
+} from '@commonpub/schema';
 import type { ContestAnnouncementAudience } from '@commonpub/schema';
 import type { DB } from '../types.js';
 import { emailTemplates } from '../email.js';
@@ -54,21 +57,72 @@ export interface AnnouncementRecipient {
  *
  * Caller must join `contest_registrations` to `users`; this returns the WHERE.
  */
-export function audienceWhere(
+/**
+ * The user ids a selector names, BEFORE the mailability gate.
+ *
+ * `registrants` is the contest's sign-up list, narrowed by tier (`full` = a
+ * counted participant, `reminders` = the lower-commitment opt-in, `all` = both,
+ * matching the deadline-reminder sweep which applies no tier filter).
+ *
+ * `users` is hand-picked, and is INTERSECTED with everyone connected to this
+ * contest by any route -- registrant, entrant, judge or stakeholder. That
+ * intersect is a security boundary, not a tidy-up: the organizer's people-picker
+ * calls `searchUsers`, which searches the whole instance, so without it a
+ * contest organizer could mail any member at all. Instance-wide sending is the
+ * admin broadcast's job, behind the `broadcast.send` permission.
+ */
+async function audienceUserIds(
+  db: DB,
   contestId: string,
   audience: ContestAnnouncementAudience,
-  allowUnverified: boolean,
-): SQL | undefined {
+): Promise<string[]> {
+  if (audience.kind === 'registrants') {
+    const conds = [eq(contestRegistrations.contestId, contestId), isNull(contestRegistrations.emailOptOutAt)];
+    if (audience.tier !== 'all') conds.push(eq(contestRegistrations.tier, audience.tier));
+    const rows = await db
+      .select({ userId: contestRegistrations.userId })
+      .from(contestRegistrations)
+      .where(and(...conds));
+    return rows.map((r) => r.userId);
+  }
+
+  // Hand-picked. Gather everyone connected to the contest, then keep only the
+  // requested ids that appear there.
+  const [regs, ents, judges, stake] = await Promise.all([
+    db.select({ userId: contestRegistrations.userId }).from(contestRegistrations)
+      .where(and(eq(contestRegistrations.contestId, contestId), isNull(contestRegistrations.emailOptOutAt))),
+    db.select({ userId: contestEntries.userId }).from(contestEntries).where(eq(contestEntries.contestId, contestId)),
+    db.select({ userId: contestJudges.userId }).from(contestJudges).where(eq(contestJudges.contestId, contestId)),
+    db.select({ userId: contestStakeholders.userId }).from(contestStakeholders).where(eq(contestStakeholders.contestId, contestId)),
+  ]);
+  const connected = new Set<string>();
+  for (const set of [regs, ents, judges, stake]) for (const r of set) connected.add(r.userId);
+  return audience.userIds.filter((id) => connected.has(id));
+}
+
+/**
+ * The global mailability gate, matching `comms/broadcast.ts:audienceWhere`
+ * exactly so a contest announcement can never reach an account the admin blast
+ * would skip:
+ *  - `status = 'active'` and `deleted_at IS NULL` -- never mail a suspended or
+ *    soft-deleted account. (Session 258 found that suspending writes
+ *    `deletedAt = null`, so both clauses are load-bearing; neither implies the other.)
+ *  - a verified address, unless the operator turned on `features.emailUnverified`.
+ *  - not globally unsubscribed. `->> 'unsubscribedAll' IS DISTINCT FROM 'true'`
+ *    deliberately keeps users with NO prefs row (null) and those who set other
+ *    preferences; only an explicit global opt-out excludes.
+ *
+ * The per-contest opt-out is applied per selector above, because it lives on the
+ * registration row rather than on the user.
+ */
+function mailableWhere(ids: string[], allowUnverified: boolean): SQL | undefined {
   const conds = [
-    eq(contestRegistrations.contestId, contestId),
-    isNull(contestRegistrations.emailOptOutAt),
+    inArray(users.id, ids),
     eq(users.status, 'active'),
     isNull(users.deletedAt),
     sql`(${users.emailNotifications} ->> 'unsubscribedAll') IS DISTINCT FROM 'true'`,
   ];
   if (!allowUnverified) conds.push(eq(users.emailVerified, true));
-  // `all` applies no tier filter, matching the deadline-reminder sweep.
-  if (audience.tier !== 'all') conds.push(eq(contestRegistrations.tier, audience.tier));
   return and(...conds);
 }
 
@@ -82,11 +136,12 @@ export async function countAnnouncementRecipients(
   audience: ContestAnnouncementAudience,
   allowUnverified = false,
 ): Promise<number> {
+  const ids = await audienceUserIds(db, contestId, audience);
+  if (ids.length === 0) return 0;
   const [row] = await db
     .select({ count: sql<number>`count(*)::int` })
-    .from(contestRegistrations)
-    .innerJoin(users, eq(users.id, contestRegistrations.userId))
-    .where(audienceWhere(contestId, audience, allowUnverified));
+    .from(users)
+    .where(mailableWhere(ids, allowUnverified));
   return row?.count ?? 0;
 }
 
@@ -104,6 +159,8 @@ export async function resolveAnnouncementRecipients(
   audience: ContestAnnouncementAudience,
   allowUnverified = false,
 ): Promise<AnnouncementRecipient[]> {
+  const ids = await audienceUserIds(db, contestId, audience);
+  if (ids.length === 0) return [];
   return db
     .select({
       userId: users.id,
@@ -111,9 +168,8 @@ export async function resolveAnnouncementRecipients(
       username: users.username,
       displayName: users.displayName,
     })
-    .from(contestRegistrations)
-    .innerJoin(users, eq(users.id, contestRegistrations.userId))
-    .where(audienceWhere(contestId, audience, allowUnverified))
+    .from(users)
+    .where(mailableWhere(ids, allowUnverified))
     .orderBy(asc(users.id));
 }
 
