@@ -34,7 +34,14 @@ const server = vi.hoisted(() => ({
   effectivePersonaSchema: vi.fn(),
   getPersonaValues: vi.fn(),
 }));
-vi.mock('@commonpub/server', () => server);
+// The visibility rule is the REAL one (session 261): it is the gate under test,
+// and a double of it would only test the double.
+vi.mock('@commonpub/server', async () => {
+  const real = await vi.importActual<typeof import('../../../../../../packages/server/src/profile/visibility')>(
+    '../../../../../../packages/server/src/profile/visibility',
+  );
+  return { ...server, canViewProfile: real.canViewProfile };
+});
 
 // --- mutable request state -------------------------------------------------------
 

@@ -498,8 +498,8 @@ watchEffect(() => {
 
 const visibilityHints: Record<ProfileVisibility, string> = {
   public: 'Anyone can see your profile, including people who are not signed in.',
-  members: 'Only people signed in to this site can see your profile.',
-  private: 'Only you can see your profile.',
+  members: 'Only people signed in to this site can see your profile, your followers and who you follow. Anything you publish still shows your name.',
+  private: 'Only you can see your profile, your followers and who you follow. Anything you publish still shows your name.',
 };
 
 /**

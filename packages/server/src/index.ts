@@ -349,6 +349,8 @@ export type {
 } from './admin/index.js';
 
 // Profile
+export { canViewProfile, profileVisibleTo, findProfileGate } from './profile/index.js';
+export type { ProfileGateTarget } from './profile/index.js';
 export { getUserByUsername, getUserContent, updateUserProfile, getProfilePrivacySettings, getOwnEmailNotificationPrefs, exportUserData, searchUsers, recordConsent, needsTermsReacceptance, getEffectiveTermsVersion, TERMS_VERSION_SETTING_KEY } from './profile/index.js';
 export type { UserDataExport, UserSearchResult, ProfilePrivacySettings, OwnEmailNotificationPrefs, ConsentKind, RecordConsentInput } from './profile/index.js';
 

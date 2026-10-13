@@ -1,6 +1,6 @@
 import { and, eq, isNull } from 'drizzle-orm';
 import { users } from '@commonpub/schema';
-import { effectivePersonaSchema, getPersonaValues } from '@commonpub/server';
+import { effectivePersonaSchema, getPersonaValues, canViewProfile } from '@commonpub/server';
 import type { PersonaField } from '@commonpub/persona';
 import { personaFieldSink, personaFieldSpec } from '@commonpub/persona';
 
@@ -227,14 +227,11 @@ export default defineEventHandler(async (event): Promise<PublicPersonaResponse> 
   if (!isOwner) {
     // A suspended account keeps its data and loses its audience.
     if (target.status !== 'active') notFound();
-    // Widened to `string` on purpose, so this is an ALLOW-list rather than a
-    // deny-list: 'members' is the one visibility that depends on the viewer
-    // rather than on the profile alone, and any value the enum does not name
-    // (a row written before the enum existed is a varchar in practice) falls
-    // through to the 404 instead of defaulting to visible.
-    const visibility: string = target.profileVisibility;
-    const visible = visibility === 'public' || (visibility === 'members' && viewer !== null);
-    if (!visible) notFound();
+    // The shared allow-list (canViewProfile, @commonpub/server): 'members'
+    // depends on the viewer, and any value the enum does not name falls through
+    // to the 404 instead of defaulting to visible. Same rule as every other
+    // profile read since session 261.
+    if (!canViewProfile(target, viewer?.id)) notFound();
   }
 
   const { sections, drift } = await effectivePersonaSchema(db, config);

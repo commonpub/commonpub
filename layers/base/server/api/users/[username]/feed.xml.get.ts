@@ -30,6 +30,8 @@ export default defineEventHandler(async (event) => {
   const config = useRuntimeConfig();
   const siteUrl = config.public.siteUrl as string;
   const { username } = parseParams(event, { username: 'string' });
+  // Hidden by the member's profile visibility: the same 404 as no account.
+  await requireVisibleProfile(event, username);
 
 
   const user = await getUserByUsername(db, username);
