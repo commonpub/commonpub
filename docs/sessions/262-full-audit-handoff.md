@@ -51,3 +51,9 @@ None taken. Everything below needs an owner's call or a go-ahead.
    the workspace lockfile, republish `@commonpub/docs` without its old pins.
 5. Then the rearchitecture list in the report, starting with `useConfig()` in the layer
    and one fork pipeline.
+
+## Release batching note
+
+PR #92 and every schema-validator fix (judging ties, weight 0 counting as 100, duplicate
+criterion or stage ids) each force the full exact-pin cascade. Batch them into one
+schema release rather than rolling them one at a time.
