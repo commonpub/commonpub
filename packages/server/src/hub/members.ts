@@ -1,4 +1,4 @@
-import { eq, and, desc, sql } from 'drizzle-orm';
+import { eq, and, desc, sql, isNull } from 'drizzle-orm';
 import { emitHook } from '../hooks.js';
 import {
   hubs,
@@ -15,6 +15,7 @@ import type {
 import { hasPermission, canManageRole } from '../utils.js';
 import { USER_REF_SELECT, normalizePagination, countRows } from '../query.js';
 import { checkBan, validateAndUseInvite } from './moderation.js';
+import { profileVisibleTo } from '../profile/visibility.js';
 import { createNotification } from '../notification/notification.js';
 
 // --- Membership ---
@@ -349,16 +350,40 @@ export async function getMember(
   };
 }
 
+/**
+ * May a member with this hub role see members whose profile is hidden from them?
+ * The roster is where moderators kick and ban and stewards flag members, so they
+ * need everyone on it; nobody else does (session 262).
+ */
+export function hubRoleSeesFullRoster(role: string | null | undefined): boolean {
+  if (!role) return false;
+  return hasPermission(role, 'kickMember') || hasPermission(role, 'flagMember');
+}
+
 export async function listMembers(
   db: DB,
   hubId: string,
-  opts: { limit?: number; offset?: number } = {},
+  opts: {
+    limit?: number;
+    offset?: number;
+    /** Who is looking. Members whose profile this viewer may not see are left out. */
+    viewerId?: string | null;
+    /** Hub moderators, stewards and platform admins see the whole roster. */
+    seesEveryone?: boolean;
+  } = {},
 ): Promise<{ items: HubMemberItem[]; total: number }> {
   const { limit, offset } = normalizePagination(opts);
   // Active only: pending join requests are excluded from the roster + count.
-  const where = and(eq(hubMembers.hubId, hubId), eq(hubMembers.status, 'active'));
+  // Profile visibility and account status apply like every other list of people
+  // (session 262): a private or suspended member is not named to the public.
+  const where = and(
+    eq(hubMembers.hubId, hubId),
+    eq(hubMembers.status, 'active'),
+    isNull(users.deletedAt),
+    opts.seesEveryone ? undefined : profileVisibleTo(opts.viewerId),
+  );
 
-  const [rows, total] = await Promise.all([
+  const [rows, [counted]] = await Promise.all([
     db
       .select({
         member: hubMembers,
@@ -370,7 +395,11 @@ export async function listMembers(
       .orderBy(desc(hubMembers.joinedAt), desc(hubMembers.userId))
       .limit(limit)
       .offset(offset),
-    countRows(db, hubMembers, where),
+    db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(hubMembers)
+      .innerJoin(users, eq(hubMembers.userId, users.id))
+      .where(where),
   ]);
 
   const items = rows.map((row) => ({
@@ -381,7 +410,7 @@ export async function listMembers(
     user: row.user,
   }));
 
-  return { items, total };
+  return { items, total: counted?.count ?? 0 };
 }
 
 export interface RemoteHubMember {

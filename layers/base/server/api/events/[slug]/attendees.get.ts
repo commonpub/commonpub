@@ -1,6 +1,8 @@
 import { getEventBySlug, listEventAttendees, canReadHubById, toPageMeta, normalizePagination } from '@commonpub/server';
 import type { AttendeeStatus } from '@commonpub/server';
 
+const ATTENDEE_STATUSES: readonly AttendeeStatus[] = ['registered', 'waitlisted', 'cancelled', 'attended'];
+
 /**
  * GET /api/events/:slug/attendees
  * List attendees for an event (public).
@@ -35,15 +37,25 @@ export default defineEventHandler(async (event) => {
   }
 
   const query = getQuery(event);
+  // An unknown status used to reach the enum column and 500 (audit N5).
+  const status = query.status === undefined || query.status === '' ? undefined : String(query.status);
+  if (status !== undefined && !ATTENDEE_STATUSES.includes(status as AttendeeStatus)) {
+    throw createError({ statusCode: 400, statusMessage: 'Invalid status' });
+  }
+  const viewer = getOptionalUser(event);
   // Same helper as listEventAttendees, for the same reason as /api/events.
   const { limit, offset } = normalizePagination({
     limit: query.limit !== undefined ? Number(query.limit) : undefined,
     offset: query.offset !== undefined ? Number(query.offset) : undefined,
   });
+  // Attendees whose profile this viewer may not see are left out, except for the
+  // event's creator and admins (session 262).
   const result = await listEventAttendees(db, existing.id, {
-    status: (query.status as AttendeeStatus) || undefined,
+    status: status as AttendeeStatus | undefined,
     limit,
     offset,
+    viewerId: viewer?.id,
+    seesEveryone: !!viewer && (hasPermission(event, 'admin.access') || viewer.id === existing.createdById),
   });
   // The event page renders `+{{ attendees.total - 8 }}`, so an untranslated
   // sentinel is an arithmetic error waiting on the guard above it.
