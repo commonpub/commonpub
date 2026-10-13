@@ -14,13 +14,20 @@ Re-check before trusting it: `npm view @commonpub/<pkg> version`,
 
 **Published (all match `main`):** schema **0.67.0** · config **0.41.0** ·
 protocol **0.15.4** · auth **0.13.4** · ui **0.16.1** · editor **0.17.3** ·
-explainer **0.9.2** · learning **0.5.6** · infra **0.23.0** · server **2.138.0** ·
+explainer **0.9.2** · learning **0.5.6** · infra **0.23.1** · server **2.139.0** ·
 docs **0.6.3** · test-utils **0.5.18** · persona **0.2.1** · theme-studio **0.7.0** ·
-layer **0.139.0** (2026-10-12).
+layer **0.140.0** (2026-10-12).
 
 **Live:** all three instances healthy, migrations through **0049**, **47** boolean flags
 each from `/api/features`. ON by operator choice: commonpub.io **29**, deveco.io **44**,
 heatsynclabs.io **21**. `contestBroadcast` is ON only on deveco.
+
+**Session 261 second release (2026-10-12):** infra 0.23.1 + server 2.139.0 + layer 0.140.0
+(profile visibility enforced on every profile read, rate-limit bypass fixed) are live on
+**all three**: deveco.io (#45), heatsynclabs.io (#40, which also adds the **Gantry** theme as
+`defaultTheme`), commonpub.io (fd20a3f4). heatsynclabs.io still serves the DB-stored
+`cpub-custom-captured-2026-06-11` until an admin picks **Gantry** in Admin, Theme (the DB
+`theme.default` beats the config default).
 
 **Session 261 release (2026-10-12):** server 2.138.0 + layer 0.139.0 (registrant
 addresses split in exports, shipping list, registrants page, organizer/judge tools,

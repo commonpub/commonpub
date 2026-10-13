@@ -45,6 +45,21 @@ Fixed for answers already stored, with no migration:
   - action-bar label matching;
   - **product:** the `shouldSkipRateLimit` bypass for `/api/*.png`. It needs an infra release to ship.
 
+**Profile visibility fix (PR #97), second release.**
+- **Rule:** `@commonpub/server` has `canViewProfile`, `profileVisibleTo` and `findProfileGate`, an allow-list where the owner always passes.
+- **Profile routes:** the layer's `requireVisibleProfile` gates every `/api/users/:username` read (profile, content, followers, following, learning, feed, follow). It returns the same 404 as a missing account.
+- **Lists of people:** follower and following lists, people search and the Explore people list filter and count by the rule.
+- **Federation:** the ActivityPub actor of a hidden profile drops its name and bio, and its collections list no one.
+- **UI:** `/u/:username` shows "User not found" on a 404. The privacy hints say that published work still shows your name.
+- **Tests:** 9 server and 47 layer; removing the gate turns 6 red.
+- **Release:** infra 0.23.1 (rate-limit fix), server 2.139.0, layer 0.140.0 (rc.1 verified on deveco draft #44 and in a Docker-equivalent install of the heatsync fork). It rolled to all three instances.
+
+**heatsynclabs.io: Gantry theme (heatsynclabs-io #40).**
+- **Theme:** `theme/gantry.css`, adapted from new-hsl's Gantry tokens. It registers `gantry` (dark, default) and `gantry-light`, with `defaultTheme: 'gantry'`. `heatsync.css` is no longer loaded but kept for rollback.
+- **Contrast fixes to Gantry's own values:** dark `--smoke` becomes `#968b78`; light accent text becomes `#865409`. The bright hazard amber stays on filled controls.
+- **Hydration fix:** the fork's `footer-credit` plugin patched the DOM before hydration, logging a mismatch on every page. It now uses `onNuxtReady`. Live pages are clean.
+- **Pending admin step:** the DB `theme.default` still names the captured custom theme. An admin must pick **Gantry** in Admin, Theme.
+
 ## Decisions
 
 - Address formatting stays at read time. Nothing stored changes, so every past answer exports correctly.
@@ -54,8 +69,8 @@ Fixed for answers already stored, with no migration:
 
 ## Open questions and next steps
 
-1. **P1 privacy:** `profileVisibility` is promised on `settings/privacy` ("Only you can see your profile") but not enforced on `GET /api/users/:username`, its followers, following and content routes, or `/u/[username]`. Needs one shared predicate and a sweep test.
-2. Release `@commonpub/infra` with the rate-limit fix. Because of the exact-pin cascade, that means infra, then server, then layer.
-3. The rest of the ranked list in `docs/reviews/test-audit-2026-10-12.md`, in its suggested order.
-4. heatsynclabs.io roll to 0.139.0.
+1. ~~P1 privacy~~ fixed and live (PR #97). Left unchanged on purpose: the organizer-only judge invite search (`contests/:slug/user-search`), and contest participant lists.
+2. ~~Release infra~~ done (0.23.1, live).
+3. An admin picks **Gantry** in Admin, Theme on heatsynclabs.io.
+4. The rest of the ranked list in `docs/reviews/test-audit-2026-10-12.md`, in its suggested order.
 5. The hosted judge guide (`deveco.nyc3.digitaloceanspaces.com/guides/deveco-judging-guide.html`) is still accurate. It could add one line about the new **Judging portal** button.
