@@ -3,7 +3,7 @@ const route = useRoute();
 const videoId = computed(() => route.params.id as string);
 
 // Video API may return enriched data beyond the base VideoDetail type
-const { data: video } = useLazyFetch<any>(() => `/api/videos/${videoId.value}`);
+const { data: video, error: videoError } = useLazyFetch<any>(() => `/api/videos/${videoId.value}`);
 
 // Resolved HERE, in setup scope. Inside a useSeoMeta getter the head
 // resolver runs outside the component context, so useSiteName()'s
@@ -105,6 +105,7 @@ const authorInitial = computed(() => {
     </div>
   </div>
   <div v-else class="cpub-empty-state" style="padding: 64px">
+    <PageNotFoundStatus v-if="!videoError || videoError.statusCode === 404" />
     <p class="cpub-empty-state-title">Video not found</p>
   </div>
 </template>

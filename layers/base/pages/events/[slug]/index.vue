@@ -6,7 +6,11 @@ const slug = route.params.slug as string;
 const toast = useToast();
 const { isAuthenticated, user } = useAuth();
 
-const { data: event, refresh } = await useFetch<EventDetail>(`/api/events/${slug}`);
+const { data: event, error: eventError, refresh } = await useFetch<EventDetail>(`/api/events/${slug}`);
+// A missing event is the site's 404 page with a 404 status (session 262).
+if (eventError.value?.statusCode === 404) {
+  throw createError({ statusCode: 404, statusMessage: 'Event not found', fatal: true });
+}
 const { data: attendees } = await useFetch<{ items: AttendeeItem[]; total: number }>(`/api/events/${slug}/attendees`);
 
 useSeoMeta({ title: event.value ? `${event.value.title}, Events, ${useSiteName()}` : `Event, ${useSiteName()}` });

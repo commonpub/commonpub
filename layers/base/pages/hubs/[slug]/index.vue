@@ -41,10 +41,11 @@ const { data: resources, refresh: refreshResources } = useLazyFetch<{ items: Arr
 // resolver runs outside the component context, so useSiteName()'s
 // useState() throws and it silently falls back to 'CommonPub'.
 const siteName = useSiteName();
+const ogImage = useOgImage();
 useSeoMeta({
   title: () => hub.value ? `${hub.value.name} -- ${siteName}` : `Hub -- ${siteName}`,
   description: () => hub.value?.description || '',
-  ogImage: '/og-default.png',
+  ogImage: ogImage(),
 });
 
 const { isAuthenticated, user: authUser } = useAuth();
@@ -311,7 +312,7 @@ async function onRefreshGallery(): Promise<void> {
 
 <template>
   <div v-if="hubPending" class="cpub-loading">Loading hub...</div>
-  <div v-else-if="hubError" class="cpub-fetch-error">
+  <div v-else-if="hubError && hubError.statusCode !== 404" class="cpub-fetch-error">
     <div class="cpub-fetch-error-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
     <div class="cpub-fetch-error-msg">Failed to load hub.</div>
     <button class="cpub-btn cpub-btn-sm" @click="refreshHub()">Retry</button>
@@ -472,6 +473,7 @@ async function onRefreshGallery(): Promise<void> {
   </HubLayout>
 
   <div v-else class="cpub-empty-state" style="padding: 64px 24px">
+    <PageNotFoundStatus />
     <p class="cpub-empty-state-title">Hub not found</p>
   </div>
 </template>

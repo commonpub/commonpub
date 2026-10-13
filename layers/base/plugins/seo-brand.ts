@@ -43,9 +43,14 @@ export default defineNuxtPlugin(() => {
    */
   const canonical = (): string => `${siteUrl}${router.currentRoute.value.path}`;
 
+  // Every page unfurls with the instance's card unless it sets its own image:
+  // the homepage and the listings had no og:image at all (session 262 audit).
+  const defaultImage = `${siteUrl}/og-default.png`;
+
   useSeoMeta({
     ogSiteName: siteName,
     ogType: 'website',
+    ogImage: defaultImage,
     twitterCard: 'summary_large_image',
     // Pages that are genuinely articles override this; the default is correct
     // for listings, the homepage and everything else.

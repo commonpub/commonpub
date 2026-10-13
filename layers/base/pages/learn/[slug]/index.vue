@@ -10,10 +10,11 @@ const { data: path, pending: pathPending, error: pathError, refresh } = useLazyF
 // resolver runs outside the component context, so useSiteName()'s
 // useState() throws and it silently falls back to 'CommonPub'.
 const siteName = useSiteName();
+const ogImage = useOgImage();
 useSeoMeta({
   title: () => path.value ? `${path.value.title}, Learn, ${siteName}` : `Learn, ${siteName}`,
   description: () => path.value?.description || '',
-  ogImage: '/og-default.png',
+  ogImage: ogImage(),
 });
 
 const { isAuthenticated, user } = useAuth();
@@ -115,7 +116,7 @@ function getDifficultyClass(d: string | null): string {
 
 <template>
   <div v-if="pathPending" class="cpub-loading">Loading learning path...</div>
-  <div v-else-if="pathError" class="cpub-fetch-error">
+  <div v-else-if="pathError && pathError.statusCode !== 404" class="cpub-fetch-error">
     <div class="cpub-fetch-error-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
     <div class="cpub-fetch-error-msg">Failed to load learning path.</div>
     <button class="cpub-btn cpub-btn-sm" @click="refresh()">Retry</button>
@@ -255,7 +256,7 @@ function getDifficultyClass(d: string | null): string {
       </aside>
     </div>
   </div>
-  <div v-else class="cpub-not-found"><h1>Learning path not found</h1></div>
+  <div v-else class="cpub-not-found"><PageNotFoundStatus /><h1>Learning path not found</h1></div>
 </template>
 
 <style scoped>

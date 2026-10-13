@@ -11,7 +11,12 @@ const { isAuthenticated, isAdmin, user } = useAuth();
 
 // Blocking fetch (not lazy) so the description/rules render server-side and are
 // present on first paint — no empty flash while the client fetches + renders.
-const { data: contest } = await useFetch(`/api/contests/${slug}`);
+const { data: contest, error: contestError } = await useFetch(`/api/contests/${slug}`);
+// A contest that doesn't exist (or isn't visible to this viewer) is the site's
+// 404 page with a 404 status, not this page rendered around nothing (session 262).
+if (contestError.value?.statusCode === 404) {
+  throw createError({ statusCode: 404, statusMessage: 'Contest not found', fatal: true });
+}
 // EVERY entry, not the route's default first 20. Past 20 a participant's own
 // (older) entry fell off the list, `myEntries` went empty and the proposal form
 // invited them to submit a duplicate. useRequestFetch, not bare $fetch, so the
@@ -52,10 +57,11 @@ const contestBlurb = computed<string | undefined>(() => {
   return blurb && blurb.length > 0 ? blurb : undefined;
 });
 
+const ogImage = useOgImage();
 useSeoMeta({
   title: () => `${contest.value?.title || 'Contest'}, ${siteName}`,
   ogTitle: () => `${contest.value?.title || 'Contest'}, ${siteName}`,
-  ogImage: () => contest.value?.bannerUrl || '/og-default.png',
+  ogImage: () => ogImage(contest.value?.bannerUrl),
   // A contest page had NO description and no og:description at all, so an
   // unfurl showed a title and a banner with no idea what the contest was, and
   // a search result had nothing but the title to rank or display.

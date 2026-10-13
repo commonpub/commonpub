@@ -2,10 +2,11 @@
 const route = useRoute();
 const username = route.params.username as string;
 
+const ogImage = useOgImage();
 useSeoMeta({
   title: `${username}, ${useSiteName()}`,
   ogTitle: `${username}, ${useSiteName()}`,
-  ogImage: '/og-default.png',
+  ogImage: ogImage(),
   ogType: 'profile',
   twitterCard: 'summary',
 });
@@ -608,6 +609,7 @@ async function handleReport(): Promise<void> {
   </div>
 
   <div v-else class="cpub-empty-state">
+    <PageNotFoundStatus />
     <p class="cpub-empty-state-title">User not found</p>
   </div>
 </template>

@@ -10,7 +10,7 @@ const slug = computed(() => route.params.slug as string);
 // Pass cookies so SSR can resolve auth (needed to view own drafts)
 // Include author param to disambiguate user-scoped slugs
 const reqHeaders = import.meta.server ? useRequestHeaders(['cookie']) : {};
-const { data: content, pending: contentPending } = useLazyFetch<Serialized<ContentDetail>>(
+const { data: content, pending: contentPending, error: contentError } = useLazyFetch<Serialized<ContentDetail>>(
   () => `/api/content/${slug.value}?author=${encodeURIComponent(username.value)}`,
   { headers: reqHeaders },
 );
@@ -30,10 +30,11 @@ watch(() => content.value?.type, (type) => {
 // resolver runs outside the component context, so useSiteName()'s
 // useState() throws and it silently falls back to 'CommonPub'.
 const siteName = useSiteName();
+const ogImage = useOgImage();
 useSeoMeta({
   title: () => content.value?.title ? `${content.value.title}, ${siteName}` : siteName,
   description: () => content.value?.seoDescription || content.value?.description || '',
-  ogImage: () => content.value?.coverImageUrl || '/og-default.png',
+  ogImage: () => ogImage(content.value?.coverImageUrl),
   ogTitle: () => content.value?.title || siteName,
   ogDescription: () => content.value?.seoDescription || content.value?.description || '',
   // A project, blog or explainer is an article, not a `website`. The global
@@ -165,6 +166,7 @@ onMounted(() => {
     </section>
   </div>
   <div v-else class="cpub-not-found">
+    <PageNotFoundStatus v-if="!contentError || contentError.statusCode === 404" />
     <h1>Content not found</h1>
     <p>The requested content could not be found.</p>
   </div>
