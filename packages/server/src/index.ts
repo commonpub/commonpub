@@ -154,6 +154,7 @@ export {
   leaveHub,
   getMember,
   listMembers,
+  hubRoleSeesFullRoster,
   listJoinRequests,
   approveJoinRequest,
   denyJoinRequest,
@@ -334,12 +335,16 @@ export {
   INSTANCE_NAME_SETTING_KEY,
   INSTANCE_DESCRIPTION_SETTING_KEY,
   deleteUser,
+  findSharedOwnership,
+  describeSharedOwnership,
+  AccountOwnsSharedContentError,
   removeContent,
   removeFederatedContent,
 } from './admin/index.js';
 export type {
   AuditEntry,
   AuditLogItem,
+  SharedOwnership,
   AuditFilters,
   PlatformStats,
   UserListItem,
@@ -599,6 +604,7 @@ export {
   getLikedFederatedHubPostIds,
   createSafeActorFetchFn,
   recordActivitySeen,
+  releaseActivityClaim,
 } from './federation/index.js';
 
 // OAuth Codes
