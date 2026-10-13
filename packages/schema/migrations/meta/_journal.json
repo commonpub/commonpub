@@ -351,6 +351,13 @@
       "when": 1789238015299,
       "tag": "0049_modern_hemingway",
       "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1791931530603,
+      "tag": "0050_keep_shared_on_account_delete",
+      "breakpoints": true
     }
   ]
 }

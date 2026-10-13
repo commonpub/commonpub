@@ -11,7 +11,7 @@ export const docsSites = pgTable('docs_sites', {
   description: text('description'),
   ownerId: uuid('owner_id')
     .notNull()
-    .references(() => users.id, { onDelete: 'cascade' }),
+    .references(() => users.id, { onDelete: 'restrict' }),
   themeTokens: jsonb('theme_tokens').$type<Record<string, string>>(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),

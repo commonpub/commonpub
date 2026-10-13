@@ -39,7 +39,7 @@ export const products = pgTable('products', {
   status: productStatusEnum('status').default('active').notNull(),
   createdById: uuid('created_by_id')
     .notNull()
-    .references(() => users.id, { onDelete: 'cascade' }),
+    .references(() => users.id, { onDelete: 'restrict' }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 }, (t) => [

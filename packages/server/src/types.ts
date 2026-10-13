@@ -338,7 +338,8 @@ export interface HubBanItem {
   expiresAt: Date | null;
   createdAt: Date;
   user: UserRef;
-  bannedBy: UserRef;
+  /** Null once the account that issued the ban has been deleted. */
+  bannedBy: UserRef | null;
 }
 
 // --- Federated Hub Types ---

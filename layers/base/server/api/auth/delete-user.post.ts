@@ -1,4 +1,4 @@
-import { deleteUser, federateDelete } from '@commonpub/server';
+import { deleteUser, federateDelete, findSharedOwnership, describeSharedOwnership } from '@commonpub/server';
 import { contentItems } from '@commonpub/schema';
 import { eq, and } from 'drizzle-orm';
 import { clearBetterAuthSessionCookies } from '../../utils/betterAuthCookie';
@@ -22,6 +22,21 @@ export default defineEventHandler(async (event): Promise<{ success: true }> => {
         statusMessage: 'Cannot delete the only admin account',
       });
     }
+  }
+
+  // An account that still owns a contest, hub, docs site, event, learning path or
+  // product cannot be deleted: other people's entries, posts and enrollments hang
+  // off it (session 262). Checked first, before any Delete is federated, so a
+  // refused delete changes nothing anywhere.
+  const owned = await findSharedOwnership(db, user.id);
+  const ownedCount = Object.values(owned).reduce((a, b) => a + b, 0);
+  if (ownedCount > 0) {
+    const them = ownedCount === 1 ? 'it' : 'them';
+    throw createError({
+      statusCode: 409,
+      statusMessage: `You still own ${describeSharedOwnership(owned)} that other people use. Hand ${them} over or delete ${them} first, then delete your account. A site admin can help.`,
+      data: { owned },
+    });
   }
 
   // Federation cleanup: send Delete activities for published content

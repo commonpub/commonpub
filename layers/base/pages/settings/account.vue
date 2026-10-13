@@ -10,6 +10,10 @@ const passwordLoading = ref(false);
 const deleteConfirm = ref(false);
 const deleteConfirmText = ref('');
 const deleteLoading = ref(false);
+// Why the last delete was refused (e.g. the account still owns a contest). Kept
+// on the page, not only toasted, because it says what to do next.
+const deleteError = ref('');
+const { extract } = useApiError();
 
 async function handlePasswordChange(): Promise<void> {
   if (!currentPassword.value || !newPassword.value) return;
@@ -49,6 +53,7 @@ async function handleDeleteAccount(): Promise<void> {
   if (!canDelete.value) return;
 
   deleteLoading.value = true;
+  deleteError.value = '';
   try {
     await $fetch('/api/auth/delete-user', {
       method: 'POST',
@@ -57,7 +62,8 @@ async function handleDeleteAccount(): Promise<void> {
     toast('Account deleted', 'success');
     await navigateTo('/');
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : 'Failed to delete account';
+    const msg = extract(err);
+    deleteError.value = msg;
     toast(msg, 'error');
     deleteConfirm.value = false;
     deleteConfirmText.value = '';
@@ -101,6 +107,7 @@ async function handleDeleteAccount(): Promise<void> {
       <p class="cpub-danger-desc">
         Deleting your account is permanent and cannot be undone.
       </p>
+      <p v-if="deleteError" class="cpub-danger-desc" role="alert">{{ deleteError }}</p>
 
       <template v-if="deleteConfirm">
         <div class="cpub-form-group">
