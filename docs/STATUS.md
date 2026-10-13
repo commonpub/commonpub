@@ -1,169 +1,79 @@
 # CommonPub — Status & Operator Runbook
 
-> **Living doc — your "come back later" reference.** Header rewritten 2026-08-23 after a
-> full-repository audit found the previous header wrong on **27 of 38** present-tense
-> state claims, and self-contradictory 40 lines apart. Everything below the first `---`
-> is **historical session narrative** and has NOT been re-verified; read it as a log, not
-> as current state. Only this header is warranted current as of 2026-10-09.
+> **Living doc — your "come back later" reference.** Only this header is warranted
+> current, as of **2026-10-13** (session 262 audit). Everything below the first `---` is
+> historical session narrative and has NOT been re-verified; read it as a log.
+> The full evidence behind this header: `docs/reviews/2026-10-13-instances-and-codebase-audit.md`.
 
-## Verified current state — 2026-10-09
+## Verified current state — 2026-10-13
 
-Every figure here was taken from the registry or a live request on the date above.
-Re-check before trusting it: `npm view @commonpub/<pkg> version`,
+Re-check before trusting: `npm view @commonpub/<pkg> version`,
 `curl https://<instance>/api/features`, `gh run list --branch main`.
 
-**Published (all match `main`):** schema **0.67.0** · config **0.41.0** ·
-protocol **0.15.4** · auth **0.13.4** · ui **0.16.1** · editor **0.17.3** ·
-explainer **0.9.2** · learning **0.5.6** · infra **0.23.1** · server **2.139.0** ·
-docs **0.6.3** · test-utils **0.5.18** · persona **0.2.1** · theme-studio **0.7.0** ·
-layer **0.140.0** (2026-10-12).
+**Published (all 15 match `main`, no unreleased source since `fd20a3f4`):** schema
+**0.67.0** · config **0.41.0** · protocol **0.15.4** · auth **0.13.4** · ui **0.16.1** ·
+editor **0.17.3** · explainer **0.9.2** · learning **0.5.6** · infra **0.23.1** ·
+server **2.139.0** · docs **0.6.3** · test-utils **0.5.18** · persona **0.2.1** ·
+theme-studio **0.7.0** · layer **0.140.0**.
 
-**Live:** all three instances healthy, migrations through **0049**, **47** boolean flags
-each from `/api/features`. ON by operator choice: commonpub.io **29**, deveco.io **44**,
-heatsynclabs.io **21**. `contestBroadcast` is ON only on deveco.
+**Live:** all three on layer **0.140.0**, healthy, migrations through **0049**.
+`/api/features` exposes **52** booleans (47 top level + 5 `identity.*`, all identity OFF
+everywhere). ON: commonpub.io **29**, deveco.io **44**, heatsynclabs.io **21**.
+`contestBroadcast` ON only on deveco; `layoutEngine` ON only on commonpub.io.
+heatsynclabs.io renders the **Gantry** theme (fork CSS keyed on `:root[data-theme]`) even
+though its DB `theme.default` is still `cpub-custom-captured-2026-06-11`.
 
-**Session 261 second release (2026-10-12):** infra 0.23.1 + server 2.139.0 + layer 0.140.0
-(profile visibility enforced on every profile read, rate-limit bypass fixed) are live on
-**all three**: deveco.io (#45), heatsynclabs.io (#40, which also adds the **Gantry** theme as
-`defaultTheme`), commonpub.io (fd20a3f4). heatsynclabs.io renders Gantry (rebuilt in #41 to match
-heatsynclabs.org) even though its DB `theme.default` is still `cpub-custom-captured-2026-06-11`:
-the fork's CSS keys on `:root[data-theme]`.
+**CI on `main`:** green on `ae506fb4` (check jobs, not the badge). `e2e` has
+`needs: check`, so a red gate makes it skip silently.
 
-**Session 261 release (2026-10-12):** server 2.138.0 + layer 0.139.0 (registrant
-addresses split in exports, shipping list, registrants page, organizer/judge tools,
-organizer judging overview) are live on **deveco.io** (#43) and **commonpub.io**
-(9fc11f3b). No schema change. heatsynclabs.io not rolled. Test audit and open P1s:
-`docs/reviews/test-audit-2026-10-12.md`; session log `docs/sessions/261-registrants-staff-tools-test-audit.md`.
+**Open PR:** #92 (hand-picked announcement audience). Mergeable with no conflicts, CI is
+from an old base. Changes `@commonpub/schema`, so merging it moves 8 packages.
 
-**Session 260 release (2026-10-09):** server 2.137.0 + layer 0.138.2 are live on
-**deveco.io** (#41) and **commonpub.io** (fc7d2232). **heatsynclabs.io is still on
-0.138.1**. There is no schema change. See `docs/sessions/260-handoff.md`.
+## Act on these first
 
-**CI on `main` is GREEN**, including `e2e` — verified per job on run `34786863884` (head 38e3970f, 2026-09-13)
-(`rust`, `check (22)`, `e2e` all success), not from a badge. Check the jobs, never the
-badge: `e2e` has `needs: check`, so a red gate makes it *skip* while the run still
-reports a single tidy failure.
+1. **deveco.io bot signups.** The 30 newest of 457 accounts are random-letter bots
+   (2026-09-25 onward); 139 of 457 verified. deveco sends real mail, so this risks Resend
+   sender reputation. Nothing in `docs/plans/fake-account-handling.md` is built. Bulk
+   suspend them and add signup friction (disposable-domain block, Turnstile).
+2. **Account self-delete cascades.** Contests, hubs, docs, products, learning paths and
+   events are `onDelete: 'cascade'` on their creator. An organizer deleting their own
+   account deletes the live contest and its entries. Self-delete also 500s after commit
+   (audit-row FK), so GDPR erasure is broken through the UI.
+3. **Suspension does not hide a profile**, and hub rosters, event attendees, contest
+   entrant lists and WebFinger still ignore `profileVisibility` (session 261 covered
+   `/api/users/*`, people lists, AP actor, followers, sitemap, v1 API).
+4. **Compression off** on commonpub.io and deveco.io: add `encode zstd gzip` to
+   `deploy/Caddyfile` and `deveco-io/deploy/Caddyfile` (~5x on HTML/JS).
+5. **`/og-default.png` is 404 on all three** (social preview fallback for hubs, profiles,
+   paths, cover-less posts); unknown pages return **200** instead of 404.
+6. **Inbound federation can drop activities**: the inbox marks an id seen before
+   processing and answers 400 on any handler error, so the sender never retries.
+7. **Deploy gates:** monorepo deploy not gated on tests; deveco deploy has no `pipefail`
+   and a health check that cannot fail; heatsync has no CI.
+8. **Rotate the crates.io token** (operator; `.dockerignore` is fixed, rotation is not
+   visible from code).
 
-## Resolved 2026-08-31 — the Nuxt RCE, on all three instances
-
-```
-[high] nuxt >=3.4.0 <3.21.10   patched >=3.21.10
-  Server-Side Remote Code Execution via Runtime Template Injection
-  in Nuxt Server Island Props
-```
-
-All three instances now run **nuxt 3.21.11**. `pnpm audit` reports zero nuxt and zero
-undici advisories in the workspace; repo totals went 6 critical / 76 high to 3 / 51, and
-the remainder is dominated by devDependencies that never enter the image.
-
-**A caution for the next fork dependency bump.** Rolling nuxt and the layer together took
-every SSR page on deveco.io to 500 for about twelve minutes. The root declared
-`vue: ^3.4.0`, locked at 3.5.34; nuxt 3.21.11 requires `^3.5.40`, so npm **nested** a
-second Vue under `nuxt` and `@nuxt/nitro-server` rather than upgrading the first. Two Vue
-runtimes makes every `renderToString` throw, while `/api/health` and the feeds keep
-serving -- which is why the deploy reported success.
-
-Fork CI could not have caught it: **CI installs with pnpm, the Dockerfile installs with
-npm.** Two resolvers, two trees. That is P1-15.
-
-Both forks now carry `scripts/check-single-vue.mjs`, which fails the build when
-`package-lock.json` resolves more than one `vue` or `@vue/server-renderer`. It reads the
-npm lockfile specifically and runs before the install; on heatsync, which has no CI, it
-runs inside `deploy.yml` before the Docker build. Note its scope: it guards those two
-packages, not duplicate dependencies in general.
-
-`sharp` is still on 0.34.5 with four libvips CVEs fixed in 0.35.0. `^0.34.5` cannot cross
-that minor, so it needs a hand-edited range and its own verification -- it is the native
-module that processes every upload.
-
-**Before any future fork bump that moves nuxt or vue:** raise the root `vue` range with
-it, regenerate BOTH lockfiles, run the guard, and then build AND RUN the npm tree locally
-and probe an SSR route. A build passing is not a page rendering.
-
-## Read this before the next release
-
-`docs/reviews/2026-08-23-full-audit.md` is a full-repository audit. Its own tally:
-**3 fixed, 28 P1 (reachable in production), 68 P2, ~50 P3 grouped rather than
-enumerated, 3 suspected, 15 verified-correct.** 99 of those carry an ID you can grep
-for (`F-n`, `P1-n`, `P2-n`). **The three fixed ones are now LIVE on all three
-instances** (rolled 2026-08-27; session 257's handoff has the detail):
-
-| shipped in | what it was |
-| --- | --- |
-| `@commonpub/explainer` 0.9.0 | a **stored XSS** reachable by any registered user: `section.module` is not sanitised on write and the render-time sanitizer was defeated by 8 encodings |
-| `@commonpub/layer` 0.137.4 | the **production Postgres pool had no `'error'` listener**, so a backend restart or failover crashed the whole Nitro process |
-| `@commonpub/layer` 0.137.4 | **three live RSS routes** emitted XML that readers reject outright (C0 control characters) |
-
-**All 28 P1s are still open** — they are counted separately from the 3 fixed, so
-shipping the fixes did not reduce that number. Start from the report, not from this list.
-
-**A second audit ran on 2026-08-30**: `docs/reviews/2026-08-30-full-audit.md`. It
-re-verified all 28 of those from scratch (**25 still real, 2 mis-stated, 1 fixed**) and
-found 76 new candidates across eight uncovered dimensions, 37 of which survived
-adversarial refutation. Seven fixes landed, **none of them published or deployed** — see
-that report's Release Status table for what reaches production how. Two are live defects:
-the Nuxt version above, and an unauthenticated `emailNotifications` leak reproduced
-against deveco.io.
-
-**How the roll was made safe, worth repeating.** Publish to `--tag next` first, open a
-throwaway PR in a fork pinned to the prerelease, and only promote to `latest` once the
-fork's `Build & Typecheck` passes — the fork's CI is the only thing that typechecks the
-*published* `.d.ts` surface. Cascade order is `explainer → learning → server → layer`
-(`learning` is easy to miss and its exact pin dangles without it), and both forks need
-**both** lockfiles bumped: `package-lock.json` is what the Dockerfile builds from,
-`pnpm-lock.yaml` is what CI frozen-installs. Both are tracked in both forks.
-
-The audit's central finding is a repeating shape rather than any one bug: **a fix lands
-on the instance that was noticed, and a guard is written that pins that instance, while
-the rest of the class ships.** `escapeXml` had been fixed in 2 of 5 copies; the pg-pool
-crash in the 4 test pools and not the production one — both of those are now closed. Two
-instances of the shape are **still open**: `profileVisibility` was fixed in the sitemap
-and is still absent from ~13 other public read paths, and the ContentCard timezone fix
-was never generalised to the 45 other files that render un-gated dates.
-
-The guards written for the closed two **discover** their targets by scanning the tree
-rather than listing them, which is the pattern to copy — one of them was rewritten
-mid-session because the first draft scanned only the directory whose bug prompted it,
-which is the very defect it existed to catch.
-
-## The five things most worth an operator's attention
-
-1. **Rotate the crates.io publish token.** `.dockerignore` does not exclude
-   `.secrets/cargo-registry-token`, so it enters the Docker build context and is baked
-   into a build-stage layer.
-2. **`profileVisibility` does not work.** The setting is offered in
-   `settings/privacy.vue` with the words "Only people signed in to this site can see
-   your profile", and ~13 public read paths ignore it — including the ActivityPub actor,
-   WebFinger, people search and the profile page's own API. Suspension also does not
-   hide a profile. No instance currently has a non-public row, so nothing has leaked
-   yet.
-3. **Turn on compression.** `deploy/Caddyfile` and deveco's have no `encode` directive;
-   heatsync's does. Measured: deveco's contest page is **514 KB** on the wire and
-   **102 KB** gzipped, its homepage 235 KB → 42 KB. One line, two files, ~5×.
-4. **Unauthenticated callers get members' private email-notification preferences.**
-   `curl https://deveco.io/api/users/<name>` returns `emailNotifications` for anyone who
-   has configured them. Verified live.
-5. **Neither fork gates its deploy on anything.** heatsynclabs.io has no CI workflow at
-   all; deveco's deploy has no `needs:`, its post-deploy health check has never passed
-   and cannot fail the deploy, and it lacks `set -o pipefail` so a failed migration
-   reports success. The monorepo's own deploy is gated on typecheck and lint but not
-   tests — three commits have shipped with a red CI at the same SHA.
+P1 tally from the 08-23 + 08-30 audits, re-verified in code on 2026-10-13: **47 total, 6
+fixed, 6 partial, 35 open.** List and evidence in the 2026-10-13 report, section 3.
 
 ## Standing gotchas worth keeping
 
-- **Any `runtimeConfig.public.*` key can be overridden by an env var on the box**, and
-  that override lives in no repo file. When a copy change does not appear on a site,
-  read the served `__NUXT__.config.public` before doubting the deploy.
-- **`workspace:*` publishes as an EXACT pin.** Anything above a bumped package must be
-  republished or consumers resolve two copies. Both production images currently carry
-  `@commonpub/schema` **0.16.0 and 0.66.0**, because published `@commonpub/docs@0.6.3`
-  still declares pins the source removed without a version bump.
-- **`pnpm audit` in CI is `continue-on-error`** and prints `##[error]` on every green
-  run. It is not a failure.
-- **`e2e` has `needs: check`**, so a red `check` silently skips it — it did not run on 5
-  of the last 20 runs. A skipped job is not a passing job.
-- **The layer is not linted and no `.vue` file anywhere is**, so a lint error can and
-  did ship green.
+- **Fork CI installs with pnpm, the Dockerfile with npm.** Before any fork bump that moves
+  nuxt or vue: raise the root `vue` range, regenerate BOTH lockfiles, run
+  `scripts/check-single-vue.mjs`, then build AND RUN the npm tree and probe an SSR route.
+  A two-Vue tree 500s every SSR page while `/api/health` stays green.
+- **`workspace:*` publishes as an EXACT pin.** Republish everything above a bumped
+  package. Release order: publish `--tag next`, open a fork draft PR pinned to the rc,
+  promote only after the fork's typecheck passes. `@commonpub/docs@0.6.3` still drags
+  schema 0.16.0 + config 0.12.0 into both forks.
+- **DB `instance_settings.theme.default` beats `config.defaultTheme`.** A fork theme is
+  invisible until an admin picks it, unless its CSS keys on `:root[data-theme]`.
+- **Any `runtimeConfig.public.*` key can be overridden by env on the box.** Read the
+  served `__NUXT__.config.public` before doubting a deploy.
+- **`pnpm audit` in CI is `continue-on-error`.** sharp 0.34.5 and undici `<7.29.1` are
+  real runtime advisories still open.
+- **heatsync has no PR CI.** Verify fork changes with `npm install && npm run build &&
+  npx nuxi typecheck` in a scratch copy before merging.
 
 ---
 
