@@ -15,7 +15,10 @@ const { data: contest, error: contestError } = await useFetch(`/api/contests/${s
 // A contest that doesn't exist (or isn't visible to this viewer) is the site's
 // 404 page with a 404 status, not this page rendered around nothing (session 262).
 if (contestError.value?.statusCode === 404) {
-  throw createError({ statusCode: 404, statusMessage: 'Contest not found', fatal: true });
+  // fatal only in the browser: there it is what shows the full 404 page on a
+  // client-side navigation. On the server the page renders either way, and a
+  // fatal error is logged as a request error for every mistyped URL.
+  throw createError({ statusCode: 404, statusMessage: 'Contest not found', fatal: import.meta.client });
 }
 // EVERY entry, not the route's default first 20. Past 20 a participant's own
 // (older) entry fell off the list, `myEntries` went empty and the proposal form

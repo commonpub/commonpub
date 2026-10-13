@@ -9,7 +9,7 @@ const { isAuthenticated, user } = useAuth();
 const { data: event, error: eventError, refresh } = await useFetch<EventDetail>(`/api/events/${slug}`);
 // A missing event is the site's 404 page with a 404 status (session 262).
 if (eventError.value?.statusCode === 404) {
-  throw createError({ statusCode: 404, statusMessage: 'Event not found', fatal: true });
+  throw createError({ statusCode: 404, statusMessage: 'Event not found', fatal: import.meta.client });
 }
 const { data: attendees } = await useFetch<{ items: AttendeeItem[]; total: number }>(`/api/events/${slug}/attendees`);
 
