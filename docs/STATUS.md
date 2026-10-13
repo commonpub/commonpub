@@ -25,9 +25,9 @@ heatsynclabs.io **21**. `contestBroadcast` is ON only on deveco.
 **Session 261 second release (2026-10-12):** infra 0.23.1 + server 2.139.0 + layer 0.140.0
 (profile visibility enforced on every profile read, rate-limit bypass fixed) are live on
 **all three**: deveco.io (#45), heatsynclabs.io (#40, which also adds the **Gantry** theme as
-`defaultTheme`), commonpub.io (fd20a3f4). heatsynclabs.io still serves the DB-stored
-`cpub-custom-captured-2026-06-11` until an admin picks **Gantry** in Admin, Theme (the DB
-`theme.default` beats the config default).
+`defaultTheme`), commonpub.io (fd20a3f4). heatsynclabs.io renders Gantry (rebuilt in #41 to match
+heatsynclabs.org) even though its DB `theme.default` is still `cpub-custom-captured-2026-06-11`:
+the fork's CSS keys on `:root[data-theme]`.
 
 **Session 261 release (2026-10-12):** server 2.138.0 + layer 0.139.0 (registrant
 addresses split in exports, shipping list, registrants page, organizer/judge tools,

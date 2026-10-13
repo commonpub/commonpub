@@ -71,6 +71,6 @@ Fixed for answers already stored, with no migration:
 
 1. ~~P1 privacy~~ fixed and live (PR #97). Left unchanged on purpose: the organizer-only judge invite search (`contests/:slug/user-search`), and contest participant lists.
 2. ~~Release infra~~ done (0.23.1, live).
-3. An admin picks **Gantry** in Admin, Theme on heatsynclabs.io.
+3. ~~Admin step for Gantry~~: superseded. The first Gantry pass (#40) only remapped colours and was rejected as not looking like heatsynclabs.org. #41 rebuilt it from the new-hsl components (light default, caution ribbons, mono nav and buttons, the org hero with the photo carousel) and keys it on `:root[data-theme]`, so it renders even with the DB-stored theme. Picking Gantry in Admin, Theme only matters for the light/dark toggle pair.
 4. The rest of the ranked list in `docs/reviews/test-audit-2026-10-12.md`, in its suggested order.
 5. The hosted judge guide (`deveco.nyc3.digitaloceanspaces.com/guides/deveco-judging-guide.html`) is still accurate. It could add one line about the new **Judging portal** button.
