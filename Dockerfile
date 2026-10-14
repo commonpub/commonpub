@@ -34,7 +34,7 @@ COPY --from=build /app/packages/schema/migrations ./schema/migrations
 # the npm reconcile below prunes the pnpm-installed copies, so each must be
 # installed explicitly or its feature 500s at runtime with "Cannot find module".
 # Pinned to the versions resolved in pnpm-lock.yaml.
-RUN echo '{"private":true,"type":"module"}' > package.json && npm install --no-save drizzle-kit@0.31.10 drizzle-orm pg zod sharp@0.34.5 @aws-sdk/client-s3@3.1030.0 ioredis@5.10.1
+RUN echo '{"private":true,"type":"module"}' > package.json && npm install --no-save drizzle-kit@0.31.10 drizzle-orm pg zod sharp@0.35.5 @aws-sdk/client-s3@3.1030.0 ioredis@5.10.1
 # After the npm install — npm prunes anything not in the freshly-created
 # package.json + the deps we just asked for ("removed 11 packages" in
 # the build log). That means the @commonpub/* symlinks copied from

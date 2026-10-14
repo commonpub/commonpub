@@ -1,6 +1,6 @@
 {
   "name": "@commonpub/layer",
-  "version": "0.140.0",
+  "version": "0.141.0",
   "type": "module",
   "main": "./nuxt.config.ts",
   "files": [
@@ -12,6 +12,7 @@
     "layouts",
     "middleware",
     "pages",
+    "public",
     "plugins",
     "sections",
     "server",
@@ -65,7 +66,7 @@
     "grid-layout-plus": "1.1.1",
     "highlight.js": "^11.11.1",
     "pg": "^8.13.0",
-    "sharp": "^0.34.5",
+    "sharp": "^0.35.5",
     "shiki": "^4.0.2",
     "vue": "^3.4.0",
     "vue-advanced-cropper": "^2.8.9",

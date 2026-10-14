@@ -150,8 +150,8 @@ export async function checkBan(
 export async function listBans(db: DB, hubId: string, opts: { limit?: number; offset?: number } = {}): Promise<HubBanItem[]> {
   // Alias for the banner user (self-join on users table)
   const bannerUser = {
-    bannerId: sql<string>`banner.id`.as('banner_id'),
-    bannerUsername: sql<string>`banner.username`.as('banner_username'),
+    bannerId: sql<string | null>`banner.id`.as('banner_id'),
+    bannerUsername: sql<string | null>`banner.username`.as('banner_username'),
     bannerDisplayName: sql<string | null>`banner.display_name`.as('banner_display_name'),
     bannerAvatarUrl: sql<string | null>`banner.avatar_url`.as('banner_avatar_url'),
   };
@@ -166,7 +166,7 @@ export async function listBans(db: DB, hubId: string, opts: { limit?: number; of
     })
     .from(hubBans)
     .innerJoin(users, eq(hubBans.userId, users.id))
-    .innerJoin(sql`users AS banner`, sql`banner.id = ${hubBans.bannedById}`)
+    .leftJoin(sql`users AS banner`, sql`banner.id = ${hubBans.bannedById}`)
     .where(eq(hubBans.hubId, hubId))
     .orderBy(desc(hubBans.createdAt), desc(hubBans.id))
     .limit(limit)
@@ -178,12 +178,10 @@ export async function listBans(db: DB, hubId: string, opts: { limit?: number; of
     expiresAt: row.ban.expiresAt,
     createdAt: row.ban.createdAt,
     user: row.user,
-    bannedBy: {
-      id: row.bannerId,
-      username: row.bannerUsername,
-      displayName: row.bannerDisplayName,
-      avatarUrl: row.bannerAvatarUrl,
-    },
+    // Null once the account that issued the ban is deleted; the ban stays.
+    bannedBy: row.bannerId && row.bannerUsername
+      ? { id: row.bannerId, username: row.bannerUsername, displayName: row.bannerDisplayName, avatarUrl: row.bannerAvatarUrl }
+      : null,
   }));
 }
 

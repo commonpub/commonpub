@@ -1,6 +1,6 @@
 import { processInboxActivity } from '@commonpub/protocol';
-import { createInboxHandlers, recordActivitySeen } from '@commonpub/server';
-import { verifyInboxRequest, assertActorMatchesSigner } from '../../../utils/inbox';
+import { createInboxHandlers } from '@commonpub/server';
+import { verifyInboxRequest, assertActorMatchesSigner, processActivityOnce } from '../../../utils/inbox';
 
 /**
  * Hub-specific inbox endpoint (FEP-1b12).
@@ -23,26 +23,12 @@ export default defineEventHandler(async (event) => {
 
   const db = useDB();
 
-  // Replay dedup: claim the verified activity id BEFORE dispatch so a replayed,
-  // validly-signed activity can't double-apply side effects. No id = process
-  // normally. Placed after verification so attacker-chosen ids can't be seeded.
-  const activityId = body.id;
-  if (typeof activityId === 'string' && activityId.length > 0) {
-    const first = await recordActivitySeen(db, activityId);
-    if (!first) {
-      return { status: 'accepted' };
-    }
-  }
-
   const domain = config.instance.domain;
   const slug = getRouterParam(event, 'slug');
   const handlers = createInboxHandlers({ db, domain, federationConfig: config.federation, hubContext: slug ? { hubSlug: slug } : undefined });
 
-  try {
+  // Claimed once (replay-safe), released for a retry if processing fails.
+  return processActivityOnce(db, body.id, 'hub-inbox', async () => {
     await processInboxActivity(body, handlers);
-    return { status: 'accepted' };
-  } catch (err) {
-    console.error('[hub-inbox] Activity processing error:', err);
-    throw createError({ statusCode: 400, statusMessage: 'Activity processing failed' });
-  }
+  });
 });

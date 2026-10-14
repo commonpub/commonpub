@@ -296,7 +296,7 @@ useSeoMeta({
 
       <!-- MAIN CONTENT -->
       <main v-if="pagePending" class="docs-main"><div class="cpub-loading">Loading page...</div></main>
-      <main v-else-if="pageError" class="docs-main">
+      <main v-else-if="pageError && pageError.statusCode !== 404" class="docs-main">
         <div class="cpub-fetch-error">
           <div class="cpub-fetch-error-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
           <div class="cpub-fetch-error-msg">Failed to load this page.</div>
@@ -352,6 +352,7 @@ useSeoMeta({
       <!-- Page not found -->
       <main v-else class="docs-main">
         <div class="docs-not-found">
+          <PageNotFoundStatus />
           <h1>Page not found</h1>
           <p>The requested documentation page could not be found.</p>
         </div>
@@ -374,7 +375,7 @@ useSeoMeta({
       </aside>
     </div>
   </div>
-  <div v-else class="docs-not-found"><h1>Documentation site not found</h1></div>
+  <div v-else class="docs-not-found"><PageNotFoundStatus /><h1>Documentation site not found</h1></div>
 </template>
 
 <style scoped>

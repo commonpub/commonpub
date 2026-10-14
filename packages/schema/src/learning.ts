@@ -26,7 +26,7 @@ export const learningPaths = pgTable('learning_paths', {
   estimatedHours: numeric('estimated_hours', { precision: 5, scale: 1 }),
   authorId: uuid('author_id')
     .notNull()
-    .references(() => users.id, { onDelete: 'cascade' }),
+    .references(() => users.id, { onDelete: 'restrict' }),
   status: contentStatusEnum('status').default('draft').notNull(),
   enrollmentCount: integer('enrollment_count').default(0).notNull(),
   completionCount: integer('completion_count').default(0).notNull(),

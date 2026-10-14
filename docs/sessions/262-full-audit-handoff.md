@@ -1,59 +1,69 @@
-# Session 262 — full audit of all instances and `main`, handoff (2026-10-13)
+# Session 262 — full audit, then the live fixes (2026-10-13)
 
-## What was done
-
-A read-only audit; no code, config or production state changed.
+## Part 1: audit (read-only)
 
 - Probed commonpub.io, deveco.io and heatsynclabs.io (GET/HEAD only): health, versions,
   flags, headers, compression, privacy, SSR, RSS/sitemap, og images.
 - Re-verified all 47 P1s from the 08-23 and 08-30 audits against `main` code: 6 fixed,
   6 partial, 35 open.
-- Checked all 43 plans in `docs/plans/` against code: 13 done, 17 partial, 6 not started,
-  7 superseded or abandoned.
+- Checked all 43 plans in `docs/plans/` against code: roughly 13-17 done, 15-17 partial,
+  6-7 not started, the rest superseded or abandoned.
 - Architecture review: monoliths, release model, fork contract, route policy, tests, CSS,
   data layer, federation, flags.
-- Rewrote the `docs/STATUS.md` header (it contradicted itself: it said profile
-  visibility was enforced and, 40 lines later, that it did not work).
+- Rewrote the `docs/STATUS.md` header (it contradicted itself).
 
 Report: `docs/reviews/2026-10-13-instances-and-codebase-audit.md`.
 
-## Decisions
+## Part 2: fixes (owner: "do all of that", with a contest in flight)
 
-None taken. Everything below needs an owner's call or a go-ahead.
+The owner asked for the "fix soon" list, done right, tested end to end, and deployed only
+at full confidence. They asked to **hold off on the suspected bot accounts on deveco**
+(no deletion or suspension until they review why they look fake); the `authprobe*` test
+accounts were left alone for the same reason.
+
+| Fix | Where |
+| --- | --- |
+| Account delete refuses while the account owns a contest, hub, docs site, event, learning path or product (409 naming them, before any federation Delete); DB backstop `ON DELETE RESTRICT` (migration 0050) | `admin.ts` `findSharedOwnership`, `AccountOwnsSharedContentError`; both delete routes; `settings/account.vue` shows the reason in place |
+| A hub already handed over passes its creator credit to the current owner; a hub already deleted is removed | `deleteUser` |
+| Audit entries and hub bans outlive their author (`SET NULL`); self-delete audit row written inside the transaction (was a post-commit FK 500) | migration 0050, `listAuditLogs`/`listBans` left joins |
+| Suspended accounts hidden from everyone but themselves | `profile/visibility.ts` (status is now a required field of the gate) |
+| Hub rosters and event attendee lists apply profile visibility; moderators/stewards/creator/admins see all; attendee `?status=` validated | `listMembers`, `listEventAttendees`, the two routes |
+| Inbound activity: claim released and 500 on transient failure so the sender retries | `processActivityOnce` in `server/utils/inbox.ts`, all three inboxes |
+| Missing pages 404 + noindex (`PageNotFoundStatus`); missing contest/event render the 404 page | 8 pages |
+| `og-default.png` shipped by the layer (forks ship their own); og:image absolute everywhere | `useOgImage`, `seo-brand.ts` |
+| Deploys wait for CI on the same commit; smoke checks `/contests`; previous image kept as `:previous` | all three deploy workflows |
+| Caddy compression on the catch-all only, applied by `deploy/sync-caddyfile.sh` (only over a version the repo shipped; validate, reload, roll back) | commonpub + deveco Caddyfiles |
+| deveco deploy: `pipefail`, in-container smoke that can fail | deveco `deploy-prod.yml` |
+| heatsync: first CI workflow (npm, as the Dockerfile installs) | heatsync `ci.yml` |
+| sharp 0.35.5, undici 7.30.0, docs 0.6.4 without its stale pins | deps |
+
+**Decisions made**
+- WebFinger is NOT gated: session 261 kept the actor for hidden profiles so their posts
+  still federate, and WebFinger is how remote servers find that actor.
+- Contest entrant names are not gated: an entry is published content, and bylines on
+  published content stay visible, as everywhere else.
+- Owned shared things block the delete rather than being reassigned automatically: no
+  ownership silently changes hands during a live contest.
+
+**Verification**: see PR description (new tests mutation-checked; full suite; migration on
+real Postgres with seeded data; built app against a dev-DB copy; real Caddyfile in front;
+browser run at 390px; sharp on real files; production Docker image built).
 
 ## Open questions for the owner
 
-1. deveco bot signups: bulk-suspend the random-username accounts now, and which
-   friction to add (disposable-domain block, Turnstile, verified-email gate on
-   register/enter)?
+1. deveco bot signups: review the evidence (30 newest of 457 accounts have random-letter
+   usernames and matching mixed-case display names), then decide.
 2. PR #92: merge (8-package cascade) or close?
-3. Layout engine: finish it (phases 3e-10, homepage consolidation) or freeze it on
-   commonpub.io?
-4. Release model: fold the small packages into server/layer and move to a single fixed
-   version, or keep the cascade?
+3. Layout engine: finish it or freeze it on commonpub.io?
+4. Release model: fold the small packages into server/layer and move to one version?
 5. Persona: keep in the base layer or split into an optional layer?
 6. `identity.*` flags and `auth.magicLink` / `auth.passkeys`: build or delete?
 
-## Next steps, suggested order
+## Next steps
 
-1. Quick operational wins (S each): Caddy `encode` on two instances; ship an
-   `og-default.png` and emit it absolute; 404 status on missing pages; delete `authprobe*`
-   test users; `set -o pipefail` and a failing health check in deveco's deploy; gate the
-   monorepo deploy on tests; rotate the crates.io token.
-2. Privacy and data-loss fixes (one release): creator FKs to `set null` plus a
-   self-delete guard; fix the self-delete audit FK; `status = 'active'` in the profile
-   gate; apply `profileVisibleTo` to hub rosters, event attendees, contest entrants and
-   WebFinger, and widen the sweep guard to every `users` read.
-3. Federation correctness: mark seen after success and return 202 (durable inbound
-   queue); sanitise `cpub:blocks` on ingest and fork; bind the activity id host to the
-   signer; store the real remote sender on DMs.
-4. Dependencies: sharp to `^0.35.5`, undici `>=7.29.1`, collapse the vue 3.5.32 copy in
-   the workspace lockfile, republish `@commonpub/docs` without its old pins.
-5. Then the rearchitecture list in the report, starting with `useConfig()` in the layer
-   and one fork pipeline.
-
-## Release batching note
-
-PR #92 and every schema-validator fix (judging ties, weight 0 counting as 100, duplicate
-criterion or stage ids) each force the full exact-pin cascade. Batch them into one
-schema release rather than rolling them one at a time.
+- Remaining audit P1s (report section 3): federation trust (N2/N3), unsanitised JSON on
+  write (P1-6/7), forged federated DM sender (P1-3), password reset deliverability (N1),
+  slug oracle (N7), public stats (P1-4), search index (P1-21), message pagination
+  (P1-22), contrast (P1-24/25).
+- The vue 3.5.32 copy in the workspace lockfile (dev/test only; the image traces 3.5.42).
+- PR #92 and the contest scoring validator fixes each force the full cascade: batch them.

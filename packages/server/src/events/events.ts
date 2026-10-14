@@ -1,6 +1,7 @@
 import { eq, and, desc, asc, gte, sql, or, isNull, notInArray } from 'drizzle-orm';
 import { events, eventAttendees, users, hubs } from '@commonpub/schema';
 import type { DB } from '../types.js';
+import { profileVisibleTo } from '../profile/visibility.js';
 import { normalizePagination, countRows, ensureUniqueSlugFor, COUNT_NOT_COMPUTED } from '../query.js';
 
 export type EventStatus = 'draft' | 'published' | 'active' | 'completed' | 'cancelled';
@@ -279,13 +280,24 @@ export async function deleteEvent(
 export async function listEventAttendees(
   db: DB,
   eventId: string,
-  opts: { limit?: number; offset?: number; status?: AttendeeStatus } = {},
+  opts: {
+    limit?: number;
+    offset?: number;
+    status?: AttendeeStatus;
+    /** Who is looking. Attendees whose profile this viewer may not see are left out. */
+    viewerId?: string | null;
+    /** The event's creator and platform admins see every attendee. */
+    seesEveryone?: boolean;
+  } = {},
 ): Promise<{ items: AttendeeItem[]; total: number }> {
   const { limit, offset } = normalizePagination(opts);
-  const conditions = [eq(eventAttendees.eventId, eventId)];
+  // Profile visibility and account status apply like every other list of people
+  // (session 262): a private or suspended attendee is not named to the public.
+  const conditions = [eq(eventAttendees.eventId, eventId), isNull(users.deletedAt)];
   if (opts.status) {
     conditions.push(eq(eventAttendees.status, opts.status));
   }
+  if (!opts.seesEveryone) conditions.push(profileVisibleTo(opts.viewerId));
   const where = and(...conditions);
 
   const [rows, total] = await Promise.all([
@@ -305,7 +317,15 @@ export async function listEventAttendees(
       .limit(limit)
       .offset(offset),
     // COUNT(*) only on the first page; deep load-more pages skip it (`-1` = "not computed").
-    offset === 0 ? countRows(db, eventAttendees, where) : Promise.resolve(COUNT_NOT_COMPUTED),
+    // Joined to users because the visibility condition reads users columns.
+    offset === 0
+      ? db
+          .select({ count: sql<number>`count(*)::int` })
+          .from(eventAttendees)
+          .innerJoin(users, eq(eventAttendees.userId, users.id))
+          .where(where)
+          .then((r) => r[0]?.count ?? 0)
+      : Promise.resolve(COUNT_NOT_COMPUTED),
   ]);
 
   return {

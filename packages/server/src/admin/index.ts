@@ -15,12 +15,16 @@ export {
   INSTANCE_NAME_SETTING_KEY,
   INSTANCE_DESCRIPTION_SETTING_KEY,
   deleteUser,
+  findSharedOwnership,
+  describeSharedOwnership,
+  AccountOwnsSharedContentError,
   removeContent,
   removeFederatedContent,
 } from './admin.js';
 export type {
   AuditEntry,
   AuditLogItem,
+  SharedOwnership,
   AuditFilters,
   PlatformStats,
   UserListItem,

@@ -4,7 +4,7 @@
  * body size limits, and Date header freshness checks.
  */
 import { verifyHttpSignature, resolveActor } from '@commonpub/protocol';
-import { createSafeActorFetchFn } from '@commonpub/server';
+import { createSafeActorFetchFn, recordActivitySeen, releaseActivityClaim } from '@commonpub/server';
 import type { H3Event } from 'h3';
 
 /** Maximum allowed body size for inbox POSTs (1 MB) */
@@ -182,4 +182,44 @@ export async function verifyInboxRequest(event: H3Event, label: string): Promise
   }
 
   return { actorUri, body };
+}
+
+/**
+ * Process one verified inbound activity at most once, without losing it.
+ *
+ * The activity id is claimed before dispatch so a replayed, validly signed
+ * activity cannot apply its side effects twice. If processing then fails for a
+ * reason a redelivery could fix (anything that is not a definite 4xx answer),
+ * the claim is given back and the sender gets a 500, so it retries. Before
+ * session 262 every failure answered 400 with the claim kept: the sender was
+ * told not to retry, and a retry would have been dropped as a replay anyway.
+ *
+ * A definite rejection (an H3 error below 500, e.g. a malformed activity) keeps
+ * the claim: a retry would get the same answer.
+ */
+export async function processActivityOnce(
+  db: Parameters<typeof recordActivitySeen>[0],
+  activityId: unknown,
+  label: string,
+  run: () => Promise<void>,
+): Promise<{ status: 'accepted' }> {
+  const id = typeof activityId === 'string' && activityId.length > 0 ? activityId : null;
+  if (id && !(await recordActivitySeen(db, id))) return { status: 'accepted' };
+
+  try {
+    await run();
+    return { status: 'accepted' };
+  } catch (err: unknown) {
+    const statusCode = (err as { statusCode?: number }).statusCode;
+    if (typeof statusCode === 'number' && statusCode < 500) throw err;
+    console.error(`[${label}] activity processing failed, claim released for retry:`, err);
+    if (id) {
+      try {
+        await releaseActivityClaim(db, id);
+      } catch (releaseErr) {
+        console.error(`[${label}] could not release activity claim ${id}:`, releaseErr);
+      }
+    }
+    throw createError({ statusCode: 500, statusMessage: 'Activity processing failed' });
+  }
 }

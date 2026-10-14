@@ -11,6 +11,7 @@
  * binding succeed, so an unverified caller can't seed the table with attacker-
  * chosen ids (which would let them suppress a future legitimate activity).
  */
+import { eq } from 'drizzle-orm';
 import { processedActivities } from '@commonpub/schema';
 import type { DB } from '../types.js';
 
@@ -32,4 +33,15 @@ export async function recordActivitySeen(db: DB, activityId: string): Promise<bo
     .onConflictDoNothing({ target: processedActivities.activityId })
     .returning({ activityId: processedActivities.activityId });
   return inserted.length > 0;
+}
+
+/**
+ * Give back a claim taken by `recordActivitySeen` when processing failed for a
+ * reason a redelivery could fix (a database blip, a remote fetch timing out).
+ * Without this the first failure is final: the sender is told to retry, and the
+ * retry is dropped as a replay. Only call it for an activity this request
+ * claimed itself.
+ */
+export async function releaseActivityClaim(db: DB, activityId: string): Promise<void> {
+  await db.delete(processedActivities).where(eq(processedActivities.activityId, activityId));
 }

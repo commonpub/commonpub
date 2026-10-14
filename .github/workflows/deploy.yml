@@ -14,6 +14,9 @@ jobs:
   deploy:
     name: Build & Deploy
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
     concurrency:
       group: deploy-production
       cancel-in-progress: true
@@ -48,6 +51,30 @@ jobs:
       - name: Save image tarball
         run: docker save commonpub-app:latest | gzip > commonpub-app.tar.gz
 
+      # Deploy gate (session 262): nothing reaches the droplet until the full CI
+      # run for THIS commit (tests, e2e) has passed. CI is a separate workflow, so
+      # `needs:` can't express it; this waits for it instead. The image above is
+      # built in parallel, so a green commit deploys no later than before. A red,
+      # cancelled or missing CI run stops here with production untouched.
+      - name: Wait for CI on this commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for i in $(seq 1 100); do
+            run=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow CI --commit "$GITHUB_SHA" --event push --json status,conclusion --jq '.[0] // {}')
+            status=$(echo "$run" | jq -r '.status // "not started"')
+            conclusion=$(echo "$run" | jq -r '.conclusion // ""')
+            if [ "$status" = "completed" ]; then
+              if [ "$conclusion" = "success" ]; then echo "CI passed on $GITHUB_SHA"; exit 0; fi
+              echo "::error::CI on $GITHUB_SHA finished '$conclusion'. Not deploying; re-run CI, then re-run this workflow."
+              exit 1
+            fi
+            echo "CI is $status ($i/100)"
+            sleep 30
+          done
+          echo "::error::CI did not finish within 50 minutes. Not deploying."
+          exit 1
+
       - name: Copy image to droplet
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -57,6 +84,19 @@ jobs:
           source: commonpub-app.tar.gz
           target: /opt/commonpub/
           timeout: 300s
+
+      # The Caddyfile and the script that applies it safely (see
+      # deploy/sync-caddyfile.sh). Until session 262 nothing shipped the Caddyfile,
+      # so repo changes to it never reached the droplet.
+      - name: Copy Caddyfile sync files to droplet
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: root
+          key: ${{ secrets.PROD_SSH_KEY }}
+          source: deploy/Caddyfile,deploy/sync-caddyfile.sh,deploy/caddyfile-known.sha256
+          target: /opt/commonpub/caddy-sync/
+          strip_components: 1
 
       - name: Load image and restart
         uses: appleboy/ssh-action@v1
@@ -98,6 +138,9 @@ jobs:
                 echo "S3_PUBLIC_URL=$S3_PUBLIC_URL"
               } >> .env
             fi
+            # Keep the running image as :previous so a bad release can be rolled
+            # back with one retag (prune below only removes untagged images).
+            docker tag commonpub-app:latest commonpub-app:previous 2>/dev/null || true
             docker load < commonpub-app.tar.gz
             rm -f commonpub-app.tar.gz
             docker compose -f docker-compose.prod.yml up -d --force-recreate --remove-orphans
@@ -122,5 +165,9 @@ jobs:
             # provider not found") that the health-only, warn-only smoke shipped
             # as a green success.
             docker compose -f docker-compose.prod.yml exec -T app node scripts/smoke.mjs \
-              || { echo "::error::Post-deploy smoke failed — new image is live but serving errors. Investigate / consider redeploying the previous SHA."; exit 1; }
+              || { echo "::error::Post-deploy smoke failed — new image is live but serving errors. Roll back: docker tag commonpub-app:previous commonpub-app:latest && docker compose -f docker-compose.prod.yml up -d --force-recreate app"; exit 1; }
+            # Bring the live Caddyfile up to the repo's version when it is safe to
+            # (never fails the deploy; see the script's header).
+            sh caddy-sync/sync-caddyfile.sh caddy-sync/Caddyfile caddy-sync/caddyfile-known.sha256 -f docker-compose.prod.yml \
+              || echo "::warning::Caddyfile sync errored; the app deploy itself succeeded."
             echo "Deployed ${{ github.sha }}"

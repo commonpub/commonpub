@@ -1,4 +1,5 @@
-import { eq, and, desc, sql, ilike } from 'drizzle-orm';
+import { eq, and, desc, sql, ilike, isNull, isNotNull, not } from 'drizzle-orm';
+import type { SQL } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import { normalizePagination, countRows, escapeLike } from '../query.js';
 import {
@@ -18,6 +19,10 @@ import {
   federatedContent,
   roles,
   userRoles,
+  contests,
+  docsSites,
+  events,
+  products,
 } from '@commonpub/schema';
 import type { DB } from '../types.js';
 import type { AdminUpdateRoleInput, AdminUpdateStatusInput } from '@commonpub/schema';
@@ -41,11 +46,12 @@ export interface AuditLogItem {
   metadata: unknown;
   ipAddress: string | null;
   createdAt: Date;
+  /** Null once the account that acted has been deleted; the entry itself stays. */
   user: {
     id: string;
     username: string;
     displayName: string | null;
-  };
+  } | null;
 }
 
 export interface AuditFilters {
@@ -160,7 +166,7 @@ export async function listAuditLogs(
         },
       })
       .from(auditLogs)
-      .innerJoin(users, eq(auditLogs.userId, users.id))
+      .leftJoin(users, eq(auditLogs.userId, users.id))
       .where(where)
       .orderBy(desc(auditLogs.createdAt), desc(auditLogs.id))
       .limit(limit)
@@ -176,11 +182,9 @@ export async function listAuditLogs(
     metadata: row.log.metadata,
     ipAddress: row.log.ipAddress,
     createdAt: row.log.createdAt,
-    user: {
-      id: row.user.id,
-      username: row.user.username,
-      displayName: row.user.displayName,
-    },
+    user: row.user
+      ? { id: row.user.id, username: row.user.username, displayName: row.user.displayName }
+      : null,
   }));
 
   return { items, total };
@@ -609,6 +613,68 @@ export async function setInstanceSetting(
 
 // --- Content Moderation ---
 
+/** How many things other people use does this account still own? */
+export interface SharedOwnership {
+  contests: number;
+  hubs: number;
+  docsSites: number;
+  events: number;
+  learningPaths: number;
+  products: number;
+}
+
+/**
+ * Thrown by `deleteUser` while the account still owns something other people use.
+ * Deleting it used to cascade: an organizer leaving deleted the contest and every
+ * entrant's entry with it (session 262). The database now refuses that delete
+ * too (`ON DELETE RESTRICT`); this error says what to hand over or remove first.
+ */
+export class AccountOwnsSharedContentError extends Error {
+  readonly owned: SharedOwnership;
+  constructor(owned: SharedOwnership) {
+    super('Account still owns shared content');
+    this.name = 'AccountOwnsSharedContentError';
+    this.owned = owned;
+  }
+}
+
+/**
+ * A hub whose ownership was transferred keeps its creator in `hubs.created_by_id`.
+ * Such a hub is no longer this member's to hand over, so it does not block their
+ * delete; `deleteUser` moves its creator credit to the current owner instead.
+ */
+function hubHandedOver(userId: string): SQL {
+  return sql`exists (select 1 from ${hubMembers} where ${hubMembers.hubId} = ${hubs.id} and ${hubMembers.role} = 'owner' and ${hubMembers.status} = 'active' and ${hubMembers.userId} <> ${userId})`;
+}
+
+export async function findSharedOwnership(db: DB, userId: string): Promise<SharedOwnership> {
+  const [c, h, d, e, l, p] = await Promise.all([
+    countRows(db, contests, eq(contests.createdById, userId)),
+    // A hub already deleted is not shared any more; `deleteUser` finishes removing it.
+    countRows(db, hubs, and(eq(hubs.createdById, userId), isNull(hubs.deletedAt), not(hubHandedOver(userId)))),
+    countRows(db, docsSites, eq(docsSites.ownerId, userId)),
+    countRows(db, events, eq(events.createdById, userId)),
+    countRows(db, learningPaths, eq(learningPaths.authorId, userId)),
+    countRows(db, products, eq(products.createdById, userId)),
+  ]);
+  return { contests: c, hubs: h, docsSites: d, events: e, learningPaths: l, products: p };
+}
+
+/** "2 contests and 1 hub": the shared things, for the message a member sees. */
+export function describeSharedOwnership(owned: SharedOwnership): string {
+  const parts: Array<[number, string, string]> = [
+    [owned.contests, 'contest', 'contests'],
+    [owned.hubs, 'hub', 'hubs'],
+    [owned.docsSites, 'docs site', 'docs sites'],
+    [owned.events, 'event', 'events'],
+    [owned.learningPaths, 'learning path', 'learning paths'],
+    [owned.products, 'product', 'products'],
+  ];
+  const named = parts.filter(([n]) => n > 0).map(([n, one, many]) => `${n} ${n === 1 ? one : many}`);
+  if (named.length <= 1) return named.join('');
+  return `${named.slice(0, -1).join(', ')} and ${named[named.length - 1]}`;
+}
+
 export async function deleteUser(
   db: DB,
   userId: string,
@@ -620,6 +686,9 @@ export async function deleteUser(
     .from(users)
     .where(eq(users.id, userId));
   if (!user) throw new Error('User not found');
+
+  const owned = await findSharedOwnership(db, userId);
+  if (Object.values(owned).some((n) => n > 0)) throw new AccountOwnsSharedContentError(owned);
 
   await db.transaction(async (tx) => {
     const userLikes = await tx
@@ -693,16 +762,31 @@ export async function deleteUser(
         .where(eq(learningPaths.id, e.pathId));
     }
 
-    await tx.delete(users).where(eq(users.id, userId));
-  });
+    // Hubs this member created but handed over: the current owner becomes the
+    // creator of record. Hubs this member already deleted: finish the delete, as
+    // the cascade did before session 262.
+    await tx
+      .update(hubs)
+      .set({
+        createdById: sql`(select ${hubMembers.userId} from ${hubMembers} where ${hubMembers.hubId} = ${hubs.id} and ${hubMembers.role} = 'owner' and ${hubMembers.status} = 'active' and ${hubMembers.userId} <> ${userId} limit 1)`,
+      })
+      .where(and(eq(hubs.createdById, userId), hubHandedOver(userId)));
+    await tx.delete(hubs).where(and(eq(hubs.createdById, userId), isNotNull(hubs.deletedAt)));
 
-  await createAuditEntry(db, {
-    userId: adminId,
-    action: 'user.deleted',
-    targetType: 'user',
-    targetId: userId,
-    metadata: { username: user.username },
-    ipAddress: ip,
+    // Written before the delete and in the same transaction: a self-delete's
+    // actor is the account being removed, so `audit_logs.user_id` is cleared by
+    // `ON DELETE SET NULL` and the entry stays. Written after, as it was until
+    // session 262, it failed on the foreign key once the delete had committed.
+    await tx.insert(auditLogs).values({
+      userId: adminId,
+      action: 'user.deleted',
+      targetType: 'user',
+      targetId: userId,
+      metadata: { username: user.username, self: adminId === userId },
+      ipAddress: ip ?? null,
+    });
+
+    await tx.delete(users).where(eq(users.id, userId));
   });
 }
 

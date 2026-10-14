@@ -1,6 +1,6 @@
 {
   "name": "@commonpub/protocol",
-  "version": "0.15.4",
+  "version": "0.15.5",
   "type": "module",
   "description": "ActivityPub federation protocol — HTTP signatures, WebFinger, NodeInfo",
   "license": "AGPL-3.0-or-later",
@@ -51,7 +51,7 @@
   "dependencies": {
     "@commonpub/config": "workspace:*",
     "jose": "^6.2.1",
-    "undici": "^7.29.0",
+    "undici": "^7.30.0",
     "zod": "^4.3.6"
   },
   "devDependencies": {

@@ -20,6 +20,7 @@ export {
   leaveHub,
   getMember,
   listMembers,
+  hubRoleSeesFullRoster,
   listJoinRequests,
   approveJoinRequest,
   denyJoinRequest,

@@ -30,7 +30,8 @@ const BASE = process.env.SMOKE_BASE || 'http://localhost:3000';
 const HEALTH_TRIES = 40; // × 3s = 120s startup window
 const ROUTE_TRIES = 4; //   × 3s = 12s per route once health is up
 const STEP_MS = 3000;
-const CRITICAL_ROUTES = ['/', '/api/health'];
+// /contests too: a contest page can SSR-fail while the homepage renders.
+const CRITICAL_ROUTES = ['/', '/api/health', '/contests'];
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 

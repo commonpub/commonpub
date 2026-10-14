@@ -1,4 +1,4 @@
-import { listMembers, listRemoteMembers, getHubBySlug } from '@commonpub/server';
+import { listMembers, listRemoteMembers, getHubBySlug, hubRoleSeesFullRoster } from '@commonpub/server';
 import type { HubMemberItem, RemoteHubMember } from '@commonpub/server';
 import { z } from 'zod';
 
@@ -13,15 +13,22 @@ export default defineEventHandler(async (event): Promise<{ items: HubMemberItem[
   const user = getOptionalUser(event);
   const { slug } = parseParams(event, { slug: 'string' });
   const query = parseQueryParams(event, membersQuerySchema);
+  const isPlatformAdmin = hasPermission(event, 'admin.access');
   const community = await getHubBySlug(db, slug, user?.id, {
-    asPlatformAdmin: hasPermission(event, 'admin.access'),
+    asPlatformAdmin: isPlatformAdmin,
   });
   if (!community) {
     throw createError({ statusCode: 404, statusMessage: 'Community not found' });
   }
   requireHubReadAccess(event, community);
 
-  const result = await listMembers(db, community.id, query);
+  // Members whose profile this viewer may not see are left out, except for the
+  // people who moderate the roster (session 262).
+  const result = await listMembers(db, community.id, {
+    ...query,
+    viewerId: user?.id,
+    seesEveryone: isPlatformAdmin || hubRoleSeesFullRoster(community.currentUserRole),
+  });
 
   // Include remote followers if hub federation is enabled
   if (config.features.federation && config.features.federateHubs) {

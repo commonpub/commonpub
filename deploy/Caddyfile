@@ -51,6 +51,11 @@ commonpub.io {
 	}
 
 	handle {
+		# Compress pages, scripts, styles and JSON (about 5x on the wire). Scoped
+		# to this catch-all so the SSE and inbox handles above stay byte-for-byte
+		# as they were: event streams must flush unbuffered.
+		encode zstd gzip
+
 		# Cap body size on the catch-all so an attacker can't tie up an
 		# upstream worker by streaming a multi-GB body to a non-upload
 		# route. 128MB matches the largest legitimate `attachment` upload

@@ -478,7 +478,7 @@ export const contests = pgTable('contests', {
   visibleToRoles: jsonb('visible_to_roles').$type<string[]>(),
   createdById: uuid('created_by_id')
     .notNull()
-    .references(() => users.id, { onDelete: 'cascade' }),
+    .references(() => users.id, { onDelete: 'restrict' }),
   communityVotingEnabled: boolean('community_voting_enabled').default(false).notNull(),
   entryCount: integer('entry_count').default(0).notNull(),
   /** Per-contest email copy override (session 232). Organizer-only; never

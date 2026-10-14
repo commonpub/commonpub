@@ -49,7 +49,7 @@ export const hubs = pgTable('hubs', {
   categories: jsonb('categories').$type<string[]>(),
   createdById: uuid('created_by_id')
     .notNull()
-    .references(() => users.id, { onDelete: 'cascade' }),
+    .references(() => users.id, { onDelete: 'restrict' }),
   isOfficial: boolean('is_official').default(false).notNull(),
   memberCount: integer('member_count').default(0).notNull(),
   postCount: integer('post_count').default(0).notNull(),
@@ -155,8 +155,7 @@ export const hubBans = pgTable('hub_bans', {
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
   bannedById: uuid('banned_by_id')
-    .notNull()
-    .references(() => users.id, { onDelete: 'cascade' }),
+    .references(() => users.id, { onDelete: 'set null' }),
   reason: text('reason'),
   expiresAt: timestamp('expires_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),

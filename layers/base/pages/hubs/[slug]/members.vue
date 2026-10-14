@@ -39,7 +39,7 @@ interface BanItem {
   expiresAt: string | null;
   createdAt: string;
   user: { id: string; username: string; displayName: string | null; avatarUrl: string | null };
-  bannedBy: { username: string; displayName: string | null };
+  bannedBy: { username: string; displayName: string | null } | null;
 }
 
 // The bans endpoint is manager-only (403 otherwise), so fetch it lazily once

@@ -13,8 +13,7 @@ export const instanceSettings = pgTable('instance_settings', {
 export const auditLogs = pgTable('audit_logs', {
   id: uuid('id').defaultRandom().primaryKey(),
   userId: uuid('user_id')
-    .notNull()
-    .references(() => users.id, { onDelete: 'cascade' }),
+    .references(() => users.id, { onDelete: 'set null' }),
   action: varchar('action', { length: 64 }).notNull(),
   targetType: varchar('target_type', { length: 64 }).notNull(),
   targetId: varchar('target_id', { length: 255 }),
