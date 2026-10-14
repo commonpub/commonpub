@@ -10,13 +10,14 @@
 Re-check before trusting: `npm view @commonpub/<pkg> version`,
 `curl https://<instance>/api/features`, `gh run list --branch main`.
 
-**Published (all 15 match `main`, no unreleased source since `fd20a3f4`):** schema
-**0.67.0** · config **0.41.0** · protocol **0.15.4** · auth **0.13.4** · ui **0.16.1** ·
-editor **0.17.3** · explainer **0.9.2** · learning **0.5.6** · infra **0.23.1** ·
-server **2.139.0** · docs **0.6.3** · test-utils **0.5.18** · persona **0.2.1** ·
-theme-studio **0.7.0** · layer **0.140.0**.
+**Published (all 15 match `main`):** schema **0.68.0** · config **0.41.0** ·
+protocol **0.15.5** · auth **0.13.5** · ui **0.16.1** · editor **0.17.4** ·
+explainer **0.9.3** · learning **0.5.7** · infra **0.24.0** · server **2.140.0** ·
+docs **0.6.4** · test-utils **0.5.19** · persona **0.2.1** · theme-studio **0.7.0** ·
+layer **0.141.0** (2026-10-14, session 262).
 
-**Live:** all three on layer **0.140.0**, healthy, migrations through **0049**.
+**Live:** all three on layer **0.141.0**, healthy, migrations through **0050**, verified
+after the swap (smoke, 404s, compression, preview cards, deveco's contest pages).
 `/api/features` exposes **52** booleans (47 top level + 5 `identity.*`, all identity OFF
 everywhere). ON: commonpub.io **29**, deveco.io **44**, heatsynclabs.io **21**.
 `contestBroadcast` ON only on deveco; `layoutEngine` ON only on commonpub.io.
@@ -29,32 +30,40 @@ though its DB `theme.default` is still `cpub-custom-captured-2026-06-11`.
 **Open PR:** #92 (hand-picked announcement audience). Mergeable with no conflicts, CI is
 from an old base. Changes `@commonpub/schema`, so merging it moves 8 packages.
 
+## Session 262 release (2026-10-14), live on all three
+
+Account deletion no longer cascades through shared contests/hubs/docs/events/paths/
+products (409 + `ON DELETE RESTRICT`, migration 0050); bans and audit entries outlive
+their author; suspended profiles hidden; hub rosters and attendee lists honour profile
+visibility; a failed inbound activity is retried; missing pages 404; every page has an
+absolute preview image (each instance ships its own `og-default.png`); deploys wait for
+CI, smoke can fail, `:previous` kept for rollback; Caddy compression on commonpub.io and
+deveco.io via `deploy/sync-caddyfile.sh`; heatsync has CI for the first time; sharp
+0.35.5, undici 7.30.0. Details: `docs/sessions/262-full-audit-handoff.md`.
+
+**Rollback**, if ever needed: on the droplet, `docker tag <app>:previous <app>:latest`
+and recreate the app service (the exact command is printed by a failed smoke). Migration
+0050 only changes constraints; the previous code runs fine against it.
+
 ## Act on these first
 
 1. **deveco.io bot signups.** The 30 newest of 457 accounts are random-letter bots
    (2026-09-25 onward); 139 of 457 verified. deveco sends real mail, so this risks Resend
-   sender reputation. Nothing in `docs/plans/fake-account-handling.md` is built. Bulk
-   suspend them and add signup friction (disposable-domain block, Turnstile).
-2. **Account self-delete cascades.** Contests, hubs, docs, products, learning paths and
-   events are `onDelete: 'cascade'` on their creator. An organizer deleting their own
-   account deletes the live contest and its entries. Self-delete also 500s after commit
-   (audit-row FK), so GDPR erasure is broken through the UI.
-3. **Suspension does not hide a profile**, and hub rosters, event attendees, contest
-   entrant lists and WebFinger still ignore `profileVisibility` (session 261 covered
-   `/api/users/*`, people lists, AP actor, followers, sitemap, v1 API).
-4. **Compression off** on commonpub.io and deveco.io: add `encode zstd gzip` to
-   `deploy/Caddyfile` and `deveco-io/deploy/Caddyfile` (~5x on HTML/JS).
-5. **`/og-default.png` is 404 on all three** (social preview fallback for hubs, profiles,
-   paths, cover-less posts); unknown pages return **200** instead of 404.
-6. **Inbound federation can drop activities**: the inbox marks an id seen before
-   processing and answers 400 on any handler error, so the sender never retries.
-7. **Deploy gates:** monorepo deploy not gated on tests; deveco deploy has no `pipefail`
-   and a health check that cannot fail; heatsync has no CI.
-8. **Rotate the crates.io token** (operator; `.dockerignore` is fixed, rotation is not
+   sender reputation. Nothing in `docs/plans/fake-account-handling.md` is built. **The
+   owner wants to review the evidence before any account is suspended or deleted**;
+   low priority for now.
+2. **deveco's contest is in judging and its public judge list is empty**: no judge has
+   accepted an invitation (the public list shows accepted judges only). Check the panel.
+3. **Rotate the crates.io token** (operator; `.dockerignore` is fixed, rotation is not
    visible from code).
+4. The remaining audit P1s: federation trust (N2/N3), unsanitised JSON on write
+   (P1-6/7), forged federated DM sender (P1-3), password reset deliverability (N1),
+   slug oracle (N7), public stats (P1-4), search index (P1-21), message pagination
+   (P1-22), contrast (P1-24/25).
 
 P1 tally from the 08-23 + 08-30 audits, re-verified in code on 2026-10-13: **47 total, 6
-fixed, 6 partial, 35 open.** List and evidence in the 2026-10-13 report, section 3.
+fixed, 6 partial, 35 open**; session 262 then closed P1-1 (suspension, rosters), P1-5,
+P1-10/11/14/16, P1-20, N5, N12, N13, N14 and the undici half of N9. List and evidence in the 2026-10-13 report, section 3.
 
 ## Standing gotchas worth keeping
 
@@ -72,8 +81,16 @@ fixed, 6 partial, 35 open.** List and evidence in the 2026-10-13 report, section
   served `__NUXT__.config.public` before doubting a deploy.
 - **`pnpm audit` in CI is `continue-on-error`.** sharp 0.34.5 and undici `<7.29.1` are
   real runtime advisories still open.
-- **heatsync has no PR CI.** Verify fork changes with `npm install && npm run build &&
-  npx nuxi typecheck` in a scratch copy before merging.
+- **All three deploys wait for CI on the same commit** (session 262). A red or flaky CI
+  run blocks the deploy: re-run CI, then re-run the deploy workflow.
+- **The Caddyfile now ships with the deploy**, applied by `deploy/sync-caddyfile.sh` only
+  when the live file is a version the repo shipped (`deploy/caddyfile-known.sha256`). A
+  hand-edited live file is left alone with a warning: reconcile it, then add its sha256.
+- **Keep deploy SSH connections to one copy + one command.** A second scp right after
+  the first was reset by the droplet (2026-10-14).
+- **Upgrading a native package in place can leave dangling pnpm links** under
+  `node_modules/.pnpm/node_modules/@img` that break the Nitro build locally only; unlink
+  the dangling ones. CI and Docker install fresh and never see them.
 
 ---
 

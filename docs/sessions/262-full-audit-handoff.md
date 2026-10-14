@@ -45,7 +45,25 @@ accounts were left alone for the same reason.
 - Owned shared things block the delete rather than being reassigned automatically: no
   ownership silently changes hands during a live contest.
 
-**Verification**: see PR description (new tests mutation-checked; full suite; migration on
+**Release (2026-10-14), live on all three, verified after each swap**
+- Published: schema 0.68.0, protocol 0.15.5, infra 0.24.0, docs 0.6.4, auth 0.13.5,
+  editor 0.17.4, explainer 0.9.3, learning 0.5.7, test-utils 0.5.19, server 2.140.0,
+  layer 0.141.0 (rc.1 checked on deveco #46 and heatsync #42 first).
+- commonpub.io (#98 squash 56ea38ac, then d7786218), deveco.io (#46, 82e57a3),
+  heatsynclabs.io (#42, c57b307). Each: CI gate passed, migrate 0050 succeeded, smoke
+  passed, Caddyfile synced (commonpub, deveco) or already current (heatsync).
+- The first commonpub deploy failed safely: a second scp right after the image copy was
+  reset by the droplet during the SSH handshake; nothing was loaded. The sync files now
+  ride in the same scp as the image (d7786218, and in both forks before they merged).
+- Found while testing: a fatal createError on the server logs every mistyped contest URL
+  as a request error, so the contest/event 404 is fatal only in the browser.
+- deveco's contest (judging, 22 entries) checked after the swap: page 200, judging portal
+  redirects signed-out visitors, registrant and export routes 401. Its public judge list
+  is empty: no judge has accepted yet (pre-existing, flagged to the owner).
+- deveco's `.dockerignore` now excludes `.env*` and local secrets (a workstation build
+  would have copied them into an image layer; CI checkouts never had them).
+
+**Verification before release**: see PR #98 description (new tests mutation-checked; full suite; migration on
 real Postgres with seeded data; built app against a dev-DB copy; real Caddyfile in front;
 browser run at 390px; sharp on real files; production Docker image built).
 
